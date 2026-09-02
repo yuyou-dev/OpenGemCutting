@@ -1,0 +1,28 @@
+name: 功能建议 · Feature idea
+description: 描述工艺场景与希望达到的结果
+title: "[Idea] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 你想实现什么 · Desired outcome
+      description: 请描述用户结果，不必先设计代码结构。
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: 切磨场景 · Faceting workflow
+      description: 说明分度、区域、操作步骤或报告场景。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 如何验收 · Acceptance criteria
+  - type: textarea
+    id: references
+    attributes:
+      label: 补充材料 · References
+      description: 可附可公开的切型、草图或同类工具链接。

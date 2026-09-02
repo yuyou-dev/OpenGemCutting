@@ -1,0 +1,37 @@
+name: Bug 报告 · Bug report
+description: 报告可复现的界面、几何、文件或报告问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 发生了什么 · What happened?
+      description: 请简洁描述问题，以及它对切磨流程的影响。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 · Steps to reproduce
+      placeholder: "1. 新建设计\n2. 添加亭部 CUT…\n3. …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望与实际 · Expected vs actual
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: 可公开样本 · Public sample
+      description: 可附去除私人信息后的 JSON、截图或控制台错误。请勿上传密钥或私有文件。
+  - type: input
+    id: environment
+    attributes:
+      label: 环境 · Environment
+      placeholder: "macOS 15 / Chrome 140 / Node 20.19"
+    validations:
+      required: true

@@ -1,0 +1,160 @@
+<div align="center">
+  <img src="public/brand/logo-header.webp" alt="SUVA 切磨工作台" width="260" />
+  <h1>OpenGemCutting · Facet 96</h1>
+  <p><strong>面向 96 分度切磨工艺的参数化宝石 3D 工作台</strong></p>
+  <p>A browser-based parametric gemstone faceting workbench for the 96-index system.</p>
+  <p>
+    <a href="#快速开始--quick-start">快速开始</a> ·
+    <a href="#关键能力--features">关键能力</a> ·
+    <a href="#操作指南--workflow">操作指南</a> ·
+    <a href="#架构与代码地图--architecture">架构</a> ·
+    <a href="#english-overview">English</a>
+  </p>
+</div>
+
+---
+
+![OpenGemCutting Facet 96 工作台](docs/assets/opengemcutting-workbench.jpg)
+
+## 产品定位 · What it is
+
+OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的本地开源工程：用参数化 `CUT STACK` 描述宝石切割，以 React 驱动编辑界面，以 p5.js WebGL 呈现实时几何，并导出可继续编辑的 JSON 与面向工艺执行的 PDF 报告。
+
+它关注切磨设计中的可解释性：保存的切层是几何唯一数据源，每个面都能追溯到区域、行业角、96 分度索引、深度和裁切平面。当前版本无需后端、账号或 API Key，数据留在浏览器与本地文件中。
+
+## 关键能力 · Features
+
+- **真实参数化裁切**：凸多面体半空间裁切，旋转重复与镜像轨道都参与最终几何。
+- **96 分度工艺模型**：整数索引、行业角、切入深度、自定义索引和冠/腰/亭区域语义。
+- **CUT 四态工作流**：空闲、新建、编辑、群组变换由单一事件状态机管理，取消和 `Escape` 路径明确。
+- **精密 3D 操作**：实体/X-ray、顶/正/侧/透视相机、角度桥架、深度杆和同心分度环。
+- **非破坏式文档历史**：图层显隐、重排、重命名、撤销/重做与 JSON 往返保持参数语义。
+- **工艺输出**：A4 矢量优先 PDF，包含多视图、工程尺寸、分层参数与真实刻面高亮。
+- **完整交付链路**：常规 Vite 客户端与 OpenAI Sites worker 产物由同一构建命令生成并测试。
+
+## 快速开始 · Quick start
+
+需要 [Node.js](https://nodejs.org/) **20.19 或更高版本**。
+
+```bash
+git clone https://github.com/yuyou-dev/OpenGemCutting.git
+cd OpenGemCutting
+npm ci
+npm run dev
+```
+
+开发服务只监听 `127.0.0.1`，并让操作系统分配高位临时端口。打开终端打印的 `Local` 地址即可；无需环境变量。
+
+生产构建与本地预览：
+
+```bash
+npm run build
+npm run preview
+```
+
+## 操作指南 · Workflow
+
+1. 从 `CUT STACK` 底部的 `+` 开始一个新 CUT，选择冠部、腰部或亭部。
+2. 设置行业角、切入深度、基础索引、重复数与镜像轴偏移；主切割面和 Gizmo 会同步预览。
+3. 保存后，图层按堆栈顺序参与布尔裁切。选择既有图层可编辑，拖动非台面层可重排。
+4. 使用顶部命令条切换相机与实体/X-ray；点击切型名称可内联改名。
+5. 在“文件”菜单导入/导出 JSON 或生成 PDF；“更多工具”中可打开历史、刻面台账、设置和帮助。
+6. 冠部/亭部整体变换可在一次预览中组合 `ΔZ`、腰线比例与整数分度旋转，并作为一步历史提交。
+
+键盘约定：名称编辑按 `Enter` 保存、`Escape` 取消；任何活动 CUT 会话也可按 `Escape` 安全退出。
+
+### 实体与 X-ray · Solid and X-ray
+
+| 实体裁切预览 | X-ray 穿透检查 |
+| --- | --- |
+| ![实体模式下的冠部 CUT 与 Gizmo](docs/assets/opengemcutting-workbench.jpg) | ![X-ray 模式下的重复切面与内部结构](docs/assets/opengemcutting-xray.jpg) |
+
+## 架构与代码地图 · Architecture
+
+```text
+src/
+  App.jsx                       文档、历史、CUT 会话与导出编排
+  components/
+    GemViewport.jsx             p5.js WebGL、相机、Gizmo 与命中
+    CutStack.jsx                参数化图层与会话入口
+    CutComposer.jsx             分区切割指令
+  domain/
+    cutSession.js               CUT 四态事件状态机
+    faceting.js                 96 分度、图层、序列化与命令
+    geometry.js                 凸多面体裁切与测量
+    meet.js                     无 UI 依赖的点/棱构造求解
+  report/pdfReport.js           A4 矢量技术报告
+scripts/
+  run-vite-local.mjs            127.0.0.1 + 临时端口启动器
+  prepare-sites-build.mjs       Sites 构建整理
+worker/index.js                 Sites 服务入口
+tests/sites-worker.test.mjs     Sites 产物契约测试
+```
+
+设计与领域不变量见 [`design-system.md`](design-system.md) 和 [`AGENTS.md`](AGENTS.md)。前者面向界面实现，后者记录几何、状态机和验收契约。
+
+## 几何约定 · Geometry conventions
+
+- 凸体内部满足 `normal · point <= offset`。
+- 世界坐标 `+Z` 朝冠部；冠部几何 β 为正、腰部为 `0`、亭部为负。
+- 内部水平索引为 `0..95`，界面把 `0` 显示为行业常用的 `96`。
+- 保存的 `CUT STACK` 是几何唯一数据源；每个 `T/C/G/P` 图层是一份不可变参数快照，并按列表顺序应用一次。
+- 新文档以边长 `2.000`、轴心在原点的立方体为毛坯，包含固定 `T1 台面` 与可编辑 `G1 腰部` 预形。
+- N 折旋转重复生成 N 个有效裁切面；非零镜像偏移可增加第二组 N 面轨道，重合面会去重。
+- JSON 保留全精度；界面中的舍入仅用于显示。旧格式导入时会重新解析几何以维持兼容。
+
+修改几何前请先阅读 `src/domain/*.test.js` 与 `AGENTS.md` 中的领域约束。
+
+## 测试与质量 · Testing
+
+```bash
+npm run check        # 公开内容扫描 + 领域/报告测试 + 构建 + Sites 测试
+npm test             # Node.js 领域与 PDF 测试
+npm run test:sites   # Sites 产物契约
+npm run build        # dist/client + dist/server + hosting metadata
+npm run report:sample
+```
+
+`npm run check` 是提交前的统一门禁。PDF 样本写入被忽略的 `output/pdf/`；构建产物写入被忽略的 `dist/`。
+
+## 浏览器要求 · Browser support
+
+建议使用最新版 Chrome、Edge 或 Safari 桌面版，并启用硬件加速与 WebGL。界面为桌面精密工具设计，推荐宽度不低于 `1280px`；移动端可打开，但不属于当前主要编辑目标。Firefox/WebGL 环境可参与测试，但当前尚未列入正式支持矩阵。
+
+## Roadmap
+
+- 扩展可复用切型模板与示例库。
+- 增强 meet-point / meet-edge 的工艺辅助与诊断。
+- 增加 JSON schema、跨版本迁移夹具和浏览器回归覆盖。
+- 完善打印标注、报告可配置项与多语言界面。
+- 在几何约束稳定后评估更多分度轮与非凸工作流；当前不会把实验性仿真代码混入稳定基线。
+
+Roadmap 表达方向，不构成时间承诺。建议先用 Issue 说明工艺场景与预期结果。
+
+## 贡献 · Contributing
+
+欢迎提交错误复现、工艺案例、文档改进和小而聚焦的代码变更。开始前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)、[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) 与 [`SECURITY.md`](SECURITY.md)。
+
+核心要求：保持 `CUT STACK` 的单一数据源语义、同步更新测试、避免无必要依赖，不要提交密钥、个人路径、私有主机或内部仓库信息。可见界面变更请附真实截图。
+
+维护者发布前请使用 [`docs/PUBLISHING.md`](docs/PUBLISHING.md) 完成品牌资产、提交身份、远程地址与安全渠道检查。
+
+## 许可证 · License
+
+OpenGemCutting 的代码和文档以 [MIT License](LICENSE) 发布。SUVA、切磨工作台、Facet 96 的名称与标识仍受各自品牌和商标权益约束；MIT 许可不授予商标使用权，详见 [`TRADEMARKS.md`](TRADEMARKS.md)。
+
+内置 Noto Serif SC 字体适用 SIL Open Font License 1.1，见 [`public/fonts/OFL.txt`](public/fonts/OFL.txt)。npm 依赖保留各自许可证；详情见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。品牌名称与标识不因软件许可证而自动获得商标授权。
+
+## 品牌与致谢 · Brand & acknowledgements
+
+**SUVA / 切磨工作台 / Facet 96** 是本项目保留的正确产品标识。项目名称 OpenGemCutting 用于开源工程；请勿将 SUVA 拼写为 “SUWA”。
+
+感谢 [React](https://react.dev/)、[p5.js](https://p5js.org/)、[Vite](https://vite.dev/)、[pdf-lib](https://pdf-lib.js.org/) 与 Tabler Icons 社区，以及宝石切磨实践者对 96 分度工艺知识的长期积累。
+
+## English overview
+
+OpenGemCutting is the local open-source preparation of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and exports round-trippable JSON plus vector-first PDF instructions.
+
+Install Node.js 20.19+, run `npm ci`, then `npm run dev`. The server binds only to `127.0.0.1` on an OS-assigned high port. Run `npm run check` before contributing. The editor is desktop-first and works best in a current Chromium or Safari browser with WebGL enabled.
+
+The code and documentation are available under the [MIT License](LICENSE). SUVA, Gem Cutting Workbench, and Facet 96 names and marks are governed separately; see [`TRADEMARKS.md`](TRADEMARKS.md). Code, issue, and documentation contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md).
