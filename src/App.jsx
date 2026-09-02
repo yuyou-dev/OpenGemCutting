@@ -1023,7 +1023,11 @@ export function App() {
       <section className={sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}>
         <aside className="control-sidebar" aria-label="切磨参数侧栏">
           <div className="workspace-brand">
-            <img className="brand-logo" src="/brand/logo-header.webp" alt="苏哇品牌标志" />
+            <img
+              className="brand-logo"
+              src={`${import.meta.env.BASE_URL}brand/logo-header.webp`}
+              alt="苏哇品牌标志"
+            />
             <div className="brand-copy">
               <span className="brand-title-line"><strong>切磨工作台</strong><em>Alpha</em></span>
               <span className="brand-product-line">SUVA · FACET 96 专业版</span>

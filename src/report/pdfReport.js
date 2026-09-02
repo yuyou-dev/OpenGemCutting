@@ -539,8 +539,9 @@ export async function createFacetReportPdfBytes(input, resources) {
 
 export async function createFacetReportPdf(input) {
   const [regularBytes, boldBytes, logoBytes] = await Promise.all([
-    fetchBytes("/fonts/NotoSerifSC-Light.ttf"), fetchBytes("/fonts/NotoSerifSC-SemiBold.ttf"),
-    fetchBytes("/brand/logo-report.png").catch(() => null),
+    fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-Light.ttf`),
+    fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-SemiBold.ttf`),
+    fetchBytes(`${import.meta.env.BASE_URL}brand/logo-report.png`).catch(() => null),
   ]);
   const bytes = await createFacetReportPdfBytes(input, { regularBytes, boldBytes, logoBytes });
   return new Blob([bytes], { type: "application/pdf" });
