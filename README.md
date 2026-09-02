@@ -4,6 +4,7 @@
   <p><strong>面向 96 分度切磨工艺的参数化宝石 3D 工作台</strong></p>
   <p>A browser-based parametric gemstone faceting workbench for the 96-index system.</p>
   <p>
+    <a href="https://yuyou-dev.github.io/OpenGemCutting/"><strong>Live Demo</strong></a> ·
     <a href="#快速开始--quick-start">快速开始</a> ·
     <a href="#关键能力--features">关键能力</a> ·
     <a href="#操作指南--workflow">操作指南</a> ·
@@ -15,6 +16,12 @@
 ---
 
 ![OpenGemCutting Facet 96 工作台](docs/assets/opengemcutting-workbench.jpg)
+
+## 在线体验 · Live demo
+
+打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON 与 PDF 由浏览器本地导入或生成。
+
+建议使用启用 WebGL 与硬件加速的最新版 Chrome、Edge 或 Safari 桌面版，并使用不低于 `1280px` 的窗口宽度。在线演示与 `main` 分支保持同步，由 GitHub Pages 自动构建发布。
 
 ## 产品定位 · What it is
 

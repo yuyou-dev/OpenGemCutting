@@ -14,6 +14,7 @@
 ```bash
 npm ci
 npm run check
+npm run build:pages
 git remote -v              # 预期为空，直到维护者明确选择远程
 git status --short --branch
 ```
@@ -44,3 +45,12 @@ git push -u origin main
 ```
 
 发布前再次确认 `npm run check` 通过、`git status` 干净、远程 URL 正确。远程创建与 push 必须由维护者明确授权。
+
+## 5. Live demo
+
+`.github/workflows/pages.yml` 在 `main` 更新后构建 `/OpenGemCutting/` 子路径并部署 GitHub Pages。发布后验证：
+
+- `https://yuyou-dev.github.io/OpenGemCutting/` 可访问；
+- JS、CSS、字体和品牌资源没有 404；
+- CUT 新建、实体/X-ray 和文件导出入口正常；
+- 浏览器控制台无错误。
