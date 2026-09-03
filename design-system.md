@@ -91,4 +91,4 @@
 - 操作手册与单个切型的技术报告职责分开：技术报告服务工艺交付，操作手册服务产品学习与培训。
 - 手册固定使用 A4 纵向、真实工作台截图、可搜索中文字体、黑色发丝线、粉色章节标识与绿色提示块；用目录、连续章节编号、截图标注、任务步骤、局部说明和检查表建立阅读节奏，不得退化为平均分配的“整张截图加短说明”。
 - 光学仿真图例必须先载入经过验证的完成切型，并至少提供透视与一个正交观察视图；不得再使用默认毛坯充当光学成果图。
-- 手册源截图保存在 `docs/manual/screenshots/`，输出固定为 `public/manual/facet-96-operation-manual.pdf`，版本读取 `package.json`；运行 `npm run manual:build` 重新生成。
+- 手册源截图保存在 `docs/manual/screenshots/`，至少使用 2× 像素密度，必须完整呈现整页或功能区；排版使用等比完整适配，不得为填满画框裁掉图标、控件或面板边界。输出固定为 `public/manual/facet-96-operation-manual.pdf`，版本读取 `package.json`；运行 `npm run manual:build` 重新生成。
