@@ -91,10 +91,12 @@ test("converts tooth index to azimuth", () => {
 
 test("keeps industry angles positive while signed beta follows region", () => {
   assert.equal(industryAngleToBetaDeg(FACET_REGION.CROWN, 35), 55);
+  assert.equal(industryAngleToBetaDeg(FACET_REGION.CROWN, 35.12), 54.88);
   assert.equal(industryAngleToBetaDeg(FACET_REGION.GIRDLE, 90), 0);
   assert.equal(industryAngleToBetaDeg(FACET_REGION.PAVILION, 42), -48);
   assert.equal(betaDegToIndustryAngle(FACET_REGION.CROWN, 55), 35);
   assert.equal(betaDegToIndustryAngle(FACET_REGION.PAVILION, -48), 42);
+  assert.equal(betaDegToIndustryAngle(FACET_REGION.CROWN, 54.88), 35.12);
   assert.throws(
     () => industryAngleToBetaDeg(FACET_REGION.GIRDLE, 89),
     /must use an industry angle of 90/,
@@ -363,7 +365,6 @@ test("exports and imports validated JSON with explicit resolved facet data", () 
   const json = exportFacetingJSON(document);
   const restored = importFacetingJSON(json);
 
-  assert.equal(document.$schema, "urn:opengemcutting:facet-96:document:v1");
   assert.deepEqual(restored, document);
   assert.equal(validateFacetingDocument(restored).valid, true);
 
@@ -376,16 +377,6 @@ test("exports and imports validated JSON with explicit resolved facet data", () 
     () => importFacetingJSON(JSON.stringify(invalid)),
     FacetingDocumentValidationError,
   );
-});
-
-test("imports the private-era schema identifier and migrates it to the public URN", () => {
-  const legacy = createFacetingDocument({ name: "Legacy schema" });
-  legacy.$schema = "https://schemas." + "openai.local/facet-96/document-v1.schema.json";
-
-  const restored = importFacetingJSON(JSON.stringify(legacy));
-
-  assert.equal(restored.$schema, "urn:opengemcutting:facet-96:document:v1");
-  assert.equal(validateFacetingDocument(restored).valid, true);
 });
 
 test("imports legacy directional-support planes by recalculating their offsets", () => {

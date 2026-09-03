@@ -1,6 +1,6 @@
-# OpenGemCutting first-publication checklist
+# OpenGemCutting release checklist
 
-本文件是维护者的发布检查表。OpenGemCutting 由私有 Facet 96 主项目统一维护，并通过独立公开仓库发布。
+本文件是维护者的重复发布检查表。OpenGemCutting 是独立的公开发行仓库；每次版本更新都必须重新确认公开边界、构建产物与线上体验。
 
 ## 1. Legal and identity checks
 
@@ -15,13 +15,18 @@
 npm ci
 npm run check
 npm run build:pages
-git remote -v              # 预期为空，直到维护者明确选择远程
+git remote -v              # 只允许指向公开 OpenGemCutting 仓库
 git status --short --branch
 ```
 
-检查 README、Issue labels 与维护者联系方式。重新打开 `docs/assets/` 中的真实运行截图，确认它们与发布版本一致且不含私人信息。
+检查 README、Issue labels 与维护者联系方式。重新打开 `docs/assets/` 中的真实运行截图，确认它们与发布版本一致且不含私人信息。确认以下公开产物存在：
 
-## 3. Create the first local commit
+- `public/presets/catalog.json` 与全部引用的规范化文档、四视图；
+- `public/manual/facet-96-operation-manual.pdf`；
+- README 顶部 Live Demo 与操作手册链接；
+- `package.json`、手册页脚与发布 tag 的版本号一致。
+
+## 3. Create a release commit
 
 仅在确认公开提交身份后执行：
 
@@ -29,28 +34,27 @@ git status --short --branch
 git config user.name "yuyou-dev"
 git config user.email "34769581+yuyou-dev@users.noreply.github.com"
 git add .
-git commit -m "chore: prepare OpenGemCutting public baseline"
+git commit -m "release: OpenGemCutting vX.Y.Z"
 ```
 
-不要从原私有仓库复制 `.git` 历史，也不要把实验或仿真分支合入此基线。
+不要复制其他仓库的 `.git`、内部文档、个人路径、私有远程或未经确认的实验资产。公开提交保持独立、可审查和可回滚。
 
-## 4. Verify the public remote
-
-首次发布使用 GitHub 公开仓库：
+## 4. Verify the public remote and publish
 
 ```bash
-git remote add origin https://github.com/yuyou-dev/OpenGemCutting.git
 git remote -v
 git push -u origin main
+git push origin vX.Y.Z
 ```
 
-发布前再次确认 `npm run check` 通过、`git status` 干净、远程 URL 正确。远程创建与 push 必须由维护者明确授权。
+发布前再次确认 `npm run check` 通过、`git status` 干净、远程 URL 正确。发布后保持仓库 About 区域的 Website 指向 Live Demo。
 
 ## 5. Live demo
 
 `.github/workflows/pages.yml` 在 `main` 更新后构建 `/OpenGemCutting/` 子路径并部署 GitHub Pages。发布后验证：
 
 - `https://yuyou-dev.github.io/OpenGemCutting/` 可访问；
+- `https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf` 可下载且为当前版本；
 - JS、CSS、字体和品牌资源没有 404；
-- CUT 新建、实体/X-ray 和文件导出入口正常；
+- 启动品牌标志、预设四视图、CUT 新建、实体/X-ray、光学仿真、ASC 预检和文件导出入口正常；
 - 浏览器控制台无错误。

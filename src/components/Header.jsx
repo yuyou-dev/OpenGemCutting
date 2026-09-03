@@ -5,6 +5,7 @@ import {
   IconCheck,
   IconChevronDown,
   IconCube,
+  IconDiamond,
   IconDeviceFloppy,
   IconDots,
   IconEye,
@@ -15,8 +16,10 @@ import {
   IconFolder,
   IconHelpCircle,
   IconHistory,
+  IconLayoutGrid,
   IconSettings,
   IconTable,
+  IconX,
 } from "@tabler/icons-react";
 
 function IconButton({ label, children, onClick, disabled = false }) {
@@ -41,6 +44,14 @@ const VIEWS = [
   ["side", "侧视"],
 ];
 
+const OPTICS_VIEWS = [
+  ["perspective", "透视"],
+  ["top", "台面"],
+  ["bottom", "亭部"],
+  ["front", "正视"],
+  ["side", "侧视"],
+];
+
 function runMenuAction(event, action) {
   action();
   event.currentTarget.closest("details")?.removeAttribute("open");
@@ -52,8 +63,11 @@ export function Header({
   displayMode,
   onDisplayMode,
   onNew,
+  onOpenPresets,
   onImport,
+  onImportAsc,
   onExport,
+  onExportAsc,
   onExportPdf,
   onUndo,
   onRedo,
@@ -66,8 +80,14 @@ export function Header({
   projectName,
   onProjectNameChange,
   facetCount,
+  opticsActive = false,
+  opticsInspectorOpen = true,
+  onEnterOptics,
+  onOpenOpticsInspector,
+  onExitOptics,
 }) {
-  const activeView = VIEWS.find(([value]) => value === viewMode)?.[1] ?? "透视";
+  const activeView = (opticsActive ? OPTICS_VIEWS : VIEWS)
+    .find(([value]) => value === viewMode)?.[1] ?? "透视";
   const isXray = displayMode === "xray";
   const projectNameInputRef = useRef(null);
   const cancelNameCommitRef = useRef(false);
@@ -92,6 +112,38 @@ export function Header({
     setProjectNameDraft(nextName);
     if (nextName !== projectName) onProjectNameChange(nextName);
   };
+
+  if (opticsActive) {
+    return (
+      <header className={`app-header floating-toolbar is-optics-toolbar${opticsInspectorOpen ? "" : " is-inspector-closed"}`} aria-label="光学仿真工具栏">
+        <div className="optics-view-switch" role="group" aria-label={`光学观察视角，当前${activeView}`}>
+          {OPTICS_VIEWS.map(([value, label]) => (
+            <button
+              type="button"
+              className={viewMode === value ? "is-active" : ""}
+              aria-pressed={viewMode === value}
+              onClick={() => onViewMode(value)}
+              key={value}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="toolbar-project-status is-readonly" title={`${projectName} · ${facetCount} 个面`}>
+          <strong>{projectName}</strong><small>{facetCount} F</small>
+        </div>
+        {!opticsInspectorOpen ? (
+          <button type="button" className="optics-toolbar-button" onClick={onOpenOpticsInspector}>
+            <IconDiamond size={15} stroke={1.7} /><span>光学参数</span>
+          </button>
+        ) : null}
+        <button type="button" className="optics-exit-button" onClick={onExitOptics}>
+          <IconX size={15} stroke={1.9} /><span>退出仿真</span>
+        </button>
+        <span className="optics-live-badge"><i />光学仿真 · 实时</span>
+      </header>
+    );
+  }
 
   return (
     <header className="app-header floating-toolbar" aria-label="工作区工具栏">
@@ -146,17 +198,24 @@ export function Header({
         <small>{facetCount} F</small>
       </div>
 
-      <button
-        type="button"
-        className={`toolbar-render-toggle ${isXray ? "is-xray" : ""}`}
-        aria-pressed={isXray}
-        aria-label={isXray ? "切换为实体显示" : "切换为穿透显示"}
-        onClick={() => onDisplayMode(isXray ? "solid" : "xray")}
-        title={isXray ? "切换为实体显示" : "切换为穿透显示"}
-      >
-        {isXray ? <IconEye size={15} stroke={1.8} /> : <IconEyeOff size={15} stroke={1.8} />}
-        <IconChevronDown className="toolbar-chevron" size={12} stroke={1.7} aria-hidden="true" />
-      </button>
+      <details className="toolbar-menu toolbar-display-menu" name="toolbar-menu">
+        <summary className={isXray ? "is-xray" : ""} title="显示模式" aria-label="显示模式">
+          {isXray ? <IconEye size={15} stroke={1.8} /> : <IconEyeOff size={15} stroke={1.8} />}
+          <IconChevronDown size={12} stroke={1.7} />
+        </summary>
+        <div className="toolbar-menu-popover" role="menu" aria-label="显示模式">
+          <span className="toolbar-menu-label">DISPLAY 显示</span>
+          <button type="button" role="menuitem" className={!isXray ? "is-active" : ""} onClick={(event) => runMenuAction(event, () => onDisplayMode("solid"))}>
+            <IconEyeOff size={15} /><span>实体</span>{!isXray ? <IconCheck size={14} /> : null}
+          </button>
+          <button type="button" role="menuitem" className={isXray ? "is-active" : ""} onClick={(event) => runMenuAction(event, () => onDisplayMode("xray"))}>
+            <IconEye size={15} /><span>穿透 X-RAY</span>{isXray ? <IconCheck size={14} /> : null}
+          </button>
+          <button type="button" role="menuitem" className="is-optics-entry" onClick={(event) => runMenuAction(event, onEnterOptics)}>
+            <IconDiamond size={15} /><span>光学仿真</span>
+          </button>
+        </div>
+      </details>
 
       <details className="toolbar-menu toolbar-file-menu" name="toolbar-menu">
         <summary title="文件" aria-label="文件">
@@ -169,13 +228,25 @@ export function Header({
             <IconFilePlus size={15} />
             <span>新建设计</span>
           </button>
+          <button type="button" role="menuitem" className="is-preset-entry" onClick={(event) => runMenuAction(event, onOpenPresets)}>
+            <IconLayoutGrid size={15} />
+            <span>浏览预设琢型</span>
+          </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImport)}>
             <IconFileUpload size={15} />
             <span>导入 JSON</span>
           </button>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportAsc)}>
+            <IconFileUpload size={15} />
+            <span>导入 GemCad ASC</span>
+          </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExport)}>
             <IconDeviceFloppy size={15} />
             <span>导出 JSON</span>
+          </button>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportAsc)}>
+            <IconDeviceFloppy size={15} />
+            <span>导出 GemCad ASC</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportPdf)}>
             <IconFileTypePdf size={15} />
@@ -213,7 +284,7 @@ export function Header({
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenHelp)}>
             <IconHelpCircle size={15} />
-            <span>帮助</span>
+            <span>帮助与操作手册</span>
           </button>
         </div>
       </details>

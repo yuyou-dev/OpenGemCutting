@@ -4,8 +4,61 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>切磨工作台 · Facet 96</title>
+    <style>
+      .boot-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
+        color: #111;
+        background: #fff;
+        font-family: "Noto Sans SC", Arial, sans-serif;
+        transition: opacity 220ms ease, visibility 220ms ease;
+      }
+      .boot-screen.is-leaving { opacity: 0; visibility: hidden; }
+      .boot-screen__panel { width: min(360px, calc(100vw - 48px)); }
+      .boot-screen__brand { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 14px; }
+      .boot-screen__brand img { width: 48px; height: 48px; display: block; object-fit: contain; }
+      .boot-screen__title { display: flex; align-items: baseline; gap: 8px; }
+      .boot-screen__title strong { font-size: 22px; letter-spacing: -.03em; }
+      .boot-screen__title em { color: #999; font: 9px/1 monospace; font-style: normal; letter-spacing: .12em; }
+      .boot-screen__product { display: block; margin-top: 7px; color: #8d8d89; font: 9px/1 monospace; letter-spacing: .12em; }
+      .boot-screen__status { margin-top: 30px; padding-top: 14px; border-top: 1px solid #c9c9c9; }
+      .boot-screen__status span { display: flex; justify-content: space-between; color: #666; font-size: 10px; }
+      .boot-screen__status small { color: #aaa; font: 9px/1 monospace; letter-spacing: .08em; }
+      .boot-screen__track { height: 2px; margin-top: 10px; overflow: hidden; background: #ededeb; }
+      .boot-screen__track::after {
+        content: "";
+        display: block;
+        width: 38%;
+        height: 100%;
+        background: #ed225d;
+        animation: boot-progress 900ms ease-in-out infinite alternate;
+      }
+      @keyframes boot-progress { from { transform: translateX(-100%); } to { transform: translateX(264%); } }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-screen, .boot-screen__track::after { transition: none; animation: none; }
+        .boot-screen__track::after { width: 68%; transform: none; }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot-screen" class="boot-screen" role="status" aria-live="polite" aria-label="切磨工作台正在加载">
+      <div class="boot-screen__panel">
+        <div class="boot-screen__brand">
+          <img src="%BASE_URL%brand/logo-header.webp" alt="" />
+          <div>
+            <span class="boot-screen__title"><strong>切磨工作台</strong><em>Alpha</em></span>
+            <span class="boot-screen__product">SUVA · FACET 96 专业版</span>
+          </div>
+        </div>
+        <div class="boot-screen__status">
+          <span>正在校准 96 齿工作区 <small>LOADING WORKSPACE</small></span>
+          <div class="boot-screen__track" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

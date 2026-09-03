@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json",
+  "title": "OpenGemCutting Facet 96 Document",
+  "description": "Public interchange contract for an OpenGemCutting parameterized faceting document.",
+  "type": "object",
+  "required": ["$schema", "schemaVersion", "kind", "name", "stock", "operations", "facets"],
+  "properties": {
+    "$schema": {
+      "const": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json"
+    },
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "facet-96-document" },
+    "name": { "type": "string", "minLength": 1 },
+    "stock": {
+      "type": "object",
+      "required": ["kind", "size", "center"],
+      "properties": {
+        "kind": { "const": "cube" },
+        "size": { "type": "number", "exclusiveMinimum": 0 },
+        "center": {
+          "type": "object",
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "z": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "operations": { "type": "array", "items": { "type": "object" } },
+    "facets": { "type": "array", "items": { "type": "object" } },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": true
+}

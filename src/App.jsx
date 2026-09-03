@@ -2,11 +2,16 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { IconChevronLeft, IconChevronRight, IconHistory } from "@tabler/icons-react";
 import { Header } from "./components/Header.jsx";
 import { GemViewport } from "./components/GemViewport.jsx";
+import { OpticsViewport } from "./components/OpticsViewport.jsx";
+import { OpticsInspector } from "./components/OpticsInspector.jsx";
 import { MastControl } from "./components/MastControl.jsx";
 import { CutComposer } from "./components/CutComposer.jsx";
 import { CutStack } from "./components/CutStack.jsx";
 import { FacetLedger } from "./components/FacetLedger.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
+import { AscTransferDialog } from "./components/AscTransferDialog.jsx";
+import { PresetLibraryDialog } from "./components/PresetLibraryDialog.jsx";
+import { HelpCenterDialog } from "./components/HelpCenterDialog.jsx";
 import {
   CUT_SESSION_EVENT,
   CUT_SESSION_MODE,
@@ -51,6 +56,9 @@ import {
   depthForEdge,
   depthForVertex,
 } from "./domain/meet.js";
+import { DEFAULT_OPTICS_SETTINGS, resolveOpticsSettings } from "./domain/optics.js";
+import { inspectGemCadAsc, serializeGemCadAsc } from "./domain/gemcadAsc.js";
+import { createPresetLibrary, createStaticPresetProvider } from "./domain/presetLibrary.js";
 import { downloadFacetReport } from "./report/pdfReport.js";
 
 const REGION_LABELS = FACET_REGION_LABELS;
@@ -70,6 +78,10 @@ const DEFAULT_DEPTHS = {
 
 function normalizeDepthValue(value) {
   return Math.max(0, Number(value) || 0);
+}
+
+function safeFileStem(value, fallback = "facet-96") {
+  return value.replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "") || fallback;
 }
 
 const TABLE_PATTERN_ID = "table-facet";
@@ -115,7 +127,10 @@ function girdlePreformFacets(stock) {
 }
 
 function createWorkbenchDocument(name) {
-  const withTable = ensureTableFacet(createFacetingDocument({ name }));
+  const withTable = ensureTableFacet(createFacetingDocument({
+    name,
+    metadata: { optics: resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS) },
+  }));
   return { ...withTable, facets: [...withTable.facets, ...girdlePreformFacets(withTable.stock)] };
 }
 
@@ -226,7 +241,12 @@ export function App() {
     () => createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" }),
   );
   const [viewMode, setViewMode] = useState("perspective");
+  const [opticsViewMode, setOpticsViewMode] = useState("perspective");
   const [renderMode, setRenderMode] = useState("solid");
+  const [opticsActive, setOpticsActive] = useState(false);
+  const [opticsInspectorOpen, setOpticsInspectorOpen] = useState(true);
+  const [opticsTab, setOpticsTab] = useState("material");
+  const [opticsSettings, setOpticsSettings] = useState(() => resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS));
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -240,7 +260,10 @@ export function App() {
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
   const [reportIncludeGirdle, setReportIncludeGirdle] = useState(false);
+  const [ascTransfer, setAscTransfer] = useState(null);
+  const [presetLibraryOpen, setPresetLibraryOpen] = useState(false);
   const importRef = useRef(null);
+  const ascImportRef = useRef(null);
   const toastTimerRef = useRef(null);
   const operationSequence = useRef(0);
   const projectSequence = useRef(1);
@@ -259,6 +282,10 @@ export function App() {
     window.clearTimeout(toastTimerRef.current);
     toastTimerRef.current = window.setTimeout(() => setToast(""), 2600);
   }, []);
+  const closeAscTransfer = useCallback(() => setAscTransfer(null), []);
+  const presetLibrary = useMemo(() => createPresetLibrary([
+    createStaticPresetProvider({ publicBase: import.meta.env.BASE_URL }),
+  ]), []);
 
   useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
@@ -645,7 +672,7 @@ export function App() {
   }, [cutMode, cutSession.canCancel, cutSession.dirty, editingOperation, notify, region]);
 
   useEffect(() => {
-    if (!cutSession.canCancel || modal) return undefined;
+    if (!cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || opticsActive) return undefined;
     const handleEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -653,7 +680,30 @@ export function App() {
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [cancelCutSession, cutSession.canCancel, modal]);
+  }, [ascTransfer, cancelCutSession, cutSession.canCancel, modal, opticsActive, presetLibraryOpen]);
+
+  useEffect(() => {
+    if (!opticsActive || modal || ascTransfer || presetLibraryOpen) return undefined;
+    const handleOpticsEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpticsActive(false);
+      notify("已退出光学仿真并恢复原编辑现场。");
+    };
+    window.addEventListener("keydown", handleOpticsEscape);
+    return () => window.removeEventListener("keydown", handleOpticsEscape);
+  }, [ascTransfer, modal, notify, opticsActive, presetLibraryOpen]);
+
+  useEffect(() => {
+    if (!presetLibraryOpen) return undefined;
+    const handlePresetEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setPresetLibraryOpen(false);
+    };
+    window.addEventListener("keydown", handlePresetEscape);
+    return () => window.removeEventListener("keydown", handlePresetEscape);
+  }, [presetLibraryOpen]);
 
   const selectCut = (id) => {
     if (id === "rough-cube") return;
@@ -912,6 +962,7 @@ export function App() {
 
   const resetDocument = (name) => {
     setHistory(createCommandHistory(createWorkbenchDocument(name)));
+    setOpticsSettings(resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS));
     setHiddenPatternIds(new Set());
     setRegion("crown");
     setIndustryAngle(DEFAULT_ANGLES.crown);
@@ -946,7 +997,10 @@ export function App() {
   };
 
   const exportDocument = () => {
-    const json = exportFacetingJSON(document);
+    const json = exportFacetingJSON({
+      ...document,
+      metadata: { ...(document.metadata ?? {}), optics: opticsSettings },
+    });
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = window.document.createElement("a");
@@ -978,6 +1032,7 @@ export function App() {
       const imported = ensureTableFacet(importFacetingJSON(await file.text()));
       const command = createReplaceDocumentCommand(imported);
       setHistory(executeFacetingCommand(history, command));
+      setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
       setHiddenPatternIds(new Set());
       setGroupDeltaZ(0);
       setGroupScale(1);
@@ -988,6 +1043,73 @@ export function App() {
       const detail = error.errors?.[0];
       notify(detail ? `导入失败：${detail.path} ${detail.message}` : `导入失败：${error.message}`);
     }
+  };
+
+  const inspectAscFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const result = inspectGemCadAsc(await file.text(), { fileName: file.name });
+    setAscTransfer({ mode: "import", fileName: file.name, result });
+  };
+
+  const openAscExport = () => {
+    const result = serializeGemCadAsc({
+      ...document,
+      metadata: { ...(document.metadata ?? {}), optics: opticsSettings },
+    });
+    setAscTransfer({
+      mode: "export",
+      fileName: `${safeFileStem(document.name)}.asc`,
+      result,
+    });
+  };
+
+  const confirmAscTransfer = () => {
+    if (!ascTransfer || ascTransfer.result.status === "error") return;
+    if (ascTransfer.mode === "import") {
+      const imported = ascTransfer.result.document;
+      const command = createReplaceDocumentCommand(imported, {
+        description: `导入 GemCad ASC · ${ascTransfer.fileName}`,
+      });
+      setHistory((current) => executeFacetingCommand(current, command));
+      setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
+      setHiddenPatternIds(new Set());
+      setGroupDeltaZ(0);
+      setGroupScale(1);
+      setGroupRotationTeeth(0);
+      dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
+      setAscTransfer(null);
+      notify(`已导入“${imported.name}”：${ascTransfer.result.summary.tierCount} 层 / ${imported.facets.length} 面，可撤销。`);
+      return;
+    }
+
+    const blob = new Blob([ascTransfer.result.text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = window.document.createElement("a");
+    anchor.href = url;
+    anchor.download = ascTransfer.fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setAscTransfer(null);
+    notify(`已导出 ${ascTransfer.result.summary.tierCount} 个 ASC tier；JSON 完整主文件未受影响。`);
+  };
+
+  const loadPreset = async (rawDocument, preset) => {
+    const imported = ensureTableFacet(importFacetingJSON(JSON.stringify(rawDocument)));
+    const command = createReplaceDocumentCommand(imported, {
+      description: `载入预设琢型 · ${preset.name}`,
+    });
+    setHistory((current) => executeFacetingCommand(current, command));
+    setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
+    setHiddenPatternIds(new Set());
+    setGroupDeltaZ(0);
+    setGroupScale(1);
+    setGroupRotationTeeth(0);
+    dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
+    setPresetLibraryOpen(false);
+    setResetSignal((value) => value + 1);
+    notify(`已载入预设“${preset.name}”，共 ${imported.facets.length} 个面，可撤销。`);
   };
 
   const toggleVisibility = (id) => {
@@ -1019,15 +1141,11 @@ export function App() {
     : cutSession.active ? validationMessage : "";
 
   return (
-    <main className="app-shell">
-      <section className={sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}>
-        <aside className="control-sidebar" aria-label="切磨参数侧栏">
+    <main className={opticsActive ? "app-shell is-optics-active" : "app-shell"}>
+      <section className={`${sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}${opticsActive ? " is-optics-focus" : ""}`}>
+        {!opticsActive ? <aside className="control-sidebar" aria-label="切磨参数侧栏">
           <div className="workspace-brand">
-            <img
-              className="brand-logo"
-              src={`${import.meta.env.BASE_URL}brand/logo-header.webp`}
-              alt="苏哇品牌标志"
-            />
+            <img className="brand-logo" src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="苏哇品牌标志" />
             <div className="brand-copy">
               <span className="brand-title-line"><strong>切磨工作台</strong><em>Alpha</em></span>
               <span className="brand-product-line">SUVA · FACET 96 专业版</span>
@@ -1111,10 +1229,17 @@ export function App() {
               />
             </details>
           </div>
-        </aside>
+        </aside> : null}
 
         <div className="viewport-column">
-          {!sidebarOpen ? (
+          {opticsActive ? (
+            <div className="optics-brand-rail" aria-label="切磨工作台品牌">
+              <img className="brand-logo" src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="苏哇品牌标志" />
+              <span><strong>切磨工作台</strong><small>Alpha</small><em>SUVA · FACET 96</em></span>
+            </div>
+          ) : null}
+
+          {!opticsActive && !sidebarOpen ? (
             <button type="button" className="sidebar-reopen" onClick={() => setSidebarOpen(true)} aria-label="展开参数侧栏">
               <IconChevronRight size={18} stroke={1.8} />
             </button>
@@ -1125,8 +1250,11 @@ export function App() {
             onProjectNameChange={renameProject}
             facetCount={operations.reduce((sum, item) => sum + item.indices.length, 0)}
             onNew={() => setModal("new")}
+            onOpenPresets={() => setPresetLibraryOpen(true)}
             onImport={() => importRef.current?.click()}
+            onImportAsc={() => ascImportRef.current?.click()}
             onExport={exportDocument}
+            onExportAsc={openAscExport}
             onExportPdf={() => setModal("pdf")}
             onUndo={() => {
               setHistory((current) => undoFacetingCommand(current));
@@ -1140,13 +1268,26 @@ export function App() {
             onOpenLedger={() => setLedgerOpen(true)}
             onOpenSettings={() => setModal("settings")}
             onOpenHelp={() => setModal("help")}
-            viewMode={viewMode}
-            onViewMode={setViewMode}
+            viewMode={opticsActive ? opticsViewMode : viewMode}
+            onViewMode={opticsActive ? setOpticsViewMode : setViewMode}
             displayMode={renderMode}
             onDisplayMode={setRenderMode}
+            opticsActive={opticsActive}
+            opticsInspectorOpen={opticsInspectorOpen}
+            onEnterOptics={() => {
+              setOpticsViewMode(viewMode);
+              setOpticsInspectorOpen(true);
+              setOpticsActive(true);
+              notify("已进入纯光学仿真；CUT 会话已原样挂起。");
+            }}
+            onOpenOpticsInspector={() => setOpticsInspectorOpen(true)}
+            onExitOptics={() => {
+              setOpticsActive(false);
+              notify("已退出光学仿真并恢复原编辑现场。");
+            }}
           />
 
-          <CutStack
+          {!opticsActive ? <CutStack
             operations={operations}
             selectedId={editingPatternId}
             hoveredId={hoveredPatternId}
@@ -1192,7 +1333,7 @@ export function App() {
             floating
             collapsed={!cutStackOpen}
             onToggle={() => setCutStackOpen((value) => !value)}
-          />
+          /> : null}
 
           <GemViewport
             polyhedron={displaySolid}
@@ -1201,6 +1342,7 @@ export function App() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             renderMode={renderMode}
+            suspended={opticsActive}
             resetSignal={resetSignal}
             highlightOperationId={hoveredPatternId}
             activeOperationId={cutSession.activePatternId}
@@ -1229,7 +1371,27 @@ export function App() {
             onGroupRotationDrag={changeGroupRotation}
           />
 
-          {historyOpen ? (
+          {opticsActive ? (
+            <OpticsViewport
+              polyhedron={displaySolid}
+              settings={opticsSettings}
+              viewMode={opticsViewMode}
+              onViewModeChange={setOpticsViewMode}
+              inspectorOpen={opticsInspectorOpen}
+            />
+          ) : null}
+
+          {opticsActive && opticsInspectorOpen ? (
+            <OpticsInspector
+              settings={opticsSettings}
+              tab={opticsTab}
+              onTabChange={setOpticsTab}
+              onChange={setOpticsSettings}
+              onClose={() => setOpticsInspectorOpen(false)}
+            />
+          ) : null}
+
+          {!opticsActive && historyOpen ? (
             <aside className="floating-inspector" aria-label="历史记录检查器">
               <div className="inspector-title">
                 <span><IconHistory size={17} stroke={1.7} />历史记录 HISTORY</span>
@@ -1246,7 +1408,7 @@ export function App() {
         </div>
       </section>
 
-      {ledgerOpen ? (
+      {!opticsActive && ledgerOpen ? (
         <div className="ledger-overlay" role="presentation" onMouseDown={() => setLedgerOpen(false)}>
           <section
             className="ledger-floating-panel"
@@ -1271,7 +1433,28 @@ export function App() {
       ) : null}
 
       <input ref={importRef} type="file" accept="application/json,.json" className="sr-only" onChange={importDocument} />
+      <input ref={ascImportRef} type="file" accept=".asc,text/plain" className="sr-only" onChange={inspectAscFile} />
       {toast ? <div className="toast" role="status" aria-live="polite">{toast}</div> : null}
+
+      {ascTransfer ? (
+        <AscTransferDialog
+          mode={ascTransfer.mode}
+          fileName={ascTransfer.fileName}
+          result={ascTransfer.result}
+          onClose={closeAscTransfer}
+          onReselect={() => ascImportRef.current?.click()}
+          onConfirm={confirmAscTransfer}
+        />
+      ) : null}
+
+      {presetLibraryOpen ? (
+        <PresetLibraryDialog
+          library={presetLibrary}
+          discardingDraft={cutSession.active}
+          onClose={() => setPresetLibraryOpen(false)}
+          onLoad={loadPreset}
+        />
+      ) : null}
 
       {modal === "new" ? (
         <Modal title="新建设计" confirmLabel="创建新设计" onClose={() => setModal(null)} onConfirm={startNewDocument}>
@@ -1315,15 +1498,7 @@ export function App() {
       ) : null}
 
       {modal === "help" ? (
-        <Modal title="切磨工作台帮助" onClose={() => setModal(null)}>
-          <ul>
-            <li>水平自由度使用 1–96 整数索引，96 与内部索引 0 同位。</li>
-            <li>垂直自由度由行业角控制；深度决定裁切平面离毛坯表面的距离。</li>
-            <li>重复围绕同一轴心等距复制；N 次重复对应半圈内均布的 N 条无方向镜像轴。</li>
-            <li>选择图层只读取已保存参数；修改参数后才显示未保存预览，保存时在原序号替换。</li>
-            <li>JSON 保存可重放参数；PDF 报告汇总截面、尺寸、区域统计与全部逐面数据。</li>
-          </ul>
-        </Modal>
+        <HelpCenterDialog onClose={() => setModal(null)} />
       ) : null}
     </main>
   );

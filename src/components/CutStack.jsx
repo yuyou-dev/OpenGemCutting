@@ -31,7 +31,7 @@ function InlineEditor({ operation, values, onEdit, onCommit }) {
   const depthRef = useRef(null);
   useEffect(() => {
     // Sync from outside (layer switch, slider moves) without clobbering typing.
-    if (document.activeElement !== angleRef.current) setAngle(Number(values.angle).toFixed(1));
+    if (document.activeElement !== angleRef.current) setAngle(Number(values.angle).toFixed(2));
     if (document.activeElement !== depthRef.current) setDepth(Number(values.depth).toFixed(3));
   }, [operation.id, values.angle, values.depth]);
 
@@ -54,7 +54,7 @@ function InlineEditor({ operation, values, onEdit, onCommit }) {
           type="number"
           min="0"
           max="90"
-          step="0.1"
+          step="0.01"
           value={angle}
           ref={angleRef}
           disabled={operation.locked}
@@ -357,7 +357,7 @@ export function CutStack({
                           {operation.label}{selected ? <em>EDIT</em> : null}
                         </strong>
                       )}
-                      <small>{operation.industryAngleDeg.toFixed(1)}° · D {operation.depth.toFixed(3)}</small>
+                      <small>{operation.industryAngleDeg.toFixed(2)}° · D {operation.depth.toFixed(3)}</small>
                     </span>
                     <span className="cut-stack-count">{operation.indices.length}F</span>
                   </button>

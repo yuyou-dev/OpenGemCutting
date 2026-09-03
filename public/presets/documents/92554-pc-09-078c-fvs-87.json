@@ -1,0 +1,3995 @@
+{
+  "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "facet-96-document",
+  "name": "PC 09.078C  FVS-87",
+  "indexGear": {
+    "teeth": 96,
+    "zeroAlias": 96,
+    "degreesPerTooth": 3.75
+  },
+  "stock": {
+    "kind": "cube",
+    "size": 2,
+    "center": [
+      0,
+      0,
+      0
+    ]
+  },
+  "facets": [
+    {
+      "id": "table-facet:96",
+      "patternId": "table-facet",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 0,
+      "betaDeg": 90,
+      "depth": 0.590281501887,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 0,
+          "z": 1
+        },
+        "offset": 0.409718498113,
+        "keep": "less-than-or-equal"
+      },
+      "label": "T1 台面",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "operationType": "table",
+        "fixedAngle": true,
+        "asc": {
+          "order": 12,
+          "line": 20,
+          "name": "G",
+          "instructions": "",
+          "sourceAngle": "0.000000",
+          "sourceCenterDistance": 0.50767886,
+          "sourceIndices": [
+            "96"
+          ],
+          "facetName": "G"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-1:96",
+      "patternId": "asc-tier-1",
+      "ordinal": 0,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.103285933108,
+      "plane": {
+        "normal": {
+          "x": 1,
+          "y": 0,
+          "z": 0
+        },
+        "offset": 0.896714066892,
+        "keep": "less-than-or-equal"
+      },
+      "label": "1 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 0,
+          "line": 8,
+          "name": "1",
+          "instructions": "CAM 40.02�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.11111111,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": "1"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-1:24",
+      "patternId": "asc-tier-1",
+      "ordinal": 1,
+      "region": "girdle",
+      "baseIndex": 24,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 90,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.103285933108,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 1,
+          "z": 0
+        },
+        "offset": 0.896714066892,
+        "keep": "less-than-or-equal"
+      },
+      "label": "1 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 0,
+          "line": 8,
+          "name": "1",
+          "instructions": "CAM 40.02�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.11111111,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-1:48",
+      "patternId": "asc-tier-1",
+      "ordinal": 2,
+      "region": "girdle",
+      "baseIndex": 48,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 180,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.103285933108,
+      "plane": {
+        "normal": {
+          "x": -1,
+          "y": 0,
+          "z": 0
+        },
+        "offset": 0.896714066892,
+        "keep": "less-than-or-equal"
+      },
+      "label": "1 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 0,
+          "line": 8,
+          "name": "1",
+          "instructions": "CAM 40.02�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.11111111,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-1:72",
+      "patternId": "asc-tier-1",
+      "ordinal": 3,
+      "region": "girdle",
+      "baseIndex": 72,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 270,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.103285933108,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": -1,
+          "z": 0
+        },
+        "offset": 0.896714066892,
+        "keep": "less-than-or-equal"
+      },
+      "label": "1 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 0,
+          "line": 8,
+          "name": "1",
+          "instructions": "CAM 40.02�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.11111111,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:6",
+      "patternId": "asc-tier-2",
+      "ordinal": 0,
+      "region": "girdle",
+      "baseIndex": 6,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 6,
+      "displayIndex": 6,
+      "azimuthDeg": 22.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": 0.923879532511,
+          "y": 0.382683432365,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:18",
+      "patternId": "asc-tier-2",
+      "ordinal": 1,
+      "region": "girdle",
+      "baseIndex": 18,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 18,
+      "displayIndex": 18,
+      "azimuthDeg": 67.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": 0.382683432365,
+          "y": 0.923879532511,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:30",
+      "patternId": "asc-tier-2",
+      "ordinal": 2,
+      "region": "girdle",
+      "baseIndex": 30,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 30,
+      "displayIndex": 30,
+      "azimuthDeg": 112.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": -0.382683432365,
+          "y": 0.923879532511,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:42",
+      "patternId": "asc-tier-2",
+      "ordinal": 3,
+      "region": "girdle",
+      "baseIndex": 42,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 42,
+      "displayIndex": 42,
+      "azimuthDeg": 157.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": -0.923879532511,
+          "y": 0.382683432365,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:54",
+      "patternId": "asc-tier-2",
+      "ordinal": 4,
+      "region": "girdle",
+      "baseIndex": 54,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 54,
+      "displayIndex": 54,
+      "azimuthDeg": 202.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": -0.923879532511,
+          "y": -0.382683432365,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:66",
+      "patternId": "asc-tier-2",
+      "ordinal": 5,
+      "region": "girdle",
+      "baseIndex": 66,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 66,
+      "displayIndex": 66,
+      "azimuthDeg": 247.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": -0.382683432365,
+          "y": -0.923879532511,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:78",
+      "patternId": "asc-tier-2",
+      "ordinal": 6,
+      "region": "girdle",
+      "baseIndex": 78,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 78,
+      "displayIndex": 78,
+      "azimuthDeg": 292.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": 0.382683432365,
+          "y": -0.923879532511,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-2:90",
+      "patternId": "asc-tier-2",
+      "ordinal": 7,
+      "region": "girdle",
+      "baseIndex": 90,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 90,
+      "displayIndex": 90,
+      "azimuthDeg": 337.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0,
+      "plane": {
+        "normal": {
+          "x": 0.923879532511,
+          "y": -0.382683432365,
+          "z": 0
+        },
+        "offset": 1,
+        "keep": "less-than-or-equal"
+      },
+      "label": "2 腰部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 1,
+          "line": 9,
+          "name": "2",
+          "instructions": "CAM 36.98�",
+          "sourceAngle": "-90.000000",
+          "sourceCenterDistance": 1.23909187,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": "2"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-3:96",
+      "patternId": "asc-tier-3",
+      "ordinal": 0,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 45.15805,
+      "betaDeg": -44.84195,
+      "depth": 0.808529443872,
+      "plane": {
+        "normal": {
+          "x": 0.70905463745,
+          "y": 0,
+          "z": -0.705153544351
+        },
+        "offset": 0.605678737929,
+        "keep": "less-than-or-equal"
+      },
+      "label": "3 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 2,
+          "line": 10,
+          "name": "3",
+          "instructions": "",
+          "sourceAngle": "-45.158050",
+          "sourceCenterDistance": 0.7504916,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": "3"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-3:24",
+      "patternId": "asc-tier-3",
+      "ordinal": 1,
+      "region": "pavilion",
+      "baseIndex": 24,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 90,
+      "industryAngleDeg": 45.15805,
+      "betaDeg": -44.84195,
+      "depth": 0.808529443872,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 0.70905463745,
+          "z": -0.705153544351
+        },
+        "offset": 0.605678737929,
+        "keep": "less-than-or-equal"
+      },
+      "label": "3 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 2,
+          "line": 10,
+          "name": "3",
+          "instructions": "",
+          "sourceAngle": "-45.158050",
+          "sourceCenterDistance": 0.7504916,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-3:48",
+      "patternId": "asc-tier-3",
+      "ordinal": 2,
+      "region": "pavilion",
+      "baseIndex": 48,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 180,
+      "industryAngleDeg": 45.15805,
+      "betaDeg": -44.84195,
+      "depth": 0.808529443872,
+      "plane": {
+        "normal": {
+          "x": -0.70905463745,
+          "y": 0,
+          "z": -0.705153544351
+        },
+        "offset": 0.605678737929,
+        "keep": "less-than-or-equal"
+      },
+      "label": "3 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 2,
+          "line": 10,
+          "name": "3",
+          "instructions": "",
+          "sourceAngle": "-45.158050",
+          "sourceCenterDistance": 0.7504916,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-3:72",
+      "patternId": "asc-tier-3",
+      "ordinal": 3,
+      "region": "pavilion",
+      "baseIndex": 72,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 270,
+      "industryAngleDeg": 45.15805,
+      "betaDeg": -44.84195,
+      "depth": 0.808529443872,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": -0.70905463745,
+          "z": -0.705153544351
+        },
+        "offset": 0.605678737929,
+        "keep": "less-than-or-equal"
+      },
+      "label": "3 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 2,
+          "line": 10,
+          "name": "3",
+          "instructions": "",
+          "sourceAngle": "-45.158050",
+          "sourceCenterDistance": 0.7504916,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:50",
+      "patternId": "asc-tier-4",
+      "ordinal": 0,
+      "region": "pavilion",
+      "baseIndex": 50,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 50,
+      "displayIndex": 50,
+      "azimuthDeg": 187.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": -0.667059980543,
+          "y": -0.087820112479,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:70",
+      "patternId": "asc-tier-4",
+      "ordinal": 1,
+      "region": "pavilion",
+      "baseIndex": 70,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 70,
+      "displayIndex": 70,
+      "azimuthDeg": 262.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": -0.087820112479,
+          "y": -0.667059980543,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:74",
+      "patternId": "asc-tier-4",
+      "ordinal": 2,
+      "region": "pavilion",
+      "baseIndex": 74,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 74,
+      "displayIndex": 74,
+      "azimuthDeg": 277.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": 0.087820112479,
+          "y": -0.667059980543,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:94",
+      "patternId": "asc-tier-4",
+      "ordinal": 3,
+      "region": "pavilion",
+      "baseIndex": 94,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 94,
+      "displayIndex": 94,
+      "azimuthDeg": 352.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": 0.667059980543,
+          "y": -0.087820112479,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": "4"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:2",
+      "patternId": "asc-tier-4",
+      "ordinal": 4,
+      "region": "pavilion",
+      "baseIndex": 2,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 2,
+      "displayIndex": 2,
+      "azimuthDeg": 7.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": 0.667059980543,
+          "y": 0.087820112479,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:22",
+      "patternId": "asc-tier-4",
+      "ordinal": 5,
+      "region": "pavilion",
+      "baseIndex": 22,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 22,
+      "displayIndex": 22,
+      "azimuthDeg": 82.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": 0.087820112479,
+          "y": 0.667059980543,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:26",
+      "patternId": "asc-tier-4",
+      "ordinal": 6,
+      "region": "pavilion",
+      "baseIndex": 26,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 26,
+      "displayIndex": 26,
+      "azimuthDeg": 97.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": -0.087820112479,
+          "y": 0.667059980543,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-4:46",
+      "patternId": "asc-tier-4",
+      "ordinal": 7,
+      "region": "pavilion",
+      "baseIndex": 46,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 46,
+      "displayIndex": 46,
+      "azimuthDeg": 172.5,
+      "industryAngleDeg": 42.28478,
+      "betaDeg": -47.71522,
+      "depth": 0.806676861771,
+      "plane": {
+        "normal": {
+          "x": -0.667059980543,
+          "y": 0.087820112479,
+          "z": -0.739809847327
+        },
+        "offset": 0.605949000376,
+        "keep": "less-than-or-equal"
+      },
+      "label": "4 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 3,
+          "line": 11,
+          "name": "4",
+          "instructions": "",
+          "sourceAngle": "-42.284780",
+          "sourceCenterDistance": 0.75082648,
+          "sourceIndices": [
+            "50",
+            "70",
+            "74",
+            "94",
+            "2",
+            "22",
+            "26",
+            "46"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:52",
+      "patternId": "asc-tier-5",
+      "ordinal": 0,
+      "region": "pavilion",
+      "baseIndex": 52,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 52,
+      "displayIndex": 52,
+      "azimuthDeg": 195,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": -0.633704359672,
+          "y": -0.169800571414,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:68",
+      "patternId": "asc-tier-5",
+      "ordinal": 1,
+      "region": "pavilion",
+      "baseIndex": 68,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 68,
+      "displayIndex": 68,
+      "azimuthDeg": 255,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": -0.169800571414,
+          "y": -0.633704359672,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:76",
+      "patternId": "asc-tier-5",
+      "ordinal": 2,
+      "region": "pavilion",
+      "baseIndex": 76,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 76,
+      "displayIndex": 76,
+      "azimuthDeg": 285,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": 0.169800571414,
+          "y": -0.633704359672,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:92",
+      "patternId": "asc-tier-5",
+      "ordinal": 3,
+      "region": "pavilion",
+      "baseIndex": 92,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 92,
+      "displayIndex": 92,
+      "azimuthDeg": 345,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": 0.633704359672,
+          "y": -0.169800571414,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": "5"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:4",
+      "patternId": "asc-tier-5",
+      "ordinal": 4,
+      "region": "pavilion",
+      "baseIndex": 4,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 4,
+      "displayIndex": 4,
+      "azimuthDeg": 15,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": 0.633704359672,
+          "y": 0.169800571414,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:20",
+      "patternId": "asc-tier-5",
+      "ordinal": 5,
+      "region": "pavilion",
+      "baseIndex": 20,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 20,
+      "displayIndex": 20,
+      "azimuthDeg": 75,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": 0.169800571414,
+          "y": 0.633704359672,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:28",
+      "patternId": "asc-tier-5",
+      "ordinal": 6,
+      "region": "pavilion",
+      "baseIndex": 28,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 28,
+      "displayIndex": 28,
+      "azimuthDeg": 105,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": -0.169800571414,
+          "y": 0.633704359672,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-5:44",
+      "patternId": "asc-tier-5",
+      "ordinal": 7,
+      "region": "pavilion",
+      "baseIndex": 44,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 44,
+      "displayIndex": 44,
+      "azimuthDeg": 165,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.798680959893,
+      "plane": {
+        "normal": {
+          "x": -0.633704359672,
+          "y": 0.169800571414,
+          "z": -0.754709580223
+        },
+        "offset": 0.61208764932,
+        "keep": "less-than-or-equal"
+      },
+      "label": "5 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 4,
+          "line": 12,
+          "name": "5",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.75843283,
+          "sourceIndices": [
+            "52",
+            "68",
+            "76",
+            "92",
+            "4",
+            "20",
+            "28",
+            "44"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:54",
+      "patternId": "asc-tier-6",
+      "ordinal": 0,
+      "region": "pavilion",
+      "baseIndex": 54,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 54,
+      "displayIndex": 54,
+      "azimuthDeg": 202.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": -0.606119509004,
+          "y": -0.251062921048,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:66",
+      "patternId": "asc-tier-6",
+      "ordinal": 1,
+      "region": "pavilion",
+      "baseIndex": 66,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 66,
+      "displayIndex": 66,
+      "azimuthDeg": 247.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": -0.251062921048,
+          "y": -0.606119509004,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:78",
+      "patternId": "asc-tier-6",
+      "ordinal": 2,
+      "region": "pavilion",
+      "baseIndex": 78,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 78,
+      "displayIndex": 78,
+      "azimuthDeg": 292.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": 0.251062921048,
+          "y": -0.606119509004,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:90",
+      "patternId": "asc-tier-6",
+      "ordinal": 3,
+      "region": "pavilion",
+      "baseIndex": 90,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 90,
+      "displayIndex": 90,
+      "azimuthDeg": 337.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": 0.606119509004,
+          "y": -0.251062921048,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": "6"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:6",
+      "patternId": "asc-tier-6",
+      "ordinal": 4,
+      "region": "pavilion",
+      "baseIndex": 6,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 6,
+      "displayIndex": 6,
+      "azimuthDeg": 22.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": 0.606119509004,
+          "y": 0.251062921048,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:18",
+      "patternId": "asc-tier-6",
+      "ordinal": 5,
+      "region": "pavilion",
+      "baseIndex": 18,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 18,
+      "displayIndex": 18,
+      "azimuthDeg": 67.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": 0.251062921048,
+          "y": 0.606119509004,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:30",
+      "patternId": "asc-tier-6",
+      "ordinal": 6,
+      "region": "pavilion",
+      "baseIndex": 30,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 30,
+      "displayIndex": 30,
+      "azimuthDeg": 112.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": -0.251062921048,
+          "y": 0.606119509004,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-6:42",
+      "patternId": "asc-tier-6",
+      "ordinal": 7,
+      "region": "pavilion",
+      "baseIndex": 42,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 42,
+      "displayIndex": 42,
+      "azimuthDeg": 157.5,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.786959205961,
+      "plane": {
+        "normal": {
+          "x": -0.606119509004,
+          "y": 0.251062921048,
+          "z": -0.754709580223
+        },
+        "offset": 0.623809403253,
+        "keep": "less-than-or-equal"
+      },
+      "label": "6 亭部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 5,
+          "line": 13,
+          "name": "6",
+          "instructions": "",
+          "sourceAngle": "-41.000000",
+          "sourceCenterDistance": 0.77295716,
+          "sourceIndices": [
+            "54",
+            "66",
+            "78",
+            "90",
+            "6",
+            "18",
+            "30",
+            "42"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-7:96",
+      "patternId": "asc-tier-7",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 54.14595,
+      "betaDeg": 35.85405,
+      "depth": 0.625665229168,
+      "plane": {
+        "normal": {
+          "x": 0.810511638092,
+          "y": 0,
+          "z": 0.585722532021
+        },
+        "offset": 0.770568940945,
+        "keep": "less-than-or-equal"
+      },
+      "label": "A 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 6,
+          "line": 14,
+          "name": "A",
+          "instructions": "",
+          "sourceAngle": "54.145950",
+          "sourceCenterDistance": 0.95480571,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": "A"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-7:24",
+      "patternId": "asc-tier-7",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 24,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 90,
+      "industryAngleDeg": 54.14595,
+      "betaDeg": 35.85405,
+      "depth": 0.625665229168,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 0.810511638092,
+          "z": 0.585722532021
+        },
+        "offset": 0.770568940945,
+        "keep": "less-than-or-equal"
+      },
+      "label": "A 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 6,
+          "line": 14,
+          "name": "A",
+          "instructions": "",
+          "sourceAngle": "54.145950",
+          "sourceCenterDistance": 0.95480571,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-7:48",
+      "patternId": "asc-tier-7",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 48,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 180,
+      "industryAngleDeg": 54.14595,
+      "betaDeg": 35.85405,
+      "depth": 0.625665229168,
+      "plane": {
+        "normal": {
+          "x": -0.810511638092,
+          "y": 0,
+          "z": 0.585722532021
+        },
+        "offset": 0.770568940945,
+        "keep": "less-than-or-equal"
+      },
+      "label": "A 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 6,
+          "line": 14,
+          "name": "A",
+          "instructions": "",
+          "sourceAngle": "54.145950",
+          "sourceCenterDistance": 0.95480571,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-7:72",
+      "patternId": "asc-tier-7",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 72,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 270,
+      "industryAngleDeg": 54.14595,
+      "betaDeg": 35.85405,
+      "depth": 0.625665229168,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": -0.810511638092,
+          "z": 0.585722532021
+        },
+        "offset": 0.770568940945,
+        "keep": "less-than-or-equal"
+      },
+      "label": "A 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 6,
+          "line": 14,
+          "name": "A",
+          "instructions": "",
+          "sourceAngle": "54.145950",
+          "sourceCenterDistance": 0.95480571,
+          "sourceIndices": [
+            "96",
+            "24",
+            "48",
+            "72"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:6",
+      "patternId": "asc-tier-8",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 6,
+      "displayIndex": 6,
+      "azimuthDeg": 22.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": 0.651672407684,
+          "y": 0.269931549487,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": "B"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:18",
+      "patternId": "asc-tier-8",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 18,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 18,
+      "displayIndex": 18,
+      "azimuthDeg": 67.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": 0.269931549487,
+          "y": 0.651672407684,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:30",
+      "patternId": "asc-tier-8",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 30,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 30,
+      "displayIndex": 30,
+      "azimuthDeg": 112.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": -0.269931549487,
+          "y": 0.651672407684,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:42",
+      "patternId": "asc-tier-8",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 42,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 42,
+      "displayIndex": 42,
+      "azimuthDeg": 157.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": -0.651672407684,
+          "y": 0.269931549487,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:54",
+      "patternId": "asc-tier-8",
+      "ordinal": 4,
+      "region": "crown",
+      "baseIndex": 54,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 54,
+      "displayIndex": 54,
+      "azimuthDeg": 202.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": -0.651672407684,
+          "y": -0.269931549487,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:66",
+      "patternId": "asc-tier-8",
+      "ordinal": 5,
+      "region": "crown",
+      "baseIndex": 66,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 66,
+      "displayIndex": 66,
+      "azimuthDeg": 247.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": -0.269931549487,
+          "y": -0.651672407684,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:78",
+      "patternId": "asc-tier-8",
+      "ordinal": 6,
+      "region": "crown",
+      "baseIndex": 78,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 78,
+      "displayIndex": 78,
+      "azimuthDeg": 292.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": 0.269931549487,
+          "y": -0.651672407684,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-8:90",
+      "patternId": "asc-tier-8",
+      "ordinal": 7,
+      "region": "crown",
+      "baseIndex": 90,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 90,
+      "displayIndex": 90,
+      "azimuthDeg": 337.5,
+      "industryAngleDeg": 44.85905,
+      "betaDeg": 45.14095,
+      "depth": 0.655816509532,
+      "plane": {
+        "normal": {
+          "x": 0.651672407684,
+          "y": -0.269931549487,
+          "z": 0.708844151881
+        },
+        "offset": 0.758392773572,
+        "keep": "less-than-or-equal"
+      },
+      "label": "B 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 7,
+          "line": 15,
+          "name": "B",
+          "instructions": "",
+          "sourceAngle": "44.859050",
+          "sourceCenterDistance": 0.93971832,
+          "sourceIndices": [
+            "6",
+            "18",
+            "30",
+            "42",
+            "54",
+            "66",
+            "78",
+            "90"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:3",
+      "patternId": "asc-tier-9",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 3,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 3,
+      "displayIndex": 3,
+      "azimuthDeg": 11.25,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": 0.670744570162,
+          "y": 0.133419390358,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": "C"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:21",
+      "patternId": "asc-tier-9",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 21,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 21,
+      "displayIndex": 21,
+      "azimuthDeg": 78.75,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": 0.133419390358,
+          "y": 0.670744570162,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:27",
+      "patternId": "asc-tier-9",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 27,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 27,
+      "displayIndex": 27,
+      "azimuthDeg": 101.25,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": -0.133419390358,
+          "y": 0.670744570162,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:45",
+      "patternId": "asc-tier-9",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 45,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 45,
+      "displayIndex": 45,
+      "azimuthDeg": 168.75,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": -0.670744570162,
+          "y": 0.133419390358,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:51",
+      "patternId": "asc-tier-9",
+      "ordinal": 4,
+      "region": "crown",
+      "baseIndex": 51,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 51,
+      "displayIndex": 51,
+      "azimuthDeg": 191.25,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": -0.670744570162,
+          "y": -0.133419390358,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:69",
+      "patternId": "asc-tier-9",
+      "ordinal": 5,
+      "region": "crown",
+      "baseIndex": 69,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 69,
+      "displayIndex": 69,
+      "azimuthDeg": 258.75,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": -0.133419390358,
+          "y": -0.670744570162,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:75",
+      "patternId": "asc-tier-9",
+      "ordinal": 6,
+      "region": "crown",
+      "baseIndex": 75,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 75,
+      "displayIndex": 75,
+      "azimuthDeg": 281.25,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": 0.133419390358,
+          "y": -0.670744570162,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-9:93",
+      "patternId": "asc-tier-9",
+      "ordinal": 7,
+      "region": "crown",
+      "baseIndex": 93,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 93,
+      "displayIndex": 93,
+      "azimuthDeg": 348.75,
+      "industryAngleDeg": 43.148,
+      "betaDeg": 46.852,
+      "depth": 0.697675957745,
+      "plane": {
+        "normal": {
+          "x": 0.670744570162,
+          "y": -0.133419390358,
+          "z": 0.729589602362
+        },
+        "offset": 0.71579887777,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 8,
+          "line": 16,
+          "name": "C",
+          "instructions": "",
+          "sourceAngle": "43.148000",
+          "sourceCenterDistance": 0.88694057,
+          "sourceIndices": [
+            "3",
+            "21",
+            "27",
+            "45",
+            "51",
+            "69",
+            "75",
+            "93"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:10",
+      "patternId": "asc-tier-10",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 10,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 10,
+      "displayIndex": 10,
+      "azimuthDeg": 37.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": 0.477451958855,
+          "y": 0.366361773493,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": "D"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:14",
+      "patternId": "asc-tier-10",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 14,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 14,
+      "displayIndex": 14,
+      "azimuthDeg": 52.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": 0.366361773493,
+          "y": 0.477451958855,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:34",
+      "patternId": "asc-tier-10",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 34,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 34,
+      "displayIndex": 34,
+      "azimuthDeg": 127.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": -0.366361773493,
+          "y": 0.477451958855,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:38",
+      "patternId": "asc-tier-10",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 38,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 38,
+      "displayIndex": 38,
+      "azimuthDeg": 142.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": -0.477451958855,
+          "y": 0.366361773493,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:58",
+      "patternId": "asc-tier-10",
+      "ordinal": 4,
+      "region": "crown",
+      "baseIndex": 58,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 58,
+      "displayIndex": 58,
+      "azimuthDeg": 217.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": -0.477451958855,
+          "y": -0.366361773493,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:62",
+      "patternId": "asc-tier-10",
+      "ordinal": 5,
+      "region": "crown",
+      "baseIndex": 62,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 62,
+      "displayIndex": 62,
+      "azimuthDeg": 232.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": -0.366361773493,
+          "y": -0.477451958855,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:82",
+      "patternId": "asc-tier-10",
+      "ordinal": 6,
+      "region": "crown",
+      "baseIndex": 82,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 82,
+      "displayIndex": 82,
+      "azimuthDeg": 307.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": 0.366361773493,
+          "y": -0.477451958855,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-10:86",
+      "patternId": "asc-tier-10",
+      "ordinal": 7,
+      "region": "crown",
+      "baseIndex": 86,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 86,
+      "displayIndex": 86,
+      "azimuthDeg": 322.5,
+      "industryAngleDeg": 37,
+      "betaDeg": 53,
+      "depth": 0.694911919666,
+      "plane": {
+        "normal": {
+          "x": 0.477451958855,
+          "y": -0.366361773493,
+          "z": 0.798635510047
+        },
+        "offset": 0.705538613533,
+        "keep": "less-than-or-equal"
+      },
+      "label": "D 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 9,
+          "line": 17,
+          "name": "D",
+          "instructions": "",
+          "sourceAngle": "37.000000",
+          "sourceCenterDistance": 0.87422716,
+          "sourceIndices": [
+            "10",
+            "14",
+            "34",
+            "38",
+            "58",
+            "62",
+            "82",
+            "86"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:4",
+      "patternId": "asc-tier-11",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 4,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 4,
+      "displayIndex": 4,
+      "azimuthDeg": 15,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": 0.508346121346,
+          "y": 0.13621093269,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": "E"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:20",
+      "patternId": "asc-tier-11",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 20,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 20,
+      "displayIndex": 20,
+      "azimuthDeg": 75,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": 0.13621093269,
+          "y": 0.508346121346,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:28",
+      "patternId": "asc-tier-11",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 28,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 28,
+      "displayIndex": 28,
+      "azimuthDeg": 105,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": -0.13621093269,
+          "y": 0.508346121346,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:44",
+      "patternId": "asc-tier-11",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 44,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 44,
+      "displayIndex": 44,
+      "azimuthDeg": 165,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": -0.508346121346,
+          "y": 0.13621093269,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:52",
+      "patternId": "asc-tier-11",
+      "ordinal": 4,
+      "region": "crown",
+      "baseIndex": 52,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 52,
+      "displayIndex": 52,
+      "azimuthDeg": 195,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": -0.508346121346,
+          "y": -0.13621093269,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:68",
+      "patternId": "asc-tier-11",
+      "ordinal": 5,
+      "region": "crown",
+      "baseIndex": 68,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 68,
+      "displayIndex": 68,
+      "azimuthDeg": 255,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": -0.13621093269,
+          "y": -0.508346121346,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:76",
+      "patternId": "asc-tier-11",
+      "ordinal": 6,
+      "region": "crown",
+      "baseIndex": 76,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 76,
+      "displayIndex": 76,
+      "azimuthDeg": 285,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": 0.13621093269,
+          "y": -0.508346121346,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-11:92",
+      "patternId": "asc-tier-11",
+      "ordinal": 7,
+      "region": "crown",
+      "baseIndex": 92,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 92,
+      "displayIndex": 92,
+      "azimuthDeg": 345,
+      "industryAngleDeg": 31.75436,
+      "betaDeg": 58.24564,
+      "depth": 0.739212017822,
+      "plane": {
+        "normal": {
+          "x": 0.508346121346,
+          "y": -0.13621093269,
+          "z": 0.850312179572
+        },
+        "offset": 0.637378792583,
+        "keep": "less-than-or-equal"
+      },
+      "label": "E 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 10,
+          "line": 18,
+          "name": "E",
+          "instructions": "",
+          "sourceAngle": "31.754360",
+          "sourceCenterDistance": 0.78977088,
+          "sourceIndices": [
+            "4",
+            "20",
+            "28",
+            "44",
+            "52",
+            "68",
+            "76",
+            "92"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:1",
+      "patternId": "asc-tier-12",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 1,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 1,
+      "displayIndex": 1,
+      "azimuthDeg": 3.75,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": 0.350247800739,
+          "y": 0.022956453704,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": "F"
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:23",
+      "patternId": "asc-tier-12",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 23,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 23,
+      "displayIndex": 23,
+      "azimuthDeg": 86.25,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": 0.022956453704,
+          "y": 0.350247800739,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:25",
+      "patternId": "asc-tier-12",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 25,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 25,
+      "displayIndex": 25,
+      "azimuthDeg": 93.75,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": -0.022956453704,
+          "y": 0.350247800739,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:47",
+      "patternId": "asc-tier-12",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 47,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 47,
+      "displayIndex": 47,
+      "azimuthDeg": 176.25,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": -0.350247800739,
+          "y": 0.022956453704,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:49",
+      "patternId": "asc-tier-12",
+      "ordinal": 4,
+      "region": "crown",
+      "baseIndex": 49,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 49,
+      "displayIndex": 49,
+      "azimuthDeg": 183.75,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": -0.350247800739,
+          "y": -0.022956453704,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:71",
+      "patternId": "asc-tier-12",
+      "ordinal": 5,
+      "region": "crown",
+      "baseIndex": 71,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 71,
+      "displayIndex": 71,
+      "azimuthDeg": 266.25,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": -0.022956453704,
+          "y": -0.350247800739,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:73",
+      "patternId": "asc-tier-12",
+      "ordinal": 6,
+      "region": "crown",
+      "baseIndex": 73,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 73,
+      "displayIndex": 73,
+      "azimuthDeg": 273.75,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": 0.022956453704,
+          "y": -0.350247800739,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": ""
+        }
+      }
+    },
+    {
+      "id": "asc-tier-12:95",
+      "patternId": "asc-tier-12",
+      "ordinal": 7,
+      "region": "crown",
+      "baseIndex": 95,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 95,
+      "displayIndex": 95,
+      "azimuthDeg": 356.25,
+      "industryAngleDeg": 20.54845,
+      "betaDeg": 69.45155,
+      "depth": 0.736409105683,
+      "plane": {
+        "normal": {
+          "x": 0.350247800739,
+          "y": -0.022956453704,
+          "z": 0.936375714823
+        },
+        "offset": 0.55096592636,
+        "keep": "less-than-or-equal"
+      },
+      "label": "F 冠部",
+      "metadata": {
+        "patternMode": "arbitrary",
+        "asc": {
+          "order": 11,
+          "line": 19,
+          "name": "F",
+          "instructions": "",
+          "sourceAngle": "20.548450",
+          "sourceCenterDistance": 0.6826974,
+          "sourceIndices": [
+            "1",
+            "23",
+            "25",
+            "47",
+            "49",
+            "71",
+            "73",
+            "95"
+          ],
+          "facetName": ""
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "optics": {
+      "refractiveIndex": 1.76
+    },
+    "asc": {
+      "formatVersion": "5.0",
+      "sourceGear": 96,
+      "sourceGearOffset": 0,
+      "symmetry": 4,
+      "mirrorSymmetry": true,
+      "headings": [
+        "PC 09.078C  FVS-87",
+        "by Fred W. Van Sant, Star Cuts II (1989)",
+        "Released into the public domain in memory of Charles L. Moon"
+      ],
+      "footnotes": [
+        "Use the CAM angles in the cutting instructions and the indices in  the same row to cut a CAM preform"
+      ],
+      "comments": [],
+      "importScale": 0.8070426610094698
+    },
+    "preset": {
+      "id": "92554-pc-09-078c-fvs-87",
+      "provider": "builtin",
+      "sourcePageUrl": "https://facetdiagrams.org/diagram/09-078c-fvs-87/",
+      "sourceDownloadUrl": "https://facetdiagrams.org/wp-content/uploads/diagram-files/pc09078c.asc",
+      "openDeclaration": "Open (supplied index)",
+      "designer": "Van Sant| Fred",
+      "sourceSha256": "82014f3fa7f532447c8097e9af5381e21876dad75a2f50a795fe4cb1627866d3"
+    }
+  }
+}

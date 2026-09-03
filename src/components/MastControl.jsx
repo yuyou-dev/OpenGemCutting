@@ -18,13 +18,13 @@ export function MastControl({
     <section className="mast-panel" aria-label="角度与深度参数">
       <div className="mast-parameter-grid">
         <label className="mast-parameter-block">
-          <span className="mast-parameter-label">行业角 <i>β {signedBeta > 0 ? "+" : ""}{signedBeta.toFixed(1)}°</i></span>
+          <span className="mast-parameter-label">行业角 <i>β {signedBeta > 0 ? "+" : ""}{signedBeta.toFixed(2)}°</i></span>
           <input
             aria-label="行业角"
             type="range"
             min="0"
             max="90"
-            step="0.1"
+            step="0.01"
             value={industryAngle}
             disabled={disabledAngle}
             onChange={(event) => onAngleChange(Number(event.target.value))}
@@ -35,7 +35,7 @@ export function MastControl({
               type="number"
               min="0"
               max="90"
-              step="0.1"
+              step="0.01"
               value={Number(industryAngle.toFixed(2))}
               disabled={disabledAngle}
               onChange={(event) => onAngleChange(Number(event.target.value))}

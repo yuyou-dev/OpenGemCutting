@@ -41,9 +41,8 @@ export const FACET_REGION_PREFIXES = Object.freeze({
 
 const DOCUMENT_KIND = "facet-96-document";
 const DOCUMENT_SCHEMA_VERSION = 1;
-const DOCUMENT_SCHEMA_ID = "urn:opengemcutting:facet-96:document:v1";
-const LEGACY_DOCUMENT_SCHEMA_ID =
-  "https://schemas." + "openai.local/facet-96/document-v1.schema.json";
+const DOCUMENT_SCHEMA_ID =
+  "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json";
 
 export const DEFAULT_STOCK = Object.freeze({
   kind: "cube",
@@ -814,7 +813,7 @@ export function validateFacetingDocument(document) {
       errors: [{ path: "$", message: "document must be an object" }],
     };
   }
-  if (![DOCUMENT_SCHEMA_ID, LEGACY_DOCUMENT_SCHEMA_ID].includes(document.$schema)) {
+  if (document.$schema !== DOCUMENT_SCHEMA_ID) {
     addValidationError(errors, "$.$schema", `must equal ${DOCUMENT_SCHEMA_ID}`);
   }
   if (document.schemaVersion !== DOCUMENT_SCHEMA_VERSION) {
@@ -886,14 +885,8 @@ function migrateLegacyFacetGeometry(document) {
   };
 }
 
-function migrateLegacySchema(document) {
-  return document.$schema === LEGACY_DOCUMENT_SCHEMA_ID
-    ? { ...document, $schema: DOCUMENT_SCHEMA_ID }
-    : document;
-}
-
 export function exportFacetingJSON(document, { pretty = true } = {}) {
-  const normalizedDocument = migrateLegacySchema(migrateLegacyFacetGeometry(document));
+  const normalizedDocument = migrateLegacyFacetGeometry(document);
   assertValidFacetingDocument(normalizedDocument);
   return JSON.stringify(normalizedDocument, null, pretty ? 2 : 0);
 }
@@ -908,7 +901,7 @@ export function importFacetingJSON(json) {
       "Could not parse Facet-96 JSON.",
     );
   }
-  const normalizedDocument = migrateLegacySchema(migrateLegacyFacetGeometry(parsed));
+  const normalizedDocument = migrateLegacyFacetGeometry(parsed);
   assertValidFacetingDocument(normalizedDocument);
   return clone(normalizedDocument);
 }

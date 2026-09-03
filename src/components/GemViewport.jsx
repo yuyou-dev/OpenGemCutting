@@ -932,7 +932,7 @@ function angleAtScreenPoint(x, y, arc) {
       closestDistance = distance;
     }
   });
-  return Math.round(closestAngle * 10) / 10;
+  return Math.round(closestAngle * 100) / 100;
 }
 
 function ringPoint(center, radius, tooth) {
@@ -1516,7 +1516,7 @@ function drawGizmoLabels(canvas, scene) {
         context,
         arc.knob.x + 12,
         arc.knob.y - 30,
-        `A ${scene.cutGizmo.industryAngle.toFixed(1)}°`,
+        `A ${scene.cutGizmo.industryAngle.toFixed(2)}°`,
         arc.locked ? "rgba(47, 111, 228, 0.48)" : "#2f6fe4",
       );
     }
@@ -1710,8 +1710,6 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
   const endPointer = (event) => {
     if (activePointer?.id !== event.pointerId) return;
     const wasGizmoDrag = Boolean(gizmoDrag);
-    if (gizmoDrag?.kind === "depth") interactionRef.current?.onDepthDragEnd?.();
-    if (gizmoDrag?.kind === "angle") interactionRef.current?.onAngleDragEnd?.();
     if (wasGizmoDrag) {
       gizmoDrag = null;
       sceneRef.current.activeGizmo = null;
@@ -2045,15 +2043,14 @@ export function GemViewport({
   onMeetPick,
   onFacePick,
   onDepthDrag,
-  onDepthDragEnd,
   onAngleDragStart,
   onAngleDrag,
-  onAngleDragEnd,
   onIndexDrag,
   onMirrorDrag,
   onGroupDeltaDrag,
   onGroupScaleDrag,
   onGroupRotationDrag,
+  suspended = false,
 }) {
   const hostRef = useRef(null);
   const cameraRef = useRef(createCamera());
@@ -2061,6 +2058,7 @@ export function GemViewport({
   const requestViewModeRef = useRef(null);
   const interactionRef = useRef(null);
   const gizmoLabelCanvasRef = useRef(null);
+  const instanceRef = useRef(null);
   const normalizedGeometry = useMemo(() => normalizeGeometry(polyhedron), [polyhedron]);
   const pickEdges = useMemo(() => collectUniqueEdges(normalizedGeometry.faces), [normalizedGeometry]);
   const hasExplicitGeometry = Array.isArray(polyhedron?.vertices) && Array.isArray(polyhedron?.faces);
@@ -2072,10 +2070,8 @@ export function GemViewport({
     onMeetPick,
     onFacePick,
     onDepthDrag,
-    onDepthDragEnd,
     onAngleDragStart,
     onAngleDrag,
-    onAngleDragEnd,
     onIndexDrag,
     onMirrorDrag,
     onGroupDeltaDrag,
@@ -2113,11 +2109,19 @@ export function GemViewport({
       meetTarget,
       cutGizmo,
       groupGizmo,
+      suspended,
     });
     if (hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
       ghostBoundsRef.current = copyBounds(normalizedGeometry.bounds);
     }
-  }, [activeOperationId, activeViewMode, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetTarget, normalizedGeometry, pickEdges, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex]);
+  }, [activeOperationId, activeViewMode, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetTarget, normalizedGeometry, pickEdges, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
+
+  useEffect(() => {
+    const instance = instanceRef.current;
+    if (!instance) return;
+    if (suspended) instance.noLoop();
+    else instance.loop();
+  }, [suspended]);
 
   useEffect(() => {
     const nextMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
@@ -2234,6 +2238,7 @@ export function GemViewport({
     };
 
     const instance = new p5(sketch);
+    instanceRef.current = instance;
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (!entry || !instance.canvas) return;
@@ -2248,6 +2253,7 @@ export function GemViewport({
     return () => {
       resizeObserver.disconnect();
       detachInteractions();
+      instanceRef.current = null;
       instance.remove();
     };
   }, []);

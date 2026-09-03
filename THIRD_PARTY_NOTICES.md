@@ -7,4 +7,10 @@ OpenGemCutting uses third-party packages listed in `package.json` and locked by 
 - The bundled Noto Serif SC font files in `public/fonts/` use the SIL Open Font License 1.1; the complete text is included at `public/fonts/OFL.txt`.
 - Fontsource packages provide font software under the corresponding upstream font licenses; inspect their package metadata when redistributing a build.
 
-Consult each installed package's metadata or upstream repository for exact notices before redistributing a release bundle. Project branding and original artwork are not third-party software dependencies and are not automatically licensed as trademarks by any future code license.
+## Built-in faceting presets
+
+`public/presets/` contains normalized parameter records and generated technical previews derived from 57 designs indexed by [FacetDiagrams.org](https://facetdiagrams.org/). Every catalog entry preserves the credited designer, source page, source download URL, source SHA-256 and the supplied `Open` declaration so users can review its provenance.
+
+The project MIT License covers OpenGemCutting's code and original documentation; it does not override authorship, attribution or any separate rights attached to a named third-party faceting design. Personal contact details present in source-file notes are intentionally omitted from the bundled normalized records.
+
+Consult each installed package's metadata, preset source page or upstream repository for exact notices before redistributing a release bundle. Project branding and original artwork are not third-party software dependencies and are not automatically licensed as trademarks by any future code license.

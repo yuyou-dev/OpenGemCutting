@@ -1,3 +1,8 @@
+<p align="right">
+  <a href="https://yuyou-dev.github.io/OpenGemCutting/"><strong>Live Demo ↗</strong></a> ·
+  <a href="https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf"><strong>操作手册 PDF</strong></a>
+</p>
+
 <div align="center">
   <img src="public/brand/logo-header.webp" alt="SUVA 切磨工作台" width="260" />
   <h1>OpenGemCutting · Facet 96</h1>
@@ -5,6 +10,7 @@
   <p>A browser-based parametric gemstone faceting workbench for the 96-index system.</p>
   <p>
     <a href="https://yuyou-dev.github.io/OpenGemCutting/"><strong>Live Demo</strong></a> ·
+    <a href="https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf"><strong>操作手册</strong></a> ·
     <a href="#快速开始--quick-start">快速开始</a> ·
     <a href="#关键能力--features">关键能力</a> ·
     <a href="#操作指南--workflow">操作指南</a> ·
@@ -19,13 +25,15 @@
 
 ## 在线体验 · Live demo
 
-打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON 与 PDF 由浏览器本地导入或生成。
+打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON、GemCad ASC 与 PDF 均在浏览器本地导入、导出或生成。
+
+第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是独立的 12 页 A4 图解手册，覆盖预设起步、CUT 编辑、文件交换、光学仿真、快捷操作与交付检查；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
 
 建议使用启用 WebGL 与硬件加速的最新版 Chrome、Edge 或 Safari 桌面版，并使用不低于 `1280px` 的窗口宽度。在线演示与 `main` 分支保持同步，由 GitHub Pages 自动构建发布。
 
 ## 产品定位 · What it is
 
-OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的本地开源工程：用参数化 `CUT STACK` 描述宝石切割，以 React 驱动编辑界面，以 p5.js WebGL 呈现实时几何，并导出可继续编辑的 JSON 与面向工艺执行的 PDF 报告。
+OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用参数化 `CUT STACK` 描述宝石切割，以 React 驱动编辑界面，以 p5.js WebGL 呈现实时几何，并提供 JSON 主文件、GemCad ASC 行业交换、PDF 技术报告与聚焦光学仿真。
 
 它关注切磨设计中的可解释性：保存的切层是几何唯一数据源，每个面都能追溯到区域、行业角、96 分度索引、深度和裁切平面。当前版本无需后端、账号或 API Key，数据留在浏览器与本地文件中。
 
@@ -33,10 +41,14 @@ OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的本地开源工程：
 
 - **真实参数化裁切**：凸多面体半空间裁切，旋转重复与镜像轨道都参与最终几何。
 - **96 分度工艺模型**：整数索引、行业角、切入深度、自定义索引和冠/腰/亭区域语义。
+- **57 个精选预设琢型**：按名称、设计者、来源与外形检索，载入前核对真实几何的轴测、顶、底、正四视图。
+- **GemCad ASC 交换**：导入/导出前持久预检齿轮映射、统一比例、L/W、层面统计与不可逆信息；不精确映射、preform 或异常台面会明确阻断。
 - **CUT 四态工作流**：空闲、新建、编辑、群组变换由单一事件状态机管理，取消和 `Escape` 路径明确。
 - **精密 3D 操作**：实体/X-ray、顶/正/侧/透视相机、角度桥架、深度杆和同心分度环。
+- **聚焦光学仿真**：当前真实几何直接进入折射、Fresnel、全反射、多次内反射、RGB 色散与 Beer-Lambert 体色观察。
 - **非破坏式文档历史**：图层显隐、重排、重命名、撤销/重做与 JSON 往返保持参数语义。
 - **工艺输出**：A4 矢量优先 PDF，包含多视图、工程尺寸、分层参数与真实刻面高亮。
+- **完整学习入口**：品牌加载页、任务式应用内帮助，以及可下载的 12 页 A4 图解操作手册。
 - **完整交付链路**：常规 Vite 客户端与 OpenAI Sites worker 产物由同一构建命令生成并测试。
 
 ## 快速开始 · Quick start
@@ -61,20 +73,20 @@ npm run preview
 
 ## 操作指南 · Workflow
 
-1. 从 `CUT STACK` 底部的 `+` 开始一个新 CUT，选择冠部、腰部或亭部。
-2. 设置行业角、切入深度、基础索引、重复数与镜像轴偏移；主切割面和 Gizmo 会同步预览。
-3. 保存后，图层按堆栈顺序参与布尔裁切。选择既有图层可编辑，拖动非台面层可重排。
-4. 使用顶部命令条切换相机与实体/X-ray；点击切型名称可内联改名。
-5. 在“文件”菜单导入/导出 JSON 或生成 PDF；“更多工具”中可打开历史、刻面台账、设置和帮助。
-6. 冠部/亭部整体变换可在一次预览中组合 `ΔZ`、腰线比例与整数分度旋转，并作为一步历史提交。
+1. 从“文件 → 浏览预设琢型”选择一个经过校验的起点，先核对四视图、面数、层数、分度与 L/W，再载入当前文档。
+2. 从 `CUT STACK` 底部的 `+` 开始一个新 CUT，设置行业角、切入深度、基础索引、重复数与镜像轴偏移；主切割面和 Gizmo 会同步预览。
+3. 保存后，图层按堆栈顺序参与布尔裁切。选择既有图层可编辑，拖动非台面层可重排；冠部/亭部整体变换可在一步历史中组合升降、比例与旋转。
+4. 使用顶部命令条切换相机与实体/X-ray；从显示模式进入聚焦光学仿真，检查材质、体色与观察环境，退出后完整恢复编辑现场。
+5. 在“文件”菜单保存完整 JSON、交换 GemCad ASC 或生成 PDF 技术报告；ASC 操作必须先通过预检。
+6. 遇到问题时从“更多 → 帮助与操作手册”打开任务式帮助，或下载完整 A4 图解手册。
 
 键盘约定：名称编辑按 `Enter` 保存、`Escape` 取消；任何活动 CUT 会话也可按 `Escape` 安全退出。
 
-### 实体与 X-ray · Solid and X-ray
+### 预设、编辑与光学 · Presets, editing and optics
 
-| 实体裁切预览 | X-ray 穿透检查 |
-| --- | --- |
-| ![实体模式下的冠部 CUT 与 Gizmo](docs/assets/opengemcutting-workbench.jpg) | ![X-ray 模式下的重复切面与内部结构](docs/assets/opengemcutting-xray.jpg) |
+| 参数化工作区 | 预设琢型库 | 聚焦光学仿真 |
+| --- | --- | --- |
+| ![载入完成切型后的参数化工作区](docs/assets/opengemcutting-workbench.jpg) | ![包含四视图和来源信息的预设琢型库](docs/assets/opengemcutting-presets.jpg) | ![完成切型的聚焦光学仿真](docs/assets/opengemcutting-optics.jpg) |
 
 ## 架构与代码地图 · Architecture
 
@@ -83,22 +95,35 @@ src/
   App.jsx                       文档、历史、CUT 会话与导出编排
   components/
     GemViewport.jsx             p5.js WebGL、相机、Gizmo 与命中
+    OpticsViewport.jsx          当前实体的光学追迹与观察环境
     CutStack.jsx                参数化图层与会话入口
     CutComposer.jsx             分区切割指令
+    PresetLibraryDialog.jsx     预设检索、四视图与载入
+    AscTransferDialog.jsx       GemCad ASC 持久预检
+    HelpCenterDialog.jsx        任务式帮助与手册入口
   domain/
     cutSession.js               CUT 四态事件状态机
     faceting.js                 96 分度、图层、序列化与命令
     geometry.js                 凸多面体裁切与测量
+    gemcadAsc.js                ASC 解析、预检、比例换算与导出
+    presetLibrary.js            可扩展的预设 provider 边界
+    optics.js                   光学材料、色散与吸收模型
     meet.js                     无 UI 依赖的点/棱构造求解
   report/pdfReport.js           A4 矢量技术报告
+public/
+  presets/                      57 项内置规范化文档与四视图
+  manual/                       可下载的 A4 图解操作手册
+  schemas/                      公开可访问的 Facet 96 JSON Schema
 scripts/
+  build-preset-library.mjs      资料校验、策展与四视图批量生成
+  generate-user-manual.mjs      从真实截图生成操作手册
   run-vite-local.mjs            127.0.0.1 + 临时端口启动器
   prepare-sites-build.mjs       Sites 构建整理
 worker/index.js                 Sites 服务入口
 tests/sites-worker.test.mjs     Sites 产物契约测试
 ```
 
-设计与领域不变量见 [`design-system.md`](design-system.md) 和 [`AGENTS.md`](AGENTS.md)。前者面向界面实现，后者记录几何、状态机和验收契约。
+设计与领域不变量见 [`design-system.md`](design-system.md) 和 [`AGENTS.md`](AGENTS.md)。GemCad ASC 的支持边界见 [`gemcad-asc.md`](gemcad-asc.md)，预设资料的质量门槛和扩展接口见 [`preset-library.md`](preset-library.md)。
 
 ## 几何约定 · Geometry conventions
 
@@ -119,6 +144,8 @@ npm run check        # 公开内容扫描 + 领域/报告测试 + 构建 + Sites
 npm test             # Node.js 领域与 PDF 测试
 npm run test:sites   # Sites 产物契约
 npm run build        # dist/client + dist/server + hosting metadata
+npm run build:pages  # 生成 GitHub Pages 子路径产物
+npm run manual:build # 从已审核截图重建 A4 操作手册
 npm run report:sample
 ```
 
@@ -130,11 +157,11 @@ npm run report:sample
 
 ## Roadmap
 
-- 扩展可复用切型模板与示例库。
+- 增加个人预设 provider，让用户把当前 JSON 或已导入设计保存到自己的资料库。
 - 增强 meet-point / meet-edge 的工艺辅助与诊断。
 - 增加 JSON schema、跨版本迁移夹具和浏览器回归覆盖。
-- 完善打印标注、报告可配置项与多语言界面。
-- 在几何约束稳定后评估更多分度轮与非凸工作流；当前不会把实验性仿真代码混入稳定基线。
+- 完善打印标注、手册版本追踪、报告可配置项与多语言界面。
+- 在 96 齿与凸体约束继续稳定后，评估更多分度轮和更广的交换格式。
 
 Roadmap 表达方向，不构成时间承诺。建议先用 Issue 说明工艺场景与预期结果。
 
@@ -148,9 +175,9 @@ Roadmap 表达方向，不构成时间承诺。建议先用 Issue 说明工艺�
 
 ## 许可证 · License
 
-OpenGemCutting 的代码和文档以 [MIT License](LICENSE) 发布。SUVA、切磨工作台、Facet 96 的名称与标识仍受各自品牌和商标权益约束；MIT 许可不授予商标使用权，详见 [`TRADEMARKS.md`](TRADEMARKS.md)。
+OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA、切磨工作台、Facet 96 的名称与标识仍受各自品牌和商标权益约束；MIT 许可不授予商标使用权，详见 [`TRADEMARKS.md`](TRADEMARKS.md)。
 
-内置 Noto Serif SC 字体适用 SIL Open Font License 1.1，见 [`public/fonts/OFL.txt`](public/fonts/OFL.txt)。npm 依赖保留各自许可证；详情见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。品牌名称与标识不因软件许可证而自动获得商标授权。
+内置 Noto Serif SC 字体适用 SIL Open Font License 1.1，见 [`public/fonts/OFL.txt`](public/fonts/OFL.txt)。npm 依赖及内置第三方琢型保留各自来源、署名和权利边界；详情见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。品牌名称与标识不因软件许可证而自动获得商标授权。
 
 ## 品牌与致谢 · Brand & acknowledgements
 
@@ -160,7 +187,7 @@ OpenGemCutting 的代码和文档以 [MIT License](LICENSE) 发布。SUVA、切�
 
 ## English overview
 
-OpenGemCutting is the local open-source preparation of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and exports round-trippable JSON plus vector-first PDF instructions.
+OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 57 validated presets, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
 
 Install Node.js 20.19+, run `npm ci`, then `npm run dev`. The server binds only to `127.0.0.1` on an OS-assigned high port. Run `npm run check` before contributing. The editor is desktop-first and works best in a current Chromium or Safari browser with WebGL enabled.
 

@@ -2,7 +2,7 @@
 
 ## Supported version
 
-安全修复以 `main` 上最新版本为目标。首次公开发布前不会承诺长期版本支持。
+安全修复以 `main` 上最新版本为目标。当前不承诺旧版本的长期支持；发布 tag 用于定位问题，不代表独立维护分支。
 
 ## Reporting a vulnerability
 
@@ -12,4 +12,4 @@
 
 ## Scope
 
-OpenGemCutting 当前是本地优先的浏览器应用，不需要账号、后端或 API Key。安全范围包括 JSON/PDF 文件处理、浏览器渲染、构建与 Sites worker 链路。公开仓库不得读取、打包或分发用户凭据、个人绝对路径或私有服务地址。
+OpenGemCutting 当前是本地优先的浏览器应用，不需要账号、后端或 API Key。安全范围包括 JSON/ASC/PDF 文件处理、预设资料加载、浏览器渲染、GitHub Pages 构建与 Sites worker 链路。公开仓库不得读取、打包或分发用户凭据、个人绝对路径或私有服务地址。
