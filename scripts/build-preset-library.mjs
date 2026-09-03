@@ -5,13 +5,10 @@ import { fileURLToPath } from "node:url";
 import { exportFacetingJSON } from "../src/domain/faceting.js";
 import { inspectGemCadAsc } from "../src/domain/gemcadAsc.js";
 import { clipPolyhedronByPlanes, createCenteredCube, measurePolyhedron } from "../src/domain/geometry.js";
+import { CURATION_EXCLUSIONS } from "../src/domain/presetLibrary.js";
 import { TECHNICAL_PREVIEW_VIEWS, technicalPreviewSvg } from "../src/domain/technicalPreview.js";
 
 const REJECTED_WARNINGS = new Set(["ROUGH_STOCK_REMAINS", "REDUNDANT_TIER", "UNKNOWN_RECORD", "DUPLICATE_INDEX"]);
-const CURATION_EXCLUSIONS = new Set([
-  "96655", // PC 02.276 Small OMNI Oval 1.4: incomplete pavilion
-  "100855", // PC 08.087B Chevron Cushion CC Brilliant 1.10: incomplete facets
-]);
 const EMAIL_ADDRESS = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 const SHAPE_PRIORITY = [
   "round", "oval", "emerald", "pear", "antique-cushion", "square-antique-cushion", "heart",
@@ -40,7 +37,13 @@ function optionsFrom(argv) {
     else if (argv[index] === "--min") options.min = Number(argv[++index]);
     else if (argv[index] === "--allow-partial") options.allowPartial = true;
   }
-  if (!options.archive) throw new Error("用法：npm run presets:build -- --archive <facetdiagrams archive> [--limit 72]");
+  if (!options.archive) {
+    throw new Error(
+      "用法：npm run presets:build -- --archive <facetdiagrams archive> [--limit 72]\n"
+        + "facetdiagrams 开放归档只存在于本机被 git 忽略的 tmp/facetdiagrams-open-archive/，"
+        + "换机或清理后需重新从 facetdiagrams.org 获取归档再运行。",
+    );
+  }
   if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100) throw new Error("--limit 必须是 1–100 的整数。");
   return options;
 }
@@ -50,7 +53,7 @@ function shapeKey(value = "") {
 }
 
 function slug(value) {
-  return value.toLocaleLowerCase("en-US").normalize("NFKD")
+  return value.toLowerCase().normalize("NFKD")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 54) || "preset";
 }
 

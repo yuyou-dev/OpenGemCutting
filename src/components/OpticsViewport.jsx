@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconCube, IconHandMove, IconRotate3d, IconZoomIn } from "@tabler/icons-react";
 import { backgroundColor, resolveOpticsSettings } from "../domain/optics.js";
+import { crossVectors as cross, normalizeVector } from "../utils/vector3.js";
 import "./OpticsViewport.css";
 
 const MAX_PLANES = 192;
@@ -297,19 +298,6 @@ function hexToRgb(hex) {
   return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
 }
 
-function normalize3(value) {
-  const length = Math.hypot(...value) || 1;
-  return value.map((item) => item / length);
-}
-
-function cross(left, right) {
-  return [
-    left[1] * right[2] - left[2] * right[1],
-    left[2] * right[0] - left[0] * right[2],
-    left[0] * right[1] - left[1] * right[0],
-  ];
-}
-
 function cameraOrbitForView(viewMode) {
   if (viewMode === "top") return { yaw: 0, elevation: Math.PI / 2 };
   if (viewMode === "bottom") return { yaw: 0, elevation: -Math.PI / 2 };
@@ -331,9 +319,9 @@ function cameraFrame(camera, viewMode) {
     -Math.cos(orbit.yaw) * horizontal * 4.4,
     Math.sin(orbit.elevation) * 4.4,
   ];
-  const forward = normalize3(position.map((item) => -item));
+  const forward = normalizeVector(position.map((item) => -item));
   const right = [Math.cos(orbit.yaw), Math.sin(orbit.yaw), 0];
-  const up = normalize3(cross(right, forward));
+  const up = normalizeVector(cross(right, forward));
   return { position, forward, right, up };
 }
 
@@ -418,7 +406,7 @@ function createRenderer(canvas, onError) {
         gl.uniform1f(uniforms.uExposure, settings.view.exposure);
         gl.uniform1f(uniforms.uEnvironmentRotation, settings.view.environmentRotation);
         gl.uniform1i(uniforms.uEnvironment, environmentIndex(settings.view.environment));
-        gl.uniform3fv(uniforms.uObserverDirection, normalize3(frame.position));
+        gl.uniform3fv(uniforms.uObserverDirection, normalizeVector(frame.position));
         gl.uniform3fv(uniforms.uBackground, hexToRgb(backgroundColor(settings)));
         gl.uniform1i(uniforms.uMaxBounces, settings.advanced.maxBounces);
         gl.uniform1f(uniforms.uFocalOffset, focusOffset);

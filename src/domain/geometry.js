@@ -578,8 +578,6 @@ export function clipPolyhedronByPlanes(polyhedron, planes, options = {}) {
   }, clonePolyhedron(polyhedron));
 }
 
-export const clipByPlanes = clipPolyhedronByPlanes;
-
 /** Area of one face. */
 export function faceArea(polyhedron, faceOrIndex) {
   const points = facePoints(polyhedron, faceOrIndex);

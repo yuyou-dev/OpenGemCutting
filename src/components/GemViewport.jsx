@@ -4,8 +4,16 @@ import {
   IconRotate3d,
   IconZoomIn,
 } from "@tabler/icons-react";
-import p5 from "p5";
-import { displayIndex, normalizeIndex as normalizeFacetIndex } from "../domain/faceting.js";
+import { DEGREES_PER_TOOTH, INDEX_TEETH, displayIndex, normalizeIndex as normalizeFacetIndex } from "../domain/faceting.js";
+import {
+  addVectors as add,
+  averageVectors as average,
+  crossVectors as cross,
+  normalizeVector,
+  scaleVector as multiply,
+  subtractVectors as subtract,
+  vectorLength as length,
+} from "../utils/vector3.js";
 import "./GemViewport.css";
 
 const VIEW_POSES = {
@@ -49,38 +57,8 @@ function toPoint(value) {
   return [Number(value?.x) || 0, Number(value?.y) || 0, Number(value?.z) || 0];
 }
 
-function subtract(a, b) {
-  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-}
-
-function add(a, b) {
-  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
-}
-
-function multiply(vector, amount) {
-  return [vector[0] * amount, vector[1] * amount, vector[2] * amount];
-}
-
-function cross(a, b) {
-  return [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0],
-  ];
-}
-
-function length(vector) {
-  return Math.hypot(vector[0], vector[1], vector[2]);
-}
-
 function normalize(vector) {
-  const magnitude = length(vector);
-  return magnitude > 1e-8 ? multiply(vector, 1 / magnitude) : [0, 0, 1];
-}
-
-function average(points) {
-  const total = points.reduce((sum, point) => add(sum, point), [0, 0, 0]);
-  return multiply(total, 1 / Math.max(points.length, 1));
+  return normalizeVector(vector, { epsilon: 1e-8, fallback: [0, 0, 1] });
 }
 
 function computeBounds(vertices) {
@@ -777,8 +755,6 @@ function groupRotationRingHit(x, y, ring, visibility) {
 
 const PICK_VERTEX_PX = 12;
 const PICK_EDGE_PX = 8;
-const INDEX_TEETH = 96;
-const DEGREES_PER_TOOTH = 360 / INDEX_TEETH;
 
 function pickSceneTarget(x, y, scene) {
   const { frame, vertices = [], edges = [], faces = [] } = scene;
@@ -1213,12 +1189,9 @@ function drawGroupRotationRing(p, ring, isOccluded) {
   if (restoreDepthTest) gl.enable(gl.DEPTH_TEST);
 }
 
-function drawPickOverlay(p, scene, hoverTarget) {
+function drawPickOverlay(p, scene) {
   const frame = scene.frame;
   if (!frame) return;
-  const markers = [];
-  if (scene.meetTarget) markers.push({ target: scene.meetTarget, locked: true });
-  if (hoverTarget && hoverTarget.kind !== "face") markers.push({ target: hoverTarget, locked: false });
   const depthHandle = depthScreenInfo(frame, scene.cutGizmo);
   const angleArc = angleArcScreenInfo(frame, scene.cutGizmo);
   const indexRing = indexRingScreenInfo(frame, scene.cutGizmo);
@@ -1227,7 +1200,7 @@ function drawPickOverlay(p, scene, hoverTarget) {
   const groupRotationRing = groupControls.rotation;
   if (indexRing) indexRing.active = scene.activeGizmo;
   if (groupRotationRing) groupRotationRing.active = scene.activeGizmo;
-  if (!markers.length && !depthHandle && !angleArc && !indexRing && !groupControlList.length && !groupRotationRing) return;
+  if (!depthHandle && !angleArc && !indexRing && !groupControlList.length && !groupRotationRing) return;
 
   const gl = p.drawingContext;
   const {
@@ -1249,31 +1222,6 @@ function drawPickOverlay(p, scene, hoverTarget) {
   p.camera(0, 0, 400, 0, 0, 0, 0, 1, 0);
   p.ortho(-p.width / 2, p.width / 2, -p.height / 2, p.height / 2, -1000, 1000);
   const toLocal = (screen) => [screen.x - p.width / 2, screen.y - p.height / 2, overlayDepth(screen)];
-
-  markers.forEach(({ target, locked }) => {
-    p.noFill();
-    p.stroke(237, 34, 93, locked ? 255 : 170);
-    p.strokeWeight(locked ? 2 : 1.5);
-    if (target.kind === "vertex") {
-      const projected = projectDomainPoint(target.point, frame);
-      if (!projected) return;
-      const [lx, ly, lz] = toLocal(projected);
-      p.push();
-      p.translate(lx, ly, lz);
-      p.circle(0, 0, locked ? 13 : 11);
-      if (locked) {
-        p.noStroke();
-        p.fill(237, 34, 93, 235);
-        p.circle(0, 0, 5);
-      }
-      p.pop();
-    } else if (target.kind === "edge") {
-      const pa = projectDomainPoint(target.a, frame);
-      const pb = projectDomainPoint(target.b, frame);
-      if (!pa || !pb) return;
-      drawProjectedScreenSegment(p, pa, pb);
-    }
-  });
 
   groupControlList.forEach((groupControl) => {
     const active = scene.activeGizmo === `group-${groupControl.kind}`;
@@ -1717,19 +1665,14 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
     if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     canvas.classList.remove("is-dragging");
 
-    // Treat a sub-4px press as a click: pick meet targets / layers.
+    // Treat a sub-4px press as a click: pick layers.
     if (!wasGizmoDrag && sceneRef.current.pickingEnabled) {
       const moved = Math.hypot(event.clientX - activePointer.downX, event.clientY - activePointer.downY);
       if (moved < 4) {
         const { x, y } = canvasPoint(event);
         const target = pickSceneTarget(x, y, sceneRef.current);
-        const callbacks = interactionRef.current;
-        if (target?.kind === "vertex" || target?.kind === "edge") {
-          callbacks?.onMeetPick?.(target);
-        } else if (target?.kind === "face") {
-          callbacks?.onFacePick?.(target.operationId);
-        } else {
-          callbacks?.onMeetPick?.(null);
+        if (target?.kind === "face") {
+          interactionRef.current?.onFacePick?.(target.operationId);
         }
       }
     }
@@ -1784,7 +1727,6 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       } else if (angleHandleHit(x, y, arc)) {
         gizmoDrag = { kind: "angle", arc };
         scene.activeGizmo = "angle";
-        interactionRef.current?.onAngleDragStart?.();
       } else if (depthHandleHit(x, y, depth)) {
         gizmoDrag = { kind: "depth", startX: x, startY: y, startDepth: scene.cutGizmo.value, info: depth };
         scene.activeGizmo = "depth";
@@ -1897,53 +1839,43 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
     const depth = scene.cutGizmo ? depthScreenInfo(scene.frame, scene.cutGizmo) : null;
     const indexRing = scene.cutGizmo ? indexRingScreenInfo(scene.frame, scene.cutGizmo) : null;
     if (groupRotationRingHit(x, y, groupControls.rotation, groupVisibility)) {
-      scene.hoverTarget = { kind: "group-rotate-handle" };
       canvas.style.cursor = "grab";
       return;
     }
     if (groupControlHit(x, y, groupControls.translate, groupVisibility)) {
-      scene.hoverTarget = { kind: "group-translate-handle" };
       canvas.style.cursor = "ns-resize";
       return;
     }
     if (groupControlHit(x, y, groupControls.scale, groupVisibility)) {
-      scene.hoverTarget = { kind: "group-scale-handle" };
       canvas.style.cursor = "ns-resize";
       return;
     }
     if (mirrorRingKnobHit(x, y, indexRing)) {
-      scene.hoverTarget = { kind: "mirror-handle" };
       canvas.style.cursor = "grab";
       return;
     }
     if (indexRingKnobHit(x, y, indexRing)) {
-      scene.hoverTarget = { kind: "index-handle" };
       canvas.style.cursor = "grab";
       return;
     }
     if (angleHandleHit(x, y, arc)) {
-      scene.hoverTarget = { kind: "angle-handle" };
       canvas.style.cursor = "grab";
       return;
     }
     if (depthHandleHit(x, y, depth)) {
-      scene.hoverTarget = { kind: "depth-handle" };
       canvas.style.cursor = "grab";
       return;
     }
     if (mirrorRingHandleHit(x, y, indexRing)) {
-      scene.hoverTarget = { kind: "mirror-handle" };
       canvas.style.cursor = "grab";
       return;
     }
     if (indexRingHandleHit(x, y, indexRing)) {
-      scene.hoverTarget = { kind: "index-handle" };
       canvas.style.cursor = "grab";
       return;
     }
     const target = pickSceneTarget(x, y, scene);
-    scene.hoverTarget = target;
-    canvas.style.cursor = target ? (target.kind === "face" ? "pointer" : "crosshair") : "";
+    canvas.style.cursor = target?.kind === "face" ? "pointer" : "";
   };
 
   const onWheel = (event) => {
@@ -2037,13 +1969,10 @@ export function GemViewport({
   activeOperationId = null,
   previewOperationId = null,
   pickingEnabled = false,
-  meetTarget = null,
   cutGizmo = null,
   groupGizmo = null,
-  onMeetPick,
   onFacePick,
   onDepthDrag,
-  onAngleDragStart,
   onAngleDrag,
   onIndexDrag,
   onMirrorDrag,
@@ -2067,10 +1996,8 @@ export function GemViewport({
   const [activeViewMode, setActiveViewMode] = useState(initialMode);
 
   interactionRef.current = {
-    onMeetPick,
     onFacePick,
     onDepthDrag,
-    onAngleDragStart,
     onAngleDrag,
     onIndexDrag,
     onMirrorDrag,
@@ -2091,7 +2018,7 @@ export function GemViewport({
   }, [requestViewMode]);
 
   useLayoutEffect(() => {
-    // Mutate in place: transient picking state (frame/hoverTarget/activeGizmo)
+    // Mutate in place: transient picking state (frame/activeGizmo)
     // is owned by the interaction handlers and must survive re-renders.
     Object.assign(sceneRef.current, {
       geometry: normalizedGeometry,
@@ -2106,7 +2033,6 @@ export function GemViewport({
       activeOperationId,
       previewOperationId,
       pickingEnabled,
-      meetTarget,
       cutGizmo,
       groupGizmo,
       suspended,
@@ -2114,7 +2040,7 @@ export function GemViewport({
     if (hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
       ghostBoundsRef.current = copyBounds(normalizedGeometry.bounds);
     }
-  }, [activeOperationId, activeViewMode, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetTarget, normalizedGeometry, pickEdges, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
+  }, [activeOperationId, activeViewMode, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, normalizedGeometry, pickEdges, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
 
   useEffect(() => {
     const instance = instanceRef.current;
@@ -2145,6 +2071,9 @@ export function GemViewport({
     const host = hostRef.current;
     if (!host) return undefined;
     let detachInteractions = () => {};
+    let cancelled = false;
+    let instance = null;
+    let resizeObserver = null;
 
     const sketch = (p) => {
       let renderer;
@@ -2231,30 +2160,42 @@ export function GemViewport({
           pitch: camera.pitch,
         };
         p.pop();
-        if (sceneRef.current.pickingEnabled) drawPickOverlay(p, sceneRef.current, sceneRef.current.hoverTarget);
+        if (sceneRef.current.pickingEnabled) drawPickOverlay(p, sceneRef.current);
         drawOrientationGizmo(p, camera);
         drawGizmoLabels(gizmoLabelCanvasRef.current, sceneRef.current);
       };
     };
 
-    const instance = new p5(sketch);
-    instanceRef.current = instance;
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry || !instance.canvas) return;
-      const width = Math.max(320, Math.round(entry.contentRect.width));
-      const height = Math.max(320, Math.round(entry.contentRect.height));
-      if (width !== instance.width || height !== instance.height) {
-        instance.resizeCanvas(width, height, false);
+    (async () => {
+      let p5;
+      try {
+        ({ default: p5 } = await import("p5"));
+      } catch (error) {
+        console.error("加载 p5 视口渲染器失败：", error);
+        return;
       }
-    });
-    resizeObserver.observe(host);
+      if (cancelled) return;
+      instance = new p5(sketch);
+      instanceRef.current = instance;
+      if (sceneRef.current.suspended) instance.noLoop();
+      resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry || !instance.canvas) return;
+        const width = Math.max(320, Math.round(entry.contentRect.width));
+        const height = Math.max(320, Math.round(entry.contentRect.height));
+        if (width !== instance.width || height !== instance.height) {
+          instance.resizeCanvas(width, height, false);
+        }
+      });
+      resizeObserver.observe(host);
+    })();
 
     return () => {
-      resizeObserver.disconnect();
+      cancelled = true;
+      resizeObserver?.disconnect();
       detachInteractions();
       instanceRef.current = null;
-      instance.remove();
+      instance?.remove();
     };
   }, []);
 

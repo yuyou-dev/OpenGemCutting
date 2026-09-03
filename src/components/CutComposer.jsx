@@ -1,4 +1,3 @@
-import { IconStackPush } from "@tabler/icons-react";
 import { displayIndex } from "../domain/faceting.js";
 import { IndexTape } from "./IndexTape.jsx";
 
@@ -16,9 +15,7 @@ export function CutComposer({
   onCustomIndicesChange,
   generatedCount,
   instructionGroups,
-  onApply,
   mode,
-  editingLabel,
   previewEnabled,
   lockedPattern = false,
   validationMessage,
@@ -127,13 +124,6 @@ export function CutComposer({
       </div>
 
       {validationMessage ? <p className="validation-message" role="alert">{validationMessage}</p> : null}
-
-      {editing || creating ? (
-        <button type="button" className="primary-action" onClick={onApply} disabled={Boolean(validationMessage) || generatedCount === 0 || (editing && !previewEnabled)}>
-          <IconStackPush size={21} stroke={1.8} />
-          {editing ? `保存更新 ${editingLabel} · ${generatedCount} 面` : `加入序列 · ${generatedCount} 面`}
-        </button>
-      ) : null}
 
       <p className="composer-status">
         {creating ? "新建预览" : editing ? (previewEnabled ? "编辑预览" : "已选中保存图层") : mode === "group" ? "整体调整中" : "等待新建图层"} · {status}

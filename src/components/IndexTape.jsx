@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { displayIndex, indexToAzimuthDeg, normalizeIndex } from "../domain/faceting.js";
+import { INDEX_TEETH, displayIndex, indexToAzimuthDeg, normalizeIndex } from "../domain/faceting.js";
 
 /**
  * Horizontal 96-tooth index tape: a flat ruler strip the height of a form row.
@@ -23,7 +23,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
     const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
     // Tape runs 3 o'clock (index 0/96) at the left to just before one full turn
     // at the right, i.e. linear in azimuth: index = round(ratio * 96) % 96.
-    onIndexChange(normalizeIndex(Math.round(ratio * 96)));
+    onIndexChange(normalizeIndex(Math.round(ratio * INDEX_TEETH)));
   };
 
   const onPointerDown = (event) => {
@@ -49,20 +49,20 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
     }
     const numeric = Math.round(Number(editValue));
     if (Number.isFinite(numeric)) {
-      onIndexChange(normalizeIndex(Math.min(96, Math.max(1, numeric)) % 96));
+      onIndexChange(normalizeIndex(Math.min(INDEX_TEETH, Math.max(1, numeric)) % INDEX_TEETH));
     }
     setEditing(false);
   };
 
   const ticks = [];
-  for (let tooth = 0; tooth < 96; tooth += 1) {
+  for (let tooth = 0; tooth < INDEX_TEETH; tooth += 1) {
     const major = tooth % 24 === 0;
     const mid = !major && tooth % 8 === 0;
     ticks.push(
       <i
         key={tooth}
         className={major ? "is-major" : mid ? "is-mid" : ""}
-        style={{ left: `${(tooth / 96) * 100}%` }}
+        style={{ left: `${(tooth / INDEX_TEETH) * 100}%` }}
       />,
     );
   }
@@ -111,11 +111,11 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
       >
         <div className="index-tape-ticks" aria-hidden="true">{ticks}</div>
         {["96", "24", "48", "72"].map((label, labelIndex) => (
-          <span key={label} className="index-tape-label" style={{ left: `${(labelIndex * 24 / 96) * 100}%` }} aria-hidden="true">
+          <span key={label} className="index-tape-label" style={{ left: `${(labelIndex * 24 / INDEX_TEETH) * 100}%` }} aria-hidden="true">
             {label}
           </span>
         ))}
-        <span className="index-tape-handle" style={{ left: `${(index / 96) * 100}%` }} aria-hidden="true" />
+        <span className="index-tape-handle" style={{ left: `${(index / INDEX_TEETH) * 100}%` }} aria-hidden="true" />
       </div>
 
       <button

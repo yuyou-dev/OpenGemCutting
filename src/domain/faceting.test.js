@@ -9,15 +9,12 @@ import {
   betaDegToIndustryAngle,
   canRedo,
   canUndo,
-  cubeSupportOffset,
-  createAddPatternCommand,
+  createAddFacetsCommand,
   createCommandHistory,
   createFacetingDocument,
   createRemoveFacetsCommand,
-  createUpdateFacetCommand,
   createReplacePatternCommand,
   displayIndex,
-  displayToIndex,
   executeFacetingCommand,
   exportFacetingJSON,
   facetToClippingPlane,
@@ -47,7 +44,6 @@ test("normalizes the 96-tooth wheel and prints 96 as the zero alias", () => {
   assert.equal(displayIndex(0), 96);
   assert.equal(displayIndex(96), 96);
   assert.equal(displayIndex(95), 95);
-  assert.equal(displayToIndex(96), 0);
   assert.throws(() => normalizeIndex(2.5), /integer/);
 });
 
@@ -379,28 +375,6 @@ test("exports and imports validated JSON with explicit resolved facet data", () 
   );
 });
 
-test("imports legacy directional-support planes by recalculating their offsets", () => {
-  const legacy = createFacetingDocument({
-    facets: resolveFacetPattern({
-      patternId: "legacy-eight",
-      region: "crown",
-      baseIndex: 36,
-      repeat: 8,
-      mirror: 0,
-      industryAngleDeg: 32,
-      depth: 0.67,
-    }),
-  });
-  legacy.facets.forEach((facet) => {
-    facet.plane.offset = cubeSupportOffset(facet.plane.normal, legacy.stock) - facet.depth;
-  });
-  const restored = importFacetingJSON(JSON.stringify(legacy));
-  assert.equal(validateFacetingDocument(restored).valid, true);
-  assert.ok(restored.facets.every((facet) =>
-    Math.abs(facet.plane.offset - (rotationalStockSupportOffset(facet.plane.normal, restored.stock) - facet.depth)) < 1e-10
-  ));
-});
-
 test("imports the previous inverted crown and pavilion convention by re-resolving geometry", () => {
   const legacy = createFacetingDocument({
     facets: [
@@ -421,7 +395,7 @@ test("imports the previous inverted crown and pavilion convention by re-resolvin
 
 test("immutable command history supports undo, redo, branching, and replay", () => {
   const initial = createFacetingDocument({ name: "History test" });
-  const addPavilion = createAddPatternCommand({
+  const addPavilion = createAddFacetsCommand(resolveFacetPattern({
     patternId: "p1",
     region: "pavilion",
     baseIndex: 0,
@@ -429,7 +403,7 @@ test("immutable command history supports undo, redo, branching, and replay", () 
     mirror: 0,
     industryAngleDeg: 42,
     depth: 0.25,
-  });
+  }));
   const history0 = createCommandHistory(initial);
   const history1 = executeFacetingCommand(history0, addPavilion);
 
@@ -450,7 +424,7 @@ test("immutable command history supports undo, redo, branching, and replay", () 
     history1.present,
   );
 
-  const branchCommand = createAddPatternCommand({
+  const branchCommand = createAddFacetsCommand(resolveFacetPattern({
     patternId: "g1",
     region: "girdle",
     baseIndex: 0,
@@ -458,23 +432,24 @@ test("immutable command history supports undo, redo, branching, and replay", () 
     mirror: 0,
     industryAngleDeg: 90,
     depth: 0.1,
-  });
+  }));
   const branched = executeFacetingCommand(undone, branchCommand);
   assert.equal(canRedo(branched), false);
   assert.equal(branched.commands.length, 1);
   assert.ok(branched.present.facets.every((facet) => facet.region === "girdle"));
 });
 
-test("command-owned ids make anonymous patterns stable across replay", () => {
+test("command-owned ids make anonymous facets stable across replay", () => {
   const initial = createFacetingDocument();
-  const command = createAddPatternCommand({
+  const anonymous = resolveFacetPattern({
     region: "crown",
     baseIndex: 6,
     repeat: 2,
     mirror: 0,
     industryAngleDeg: 35,
     depth: 0.2,
-  });
+  }).map(({ id, patternId, ...facet }) => facet);
+  const command = createAddFacetsCommand(anonymous);
   const first = replayFacetingCommands(initial, [command]);
   const second = replayFacetingCommands(initial, [command]);
   assert.deepEqual(second, first);
@@ -484,7 +459,7 @@ test("command-owned ids make anonymous patterns stable across replay", () => {
   assert.deepEqual(redone.present, added.present);
 });
 
-test("update and remove commands resolve fresh planes without mutating the source", () => {
+test("remove commands do not mutate the source document", () => {
   const document = createFacetingDocument({
     facets: resolveFacetPattern({
       patternId: "single",
@@ -497,18 +472,9 @@ test("update and remove commands resolve fresh planes without mutating the sourc
     }),
   });
   const id = document.facets[0].id;
-  const updated = applyFacetingCommand(
-    document,
-    createUpdateFacetCommand(id, { depth: 0.4, industryAngleDeg: 40 }),
-  );
-  assert.equal(document.facets[0].depth, 0.1);
-  assert.equal(updated.facets[0].depth, 0.4);
-  assert.equal(updated.facets[0].betaDeg, -50);
-  assert.notEqual(updated.facets[0].plane.offset, document.facets[0].plane.offset);
-
-  const removed = applyFacetingCommand(updated, createRemoveFacetsCommand(id));
+  const removed = applyFacetingCommand(document, createRemoveFacetsCommand(id));
   assert.equal(removed.facets.length, 0);
-  assert.equal(updated.facets.length, 1);
+  assert.equal(document.facets.length, 1);
 });
 
 test("replaces one parsed pattern while preserving its position and other patterns", () => {

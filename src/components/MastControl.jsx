@@ -1,5 +1,3 @@
-import { IconX } from "@tabler/icons-react";
-
 export function MastControl({
   region,
   industryAngle,
@@ -10,8 +8,6 @@ export function MastControl({
   onDepthChange,
   disabled = false,
   angleLocked = false,
-  meetTarget = null,
-  onClearMeetTarget,
 }) {
   const disabledAngle = disabled || region === "girdle" || angleLocked;
   return (
@@ -72,16 +68,7 @@ export function MastControl({
         </label>
       </div>
 
-      {meetTarget ? (
-        <div className="meet-target-chip" role="status">
-          <span>相遇目标 · {meetTarget.kind === "vertex" ? "顶点" : "棱"}（侧栏调角时保持贴合）</span>
-          <button type="button" onClick={onClearMeetTarget} aria-label="清除相遇目标" title="清除相遇目标">
-            <IconX size={13} stroke={2} />
-          </button>
-        </div>
-      ) : null}
-
-      <p className="mast-meet-hint">视口外环调索引、内环调镜像轴偏移；蓝色桥架调行业角，粉色伸缩杆调深度。</p>
+      <p className="mast-viewport-hint">桥架调行业角 · 伸缩杆调深度 · 双环调索引与镜像</p>
     </section>
   );
 }

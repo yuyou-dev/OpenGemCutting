@@ -1,4 +1,5 @@
 import { displayIndex, FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../domain/faceting.js";
+import { downloadBlob } from "../utils/download.js";
 
 const A4 = { width: 595.28, height: 841.89 };
 const MARGIN = 38;
@@ -549,14 +550,6 @@ export async function createFacetReportPdf(input) {
 
 export async function downloadFacetReport(input) {
   const blob = await createFacetReportPdf(input);
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
   const safeName = input.document.name.replace(/[^\p{L}\p{N}-]+/gu, "-") || "facet-96";
-  anchor.href = url;
-  anchor.download = `${safeName}-切磨技术报告.pdf`;
-  anchor.hidden = true;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  downloadBlob(blob, `${safeName}-切磨技术报告.pdf`);
 }

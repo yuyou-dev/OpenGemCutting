@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { importFacetingJSON } from "./faceting.js";
+import { CURATION_EXCLUSIONS } from "./presetLibrary.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const presetRoot = path.join(repoRoot, "public", "presets");
@@ -18,7 +19,7 @@ test("ships a curated 50–100 item preset catalog with unique source geometry",
 
 test("does not reintroduce presets rejected during final visual curation", async () => {
   const catalog = JSON.parse(await readFile(path.join(presetRoot, "catalog.json"), "utf8"));
-  const rejectedPostIds = ["96655-", "100855-"];
+  const rejectedPostIds = [...CURATION_EXCLUSIONS].map((postId) => `${postId}-`);
   assert.ok(catalog.presets.every((preset) => rejectedPostIds.every((postId) => !preset.id.startsWith(postId))));
 });
 

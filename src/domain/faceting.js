@@ -10,9 +10,9 @@
  * - depth is measured inward from the stock's rotational envelope around Z.
  */
 
-const INDEX_TEETH = 96;
+export const INDEX_TEETH = 96;
 const INDEX_ZERO_ALIAS = 96;
-const DEGREES_PER_TOOTH = 360 / INDEX_TEETH;
+export const DEGREES_PER_TOOTH = 360 / INDEX_TEETH;
 export const VALID_REPEAT_COUNTS = Object.freeze(
   Array.from({ length: INDEX_TEETH }, (_, index) => index + 1).filter(
     (count) => INDEX_TEETH % count === 0,
@@ -124,14 +124,6 @@ export function normalizeIndex(index) {
 export function displayIndex(index) {
   const normalized = normalizeIndex(index);
   return normalized === 0 ? INDEX_ZERO_ALIAS : normalized;
-}
-
-export function displayToIndex(index) {
-  assertInteger(index, "display index");
-  if (index < 1 || index > INDEX_ZERO_ALIAS) {
-    throw new RangeError(`display index must be between 1 and ${INDEX_ZERO_ALIAS}.`);
-  }
-  return normalizeIndex(index);
 }
 
 function isValidRepeatCount(repeat) {
@@ -321,24 +313,6 @@ export function normalizeStock(stock = DEFAULT_STOCK) {
     size: cleanNumber(size),
     center: center.map(cleanNumber),
   };
-}
-
-export function cubeSupportOffset(normal, stock = DEFAULT_STOCK) {
-  if (!isPlainObject(normal)) {
-    throw new TypeError("normal must be an {x, y, z} object.");
-  }
-  const nx = assertFiniteNumber(normal.x, "normal.x");
-  const ny = assertFiniteNumber(normal.y, "normal.y");
-  const nz = assertFiniteNumber(normal.z, "normal.z");
-  const resolvedStock = normalizeStock(stock);
-  const half = resolvedStock.size / 2;
-  const centerProjection =
-    nx * resolvedStock.center[0] +
-    ny * resolvedStock.center[1] +
-    nz * resolvedStock.center[2];
-  return cleanNumber(
-    centerProjection + half * (Math.abs(nx) + Math.abs(ny) + Math.abs(nz)),
-  );
 }
 
 /**
@@ -914,13 +888,6 @@ function createCommand(type, payload) {
   };
 }
 
-export function createAddPatternCommand(pattern) {
-  if (!isPlainObject(pattern)) {
-    throw new TypeError("pattern must be an object.");
-  }
-  return createCommand(COMMAND_TYPE.ADD_PATTERN, { pattern });
-}
-
 export function createAddFacetsCommand(facets) {
   if (!Array.isArray(facets)) {
     throw new TypeError("facets must be an array.");
@@ -948,13 +915,6 @@ export function replacePatternFacets(facets, patternId, replacements) {
   const next = facets.filter((facet) => facet.patternId !== patternId);
   next.splice(firstIndex, 0, ...replacements);
   return next;
-}
-
-export function createUpdateFacetCommand(facetId, changes) {
-  return createCommand(COMMAND_TYPE.UPDATE_FACET, {
-    facetId: normalizeString(facetId, undefined, "facetId"),
-    changes: isPlainObject(changes) ? changes : {},
-  });
 }
 
 export function createRemoveFacetsCommand(facetIds) {

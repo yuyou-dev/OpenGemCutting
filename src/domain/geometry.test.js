@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  clipByPlanes,
   clipPolyhedron,
   createCenteredCube,
   faceArea,
@@ -116,24 +115,6 @@ test("oblique clipping accepts d and builds a single coplanar convex cap", () =>
     approximately(point.x + point.y + point.z, 0);
   }
   assertUniqueVertices(clipped);
-});
-
-test("planes are applied sequentially and retain stable face records", () => {
-  const octant = clipByPlanes(createCenteredCube(), [
-    { normal: [1, 0, 0], constant: 0, operationId: "x" },
-    { normal: [0, 1, 0], offset: 0, operationId: "y" },
-    { normal: [0, 0, 1], d: 0, operationId: "z" },
-  ]);
-
-  assert.equal(octant.vertices.length, 8);
-  assert.equal(octant.faces.length, 6);
-  approximately(polyhedronVolume(octant), 1);
-  approximatelyVector(polyhedronCentroid(octant), { x: -0.5, y: -0.5, z: -0.5 });
-  assert.deepEqual(
-    new Set(octant.faces.map((face) => face.sourceOperationId).filter(Boolean)),
-    new Set(["x", "y", "z"]),
-  );
-  assertUniqueVertices(octant);
 });
 
 test("tolerance makes near-coincident cuts safe and avoids duplicate faces", () => {

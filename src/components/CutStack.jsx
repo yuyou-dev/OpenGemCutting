@@ -8,7 +8,6 @@ import {
   IconPlus,
   IconTransform,
   IconTrash,
-  IconX,
 } from "@tabler/icons-react";
 
 const REGION_CHIP = { crown: "C", girdle: "G", pavilion: "P", table: "T" };
@@ -57,7 +56,7 @@ function InlineEditor({ operation, values, onEdit, onCommit }) {
           step="0.01"
           value={angle}
           ref={angleRef}
-          disabled={operation.locked}
+          disabled={operation.locked || operation.region === "girdle"}
           onChange={(event) => {
             setAngle(event.target.value);
             emit("angle", event.target.value);
@@ -82,7 +81,7 @@ function InlineEditor({ operation, values, onEdit, onCommit }) {
           aria-label="切入深度"
         />
       </label>
-      <small>即改即预览 · 回车保存</small>
+      <small>回车保存</small>
     </div>
   );
 }
@@ -125,8 +124,9 @@ export function CutStack({
   canCancelSession = false,
   sessionMode = "idle",
   sessionFaceCount = 0,
-  sessionLabel = "",
-  sessionExitLabel = "退出当前操作",
+  canCommitSession = false,
+  commitDisabledReason = "",
+  onCommitSession,
   onCancelSession,
   floating = false,
   collapsed = false,
@@ -409,19 +409,31 @@ export function CutStack({
       ) : !collapsed && canCancelSession ? (
         <div className={`cut-stack-session-row is-${sessionMode}`} role="status">
           <span className="cut-stack-session-copy">
-            <strong>{sessionMode === "edit" ? `正在编辑 ${sessionLabel}` : `正在新建${REGION_TABS.find(([id]) => id === activeRegion)?.[1]}切割图层`}</strong>
-            <small>{sessionFaceCount} 面{sessionMode === "edit" ? " · 参数修改后保存更新" : " · 未保存预览"}</small>
+            <strong>
+              {sessionMode === "edit"
+                ? `${sessionFaceCount} 面${canCommitSession ? " · 未保存" : ""}`
+                : `新建${REGION_TABS.find(([id]) => id === activeRegion)?.[1]} · ${sessionFaceCount} 面`}
+            </strong>
           </span>
-          <button
-            type="button"
-            className="cut-stack-session-cancel"
-            onClick={onCancelSession}
-            aria-label={sessionExitLabel}
-            title={`${sessionExitLabel} · Esc`}
-          >
-            <IconX size={14} stroke={1.9} />
-            <span>{sessionExitLabel}</span>
-          </button>
+          <span className="cut-stack-session-actions">
+            <button
+              type="button"
+              className="cut-stack-session-cancel"
+              onClick={onCancelSession}
+              title={`${sessionMode === "edit" ? "放弃修改并退出编辑" : "取消新建"} · Esc`}
+            >
+              {sessionMode === "edit" ? "放弃" : "取消"}
+            </button>
+            <button
+              type="button"
+              className="cut-stack-session-commit"
+              onClick={onCommitSession}
+              disabled={Boolean(commitDisabledReason) || sessionFaceCount === 0}
+              title={commitDisabledReason || undefined}
+            >
+              {sessionMode === "edit" ? "保存" : `加入序列 · ${sessionFaceCount} 面`}
+            </button>
+          </span>
         </div>
       ) : null}
     </section>

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { IconChevronLeft, IconChevronRight, IconHistory } from "@tabler/icons-react";
-import { Header } from "./components/Header.jsx";
+import { IconChevronLeft, IconChevronRight, IconHistory } from "@tabler/icons-react";import { Header } from "./components/Header.jsx";
 import { GemViewport } from "./components/GemViewport.jsx";
 import { OpticsViewport } from "./components/OpticsViewport.jsx";
 import { OpticsInspector } from "./components/OpticsInspector.jsx";
@@ -12,6 +11,8 @@ import { HistoryPanel } from "./components/HistoryPanel.jsx";
 import { AscTransferDialog } from "./components/AscTransferDialog.jsx";
 import { PresetLibraryDialog } from "./components/PresetLibraryDialog.jsx";
 import { HelpCenterDialog } from "./components/HelpCenterDialog.jsx";
+import { Modal } from "./components/Modal.jsx";
+import { downloadBlob } from "./utils/download.js";
 import {
   CUT_SESSION_EVENT,
   CUT_SESSION_MODE,
@@ -27,7 +28,6 @@ import {
   canUndo,
   createAddFacetsCommand,
   createCommandHistory,
-  createFacetingDocument,
   createRemoveFacetsCommand,
   createReplacePatternCommand,
   createReplaceDocumentCommand,
@@ -52,29 +52,11 @@ import {
   createCenteredCube,
   measurePolyhedron,
 } from "./domain/geometry.js";
-import {
-  depthForEdge,
-  depthForVertex,
-} from "./domain/meet.js";
 import { DEFAULT_OPTICS_SETTINGS, resolveOpticsSettings } from "./domain/optics.js";
 import { inspectGemCadAsc, serializeGemCadAsc } from "./domain/gemcadAsc.js";
 import { createPresetLibrary, createStaticPresetProvider } from "./domain/presetLibrary.js";
+import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
 import { downloadFacetReport } from "./report/pdfReport.js";
-
-const REGION_LABELS = FACET_REGION_LABELS;
-const REGION_PREFIX = FACET_REGION_PREFIXES;
-
-const DEFAULT_ANGLES = {
-  crown: 32,
-  girdle: 90,
-  pavilion: 41,
-};
-
-const DEFAULT_DEPTHS = {
-  crown: 0.42,
-  girdle: 0.2,
-  pavilion: 0.42,
-};
 
 function normalizeDepthValue(value) {
   return Math.max(0, Number(value) || 0);
@@ -82,56 +64,6 @@ function normalizeDepthValue(value) {
 
 function safeFileStem(value, fallback = "facet-96") {
   return value.replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "") || fallback;
-}
-
-const TABLE_PATTERN_ID = "table-facet";
-
-function tableFacets(stock) {
-  return resolveFacetPattern({
-    patternId: TABLE_PATTERN_ID,
-    label: "T1 台面",
-    region: "crown",
-    baseIndex: 0,
-    repeat: 1,
-    mirror: 0,
-    industryAngleDeg: 0,
-    depth: 0.2,
-    metadata: {
-      operationType: "table",
-      fixedAngle: true,
-      patternMode: "symmetric",
-    },
-  }, { stock });
-}
-
-function ensureTableFacet(document) {
-  if (document.facets.some((facet) => facet.patternId === TABLE_PATTERN_ID || facet.metadata?.operationType === "table")) {
-    return document;
-  }
-  return { ...document, facets: [...tableFacets(document.stock), ...document.facets] };
-}
-
-/** Default 32-fold girdle preform: turns the cube stock into a prism blank. */
-function girdlePreformFacets(stock) {
-  return resolveFacetPattern({
-    patternId: "girdle-preform",
-    label: "G1 腰部",
-    region: "girdle",
-    baseIndex: 0,
-    repeat: 32,
-    mirror: 0,
-    industryAngleDeg: 90,
-    depth: 0.2,
-    metadata: { patternMode: "symmetric" },
-  }, { stock });
-}
-
-function createWorkbenchDocument(name) {
-  const withTable = ensureTableFacet(createFacetingDocument({
-    name,
-    metadata: { optics: resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS) },
-  }));
-  return { ...withTable, facets: [...withTable.facets, ...girdlePreformFacets(withTable.stock)] };
 }
 
 function parseCustomIndices(value) {
@@ -183,7 +115,7 @@ function describeCommand(command) {
   if (command.type === "pattern/add") {
     const pattern = command.payload?.pattern ?? {};
     const count = resolveFacetPattern(pattern).length;
-    return `切割 ${count} 个${REGION_LABELS[pattern.region] ?? ""}面`;
+    return `切割 ${count} 个${FACET_REGION_LABELS[pattern.region] ?? ""}面`;
   }
   if (command.type === "facets/add") {
     const facets = command.payload?.facets ?? [];
@@ -194,47 +126,8 @@ function describeCommand(command) {
   return "更新切磨参数";
 }
 
-function Modal({ title, children, confirmLabel, onConfirm, onClose, destructive = false }) {
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section
-        className="modal-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <h2>{title}</h2>
-        {children}
-        <div className="modal-actions">
-          <button type="button" className="secondary-button modal-button" onClick={onClose}>取消</button>
-          {onConfirm ? (
-            <button
-              type="button"
-              className={destructive ? "primary-action modal-button is-destructive" : "primary-action modal-button"}
-              onClick={onConfirm}
-            >
-              {confirmLabel}
-            </button>
-          ) : (
-            <button type="button" className="primary-action modal-button" onClick={onClose}>知道了</button>
-          )}
-        </div>
-      </section>
-    </div>
-  );
-}
-
 export function App() {
   const [history, setHistory] = useState(() => createCommandHistory(createWorkbenchDocument("未命名切型 01")));
-  const [region, setRegion] = useState("crown");
-  const [industryAngle, setIndustryAngle] = useState(32);
-  const [depth, setDepth] = useState(0.42);
-  const [baseIndex, setBaseIndex] = useState(36);
-  const [repeatCount, setRepeatCount] = useState(8);
-  const [mirrorOffset, setMirrorOffset] = useState(0);
-  const [patternMode, setPatternMode] = useState("symmetric");
-  const [customIndices, setCustomIndices] = useState("02 22 26 46 50 70 74 94");
   const [sessionState, dispatchCutSession] = useReducer(
     cutSessionReducer,
     null,
@@ -252,9 +145,6 @@ export function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [cutStackOpen, setCutStackOpen] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
-  const [groupDeltaZ, setGroupDeltaZ] = useState(0);
-  const [groupScale, setGroupScale] = useState(1);
-  const [groupRotationTeeth, setGroupRotationTeeth] = useState(0);
   const [hoveredPatternId, setHoveredPatternId] = useState(null);
   const [hiddenPatternIds, setHiddenPatternIds] = useState(() => new Set());
   const [modal, setModal] = useState(null);
@@ -271,10 +161,22 @@ export function App() {
   const document = history.present;
   const cutSession = resolveCutSession(sessionState);
   const cutMode = cutSession.mode;
+  const region = cutSession.region;
+  const {
+    industryAngle,
+    depth,
+    baseIndex,
+    repeat: repeatCount,
+    mirrorOffset,
+    patternMode,
+    customIndices,
+  } = cutSession.draft;
+  const groupDeltaZ = cutSession.group?.deltaZ ?? 0;
+  const groupScale = cutSession.group?.scale ?? 1;
+  const groupRotationTeeth = cutSession.group?.rotationTeeth ?? 0;
   const previewEnabled = cutSession.previewEnabled;
   const editingPatternId = cutSession.activePatternId;
   const groupEditRegion = cutSession.groupRegion;
-  const meetTarget = cutSession.meetTarget;
   const signedBeta = industryAngleToBetaDeg(region, industryAngle);
 
   const notify = useCallback((message) => {
@@ -481,7 +383,7 @@ export function App() {
       if (!locked) regionCounts[first.region] += 1;
       return {
         id,
-        label: first.label || `${REGION_PREFIX[first.region]}${regionCounts[first.region]} ${REGION_LABELS[first.region]}`,
+        label: first.label || `${FACET_REGION_PREFIXES[first.region]}${regionCounts[first.region]} ${FACET_REGION_LABELS[first.region]}`,
         region: first.region,
         industryAngleDeg: first.industryAngleDeg,
         signedBeta: first.betaDeg,
@@ -523,7 +425,7 @@ export function App() {
       const number = operations.filter((operation) => operation.region === region && !operation.locked).length + 1;
       rows.push({
         id: "draft-instruction",
-        prefix: `${REGION_PREFIX[region]}${number}`,
+        prefix: `${FACET_REGION_PREFIXES[region]}${number}`,
         region,
         angle: industryAngle,
         indices: generatedIndices,
@@ -566,7 +468,7 @@ export function App() {
     const number = operations.filter((item) => item.region === targetRegion && !item.locked).length + 1;
     return {
       patternId: `cut-${Date.now()}-${operationSequence.current}`,
-      label: `${REGION_PREFIX[targetRegion]}${number} ${REGION_LABELS[targetRegion]}`,
+      label: `${FACET_REGION_PREFIXES[targetRegion]}${number} ${FACET_REGION_LABELS[targetRegion]}`,
     };
   }, [operations]);
 
@@ -594,7 +496,7 @@ export function App() {
     }
 
     const { patternId, label } = current
-      ? { patternId: current.id, label: current.locked ? current.label : `${current.label.split(/\s+/)[0]} ${REGION_LABELS[region]}` }
+      ? { patternId: current.id, label: current.locked ? current.label : `${current.label.split(/\s+/)[0]} ${FACET_REGION_LABELS[region]}` }
       : makeOperationIdentity(region);
     const createdAt = new Date().toISOString();
     const metadata = {
@@ -628,14 +530,6 @@ export function App() {
 
   const startNewCut = () => {
     if (!cutSession.showNewButton) return;
-    setGroupDeltaZ(0);
-    setGroupScale(1);
-    setGroupRotationTeeth(0);
-    setIndustryAngle(DEFAULT_ANGLES[region]);
-    setDepth(DEFAULT_DEPTHS[region]);
-    setRepeatCount(region === "girdle" ? 16 : 8);
-    setMirrorOffset(0);
-    setPatternMode("symmetric");
     dispatchCutSession({ type: CUT_SESSION_EVENT.START_CREATE, region });
     notify("已进入新建动作；已保存图层保持不变。");
   };
@@ -643,33 +537,13 @@ export function App() {
   const cancelCutSession = useCallback(() => {
     if (!cutSession.canCancel) return;
     const discarded = cutMode === CUT_SESSION_MODE.CREATE || cutSession.dirty;
-    if (cutMode === CUT_SESSION_MODE.EDIT && editingOperation) {
-      const first = editingOperation.facets[0];
-      setRegion(first.region);
-      setIndustryAngle(first.industryAngleDeg);
-      setDepth(first.depth);
-      setBaseIndex(first.baseIndex ?? first.index);
-      setRepeatCount(first.repeat || editingOperation.indices.length);
-      setMirrorOffset(first.mirror || 0);
-      setPatternMode(editingOperation.patternMode);
-      setCustomIndices(editingOperation.indices.map((index) => displayIndex(index)).join(" "));
-    } else if (cutMode === CUT_SESSION_MODE.CREATE) {
-      setIndustryAngle(DEFAULT_ANGLES[region]);
-      setDepth(DEFAULT_DEPTHS[region]);
-      setRepeatCount(region === "girdle" ? 16 : 8);
-      setMirrorOffset(0);
-      setPatternMode("symmetric");
-    }
-    setGroupDeltaZ(0);
-    setGroupScale(1);
-    setGroupRotationTeeth(0);
     dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL });
     notify(cutMode === CUT_SESSION_MODE.GROUP
       ? "已取消整体变换。"
       : discarded
         ? "已放弃未保存预览并返回浏览状态。"
         : "已退出图层编辑。");
-  }, [cutMode, cutSession.canCancel, cutSession.dirty, editingOperation, notify, region]);
+  }, [cutMode, cutSession.canCancel, cutSession.dirty, notify]);
 
   useEffect(() => {
     if (!cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || opticsActive) return undefined;
@@ -710,17 +584,21 @@ export function App() {
     if (!cutSession.canPickLayer) return;
     const operation = operations.find((item) => item.id === id);
     if (!operation) return;
-    setGroupDeltaZ(0);
     const first = operation.facets[0];
-    dispatchCutSession({ type: CUT_SESSION_EVENT.SELECT_LAYER, patternId: id });
-    setRegion(first.region);
-    setIndustryAngle(first.industryAngleDeg);
-    setDepth(first.depth);
-    setBaseIndex(first.baseIndex ?? first.index);
-    setRepeatCount(first.repeat || operation.indices.length);
-    setMirrorOffset(first.mirror || 0);
-    setPatternMode(operation.patternMode);
-    setCustomIndices(operation.indices.map((index) => displayIndex(index)).join(" "));
+    dispatchCutSession({
+      type: CUT_SESSION_EVENT.SELECT_LAYER,
+      patternId: id,
+      region: first.region,
+      draft: {
+        industryAngle: first.industryAngleDeg,
+        depth: first.depth,
+        baseIndex: first.baseIndex ?? first.index,
+        repeat: first.repeat || operation.indices.length,
+        mirrorOffset: first.mirror || 0,
+        patternMode: operation.patternMode,
+        customIndices: operation.indices.map((index) => displayIndex(index)).join(" "),
+      },
+    });
   };
 
   const removeCut = (id) => {
@@ -769,75 +647,37 @@ export function App() {
   const inlineEdit = (field, value) => {
     if (!editingPatternId) return;
     if (field === "angle") {
-      const angle = Math.min(90, Math.max(0, value));
-      setIndustryAngle(angle);
-      if (meetTarget?.kind === "vertex" && region !== "girdle" && draft.facets[0]) {
-        const normal = facetNormal(baseIndex, industryAngleToBetaDeg(region, angle));
-        const solved = depthForVertex(normal, meetTarget.point, document.stock);
-        setDepth(normalizeDepthValue(solved));
-      }
+      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: Math.min(90, Math.max(0, value)) } });
     } else if (field === "depth") {
-      setDepth(normalizeDepthValue(value));
+      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { depth: normalizeDepthValue(value) } });
     }
-    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
   };
 
   const changeRegion = (nextRegion) => {
     if (nextRegion === region) return;
     if (!cutSession.canChangeRegion) return;
-    setGroupDeltaZ(0);
     // Region switching is a new-action gesture: a selected layer stays
     // untouched and the draft restarts with the new region's defaults.
-    setGroupScale(1);
-    setGroupRotationTeeth(0);
-    setRegion(nextRegion);
-    setIndustryAngle(DEFAULT_ANGLES[nextRegion]);
-    setDepth(DEFAULT_DEPTHS[nextRegion]);
-    setRepeatCount(nextRegion === "girdle" ? 16 : 8);
-    setMirrorOffset(0);
-    setPatternMode("symmetric");
     dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_REGION, region: nextRegion });
   };
 
   const startGroupEdit = (targetRegion) => {
     if (targetRegion === "girdle" || !cutSession.canStartGroup) return;
-    setRegion(targetRegion);
-    setGroupDeltaZ(0);
-    setGroupScale(1);
-    setGroupRotationTeeth(0);
     dispatchCutSession({ type: CUT_SESSION_EVENT.START_GROUP, region: targetRegion });
   };
 
-  const groupIsDirty = (nextDelta, nextScale, nextRotation) => (
-    Boolean(Number(nextDelta))
-    || Math.abs(Number(nextScale) - 1) > 1e-9
-    || Boolean(Number(nextRotation))
-  );
-
   const changeGroupDelta = (value) => {
-    setGroupDeltaZ(value);
-    dispatchCutSession({
-      type: CUT_SESSION_EVENT.CHANGE_GROUP,
-      dirty: groupIsDirty(value, groupScale, groupRotationTeeth),
-    });
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_GROUP, patch: { deltaZ: value } });
   };
 
   const changeGroupScale = (value) => {
-    setGroupScale(value);
-    dispatchCutSession({
-      type: CUT_SESSION_EVENT.CHANGE_GROUP,
-      dirty: groupIsDirty(groupDeltaZ, value, groupRotationTeeth),
-    });
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_GROUP, patch: { scale: value } });
   };
 
   const changeGroupRotation = (value) => {
     const normalized = normalizeIndex(Math.round(Number(value) || 0));
     const teeth = normalized > 48 ? normalized - 96 : normalized;
-    setGroupRotationTeeth(teeth);
-    dispatchCutSession({
-      type: CUT_SESSION_EVENT.CHANGE_GROUP,
-      dirty: groupIsDirty(groupDeltaZ, groupScale, teeth),
-    });
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_GROUP, patch: { rotationTeeth: teeth } });
   };
 
   const applyGroupEdit = () => {
@@ -873,36 +713,8 @@ export function App() {
     const groupLabel = groupEditRegion === "crown" ? "冠部与台面" : "亭部";
     const description = `${groupLabel}整体变换 · ΔZ ${shift >= 0 ? "+" : ""}${shift.toFixed(3)} · H ${(scale * 100).toFixed(1)}% · R ${rotation >= 0 ? "+" : ""}${rotation}T`;
     setHistory(executeFacetingCommand(history, createReplaceDocumentCommand(nextDocument, { description })));
-    setGroupDeltaZ(0);
-    setGroupScale(1);
-    setGroupRotationTeeth(0);
     dispatchCutSession({ type: CUT_SESSION_EVENT.COMMIT_SUCCESS });
     notify(`已应用${groupLabel}整体变换；可一步撤销。`);
-  };
-
-  const applyMeetTarget = (target) => {
-    const facet = draft.facets[0];
-    if (!target || !facet) return;
-    const solved = target.kind === "vertex"
-      ? depthForVertex(facet.plane.normal, target.point, document.stock)
-      : depthForEdge(facet.plane.normal, { a: target.a, b: target.b }, document.stock);
-    const nextDepth = normalizeDepthValue(solved);
-    setDepth(nextDepth);
-    notify(`相遇目标已设定：切割面贴合所选${target.kind === "vertex" ? "顶点" : "棱"}，深度 ${nextDepth.toFixed(3)}。`);
-  };
-
-  const handleMeetPick = (target) => {
-    if (!cutSession.canPickMeet) return;
-    if (!target) {
-      dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET });
-      return;
-    }
-    if (target.kind === "face" || target.kind === "handle") return;
-    const picked = target.kind === "vertex"
-      ? { kind: "vertex", point: target.point }
-      : { kind: "edge", a: target.a, b: target.b };
-    dispatchCutSession({ type: CUT_SESSION_EVENT.PICK_MEET, target: picked });
-    applyMeetTarget(picked);
   };
 
   const handleFacePick = (operationId) => {
@@ -911,20 +723,12 @@ export function App() {
   };
 
   const handleDepthDrag = (rawDepth) => {
-    setDepth(normalizeDepthValue(rawDepth));
-    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
-  };
-
-  const handleAngleDragStart = () => {
-    if (!meetTarget) return;
-    dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET });
-    notify("已解除相遇目标；角度手柄只调整行业角。");
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { depth: normalizeDepthValue(rawDepth) } });
   };
 
   const handleAngleDrag = (rawAngle) => {
     if (region === "girdle" || editingOperation?.locked) return;
-    setIndustryAngle(Math.min(90, Math.max(0, rawAngle)));
-    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: Math.min(90, Math.max(0, rawAngle)) } });
   };
 
   const cutGizmo = useMemo(() => {
@@ -964,16 +768,6 @@ export function App() {
     setHistory(createCommandHistory(createWorkbenchDocument(name)));
     setOpticsSettings(resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS));
     setHiddenPatternIds(new Set());
-    setRegion("crown");
-    setIndustryAngle(DEFAULT_ANGLES.crown);
-    setDepth(DEFAULT_DEPTHS.crown);
-    setBaseIndex(36);
-    setRepeatCount(8);
-    setMirrorOffset(0);
-    setPatternMode("symmetric");
-    setGroupDeltaZ(0);
-    setGroupScale(1);
-    setGroupRotationTeeth(0);
     dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_CREATE, region: "crown" });
     setResetSignal((value) => value + 1);
   };
@@ -1002,12 +796,7 @@ export function App() {
       metadata: { ...(document.metadata ?? {}), optics: opticsSettings },
     });
     const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = window.document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${document.name.replace(/[^\p{L}\p{N}-]+/gu, "-") || "facet-96"}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `${document.name.replace(/[^\p{L}\p{N}-]+/gu, "-") || "facet-96"}.json`);
     notify(`已导出 ${document.facets.length} 个面的完整 JSON 参数。`);
   };
 
@@ -1024,20 +813,21 @@ export function App() {
     }
   };
 
+  const applyImportedDocument = (imported, { description } = {}) => {
+    const command = createReplaceDocumentCommand(imported, description ? { description } : undefined);
+    setHistory((current) => executeFacetingCommand(current, command));
+    setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
+    setHiddenPatternIds(new Set());
+    dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
+  };
+
   const importDocument = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     try {
       const imported = ensureTableFacet(importFacetingJSON(await file.text()));
-      const command = createReplaceDocumentCommand(imported);
-      setHistory(executeFacetingCommand(history, command));
-      setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
-      setHiddenPatternIds(new Set());
-      setGroupDeltaZ(0);
-      setGroupScale(1);
-      setGroupRotationTeeth(0);
-      dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
+      applyImportedDocument(imported);
       notify(`已导入“${imported.name}”，共 ${imported.facets.length} 个面。`);
     } catch (error) {
       const detail = error.errors?.[0];
@@ -1069,44 +859,25 @@ export function App() {
     if (!ascTransfer || ascTransfer.result.status === "error") return;
     if (ascTransfer.mode === "import") {
       const imported = ascTransfer.result.document;
-      const command = createReplaceDocumentCommand(imported, {
+      applyImportedDocument(imported, {
         description: `导入 GemCad ASC · ${ascTransfer.fileName}`,
       });
-      setHistory((current) => executeFacetingCommand(current, command));
-      setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
-      setHiddenPatternIds(new Set());
-      setGroupDeltaZ(0);
-      setGroupScale(1);
-      setGroupRotationTeeth(0);
-      dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
       setAscTransfer(null);
       notify(`已导入“${imported.name}”：${ascTransfer.result.summary.tierCount} 层 / ${imported.facets.length} 面，可撤销。`);
       return;
     }
 
     const blob = new Blob([ascTransfer.result.text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = window.document.createElement("a");
-    anchor.href = url;
-    anchor.download = ascTransfer.fileName;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, ascTransfer.fileName);
     setAscTransfer(null);
     notify(`已导出 ${ascTransfer.result.summary.tierCount} 个 ASC tier；JSON 完整主文件未受影响。`);
   };
 
   const loadPreset = async (rawDocument, preset) => {
     const imported = ensureTableFacet(importFacetingJSON(JSON.stringify(rawDocument)));
-    const command = createReplaceDocumentCommand(imported, {
+    applyImportedDocument(imported, {
       description: `载入预设琢型 · ${preset.name}`,
     });
-    setHistory((current) => executeFacetingCommand(current, command));
-    setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
-    setHiddenPatternIds(new Set());
-    setGroupDeltaZ(0);
-    setGroupScale(1);
-    setGroupRotationTeeth(0);
-    dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
     setPresetLibraryOpen(false);
     setResetSignal((value) => value + 1);
     notify(`已载入预设“${preset.name}”，共 ${imported.facets.length} 个面，可撤销。`);
@@ -1164,7 +935,7 @@ export function App() {
 
           <div className="sidebar-sections">
             <details className="control-section" open>
-              <summary><span>切割参数 CUT</span><small>{editingOperation ? `编辑 ${editingOperation.label}` : REGION_LABELS[region]}</small></summary>
+              <summary><span>切割参数 CUT</span><small>{FACET_REGION_LABELS[region]}</small></summary>
               <MastControl
                 region={region}
                 industryAngle={industryAngle}
@@ -1172,56 +943,39 @@ export function App() {
                 depth={depth}
                 disabled={!cutSession.controlsEnabled}
                 onAngleChange={(value) => {
-                  setIndustryAngle(value);
-                  // With a vertex meet target pinned, keep the plane glued to it.
-                  if (meetTarget?.kind === "vertex" && region !== "girdle" && draft.facets[0]) {
-                    const normal = facetNormal(baseIndex, industryAngleToBetaDeg(region, value));
-                    const solved = depthForVertex(normal, meetTarget.point, document.stock);
-                    setDepth(normalizeDepthValue(solved));
-                  }
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: value } });
                 }}
                 onDepthChange={(value) => {
-                  setDepth(normalizeDepthValue(value));
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { depth: normalizeDepthValue(value) } });
                 }}
                 depthMax={depthControlMax}
                 angleLocked={Boolean(editingOperation?.locked)}
-                meetTarget={meetTarget}
-                onClearMeetTarget={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET })}
               />
               <CutComposer
                 patternMode={patternMode}
                 onPatternModeChange={(value) => {
-                  setPatternMode(value);
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { patternMode: value } });
                 }}
                 baseIndex={baseIndex}
                 onBaseIndexChange={(value) => {
-                  setBaseIndex(normalizeIndex(value));
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { baseIndex: normalizeIndex(value) } });
                 }}
                 repeatCount={repeatCount}
                 repeatOptions={VALID_REPEAT_COUNTS}
                 onRepeatChange={(value) => {
-                  setRepeatCount(value);
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { repeat: value } });
                 }}
                 mirrorOffset={mirrorOffset}
                 onMirrorChange={(value) => {
-                  setMirrorOffset(Math.min(48, Math.max(0, Math.round(value))));
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { mirrorOffset: Math.min(48, Math.max(0, Math.round(value))) } });
                 }}
                 customIndices={customIndices}
                 onCustomIndicesChange={(value) => {
-                  setCustomIndices(value);
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { customIndices: value } });
                 }}
                 generatedCount={draft.facets.length}
                 instructionGroups={instructionGroups}
-                onApply={applyDraft}
                 mode={cutMode}
-                editingLabel={editingOperation?.label}
                 previewEnabled={previewEnabled}
                 lockedPattern={Boolean(editingOperation?.locked)}
                 validationMessage={composerValidationMessage}
@@ -1325,10 +1079,10 @@ export function App() {
             canCancelSession={cutSession.canCancel && cutMode !== CUT_SESSION_MODE.GROUP}
             sessionMode={cutMode}
             sessionFaceCount={draft.facets.length}
-            sessionLabel={editingOperation?.label ?? ""}
-            sessionExitLabel={cutMode === CUT_SESSION_MODE.EDIT && cutSession.dirty
-              ? "放弃修改并退出编辑"
-              : cutSession.exitLabel}
+            canCommitSession={cutSession.canCommit}
+            commitDisabledReason={composerValidationMessage
+              || (cutMode === CUT_SESSION_MODE.EDIT && !cutSession.canCommit ? "参数未修改" : "")}
+            onCommitSession={applyDraft}
             onCancelSession={cancelCutSession}
             floating
             collapsed={!cutStackOpen}
@@ -1348,23 +1102,18 @@ export function App() {
             activeOperationId={cutSession.activePatternId}
             previewOperationId={cutMode === "create" ? `draft-${patternMode}` : null}
             pickingEnabled
-            meetTarget={meetTarget}
             cutGizmo={cutSession.showGizmo ? cutGizmo : null}
             groupGizmo={groupGizmo}
-            onMeetPick={handleMeetPick}
             onFacePick={handleFacePick}
             onDepthDrag={handleDepthDrag}
-            onAngleDragStart={handleAngleDragStart}
             onAngleDrag={handleAngleDrag}
             onIndexDrag={(value) => {
               if (editingOperation?.locked) return;
-              setBaseIndex(normalizeIndex(value));
-              dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+              dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { baseIndex: normalizeIndex(value) } });
             }}
             onMirrorDrag={(value) => {
               if (editingOperation?.locked) return;
-              setMirrorOffset(Math.min(48, Math.max(0, Math.round(value))));
-              dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT });
+              dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { mirrorOffset: Math.min(48, Math.max(0, Math.round(value))) } });
             }}
             onGroupDeltaDrag={(value) => changeGroupDelta(value.toFixed(6))}
             onGroupScaleDrag={(value) => changeGroupScale(Number(value.toFixed(6)))}

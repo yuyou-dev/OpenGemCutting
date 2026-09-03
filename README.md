@@ -29,6 +29,8 @@
 
 第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是独立的 12 页 A4 图解手册，覆盖预设起步、CUT 编辑、文件交换、光学仿真、快捷操作与交付检查；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
 
+当前版本为 **v0.6.0**：CUT 草稿与群组参数已统一收敛到事件状态机，保存与放弃操作集中到 `CUT STACK` 底部会话槽位，腰部 90° 行业角由领域层强制锁定，并移除了旧的顶点/棱 meet 构造流程。
+
 建议使用启用 WebGL 与硬件加速的最新版 Chrome、Edge 或 Safari 桌面版，并使用不低于 `1280px` 的窗口宽度。在线演示与 `main` 分支保持同步，由 GitHub Pages 自动构建发布。
 
 ## 产品定位 · What it is
@@ -101,6 +103,7 @@ src/
     PresetLibraryDialog.jsx     预设检索、四视图与载入
     AscTransferDialog.jsx       GemCad ASC 持久预检
     HelpCenterDialog.jsx        任务式帮助与手册入口
+    Modal.jsx                   通用居中模态框
   domain/
     cutSession.js               CUT 四态事件状态机
     faceting.js                 96 分度、图层、序列化与命令
@@ -108,7 +111,10 @@ src/
     gemcadAsc.js                ASC 解析、预检、比例换算与导出
     presetLibrary.js            可扩展的预设 provider 边界
     optics.js                   光学材料、色散与吸收模型
-    meet.js                     无 UI 依赖的点/棱构造求解
+    document.js                 默认 T1 台面与 G1 腰部文档初始化
+  utils/
+    download.js                 统一浏览器文件下载
+    vector3.js                  视口共用三维向量工具
   report/pdfReport.js           A4 矢量技术报告
 public/
   presets/                      57 项内置规范化文档与四视图
@@ -123,7 +129,7 @@ worker/index.js                 Sites 服务入口
 tests/sites-worker.test.mjs     Sites 产物契约测试
 ```
 
-设计与领域不变量见 [`design-system.md`](design-system.md) 和 [`AGENTS.md`](AGENTS.md)。GemCad ASC 的支持边界见 [`gemcad-asc.md`](gemcad-asc.md)，预设资料的质量门槛和扩展接口见 [`preset-library.md`](preset-library.md)。
+设计与领域不变量见 [`design-system.md`](design-system.md) 和 [`AGENTS.md`](AGENTS.md)，全局状态与 CUT 交互契约见 [`state-contract.md`](state-contract.md)。GemCad ASC 的支持边界见 [`gemcad-asc.md`](gemcad-asc.md)，预设资料的质量门槛和扩展接口见 [`preset-library.md`](preset-library.md)。
 
 ## 几何约定 · Geometry conventions
 
@@ -158,7 +164,7 @@ npm run report:sample
 ## Roadmap
 
 - 增加个人预设 provider，让用户把当前 JSON 或已导入设计保存到自己的资料库。
-- 增强 meet-point / meet-edge 的工艺辅助与诊断。
+- 研究新的快捷构造与工艺诊断流程，并保持其服从统一 CUT 状态契约。
 - 增加 JSON schema、跨版本迁移夹具和浏览器回归覆盖。
 - 完善打印标注、手册版本追踪、报告可配置项与多语言界面。
 - 在 96 齿与凸体约束继续稳定后，评估更多分度轮和更广的交换格式。

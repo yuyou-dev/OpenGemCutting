@@ -2,6 +2,16 @@ function basePath(value = "/") {
   return `${value}`.replace(/\/*$/, "/");
 }
 
+/**
+ * facetdiagrams.org post ids excluded during final visual curation: the ASC
+ * parses, but the resolved solid shows visibly broken faces. Regenerated
+ * catalogs must never reintroduce them.
+ */
+export const CURATION_EXCLUSIONS = new Set([
+  "96655", // PC 02.276 Small OMNI Oval 1.4: incomplete pavilion
+  "100855", // PC 08.087B Chevron Cushion CC Brilliant 1.10: incomplete facets
+]);
+
 function normalizeSummary(item, providerId) {
   if (!item?.id || !item?.name || !item?.document) {
     throw new TypeError(`preset provider ${providerId} returned an invalid summary`);

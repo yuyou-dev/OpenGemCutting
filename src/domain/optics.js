@@ -120,31 +120,6 @@ export function criticalAngleDegrees(ior) {
   return (Math.asin(1 / resolved) * 180) / Math.PI;
 }
 
-/** Exact unpolarized Fresnel reflectance between two dielectric media. */
-export function fresnelDielectric(cosineIncident, n1 = 1, n2 = 2.417) {
-  const cosI = clamp(Math.abs(cosineIncident), 0, 1, 1);
-  const ratio = n1 / n2;
-  const sinTSquared = ratio * ratio * (1 - cosI * cosI);
-  if (sinTSquared >= 1) return 1;
-  const cosT = Math.sqrt(1 - sinTSquared);
-  const parallel = ((n2 * cosI) - (n1 * cosT)) / ((n2 * cosI) + (n1 * cosT));
-  const perpendicular = ((n1 * cosI) - (n2 * cosT)) / ((n1 * cosI) + (n2 * cosT));
-  return (parallel * parallel + perpendicular * perpendicular) / 2;
-}
-
-export function beerLambert(absorption, distance) {
-  return Math.exp(-Math.max(0, absorption) * Math.max(0, distance));
-}
-
-/** Converts a transmitted body colour into additive Beer-Lambert coefficients. */
-export function materialAbsorptionRgb(bodyColor, absorption = 0) {
-  const color = /^#[0-9a-f]{6}$/i.test(bodyColor) ? bodyColor : "#ffffff";
-  return [1, 3, 5].map((offset) => {
-    const transmitted = Math.max(0.02, Number.parseInt(color.slice(offset, offset + 2), 16) / 255);
-    return Math.max(0, absorption) - Math.log(transmitted) * 0.9;
-  });
-}
-
 export function backgroundColor(settings) {
   const resolved = resolveOpticsSettings(settings);
   return OPTICAL_BACKGROUNDS.find((item) => item.id === resolved.view.background)?.color
