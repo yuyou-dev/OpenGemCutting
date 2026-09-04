@@ -1,0 +1,41 @@
+{
+  "name": "opengemcutting-companion",
+  "version": "0.1.0",
+  "description": "Install, explore, discuss, contribute to, and maintain OpenGemCutting from Codex with guided workflows and an interactive community UI.",
+  "author": {
+    "name": "yuyou-dev",
+    "url": "https://github.com/yuyou-dev"
+  },
+  "homepage": "https://github.com/yuyou-dev/OpenGemCutting",
+  "repository": "https://github.com/yuyou-dev/OpenGemCutting",
+  "license": "MIT",
+  "keywords": [
+    "opengemcutting",
+    "gemstone",
+    "faceting",
+    "open-source",
+    "contributing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OpenGemCutting Companion",
+    "shortDescription": "Install, explore, discuss, and contribute to OpenGemCutting.",
+    "longDescription": "A guided OpenGemCutting workspace for newcomers and maintainers: one-conversation setup, visual GitHub onboarding, Discussion browsing and drafting, contribution review, Pull Request preparation, and community triage.",
+    "developerName": "yuyou-dev",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "MCP Apps UI",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://yuyou-dev.github.io/OpenGemCutting/",
+    "defaultPrompt": [
+      "Open the OpenGemCutting community hub.",
+      "Help me install and run OpenGemCutting.",
+      "Review my changes and prepare a contribution."
+    ],
+    "brandColor": "#D85F86"
+  },
+  "mcpServers": "./.mcp.json"
+}

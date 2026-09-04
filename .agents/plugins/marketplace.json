@@ -1,0 +1,20 @@
+{
+  "name": "opengemcutting",
+  "interface": {
+    "displayName": "OpenGemCutting"
+  },
+  "plugins": [
+    {
+      "name": "opengemcutting-companion",
+      "source": {
+        "source": "local",
+        "path": "./plugins/opengemcutting-companion"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

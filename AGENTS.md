@@ -85,5 +85,8 @@
 ## 仓库
 
 - OpenGemCutting 是独立的公开发行仓库，保留自己的 Git 历史、MIT License、公开远程和发布节奏；不得混入任何内部仓库名称、私有远程、handoff、个人绝对路径、账号、密钥或未授权素材。
+- 一句话安装由根目录 `INSTALL.md` / `UPGRADE.md` / `UNINSTALL.md` 维护；应用与 Companion 独立安装和卸载，生命周期边界不得模糊。
+- `plugins/opengemcutting-companion/` 只提供安装/启动引导、社区浏览、贡献草稿与维护流程。MCP 发布必须先锁定精确预览，再于用户明确确认后用单次 approval ID 发布；PR 继续使用 Fork + 分支 + `gh pr create`，所有外部写入前都要确认。
+- Companion 变更必须运行 `npm run companion:test`、插件 validator 和公开内容扫描；社区 Hub 只可使用 OpenGemCutting 的公开仓库、公开网址和宝石切磨语境。
 - `tmp/`、`output/`、`dist/` 与本机依赖不进入版本控制。长期文档资产放在 `docs/`，公开静态资源放在 `public/`。
 - 每次发布前运行敏感信息扫描、依赖审计、`npm run check`、`npm run build:pages` 与浏览器验收；确认 GitHub Pages、手册下载和静态资源均可访问。

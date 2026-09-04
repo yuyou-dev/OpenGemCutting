@@ -29,7 +29,7 @@
 
 第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是独立的 12 页 A4 图解手册，覆盖预设起步、CUT 编辑、文件交换、光学仿真、快捷操作与交付检查；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
 
-当前版本为 **v0.6.0**：CUT 草稿与群组参数已统一收敛到事件状态机，保存与放弃操作集中到 `CUT STACK` 底部会话槽位，腰部 90° 行业角由领域层强制锁定，并移除了旧的顶点/棱 meet 构造流程。
+当前版本为 **v0.6.1**：新增 Codex 一句话安装、升级与启动流程，并提供 OpenGemCutting Companion，让普通用户能在 Codex 中打开工作台、整理社区反馈、检查本地改动并准备 Pull Request。所有公开发布、push 和 PR 创建仍需最终预览与明确确认。
 
 建议使用启用 WebGL 与硬件加速的最新版 Chrome、Edge 或 Safari 桌面版，并使用不低于 `1280px` 的窗口宽度。在线演示与 `main` 分支保持同步，由 GitHub Pages 自动构建发布。
 
@@ -54,6 +54,50 @@ OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用
 - **完整交付链路**：常规 Vite 客户端与 OpenAI Sites worker 产物由同一构建命令生成并测试。
 
 ## 快速开始 · Quick start
+
+在线演示无需安装。如果希望在本机运行、保留代码或参与贡献，可以使用下面的 Codex 一句话流程，也可以继续使用传统 Git 方式。
+
+### 交给 Codex 的一句话 · One sentence for Codex
+
+普通用户不需要自己输入 Git、npm 或插件命令。把对应的一句话发给 Codex，它会阅读公开 runbook、保护现有本地改动、验证结果，并在可用时使用内置浏览器打开切磨工作台。
+
+**首次完整安装：工作台 + OpenGemCutting Companion**
+
+```text
+请阅读并完整执行 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/INSTALL.md：安装、验证并运行 OpenGemCutting，同时安装 Companion，最后在 Codex 内置浏览器中打开切磨工作台。
+```
+
+**只安装工作台**
+
+```text
+请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/INSTALL.md，只安装、验证、运行并打开 OpenGemCutting 工作台，跳过 Companion。
+```
+
+**升级或卸载工作台**
+
+```text
+请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/UPGRADE.md，安全升级我现有的 OpenGemCutting，保留本地改动，验证后重新运行并打开。
+```
+
+```text
+请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/UNINSTALL.md，准备卸载 OpenGemCutting 工作台；先展示准确目录和待处理文件、保护我的本地作品与改动，再向我确认是否移除。
+```
+
+**只安装 Companion：GitHub 引导、社区与贡献工具**
+
+```text
+请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/plugins/opengemcutting-companion/LIFECYCLE.md，只安装并验证 OpenGemCutting Companion，然后告诉我如何在新的 Codex 任务中启用它。
+```
+
+English prompt for a complete first-time setup:
+
+```text
+Read and complete https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/INSTALL.md: install, verify, and run OpenGemCutting, install its Companion, and open the workbench in Codex's built-in browser.
+```
+
+应用和 Companion 相互独立，卸载任意一方都不会删除另一方。Companion 可在 GitHub Discussions 启用后浏览讨论；当前未启用时会明确引导到 Issues 和 Pull Requests。它也可整理贡献草稿、检查本地改动并准备 PR；所有公开发布、push 或 PR 创建都会在最终预览后等待明确确认。
+
+### 开发者与 Fork 流程 · Developer and fork workflow
 
 需要 [Node.js](https://nodejs.org/) **20.19 或更高版本**。
 
@@ -148,6 +192,7 @@ tests/sites-worker.test.mjs     Sites 产物契约测试
 ```bash
 npm run check        # 公开内容扫描 + 领域/报告测试 + 构建 + Sites 测试
 npm test             # Node.js 领域与 PDF 测试
+npm run companion:test # Companion manifest、MCP Apps 与发布确认链路
 npm run test:sites   # Sites 产物契约
 npm run build        # dist/client + dist/server + hosting metadata
 npm run build:pages  # 生成 GitHub Pages 子路径产物
@@ -175,6 +220,8 @@ Roadmap 表达方向，不构成时间承诺。建议先用 Issue 说明工艺�
 
 欢迎提交错误复现、工艺案例、文档改进和小而聚焦的代码变更。开始前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)、[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) 与 [`SECURITY.md`](SECURITY.md)。
 
+不熟悉 Git 也可以参与：安装 OpenGemCutting Companion 后，让 Codex 打开社区中心，它可以引导 GitHub 账号连接、在 Discussions 可用时浏览讨论、整理建议，或将已完成的本地改动准备为可审查的 Pull Request。当前 Discussions 未启用时，社区中心会改为提供 Issue 和 PR 入口。
+
 核心要求：保持 `CUT STACK` 的单一数据源语义、同步更新测试、避免无必要依赖，不要提交密钥、个人路径、私有主机或内部仓库信息。可见界面变更请附真实截图。
 
 维护者发布前请使用 [`docs/PUBLISHING.md`](docs/PUBLISHING.md) 完成品牌资产、提交身份、远程地址与安全渠道检查。
@@ -195,6 +242,8 @@ OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA�
 
 OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 57 validated presets, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
 
-Install Node.js 20.19+, run `npm ci`, then `npm run dev`. The server binds only to `127.0.0.1` on an OS-assigned high port. Run `npm run check` before contributing. The editor is desktop-first and works best in a current Chromium or Safari browser with WebGL enabled.
+Codex users can copy the setup sentence in [Quick start](#快速开始--quick-start) to install, verify, run, and open the workbench without manually entering Git or npm commands. The optional Companion adds guided GitHub onboarding, community drafts when Discussions are enabled, an explicit Issues fallback while they are disabled, and reviewed Pull Request preparation; it never performs an external write without a final preview and explicit confirmation.
+
+For the traditional workflow, install Node.js 20.19+, run `npm ci`, then `npm run dev`. The server binds only to `127.0.0.1` on an OS-assigned high port. Run `npm run check` before contributing. The editor is desktop-first and works best in a current Chromium or Safari browser with WebGL enabled.
 
 The code and documentation are available under the [MIT License](LICENSE). SUVA, Gem Cutting Workbench, and Facet 96 names and marks are governed separately; see [`TRADEMARKS.md`](TRADEMARKS.md). Code, issue, and documentation contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md).

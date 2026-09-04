@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OpenGemCutting Community</title>
+  <style>
+    :root{color-scheme:light;--ink:#17171a;--muted:#6b6970;--line:#d9d5d8;--paper:#fff;--soft:#f7f4f5;--pink:#d85f86;--pink-soft:#f8e8ee;--green:#327a5b}*{box-sizing:border-box}body{margin:0;background:var(--soft);color:var(--ink);font:14px/1.55 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:980px;margin:0 auto;padding:24px}.hero,.card{background:var(--paper);border:1px solid var(--line);border-radius:14px}.hero{padding:24px}.eyebrow{font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;color:var(--pink);text-transform:uppercase}h1{font-size:28px;margin:8px 0 4px}h2{font-size:17px;margin:0 0 10px}h3{font-size:14px;margin:0 0 6px}p{margin:6px 0;color:var(--muted)}.tabs{display:flex;gap:8px;margin:16px 0}.tab,.btn{appearance:none;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);padding:8px 13px;font:inherit;cursor:pointer}.tab.active,.btn.primary{border-color:var(--pink);background:var(--pink);color:#fff}.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.card{padding:18px}.panel{display:none}.panel.active{display:block}.status{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px;margin:12px 0}.status.ready{border-color:#9bc8b2;background:#f1faf6}.status.warn{border-color:#e0b969;background:#fff9eb}.status strong{display:block}.status span{display:block;color:var(--muted);font-size:12px}.notice{padding:11px 12px;border-radius:9px;background:var(--pink-soft);color:#7c3550}.links,.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.topic{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.topic:first-child{border-top:0}.topic a{color:var(--ink);font-weight:650;text-decoration:none}.meta,.empty{font-size:12px;color:var(--muted)}.steps{counter-reset:step;display:grid;gap:10px}.step{display:grid;grid-template-columns:30px 1fr;gap:10px}.step::before{counter-increment:step;content:counter(step);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--pink-soft);color:var(--pink);font-weight:700}label{display:block;margin-top:10px;font-size:12px;font-weight:650}input,select,textarea{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px;font:inherit}textarea{min-height:120px;resize:vertical}.count{white-space:nowrap;color:var(--muted);font-size:12px}@media(max-width:720px){main{padding:14px}.grid{grid-template-columns:1fr}.hero{padding:18px}}
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="eyebrow">SUVA · FACET 96</div>
+      <h1>OpenGemCutting Community</h1>
+      <p>浏览公开社区、准备切磨反馈，或把已完成的改动整理为可审查的贡献。发布前始终会回到 Codex 对话展示最终预览并等待确认。</p>
+    </header>
+
+    <nav class="tabs" aria-label="Community sections">
+      <button class="tab active" data-tab="community">社区</button>
+      <button class="tab" data-tab="contribute">贡献</button>
+      <button class="tab" data-tab="onboarding">GitHub 入门</button>
+    </nav>
+
+    <section class="panel active" data-panel="community">
+      <div class="grid">
+        <article class="card">
+          <h2>社区状态</h2>
+          <div id="authStatus" class="status warn"><div><strong>正在检查 GitHub</strong><span>本地使用工作台不需要 GitHub 账号。</span></div></div>
+          <div id="warning" class="notice" hidden></div>
+          <div id="discussionList" class="empty">正在读取公开 Discussions…</div>
+        </article>
+        <aside class="card">
+          <h2>参与方式</h2>
+          <h3>Discussion</h3><p>适合问题、工艺想法和可公开的切型展示。</p>
+          <h3>Issue</h3><p>适合附带最小复现、环境和可公开 JSON/ASC 样本的缺陷。</p>
+          <h3>Pull Request</h3><p>Codex 可检查本地改动、运行测试并准备 Fork 与 PR；不会绕过最终确认。</p>
+          <div class="links"><button class="btn" id="issuesButton">打开 Issues</button><button class="btn" id="pullsButton">查看 PR</button></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="contribute">
+      <div class="grid">
+        <article class="card">
+          <h2>准备公开草稿</h2>
+          <form id="draftForm">
+            <label for="kind">类型</label>
+            <select id="kind"><option value="issue">Bug Issue</option><option value="discussion">Discussion</option><option value="reply">Discussion 回复</option></select>
+            <label id="numberField" for="number" hidden>Discussion 编号<input id="number" type="number" min="1" /></label>
+            <label id="titleField" for="title">标题<input id="title" maxlength="160" /></label>
+            <label for="body">内容<textarea id="body" placeholder="说明切磨场景、期望结果、复现步骤或已完成的改动。不要粘贴凭据或未授权的设计。"></textarea></label>
+            <div class="actions"><button class="btn primary" type="submit">交给 Codex 整理</button><button class="btn" type="button" id="reviewButton">检查本地改动</button></div>
+            <p id="feedback"></p>
+          </form>
+        </article>
+        <aside class="card"><h2>发布边界</h2><p>表单只会把草稿发回 Codex。Codex 会检查内容、锁定精确预览，并在你明确确认后才可公开发布。</p><div class="notice">不要公开密钥、客户信息、未授权的珠宝设计或带个人路径的日志。</div></aside>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="onboarding">
+      <div class="grid">
+        <article class="card"><h2>首次使用 GitHub</h2><div class="steps"><div class="step"><div><strong>打开 GitHub 官方注册页</strong><p>只在 github.com 填写账号信息。</p></div></div><div class="step"><div><strong>创建免费个人账号</strong><p>公开用户名将成为你的贡献署名。</p></div></div><div class="step"><div><strong>亲自完成验证</strong><p>密码、CAPTCHA、邮件验证码和恢复码都不会交给 Codex。</p></div></div><div class="step"><div><strong>建议开启两步验证</strong><p>将恢复码保存在私密的安全位置。</p></div></div><div class="step"><div><strong>回到 Codex 连接</strong><p>使用 GitHub CLI 的官方浏览器授权并检查状态。</p></div></div></div><div class="actions"><button class="btn" id="signupButton">打开 GitHub 注册</button><button class="btn primary" id="connectButton">我已有账号</button></div></article>
+        <aside class="card"><h2>可以跳过</h2><p>只想使用切磨工作台时，不需要 GitHub 账号。本地设计、JSON/ASC 交换与 PDF 导出都不依赖社区连接。</p></aside>
+      </div>
+    </section>
+  </main>
+  <script>
+    (()=>{
+      let requestId=0,connected=false,hostCanMessage=false
+      const pending=new Map(),$=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)]
+      const state={mode:'community',status:{state:'signed_out'},discussions:[],repositoryUrl:'https://github.com/yuyou-dev/OpenGemCutting',issuesUrl:'https://github.com/yuyou-dev/OpenGemCutting/issues',pullsUrl:'https://github.com/yuyou-dev/OpenGemCutting/pulls',signupUrl:'https://github.com/signup'}
+      const escapeHtml=(value='')=>String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))
+      const notify=(method,params={})=>window.parent.postMessage({jsonrpc:'2.0',method,params},'*')
+      const rpc=(method,params={},timeout=8000)=>new Promise((resolve,reject)=>{const id=++requestId,timer=setTimeout(()=>{pending.delete(id);reject(new Error('宿主响应超时'))},timeout);pending.set(id,{resolve,reject,timer});window.parent.postMessage({jsonrpc:'2.0',id,method,params},'*')})
+      const sendSize=()=>{const rect=document.querySelector('main').getBoundingClientRect();notify('ui/notifications/size-changed',{width:Math.ceil(rect.width),height:Math.ceil(rect.height)})}
+      async function sendMessage(text){if(connected&&hostCanMessage){await rpc('ui/message',{role:'user',content:[{type:'text',text}]});return}if(window.openai?.sendFollowUpMessage){await window.openai.sendFollowUpMessage({prompt:text,scrollToBottom:false});return}throw new Error('当前宿主不支持回写对话')}
+      async function openExternal(href){if(window.openai?.openExternal){await window.openai.openExternal({href,redirectUrl:false});return}try{await rpc('ui/open-link',{url:href})}catch{await sendMessage(`请打开这个官方链接：${href}`)}}
+      function setTab(name){$$('.tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));$$('.panel').forEach(el=>el.classList.toggle('active',el.dataset.panel===name));setTimeout(sendSize,20)}
+      function render(payload){if(!payload||typeof payload!=='object'||Array.isArray(payload))return;Object.assign(state,payload);const status=state.status||{},auth=$('#authStatus');auth.className=`status ${status.state==='ready'?'ready':'warn'}`;auth.innerHTML=status.state==='ready'?`<div><strong>GitHub 已连接${status.login?` · @${escapeHtml(status.login)}`:''}</strong><span>发布操作仍需最终确认。</span></div>`:status.state==='missing_cli'?'<div><strong>未安装 GitHub CLI</strong><span>本地工作台仍可正常使用。</span></div>':'<div><strong>GitHub 尚未连接</strong><span>可以先起草，发布前再连接。</span></div>';const warning=$('#warning');warning.hidden=!state.warning;warning.textContent=state.warning||'';const list=$('#discussionList');list.className=state.discussions?.length?'':'empty';list.innerHTML=state.discussions?.length?state.discussions.map(item=>`<div class="topic"><div><a href="#" data-url="${escapeHtml(item.url)}">#${item.number} · ${escapeHtml(item.title)}</a><div class="meta">${escapeHtml(item.category?.name||'Discussion')} · @${escapeHtml(item.author?.login||'unknown')}</div></div><span class="count">${item.comments?.totalCount||0} 回复</span></div>`).join(''):'当前没有可显示的 Discussions。Issues 和 Pull Requests 仍可使用。';setTab(state.mode||'community');sendSize()}
+      function acceptPayload(value){if(value?.result)value=value.result;if(value?.structuredContent)return render(value.structuredContent);if(Array.isArray(value?.content)&&value.content.length===1&&value.content[0]?.type==='text'){try{return acceptPayload(JSON.parse(value.content[0].text))}catch{}}if(value?.arguments)return render(value.arguments);render(value)}
+      $$('.tab').forEach(el=>el.addEventListener('click',()=>setTab(el.dataset.tab)))
+      document.addEventListener('click',event=>{const url=event.target.closest('[data-url]')?.dataset.url;if(url){event.preventDefault();openExternal(url)}})
+      $('#kind').addEventListener('change',event=>{const reply=event.target.value==='reply';$('#numberField').hidden=!reply;$('#titleField').hidden=reply;sendSize()})
+      $('#draftForm').addEventListener('submit',async event=>{event.preventDefault();const kind=$('#kind').value,title=$('#title').value.trim(),body=$('#body').value.trim(),number=$('#number').value.trim(),feedback=$('#feedback');if(!body||(!title&&kind!=='reply')||(kind==='reply'&&!number)){feedback.textContent='请补充必要内容。';return}const draft={repository:'yuyou-dev/OpenGemCutting',kind,...(title?{title}:{}),...(number?{discussionNumber:Number(number)}:{}),body};feedback.textContent='正在交给 Codex…';try{await sendMessage(`请使用 OpenGemCutting 贡献流程检查并整理这份草稿，选择正确目的地并展示最终预览；不要发布，等我明确确认。\nDraft: ${JSON.stringify(draft)}`);feedback.textContent='草稿已回到对话。'}catch(error){feedback.textContent=error.message}})
+      $('#reviewButton').addEventListener('click',()=>sendMessage('请检查我当前对 OpenGemCutting 的本地改动，运行合适的验证，先展示贡献摘要和 PR 草稿；不要 fork、push 或创建 PR，等我明确确认。'))
+      $('#signupButton').addEventListener('click',()=>openExternal(state.signupUrl));$('#connectButton').addEventListener('click',()=>sendMessage('请使用 GitHub CLI 的浏览器授权流程连接我的 GitHub 账号；不要读取或要求我粘贴密码、验证码或 token。'));$('#issuesButton').addEventListener('click',()=>openExternal(state.issuesUrl));$('#pullsButton').addEventListener('click',()=>openExternal(state.pullsUrl))
+      window.addEventListener('message',event=>{if(event.source!==window.parent)return;const message=event.data;if(!message||message.jsonrpc!=='2.0')return;if(message.id!==undefined&&pending.has(message.id)){const item=pending.get(message.id);clearTimeout(item.timer);pending.delete(message.id);message.error?item.reject(new Error(message.error.message)):item.resolve(message.result);return}if(message.method==='ui/notifications/tool-input'||message.method==='ui/notifications/tool-result')acceptPayload(message.params)},{passive:true})
+      async function connect(){try{const result=await rpc('ui/initialize',{protocolVersion:'2026-01-26',appInfo:{name:'opengemcutting-community-hub',version:'1.0.0'},appCapabilities:{availableDisplayModes:['inline','fullscreen']}});connected=true;hostCanMessage=Boolean(result?.hostCapabilities?.message?.text);notify('ui/notifications/initialized')}catch{}acceptPayload(window.openai?.toolInput);acceptPayload(window.openai?.toolOutput)}
+      new ResizeObserver(sendSize).observe(document.querySelector('main'));render(state);connect()
+    })()
+  </script>
+</body>
+</html>
