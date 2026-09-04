@@ -1,0 +1,41 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提交与宝石切磨、96 分度工艺或工作台流程有关的想法。请先说明想要改善的结果，不必预先设计实现方案。
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 期望改善的结果
+      description: 这个想法想解决什么切磨、建模或交付问题？
+      placeholder: 例如：希望在导入 ASC 前更容易判断哪些层会被阻断。
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 相关领域
+      options:
+        - CUT 编辑与参数
+        - 3D 视口与操纵杆
+        - GemCad ASC / JSON 交换
+        - 光学仿真
+        - 预设琢型库
+        - PDF 报告与操作手册
+        - Codex 安装与开源协作
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 使用场景或参考
+      description: 可选。请提供工艺场景、现有操作方式或可公开的参考。
+  - type: checkboxes
+    id: public-content
+    attributes:
+      label: 公开内容确认
+      options:
+        - label: 我已移除密钥、客户信息、个人路径和未授权的设计。
+          required: true

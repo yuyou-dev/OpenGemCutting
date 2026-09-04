@@ -1,6 +1,7 @@
 <p align="right">
   <a href="https://yuyou-dev.github.io/OpenGemCutting/"><strong>Live Demo ↗</strong></a> ·
-  <a href="https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf"><strong>操作手册 PDF</strong></a>
+  <a href="https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf"><strong>操作手册 PDF</strong></a> ·
+  <a href="https://github.com/yuyou-dev/OpenGemCutting/discussions"><strong>Discussions</strong></a>
 </p>
 
 <div align="center">
@@ -14,6 +15,7 @@
     <a href="#快速开始--quick-start">快速开始</a> ·
     <a href="#关键能力--features">关键能力</a> ·
     <a href="#操作指南--workflow">操作指南</a> ·
+    <a href="https://github.com/yuyou-dev/OpenGemCutting/discussions">社区讨论</a> ·
     <a href="#架构与代码地图--architecture">架构</a> ·
     <a href="#english-overview">English</a>
   </p>
@@ -95,7 +97,7 @@ English prompt for a complete first-time setup:
 Read and complete https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/INSTALL.md: install, verify, and run OpenGemCutting, install its Companion, and open the workbench in Codex's built-in browser.
 ```
 
-应用和 Companion 相互独立，卸载任意一方都不会删除另一方。Companion 可在 GitHub Discussions 启用后浏览讨论；当前未启用时会明确引导到 Issues 和 Pull Requests。它也可整理贡献草稿、检查本地改动并准备 PR；所有公开发布、push 或 PR 创建都会在最终预览后等待明确确认。
+应用和 Companion 相互独立，卸载任意一方都不会删除另一方。Companion 可浏览 GitHub Discussions，并把问题、想法和作品展示分别引导到 `Q&A`、`Ideas` 和 `Show and tell`；它也可检查本地改动并准备 PR。所有公开发布、push 或 PR 创建都会在最终预览后等待明确确认。
 
 ### 开发者与 Fork 流程 · Developer and fork workflow
 
@@ -220,7 +222,7 @@ Roadmap 表达方向，不构成时间承诺。建议先用 Issue 说明工艺�
 
 欢迎提交错误复现、工艺案例、文档改进和小而聚焦的代码变更。开始前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)、[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) 与 [`SECURITY.md`](SECURITY.md)。
 
-不熟悉 Git 也可以参与：安装 OpenGemCutting Companion 后，让 Codex 打开社区中心，它可以引导 GitHub 账号连接、在 Discussions 可用时浏览讨论、整理建议，或将已完成的本地改动准备为可审查的 Pull Request。当前 Discussions 未启用时，社区中心会改为提供 Issue 和 PR 入口。
+不熟悉 Git 也可以参与：安装 OpenGemCutting Companion 后，让 Codex 打开社区中心，它可以引导 GitHub 账号连接、浏览和整理 Discussions，或将已完成的本地改动准备为可审查的 Pull Request。
 
 核心要求：保持 `CUT STACK` 的单一数据源语义、同步更新测试、避免无必要依赖，不要提交密钥、个人路径、私有主机或内部仓库信息。可见界面变更请附真实截图。
 
@@ -242,7 +244,7 @@ OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA�
 
 OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 57 validated presets, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
 
-Codex users can copy the setup sentence in [Quick start](#快速开始--quick-start) to install, verify, run, and open the workbench without manually entering Git or npm commands. The optional Companion adds guided GitHub onboarding, community drafts when Discussions are enabled, an explicit Issues fallback while they are disabled, and reviewed Pull Request preparation; it never performs an external write without a final preview and explicit confirmation.
+Codex users can copy the setup sentence in [Quick start](#快速开始--quick-start) to install, verify, run, and open the workbench without manually entering Git or npm commands. The optional Companion adds guided GitHub onboarding, categorized Discussions and community drafts, plus reviewed Pull Request preparation; it never performs an external write without a final preview and explicit confirmation.
 
 For the traditional workflow, install Node.js 20.19+, run `npm ci`, then `npm run dev`. The server binds only to `127.0.0.1` on an OS-assigned high port. Run `npm run check` before contributing. The editor is desktop-first and works best in a current Chromium or Safari browser with WebGL enabled.
 

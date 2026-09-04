@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import readline from 'node:readline'
 
-const SERVER_VERSION = '0.1.0'
+const SERVER_VERSION = '0.1.1'
 const REPOSITORY = 'yuyou-dev/OpenGemCutting'
 const HUB_URI = 'ui://opengemcutting/community-hub/v1.html'
 const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app'
@@ -44,6 +44,9 @@ function githubStatus() {
 
 const DISCUSSIONS_QUERY = `query($owner:String!,$name:String!,$first:Int!){
   repository(owner:$owner,name:$name){
+    discussionCategories(first:25){
+      nodes{name slug description emoji isAnswerable}
+    }
     discussions(first:$first,orderBy:{field:UPDATED_AT,direction:DESC}){
       nodes{number title url updatedAt isAnswered category{name} author{login} comments{totalCount}}
     }
@@ -75,8 +78,15 @@ function listDiscussions(limit = 20) {
   try {
     const parsed = JSON.parse(result.stdout)
     const discussions = parsed.data?.repository?.discussions?.nodes
+    const discussionCategories = parsed.data?.repository?.discussionCategories?.nodes
     if (!Array.isArray(discussions)) return { status, discussions: [], warning: DISCUSSIONS_WARNING }
-    return { status, discussions }
+    return {
+      status,
+      discussions,
+      discussionCategories: Array.isArray(discussionCategories)
+        ? discussionCategories.filter(({ name }) => DISCUSSION_CATEGORIES.has(name))
+        : [],
+    }
   } catch {
     return { status, discussions: [], warning: 'Unable to read GitHub Discussions. Issues and Pull Requests remain available.' }
   }
@@ -232,6 +242,13 @@ function publishDraft({ approvalId }, dependencies = {}) {
   if (['discussion', 'reply'].includes(staged.preview.kind)) {
     const availability = discussionCheck(1)
     if (availability.warning) throw new Error(`${DISCUSSIONS_WARNING} Preserve the staged draft or explicitly restage it as an Issue.`)
+    if (
+      staged.preview.kind === 'discussion'
+      && availability.discussionCategories?.length
+      && !availability.discussionCategories.some(({ name }) => name === staged.preview.category)
+    ) {
+      throw new Error(`Discussion category ${staged.preview.category} is not available; preserve the staged draft and check the repository categories.`)
+    }
   }
   const draft = takeStagedDraft(approvalId)
   const result = runCommand('gh', buildPublishArgs(draft), 30000)

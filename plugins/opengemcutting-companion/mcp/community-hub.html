@@ -35,7 +35,7 @@
           <h3>Discussion</h3><p>适合问题、工艺想法和可公开的切型展示。</p>
           <h3>Issue</h3><p>适合附带最小复现、环境和可公开 JSON/ASC 样本的缺陷。</p>
           <h3>Pull Request</h3><p>Codex 可检查本地改动、运行测试并准备 Fork 与 PR；不会绕过最终确认。</p>
-          <div class="links"><button class="btn" id="issuesButton">打开 Issues</button><button class="btn" id="pullsButton">查看 PR</button></div>
+          <div class="links"><button class="btn primary" id="discussionsButton">打开 Discussions</button><button class="btn" id="issuesButton">打开 Issues</button><button class="btn" id="pullsButton">查看 PR</button></div>
         </aside>
       </div>
     </section>
@@ -47,6 +47,7 @@
           <form id="draftForm">
             <label for="kind">类型</label>
             <select id="kind"><option value="issue">Bug Issue</option><option value="discussion">Discussion</option><option value="reply">Discussion 回复</option></select>
+            <label id="categoryField" for="category" hidden>讨论分类<select id="category"><option value="Ideas">Ideas · 产品与工艺想法</option><option value="Q&amp;A">Q&amp;A · 使用与切磨问题</option><option value="Show and tell">Show and tell · 作品展示</option></select></label>
             <label id="numberField" for="number" hidden>Discussion 编号<input id="number" type="number" min="1" /></label>
             <label id="titleField" for="title">标题<input id="title" maxlength="160" /></label>
             <label for="body">内容<textarea id="body" placeholder="说明切磨场景、期望结果、复现步骤或已完成的改动。不要粘贴凭据或未授权的设计。"></textarea></label>
@@ -69,7 +70,7 @@
     (()=>{
       let requestId=0,connected=false,hostCanMessage=false
       const pending=new Map(),$=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)]
-      const state={mode:'community',status:{state:'signed_out'},discussions:[],repositoryUrl:'https://github.com/yuyou-dev/OpenGemCutting',issuesUrl:'https://github.com/yuyou-dev/OpenGemCutting/issues',pullsUrl:'https://github.com/yuyou-dev/OpenGemCutting/pulls',signupUrl:'https://github.com/signup'}
+      const state={mode:'community',status:{state:'signed_out'},discussions:[],discussionCategories:[],repositoryUrl:'https://github.com/yuyou-dev/OpenGemCutting',discussionsUrl:'https://github.com/yuyou-dev/OpenGemCutting/discussions',issuesUrl:'https://github.com/yuyou-dev/OpenGemCutting/issues',pullsUrl:'https://github.com/yuyou-dev/OpenGemCutting/pulls',signupUrl:'https://github.com/signup'}
       const escapeHtml=(value='')=>String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))
       const notify=(method,params={})=>window.parent.postMessage({jsonrpc:'2.0',method,params},'*')
       const rpc=(method,params={},timeout=8000)=>new Promise((resolve,reject)=>{const id=++requestId,timer=setTimeout(()=>{pending.delete(id);reject(new Error('宿主响应超时'))},timeout);pending.set(id,{resolve,reject,timer});window.parent.postMessage({jsonrpc:'2.0',id,method,params},'*')})
@@ -81,10 +82,10 @@
       function acceptPayload(value){if(value?.result)value=value.result;if(value?.structuredContent)return render(value.structuredContent);if(Array.isArray(value?.content)&&value.content.length===1&&value.content[0]?.type==='text'){try{return acceptPayload(JSON.parse(value.content[0].text))}catch{}}if(value?.arguments)return render(value.arguments);render(value)}
       $$('.tab').forEach(el=>el.addEventListener('click',()=>setTab(el.dataset.tab)))
       document.addEventListener('click',event=>{const url=event.target.closest('[data-url]')?.dataset.url;if(url){event.preventDefault();openExternal(url)}})
-      $('#kind').addEventListener('change',event=>{const reply=event.target.value==='reply';$('#numberField').hidden=!reply;$('#titleField').hidden=reply;sendSize()})
-      $('#draftForm').addEventListener('submit',async event=>{event.preventDefault();const kind=$('#kind').value,title=$('#title').value.trim(),body=$('#body').value.trim(),number=$('#number').value.trim(),feedback=$('#feedback');if(!body||(!title&&kind!=='reply')||(kind==='reply'&&!number)){feedback.textContent='请补充必要内容。';return}const draft={repository:'yuyou-dev/OpenGemCutting',kind,...(title?{title}:{}),...(number?{discussionNumber:Number(number)}:{}),body};feedback.textContent='正在交给 Codex…';try{await sendMessage(`请使用 OpenGemCutting 贡献流程检查并整理这份草稿，选择正确目的地并展示最终预览；不要发布，等我明确确认。\nDraft: ${JSON.stringify(draft)}`);feedback.textContent='草稿已回到对话。'}catch(error){feedback.textContent=error.message}})
+      $('#kind').addEventListener('change',event=>{const reply=event.target.value==='reply',discussion=event.target.value==='discussion';$('#numberField').hidden=!reply;$('#titleField').hidden=reply;$('#categoryField').hidden=!discussion;sendSize()})
+      $('#draftForm').addEventListener('submit',async event=>{event.preventDefault();const kind=$('#kind').value,title=$('#title').value.trim(),body=$('#body').value.trim(),number=$('#number').value.trim(),category=$('#category').value,feedback=$('#feedback');if(!body||(!title&&kind!=='reply')||(kind==='reply'&&!number)){feedback.textContent='请补充必要内容。';return}const draft={repository:'yuyou-dev/OpenGemCutting',kind,...(title?{title}:{}),...(number?{discussionNumber:Number(number)}:{}),...(kind==='discussion'?{category}:{}),body};feedback.textContent='正在交给 Codex…';try{await sendMessage(`请使用 OpenGemCutting 贡献流程检查并整理这份草稿，选择正确目的地并展示最终预览；不要发布，等我明确确认。\nDraft: ${JSON.stringify(draft)}`);feedback.textContent='草稿已回到对话。'}catch(error){feedback.textContent=error.message}})
       $('#reviewButton').addEventListener('click',()=>sendMessage('请检查我当前对 OpenGemCutting 的本地改动，运行合适的验证，先展示贡献摘要和 PR 草稿；不要 fork、push 或创建 PR，等我明确确认。'))
-      $('#signupButton').addEventListener('click',()=>openExternal(state.signupUrl));$('#connectButton').addEventListener('click',()=>sendMessage('请使用 GitHub CLI 的浏览器授权流程连接我的 GitHub 账号；不要读取或要求我粘贴密码、验证码或 token。'));$('#issuesButton').addEventListener('click',()=>openExternal(state.issuesUrl));$('#pullsButton').addEventListener('click',()=>openExternal(state.pullsUrl))
+      $('#signupButton').addEventListener('click',()=>openExternal(state.signupUrl));$('#connectButton').addEventListener('click',()=>sendMessage('请使用 GitHub CLI 的浏览器授权流程连接我的 GitHub 账号；不要读取或要求我粘贴密码、验证码或 token。'));$('#discussionsButton').addEventListener('click',()=>openExternal(state.discussionsUrl));$('#issuesButton').addEventListener('click',()=>openExternal(state.issuesUrl));$('#pullsButton').addEventListener('click',()=>openExternal(state.pullsUrl))
       window.addEventListener('message',event=>{if(event.source!==window.parent)return;const message=event.data;if(!message||message.jsonrpc!=='2.0')return;if(message.id!==undefined&&pending.has(message.id)){const item=pending.get(message.id);clearTimeout(item.timer);pending.delete(message.id);message.error?item.reject(new Error(message.error.message)):item.resolve(message.result);return}if(message.method==='ui/notifications/tool-input'||message.method==='ui/notifications/tool-result')acceptPayload(message.params)},{passive:true})
       async function connect(){try{const result=await rpc('ui/initialize',{protocolVersion:'2026-01-26',appInfo:{name:'opengemcutting-community-hub',version:'1.0.0'},appCapabilities:{availableDisplayModes:['inline','fullscreen']}});connected=true;hostCanMessage=Boolean(result?.hostCapabilities?.message?.text);notify('ui/notifications/initialized')}catch{}acceptPayload(window.openai?.toolInput);acceptPayload(window.openai?.toolOutput)}
       new ResizeObserver(sendSize).observe(document.querySelector('main'));render(state);connect()

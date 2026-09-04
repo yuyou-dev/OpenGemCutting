@@ -1,0 +1,33 @@
+title: "[Q&A] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这里适合讨论 OpenGemCutting 的使用、96 分度切磨流程与可公开的文件交换问题。可复现的软件缺陷请使用 Issue。
+  - type: textarea
+    id: question
+    attributes:
+      label: 你想解决什么问题？
+      description: 请说明目标和当前卡住的地方。
+      placeholder: 例如：如何在保留腰部高度的同时旋转全部冠部层？
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: 已尝试的操作
+      description: 列出相关步骤、参数或已查看的手册章节。
+    validations:
+      required: true
+  - type: textarea
+    id: public-sample
+    attributes:
+      label: 可公开的样例
+      description: 可选。可粘贴最小 JSON/ASC 片段或附上截图，但不要公开客户资料。
+  - type: checkboxes
+    id: public-content
+    attributes:
+      label: 公开内容确认
+      options:
+        - label: 我已移除密钥、客户信息、个人路径和未授权的设计。
+          required: true

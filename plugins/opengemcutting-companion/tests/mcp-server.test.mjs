@@ -34,6 +34,8 @@ test('plugin exposes the community UI and guarded publisher', () => {
   assert.match(RESOURCE_REGISTRY[0].html, /OpenGemCutting Community/)
   assert.match(RESOURCE_REGISTRY[0].html, /GitHub 官方注册页/)
   assert.match(RESOURCE_REGISTRY[0].html, /交给 Codex 整理/)
+  assert.match(RESOURCE_REGISTRY[0].html, /id="discussionsButton"/)
+  assert.match(RESOURCE_REGISTRY[0].html, /id="category"/)
   assert.match(RESOURCE_REGISTRY[0].html, /ui\/notifications\/initialized/)
   assert.match(RESOURCE_REGISTRY[0].html, /ResizeObserver/)
 })
@@ -88,6 +90,22 @@ test('disabled Discussions do not consume a staged draft', () => {
       },
     ),
     /Discussions are not enabled/,
+  )
+  assert.deepEqual(takeStagedDraft(approvalId), preview)
+})
+
+test('missing live Discussion category does not consume a staged draft', () => {
+  const staged = stageDraft({ kind: 'discussion', title: 'Idea', body: 'Details', category: 'Ideas' })
+  const { approvalId, preview } = staged.structuredContent
+  assert.throws(
+    () => publishDraft(
+      { approvalId },
+      {
+        githubStatus: () => ({ state: 'ready' }),
+        listDiscussions: () => ({ discussions: [], discussionCategories: [{ name: 'Q&A' }] }),
+      },
+    ),
+    /category Ideas is not available/,
   )
   assert.deepEqual(takeStagedDraft(approvalId), preview)
 })
@@ -163,6 +181,7 @@ test('marketplace and plugin manifests reference real components', () => {
   const manifest = JSON.parse(readFileSync(new URL('../.codex-plugin/plugin.json', import.meta.url), 'utf8'))
   const marketplace = JSON.parse(readFileSync(new URL('../../../.agents/plugins/marketplace.json', import.meta.url), 'utf8'))
   assert.equal(manifest.name, 'opengemcutting-companion')
+  assert.equal(manifest.version, '0.1.1')
   assert.equal(manifest.mcpServers, './.mcp.json')
   assert.equal(manifest.skills, './skills/')
   assert.ok(manifest.interface.capabilities.includes('MCP Apps UI'))
@@ -195,4 +214,17 @@ test('documentation closes app and Companion lifecycle', () => {
   assert.match(readme, /main\/UPGRADE\.md/)
   assert.match(readme, /main\/UNINSTALL\.md/)
   assert.match(readme, /Codex 内置浏览器/)
+})
+
+test('repository ships forms for every Companion Discussion category', () => {
+  for (const [slug, marker] of [
+    ['ideas', '\\[Idea\\]'],
+    ['q-a', 'Q&A'],
+    ['show-and-tell', '\\[Showcase\\]'],
+  ]) {
+    const form = readFileSync(new URL(`../../../.github/DISCUSSION_TEMPLATE/${slug}.yml`, import.meta.url), 'utf8')
+    assert.match(form, new RegExp(marker))
+    assert.match(form, /body:/)
+    assert.match(form, /required: true/)
+  }
 })

@@ -9,9 +9,9 @@ Turn a user's intent or local changes into a clear, correctly routed contributio
 
 ## Choose the route
 
-- Question or open-ended faceting conversation → GitHub Discussion category `Q&A` when Discussions are enabled; otherwise an Issue.
-- Product or workflow idea → GitHub Discussion category `Ideas` when enabled; otherwise an Issue.
-- Public cut-design showcase → GitHub Discussion category `Show and tell` when enabled; otherwise wait or use an Issue only when the user accepts that fallback.
+- Question or open-ended faceting conversation → GitHub Discussion category `Q&A`.
+- Product or workflow idea → GitHub Discussion category `Ideas`.
+- Public cut-design showcase → GitHub Discussion category `Show and tell`.
 - Reproducible defect → GitHub Issue, using the bug template when practical.
 - Completed source or documentation change → Fork, focused branch, and Pull Request.
 
