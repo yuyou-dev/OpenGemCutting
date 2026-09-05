@@ -1,0 +1,2156 @@
+{
+  "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "facet-96-document",
+  "name": "圆形练习 02 · 棱上三分之一",
+  "indexGear": {
+    "teeth": 96,
+    "zeroAlias": 96,
+    "degreesPerTooth": 3.75
+  },
+  "stock": {
+    "kind": "cube",
+    "size": 2,
+    "center": [
+      0,
+      0,
+      0
+    ]
+  },
+  "facets": [
+    {
+      "id": "table-facet:96",
+      "patternId": "table-facet",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 0,
+      "betaDeg": 90,
+      "depth": 0.45,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 0,
+          "z": 1
+        },
+        "offset": 0.55,
+        "keep": "less-than-or-equal"
+      },
+      "label": "T1 台面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "operationType": "table",
+        "fixedAngle": true
+      }
+    },
+    {
+      "id": "girdle-preform:3",
+      "patternId": "girdle-preform",
+      "ordinal": 0,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 3,
+      "displayIndex": 3,
+      "azimuthDeg": 11.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.980785280403,
+          "y": 0.195090322016,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:6",
+      "patternId": "girdle-preform",
+      "ordinal": 1,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 6,
+      "displayIndex": 6,
+      "azimuthDeg": 22.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.923879532511,
+          "y": 0.382683432365,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:9",
+      "patternId": "girdle-preform",
+      "ordinal": 2,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 9,
+      "displayIndex": 9,
+      "azimuthDeg": 33.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.831469612303,
+          "y": 0.55557023302,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:12",
+      "patternId": "girdle-preform",
+      "ordinal": 3,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 12,
+      "displayIndex": 12,
+      "azimuthDeg": 45,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.707106781187,
+          "y": 0.707106781187,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:15",
+      "patternId": "girdle-preform",
+      "ordinal": 4,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 15,
+      "displayIndex": 15,
+      "azimuthDeg": 56.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.55557023302,
+          "y": 0.831469612303,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:18",
+      "patternId": "girdle-preform",
+      "ordinal": 5,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 18,
+      "displayIndex": 18,
+      "azimuthDeg": 67.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.382683432365,
+          "y": 0.923879532511,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:21",
+      "patternId": "girdle-preform",
+      "ordinal": 6,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 21,
+      "displayIndex": 21,
+      "azimuthDeg": 78.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.195090322016,
+          "y": 0.980785280403,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:24",
+      "patternId": "girdle-preform",
+      "ordinal": 7,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 90,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 1,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:27",
+      "patternId": "girdle-preform",
+      "ordinal": 8,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 27,
+      "displayIndex": 27,
+      "azimuthDeg": 101.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.195090322016,
+          "y": 0.980785280403,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:30",
+      "patternId": "girdle-preform",
+      "ordinal": 9,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 30,
+      "displayIndex": 30,
+      "azimuthDeg": 112.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.382683432365,
+          "y": 0.923879532511,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:33",
+      "patternId": "girdle-preform",
+      "ordinal": 10,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 33,
+      "displayIndex": 33,
+      "azimuthDeg": 123.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.55557023302,
+          "y": 0.831469612303,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:36",
+      "patternId": "girdle-preform",
+      "ordinal": 11,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 36,
+      "displayIndex": 36,
+      "azimuthDeg": 135,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.707106781187,
+          "y": 0.707106781187,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:39",
+      "patternId": "girdle-preform",
+      "ordinal": 12,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 39,
+      "displayIndex": 39,
+      "azimuthDeg": 146.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.831469612303,
+          "y": 0.55557023302,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:42",
+      "patternId": "girdle-preform",
+      "ordinal": 13,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 42,
+      "displayIndex": 42,
+      "azimuthDeg": 157.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.923879532511,
+          "y": 0.382683432365,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:45",
+      "patternId": "girdle-preform",
+      "ordinal": 14,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 45,
+      "displayIndex": 45,
+      "azimuthDeg": 168.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.980785280403,
+          "y": 0.195090322016,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:48",
+      "patternId": "girdle-preform",
+      "ordinal": 15,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 180,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -1,
+          "y": 0,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:51",
+      "patternId": "girdle-preform",
+      "ordinal": 16,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 51,
+      "displayIndex": 51,
+      "azimuthDeg": 191.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.980785280403,
+          "y": -0.195090322016,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:54",
+      "patternId": "girdle-preform",
+      "ordinal": 17,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 54,
+      "displayIndex": 54,
+      "azimuthDeg": 202.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.923879532511,
+          "y": -0.382683432365,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:57",
+      "patternId": "girdle-preform",
+      "ordinal": 18,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 57,
+      "displayIndex": 57,
+      "azimuthDeg": 213.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.831469612303,
+          "y": -0.55557023302,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:60",
+      "patternId": "girdle-preform",
+      "ordinal": 19,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 60,
+      "displayIndex": 60,
+      "azimuthDeg": 225,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.707106781187,
+          "y": -0.707106781187,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:63",
+      "patternId": "girdle-preform",
+      "ordinal": 20,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 63,
+      "displayIndex": 63,
+      "azimuthDeg": 236.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.55557023302,
+          "y": -0.831469612303,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:66",
+      "patternId": "girdle-preform",
+      "ordinal": 21,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 66,
+      "displayIndex": 66,
+      "azimuthDeg": 247.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.382683432365,
+          "y": -0.923879532511,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:69",
+      "patternId": "girdle-preform",
+      "ordinal": 22,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 69,
+      "displayIndex": 69,
+      "azimuthDeg": 258.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.195090322016,
+          "y": -0.980785280403,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:72",
+      "patternId": "girdle-preform",
+      "ordinal": 23,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 270,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": -1,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:75",
+      "patternId": "girdle-preform",
+      "ordinal": 24,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 75,
+      "displayIndex": 75,
+      "azimuthDeg": 281.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.195090322016,
+          "y": -0.980785280403,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:78",
+      "patternId": "girdle-preform",
+      "ordinal": 25,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 78,
+      "displayIndex": 78,
+      "azimuthDeg": 292.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.382683432365,
+          "y": -0.923879532511,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:81",
+      "patternId": "girdle-preform",
+      "ordinal": 26,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 81,
+      "displayIndex": 81,
+      "azimuthDeg": 303.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.55557023302,
+          "y": -0.831469612303,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:84",
+      "patternId": "girdle-preform",
+      "ordinal": 27,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 84,
+      "displayIndex": 84,
+      "azimuthDeg": 315,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.707106781187,
+          "y": -0.707106781187,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:87",
+      "patternId": "girdle-preform",
+      "ordinal": 28,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 87,
+      "displayIndex": 87,
+      "azimuthDeg": 326.25,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.831469612303,
+          "y": -0.55557023302,
+          "z": 0
+        },
+        "offset": 0.800000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:90",
+      "patternId": "girdle-preform",
+      "ordinal": 29,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 90,
+      "displayIndex": 90,
+      "azimuthDeg": 337.5,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.923879532511,
+          "y": -0.382683432365,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:93",
+      "patternId": "girdle-preform",
+      "ordinal": 30,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 93,
+      "displayIndex": 93,
+      "azimuthDeg": 348.75,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.980785280403,
+          "y": -0.195090322016,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "girdle-preform:96",
+      "patternId": "girdle-preform",
+      "ordinal": 31,
+      "region": "girdle",
+      "baseIndex": 0,
+      "repeat": 32,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 1,
+          "y": 0,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 腰部",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:12",
+      "patternId": "pavilion-main",
+      "ordinal": 0,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 12,
+      "displayIndex": 12,
+      "azimuthDeg": 45,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": 0.473146789256,
+          "y": 0.473146789256,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:24",
+      "patternId": "pavilion-main",
+      "ordinal": 1,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 90,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 0.669130606359,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:36",
+      "patternId": "pavilion-main",
+      "ordinal": 2,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 36,
+      "displayIndex": 36,
+      "azimuthDeg": 135,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": -0.473146789256,
+          "y": 0.473146789256,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:48",
+      "patternId": "pavilion-main",
+      "ordinal": 3,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 180,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": -0.669130606359,
+          "y": 0,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:60",
+      "patternId": "pavilion-main",
+      "ordinal": 4,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 60,
+      "displayIndex": 60,
+      "azimuthDeg": 225,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": -0.473146789256,
+          "y": -0.473146789256,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:72",
+      "patternId": "pavilion-main",
+      "ordinal": 5,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 270,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": -0.669130606359,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:84",
+      "patternId": "pavilion-main",
+      "ordinal": 6,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 84,
+      "displayIndex": 84,
+      "azimuthDeg": 315,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": 0.473146789256,
+          "y": -0.473146789256,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "pavilion-main:96",
+      "patternId": "pavilion-main",
+      "ordinal": 7,
+      "region": "pavilion",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 42,
+      "betaDeg": -48,
+      "depth": 0.822275431836,
+      "plane": {
+        "normal": {
+          "x": 0.669130606359,
+          "y": 0,
+          "z": -0.743144825477
+        },
+        "offset": 0.59,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 亭部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:12",
+      "patternId": "crown-main",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 12,
+      "displayIndex": 12,
+      "azimuthDeg": 45,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": 0.405579787673,
+          "y": 0.405579787673,
+          "z": 0.819152044289
+        },
+        "offset": 0.650000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:24",
+      "patternId": "crown-main",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 90,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 0.573576436351,
+          "z": 0.819152044289
+        },
+        "offset": 0.65,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:36",
+      "patternId": "crown-main",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 36,
+      "displayIndex": 36,
+      "azimuthDeg": 135,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": -0.405579787673,
+          "y": 0.405579787673,
+          "z": 0.819152044289
+        },
+        "offset": 0.650000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:48",
+      "patternId": "crown-main",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 180,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": -0.573576436351,
+          "y": 0,
+          "z": 0.819152044289
+        },
+        "offset": 0.65,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:60",
+      "patternId": "crown-main",
+      "ordinal": 4,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 60,
+      "displayIndex": 60,
+      "azimuthDeg": 225,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": -0.405579787673,
+          "y": -0.405579787673,
+          "z": 0.819152044289
+        },
+        "offset": 0.650000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:72",
+      "patternId": "crown-main",
+      "ordinal": 5,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 270,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": -0.573576436351,
+          "z": 0.819152044289
+        },
+        "offset": 0.65,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:84",
+      "patternId": "crown-main",
+      "ordinal": 6,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 84,
+      "displayIndex": 84,
+      "azimuthDeg": 315,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": 0.405579787673,
+          "y": -0.405579787673,
+          "z": 0.819152044289
+        },
+        "offset": 0.650000000001,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-main:96",
+      "patternId": "crown-main",
+      "ordinal": 7,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 35,
+      "betaDeg": 55,
+      "depth": 0.74272848064,
+      "plane": {
+        "normal": {
+          "x": 0.573576436351,
+          "y": 0,
+          "z": 0.819152044289
+        },
+        "offset": 0.65,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 冠部主面",
+      "metadata": {
+        "patternMode": "symmetric"
+      }
+    },
+    {
+      "id": "crown-detail:6",
+      "patternId": "crown-detail",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 6,
+      "displayIndex": 6,
+      "azimuthDeg": 22.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": 0.707732781992,
+          "y": 0.293152516837,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "crown-detail:18",
+      "patternId": "crown-detail",
+      "ordinal": 1,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 18,
+      "displayIndex": 18,
+      "azimuthDeg": 67.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": 0.293152516837,
+          "y": 0.707732781992,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "crown-detail:30",
+      "patternId": "crown-detail",
+      "ordinal": 2,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 30,
+      "displayIndex": 30,
+      "azimuthDeg": 112.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": -0.293152516837,
+          "y": 0.707732781992,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "crown-detail:42",
+      "patternId": "crown-detail",
+      "ordinal": 3,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 42,
+      "displayIndex": 42,
+      "azimuthDeg": 157.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": -0.707732781992,
+          "y": 0.293152516837,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "crown-detail:54",
+      "patternId": "crown-detail",
+      "ordinal": 4,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 54,
+      "displayIndex": 54,
+      "azimuthDeg": 202.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": -0.707732781992,
+          "y": -0.293152516837,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "crown-detail:66",
+      "patternId": "crown-detail",
+      "ordinal": 5,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 66,
+      "displayIndex": 66,
+      "azimuthDeg": 247.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": -0.293152516837,
+          "y": -0.707732781992,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "crown-detail:78",
+      "patternId": "crown-detail",
+      "ordinal": 6,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 78,
+      "displayIndex": 78,
+      "azimuthDeg": 292.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": 0.293152516837,
+          "y": -0.707732781992,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "crown-detail:90",
+      "patternId": "crown-detail",
+      "ordinal": 7,
+      "region": "crown",
+      "baseIndex": 6,
+      "repeat": 8,
+      "mirror": 0,
+      "index": 90,
+      "displayIndex": 90,
+      "azimuthDeg": 337.5,
+      "industryAngleDeg": 50,
+      "betaDeg": 40,
+      "depth": 0.668051304607,
+      "plane": {
+        "normal": {
+          "x": 0.707732781992,
+          "y": -0.293152516837,
+          "z": 0.642787609687
+        },
+        "offset": 0.740780748199,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C2 棱上装饰面",
+      "metadata": {
+        "patternMode": "symmetric",
+        "primaryIndex": 6,
+        "construction": {
+          "solverVersion": 2,
+          "type": "edge-meet",
+          "primaryIndex": 6,
+          "target": {
+            "kind": "edge-point",
+            "topologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96@0.3333333333333333",
+            "sourceFaceIds": [
+              "crown-main:12",
+              "crown-main:96",
+              "girdle-preform:6",
+              "table-facet:96"
+            ],
+            "sourceOperationIds": [
+              "crown-main",
+              "girdle-preform",
+              "table-facet"
+            ],
+            "sourceGeometrySignature": "e1:03a7544d34e5db19",
+            "fallbackWorldPoint": [
+              0.6086554218210154,
+              0.2521133305318115,
+              0.3673183681636914
+            ],
+            "edgeTopologyKey": "edge:vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Cgirdle-preform%253A6|vertex%3Acrown-main%253A12%7Ccrown-main%253A96%7Ctable-facet%253A96",
+            "ratio": 0.3333333333333333,
+            "endpoints": [
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|girdle-preform%3A6",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "girdle-preform:6"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "girdle-preform"
+                ],
+                "sourceGeometrySignature": "v1:03a579af934b584b",
+                "fallbackWorldPoint": [
+                  0.7391036260087378,
+                  0.30614674589340174,
+                  0.27597755224553705
+                ]
+              },
+              {
+                "topologyKey": "vertex:crown-main%3A12|crown-main%3A96|table-facet%3A96",
+                "sourceFaceIds": [
+                  "crown-main:12",
+                  "crown-main:96",
+                  "table-facet:96"
+                ],
+                "sourceOperationIds": [
+                  "crown-main",
+                  "table-facet"
+                ],
+                "sourceGeometrySignature": "v1:f0ac43012fd8efe5",
+                "fallbackWorldPoint": [
+                  0.3477590134455707,
+                  0.14404649980863113,
+                  0.5500000000000002
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

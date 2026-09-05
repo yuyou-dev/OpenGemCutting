@@ -77,6 +77,7 @@ export function Header({
   onOpenLedger,
   onOpenSettings,
   onOpenHelp,
+  onOpenAssistant,
   canUndo,
   canRedo,
   projectName,
@@ -287,6 +288,10 @@ export function Header({
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenSettings)}>
             <IconSettings size={15} />
             <span>设置</span>
+          </button>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenAssistant)}>
+            <IconHistory size={15} />
+            <span>逐层试切助理</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenHelp)}>
             <IconHelpCircle size={15} />

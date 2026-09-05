@@ -23,7 +23,7 @@ function chipLetter(operation) {
 }
 
 /** Inline quick-edit for the selected layer: angle + depth, live preview, explicit Enter commits. */
-function InlineEditor({ operation, values, onEdit, onCommit, depthEditable = true }) {
+function InlineEditor({ operation, values, onEdit, onCommit, depthEditable = true, angleEditable = true }) {
   const [angle, setAngle] = useState(String(values.angle));
   const [depth, setDepth] = useState(String(values.depth));
   const angleRef = useRef(null);
@@ -56,7 +56,7 @@ function InlineEditor({ operation, values, onEdit, onCommit, depthEditable = tru
           step="0.01"
           value={angle}
           ref={angleRef}
-          disabled={operation.locked || operation.region === "girdle"}
+          disabled={operation.locked || operation.region === "girdle" || !angleEditable}
           onChange={(event) => {
             setAngle(event.target.value);
             emit("angle", event.target.value);
@@ -107,6 +107,8 @@ export function CutStack({
   onInlineEdit,
   onInlineCommit,
   depthEditable = true,
+  angleEditable = true,
+  diagnosticsById = {},
   activeRegion,
   onRegionChange,
   groupEditRegion,
@@ -286,6 +288,8 @@ export function CutStack({
           {filteredOperations.map((operation) => {
             const index = operations.findIndex((item) => item.id === operation.id);
             const selected = selectedId === operation.id;
+            const diagnostic = diagnosticsById[operation.id];
+            const stale = diagnostic && diagnostic.status !== "valid";
             const groupSelected = groupEditRegion === "crown"
               ? operation.region === "crown"
               : groupEditRegion === operation.region;
@@ -364,21 +368,39 @@ export function CutStack({
                             setRenamingId(operation.id);
                             setRenameValue(operation.label);
                           }}
-                          title={operation.locked ? operation.label : "点击名称改名；点击下方参数编辑切割"}
+                          title={operation.locked ? operation.label : `${operation.label} · 点击名称改名；点击“编辑”调整切割`}
                           aria-label={`重命名 ${operation.label}`}
                         >
                           <strong>{operation.label}{selected ? <em>EDIT</em> : null}</strong>
                         </button>
                       )}
+                      {operation.preform || diagnostic ? (
+                        <span className="cut-stack-construction-tags">
+                          {operation.preform ? <span className="cut-stack-preform-tag">预形</span> : null}
+                          {diagnostic ? <span className={`cut-stack-meet-tag${stale ? " is-stale" : ""}`} title={diagnostic.message}>{stale ? "Meet 失效" : "Meet"}</span> : null}
+                        </span>
+                      ) : null}
                       <button type="button" className="cut-stack-parameters" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} aria-label={`编辑 ${operation.label}`}>
                         <small>{operation.industryAngleDeg.toFixed(2)}° · D {operation.depth.toFixed(3)}{operation.status === "参与解析" ? "" : ` · ${operation.status}`}</small>
                       </button>
                     </div>
-                    <button type="button" className="cut-stack-count" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} title={`有效 ${operation.effectiveCount} / 生成 ${operation.recordedCount} 面`} aria-label={`编辑 ${operation.label}，有效 ${operation.effectiveCount} 面`}>
-                      {operation.effectiveCount === operation.recordedCount
-                        ? `${operation.recordedCount}F`
-                        : `${operation.effectiveCount}/${operation.recordedCount}F`}
-                    </button>
+                    <div className="cut-stack-edit-actions">
+                      <button type="button" className="cut-stack-count" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} title={`有效 ${operation.effectiveCount} / 生成 ${operation.recordedCount} 面`} aria-label={`编辑 ${operation.label}，有效 ${operation.effectiveCount} 面`}>
+                        {operation.effectiveCount === operation.recordedCount
+                          ? `${operation.recordedCount}F`
+                          : `${operation.effectiveCount}/${operation.recordedCount}F`}
+                      </button>
+                      <button
+                        type="button"
+                        className="cut-stack-edit-button"
+                        onClick={() => onSelect(operation.id)}
+                        disabled={!canSelectLayers}
+                        aria-label={`编辑切割 ${operation.label}`}
+                        title={selected ? "正在编辑此图层；在下方保存或放弃修改" : canSelectLayers ? `编辑 ${operation.label} 的切割参数` : "请先保存或取消当前操作"}
+                      >
+                        {selected ? "编辑中" : "编辑"}
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -401,6 +423,7 @@ export function CutStack({
                     <IconTrash size={14} stroke={1.7} />
                   </button>
                 </div>
+                {stale ? <p className="cut-stack-meet-diagnostic" role="status">{diagnostic.message ?? "施工来源失效；保留已保存切面，请重新编辑修复。"}</p> : null}
                 {selected ? (
                   <InlineEditor
                     operation={operation}
@@ -408,6 +431,7 @@ export function CutStack({
                     onEdit={onInlineEdit}
                     onCommit={onInlineCommit}
                     depthEditable={depthEditable}
+                    angleEditable={angleEditable}
                   />
                 ) : null}
               </div>

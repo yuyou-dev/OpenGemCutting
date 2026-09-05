@@ -29,9 +29,9 @@
 
 打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON、GemCad ASC 与 PDF 均在浏览器本地导入、导出或生成。
 
-第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是独立的 13 页 A4 图解手册，覆盖预设起步、CUT 编辑、文件交换、光学仿真、快捷操作与交付检查；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
+第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是面向设计师的 22 页 A4 图解手册，配套 [7 份原创练习](docs/manual/README.md)，通过真实案例说明冠高、棱上比例、双点会合和四向节奏的设计用途，覆盖文件交换、光学观察与交付；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
 
-当前版本为 **v0.7.1**：增加冠部/亭部的 Meet 与 Jump 定位、统一最终有效面统计和导出范围，提供已提交文档与材质的本地恢复，并修复材质撤销、图层改名和浮层交互。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本为 **v0.7.2**：补全棱上比例点、双 Meet、自定义主切面及第二点 Jump；按施工顺序诊断来源变化，并提供逐层试切助理、预形用途和明确的“编辑”按钮。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 v0.6.1 引入的 Codex 一句话安装、升级与启动流程及 OpenGemCutting Companion 继续保留，可用于打开工作台、整理社区反馈、检查本地改动并准备 Pull Request。所有公开发布、push 和 PR 创建仍需最终预览与明确确认。
 
@@ -50,13 +50,14 @@ OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用
 - **57 个精选预设琢型**：按名称、设计者、来源与外形检索，载入前核对真实几何的轴测、顶、底、正四视图。
 - **GemCad ASC 交换**：导入/导出前持久预检齿轮映射、统一比例、L/W、层面统计与不可逆信息；不精确映射、preform 或异常台面会明确阻断。
 - **CUT 四态工作流**：空闲、新建、编辑、群组变换由单一事件状态机管理，取消和 `Escape` 路径明确。
-- **Meet / Jump 定位**：冠部与亭部对称 CUT 支持单顶点 Meet、交点前后跳转与下一点分类预告；锁定 Meet 后随角度和分度统一求解深度。
+- **Meet / Jump 定位**：冠部与亭部的对称及自定义索引支持顶点／棱点 A、双 Meet 和第二点 Jump。单 A 求解深度，双点在固定主分度下联合求解角度与深度；来源变化立即诊断，由设计师手动修复。
+- **施工回顾**：逐层试切助理只读比较切割前后及 A/B 来源，预形标记表达用途；已保存切面不会因来源变化自动级联改动。
 - **本地恢复**：自动备份已提交文档与光学材质，重新打开时提示恢复；各页面独立备份，可从文件菜单管理。未保存 CUT 草稿、相机与旧撤销历史不跨刷新恢复。
 - **精密 3D 操作**：实体/X-ray、顶/正/侧/透视相机、角度桥架、深度杆和同心分度环。
 - **聚焦光学仿真**：当前真实几何直接进入折射、Fresnel、全反射、多次内反射、RGB 色散与 Beer-Lambert 体色观察。
 - **非破坏式文档历史**：图层显隐、重排、重命名、光学材质撤销/重做与 JSON 往返保持文档语义；被后续切割覆盖的参数化工序仍保留，可随撤销恢复。
 - **工艺输出**：A4 矢量优先 PDF 包含多视图、工程尺寸、分层参数与真实刻面高亮；面数、刻面台账、切割指令、PDF 与 ASC 统一读取已提交实体中的最终有效面。
-- **完整学习入口**：品牌加载页、任务式应用内帮助，以及可下载的 13 页 A4 图解操作手册。
+- **完整学习入口**：品牌加载页、任务式应用内帮助，以及22 页设计师操作手册和 7 份可导入的原创案例。
 - **完整交付链路**：常规 Vite 客户端与 OpenAI Sites worker 产物由同一构建命令生成并测试。
 
 ## 快速开始 · Quick start
@@ -158,10 +159,13 @@ src/
     AscTransferDialog.jsx       GemCad ASC 持久预检
     HelpCenterDialog.jsx        任务式帮助与手册入口
     RecoveryDialog.jsx          本地备份选择、恢复与删除
+    ConstructionAssistantDialog.jsx 逐层试切与来源检查
     Modal.jsx                   通用居中模态框与焦点管理
   domain/
     cutSession.js               CUT 四态事件状态机与构造子状态
-    meetJump.js                 顶点来源、候选、Meet 求解与影响评估
+    meetJump.js                 顶点／棱来源、候选、单／双 Meet 求解
+    cutConstruction.js          草稿主面与统一参数求解
+    constructionHistory.js      施工阶段实体与来源失效诊断
     localRecovery.js            独立备份存储与恢复校验
     faceting.js                 96 分度、图层、序列化与命令
     geometry.js                 凸多面体裁切与测量
@@ -257,7 +261,7 @@ OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA�
 
 OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 57 validated presets, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
 
-Version **v0.7.1** adds single-vertex Meet and Jump for symmetric crown/pavilion cuts, consistent final-facet counts and exports, and local recovery of committed documents and optical materials. Recovery is offered on startup and each page keeps a separate backup; unsaved drafts, cameras and previous undo history are excluded. Optical material changes now follow document undo/redo, and dialogs isolate keyboard shortcuts from the underlying CUT session. See [CHANGELOG.md](CHANGELOG.md) for details.
+Version **v0.7.2** adds edge-ratio targets, dual Meet, custom primary facets, and second-point Jump for crown/pavilion cuts. Construction-order diagnostics preserve saved geometry while asking designers to repair changed references explicitly. A read-only construction assistant, preform intent labels and visible Edit buttons make the workflow easier to follow. The 22-page designer manual includes seven original practice files and comparable shape variants. Existing local recovery, material undo/redo and isolated dialog shortcuts are preserved. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 Codex users can copy the setup sentence in [Quick start](#快速开始--quick-start) to install, verify, run, and open the workbench without manually entering Git or npm commands. The optional Companion adds guided GitHub onboarding, categorized Discussions and community drafts, plus reviewed Pull Request preparation; it never performs an external write without a final preview and explicit confirmation.
 

@@ -575,3 +575,71 @@ test("replaces a layer preview in its original boolean-sequence slot", () => {
   assert.equal(result.filter((facet) => facet.patternId === "c1").length, 8);
   assert.equal(source.filter((facet) => facet.patternId === "c1").length, 4);
 });
+
+test("round-trips version 2 custom primary, edge and dual Meet metadata and rejects inconsistent members", async () => {
+  const { enumerateTopologyEdges, createEdgeMeetTarget } = await import("./meetJump.js");
+  const { createCenteredCube } = await import("./geometry.js");
+  const edge = enumerateTopologyEdges(createCenteredCube(2, { sourceOperationId: "rough-cube" }))[0];
+  const target = createEdgeMeetTarget(edge, 0.95);
+  const options = { patternId: "custom-meet", region: "crown", baseIndex: 0, repeat: 4, industryAngleDeg: 32, depth: 0.3 };
+  for (const construction of [
+    { type: "vertex-meet", solverVersion: 2, primaryIndex: 24, target: edge.endpoints[0] },
+    { type: "edge-meet", solverVersion: 2, primaryIndex: 24, target },
+    { type: "dual-meet", solverVersion: 2, primaryIndex: 24, target, secondTarget: edge.endpoints[1] },
+  ]) {
+    const facets = resolveFacetPattern({ ...options, metadata: { patternMode: "arbitrary", primaryIndex: 24, preform: true, construction } });
+    const document = createFacetingDocument({ facets });
+    assert.deepEqual(importFacetingJSON(exportFacetingJSON(document)), document);
+    for (const mutation of [
+      (copy) => { copy.facets[0].metadata.construction.primaryIndex = 25; },
+      (copy) => { copy.facets[0].metadata.primaryIndex = 25; },
+      (copy) => { copy.facets[0].metadata.preform = false; },
+    ]) {
+      const copy = structuredClone(document); mutation(copy);
+      assert.equal(validateFacetingDocument(copy).valid, false);
+    }
+    if (construction.type !== "vertex-meet") {
+      for (const mutation of [
+        (copy) => { copy.facets[0].metadata.construction.target.ratio = 1.01; },
+        (copy) => { copy.facets[0].metadata.construction.target.endpoints = []; },
+        (copy) => { copy.facets[0].metadata.construction.target.endpoints = {}; },
+        (copy) => { copy.facets[0].metadata.construction.target.kind = "unknown"; },
+      ]) {
+        const copy = structuredClone(document); mutation(copy);
+        assert.equal(validateFacetingDocument(copy).valid, false);
+      }
+    }
+    if (construction.type === "dual-meet") {
+      const copy = structuredClone(document); delete copy.facets[0].metadata.construction.secondTarget;
+      assert.equal(validateFacetingDocument(copy).valid, false);
+    }
+  }
+});
+
+test("validates custom primary membership without Meet and limits preform to ordinary crown/pavilion layers", () => {
+  const facets = resolveFacetPattern({ patternId: "custom", region: "crown", baseIndex: 0, repeat: 4, industryAngleDeg: 32, depth: 0.3,
+    metadata: { patternMode: "arbitrary", primaryIndex: 24, preform: true } });
+  const document = createFacetingDocument({ facets });
+  const wrongPrimary = structuredClone(document);
+  wrongPrimary.facets.forEach((facet) => { facet.metadata.primaryIndex = 25; });
+  assert.equal(validateFacetingDocument(wrongPrimary).valid, false);
+  for (const preform of ["yes", true]) {
+    const girdle = resolveFacetPattern({ patternId: "girdle", region: "girdle", baseIndex: 0, repeat: 4, industryAngleDeg: 90, depth: 0.2,
+      metadata: { preform } });
+    assert.throws(() => createFacetingDocument({ facets: girdle }), FacetingDocumentValidationError);
+  }
+});
+
+test("group rotation carries explicit primary identity while preserving saved Meet sources", async () => {
+  const { enumerateTopologyVertices } = await import("./meetJump.js");
+  const { createCenteredCube } = await import("./geometry.js");
+  const target = enumerateTopologyVertices(createCenteredCube(2, { sourceOperationId: "rough-cube" }))[0];
+  const facets = resolveFacetPattern({ patternId: "rotate-meet", region: "crown", baseIndex: 0, repeat: 4, industryAngleDeg: 32, depth: 0.3,
+    metadata: { patternMode: "arbitrary", primaryIndex: 24, construction: { type: "vertex-meet", solverVersion: 2, primaryIndex: 24, target } } });
+  const rotated = rotateFacetsByTeeth(facets, 5);
+  assert.equal(rotated[0].metadata.primaryIndex, 29);
+  assert.equal(rotated[0].metadata.construction.primaryIndex, 29);
+  assert.deepEqual(rotated[0].metadata.construction.target, target);
+  assert.equal(facets[0].metadata.primaryIndex, 24);
+  assert.equal(validateFacetingDocument(createFacetingDocument({ facets: rotated })).valid, true);
+});

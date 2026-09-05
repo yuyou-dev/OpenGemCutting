@@ -171,3 +171,26 @@ test("findTableFace locates the topmost horizontal face after a table cut", () =
   const zValues = tableFace.vertexIndices.map((index) => solid.vertices[index].z);
   assert.ok(Math.min(...zValues) > 0.7, "table face sits near the crown top");
 });
+
+test("reports edge ratios, both Meet sources and preform intent with space for wrapped text", async () => {
+  const { enumerateTopologyEdges, createEdgeMeetTarget } = await import("../domain/meetJump.js");
+  const input = makeInput();
+  const edge = enumerateTopologyEdges(createCenteredCube(2, { sourceOperationId: "rough-cube" }))[0];
+  const target = createEdgeMeetTarget(edge, 0.95);
+  input.document.facets.filter((facet) => facet.patternId === "c1").forEach((facet) => {
+    facet.metadata = { ...facet.metadata, preform: true, construction: {
+      type: "dual-meet", solverVersion: 2, primaryIndex: 6, target,
+      secondTarget: { ...edge.endpoints[0], sourceGeometrySignature: "v1:stale" },
+    } };
+  });
+  const model = createFacetReportModel(input);
+  const group = model.regions.flatMap((region) => region.groups).find((item) => item.id === "c1");
+  assert.match(group.construction.text, /预形 · 双 Meet · A 棱点 95.00%/);
+  assert.match(group.construction.text, /B 顶点/);
+  assert.match(group.construction.text, /来源已失效/);
+  assert.equal(group.preform, true);
+  group.rows = Array.from({ length: 40 }, (_, index) => ({ index }));
+  const pages = buildFacetReportPages(model).filter((page) => page.group?.id === "c1");
+  assert.equal(pages.flatMap((page) => page.rows).length, 40);
+  assert.ok(pages.every((page) => page.rows.length < 18));
+});

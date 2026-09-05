@@ -43,8 +43,6 @@ import {
   normalizeIndex,
   redoFacetingCommand,
   replacePatternFacets,
-  resolveFacet,
-  resolveFacetPattern,
   rotateFacetsByTeeth,
   scaleFacetsAlongZ,
   translateFacetsAlongZ,
@@ -59,18 +57,23 @@ import {
   MEET_STATUS,
   adjacentJumpCandidateIndex,
   enumerateTopologyVertices,
+  enumerateTopologyEdges,
+  createEdgeMeetTarget,
+  generateDualJumpCandidates,
   evaluateDraftImpact,
   classifyJumpCandidate,
   generateJumpCandidates,
   resolveDraftCommitPolicy,
-  resolvePersistedVertexTarget,
-  solveVertexMeet,
+  resolvePersistedMeetTarget,
   summarizeEffectiveFacets,
 } from "./domain/meetJump.js";
 import { DEFAULT_OPTICS_SETTINGS, createDocumentOpticsCommand, resolveOpticsSettings } from "./domain/optics.js";
 import { inspectGemCadAsc, serializeGemCadAsc } from "./domain/gemcadAsc.js";
 import { createPresetLibrary, createStaticPresetProvider } from "./domain/presetLibrary.js";
 import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
+import { parseCustomIndices, planeEntry, resolveDraftGeometry, solveDraftConstruction, snapshotMeetTarget } from "./domain/cutConstruction.js";
+import { buildConstructionStages } from "./domain/constructionHistory.js";
+import { ConstructionAssistantDialog } from "./components/ConstructionAssistantDialog.jsx";
 import { downloadFacetReport } from "./report/pdfReport.js";
 
 function normalizeDepthValue(value) {
@@ -79,71 +82,6 @@ function normalizeDepthValue(value) {
 
 function safeFileStem(value, fallback = "facet-96") {
   return value.replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "") || fallback;
-}
-
-function parseCustomIndices(value) {
-  const tokens = value.trim() ? value.trim().split(/[\s,，;；]+/) : [];
-  if (tokens.length === 0) return { indices: [], error: "请输入至少一个 1–96 整数索引。" };
-
-  const values = [];
-  for (const token of tokens) {
-    const number = Number(token);
-    if (!Number.isInteger(number) || number < 1 || number > 96) {
-      return { indices: [], error: `“${token}” 不是 1–96 范围内的整数索引。` };
-    }
-    values.push(normalizeIndex(number));
-  }
-
-  const indices = [...new Set(values)].sort((left, right) => displayIndex(left) - displayIndex(right));
-  return { indices, error: "" };
-}
-
-function planeEntry(facet) {
-  return {
-    ...facet.plane,
-    operationId: facet.patternId,
-    faceId: facet.id,
-    region: facet.region,
-    operationType: facet.metadata?.operationType,
-  };
-}
-
-function resolveDraftGeometry(draft, region, stock) {
-  try {
-    if (draft.patternMode === "symmetric") {
-      return {
-        facets: resolveFacetPattern({
-          patternId: "draft-symmetric",
-          region,
-          baseIndex: draft.baseIndex,
-          repeat: draft.repeat,
-          mirror: draft.mirrorOffset,
-          industryAngleDeg: draft.industryAngle,
-          depth: draft.depth,
-        }, { stock }),
-        error: "",
-      };
-    }
-    const parsed = parseCustomIndices(draft.customIndices);
-    if (parsed.error) return { facets: [], error: parsed.error };
-    return {
-      facets: parsed.indices.map((index, ordinal) => resolveFacet({
-        id: `draft-arbitrary:${displayIndex(index)}`,
-        patternId: "draft-arbitrary",
-        ordinal,
-        region,
-        baseIndex: index,
-        repeat: 1,
-        mirror: 0,
-        index,
-        industryAngleDeg: draft.industryAngle,
-        depth: draft.depth,
-      }, { stock })),
-      error: "",
-    };
-  } catch (error) {
-    return { facets: [], error: error.message };
-  }
 }
 
 function commandPatternId(command) {
@@ -196,6 +134,9 @@ export function App() {
   const [hoveredPatternId, setHoveredPatternId] = useState(null);
   const [hiddenPatternIds, setHiddenPatternIds] = useState(() => new Set());
   const [modal, setModal] = useState(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantStageIndex, setAssistantStageIndex] = useState(0);
+  const [assistantPhase, setAssistantPhase] = useState("after");
   const [pendingFullRemovalCommit, setPendingFullRemovalCommit] = useState(null);
   const [toast, setToast] = useState("");
   const [reportIncludeGirdle, setReportIncludeGirdle] = useState(false);
@@ -358,14 +299,11 @@ export function App() {
 
   const visibleFacets = useMemo(() => groupPreview.facets.filter((facet) => !hiddenPatternIds.has(facet.patternId)), [groupPreview.facets, hiddenPatternIds]);
   const committedSolid = useMemo(() => clipPolyhedronByPlanes(stockSolid, visibleFacets.map(planeEntry)), [stockSolid, visibleFacets]);
-  const constructionBaseFacets = useMemo(
-    () => editingPatternId ? visibleFacets.filter((facet) => facet.patternId !== editingPatternId) : visibleFacets,
-    [editingPatternId, visibleFacets],
-  );
-  const constructionBaseSolid = useMemo(
-    () => clipPolyhedronByPlanes(stockSolid, constructionBaseFacets.map(planeEntry)),
-    [constructionBaseFacets, stockSolid],
-  );
+  const constructionStages = useMemo(() => buildConstructionStages(document, { hiddenPatternIds }), [document, hiddenPatternIds]);
+  const diagnosticsById = useMemo(() => Object.fromEntries(constructionStages.filter((stage) => stage.construction).map((stage) => [stage.id, stage.construction])), [constructionStages]);
+  const constructionBaseSolid = editingPatternId
+    ? constructionStages.find((stage) => stage.id === editingPatternId)?.beforeSolid ?? stockSolid
+    : committedSolid;
   const impactBaseSolid = useMemo(() => {
     const facets = editingPatternId
       ? document.facets.filter((facet) => facet.patternId !== editingPatternId)
@@ -373,11 +311,12 @@ export function App() {
     return clipPolyhedronByPlanes(stockSolid, facets.map(planeEntry));
   }, [document.facets, editingPatternId, stockSolid]);
   const meetTargets = useMemo(() => enumerateTopologyVertices(constructionBaseSolid), [constructionBaseSolid]);
+  const meetEdges = useMemo(() => enumerateTopologyEdges(constructionBaseSolid, { targets: meetTargets }), [constructionBaseSolid, meetTargets]);
   const reportSolid = savedSolid;
   const reportMetrics = useMemo(() => measurePolyhedron(reportSolid), [reportSolid]);
 
-  const constructionBlocksPreview = [MEET_STATUS.UNREACHABLE, MEET_STATUS.STALE]
-    .includes(cutSession.construction.meet?.status);
+  const constructionBlocksPreview = [cutSession.construction.meet, cutSession.construction.candidate]
+    .some((entry) => [MEET_STATUS.UNREACHABLE, MEET_STATUS.STALE].includes(entry?.status));
   const draftImpact = useMemo(() => {
     if (!previewEnabled || constructionBlocksPreview || draft.facets.length === 0) return null;
     return evaluateDraftImpact({
@@ -422,15 +361,8 @@ export function App() {
     };
   }, [document.stock, girdleBoundary, groupBaseHeight, groupDeltaZ, groupEditRegion, groupRotationTeeth, groupSafeRange, groupScale]);
   const constructionMeet = cutSession.construction.meet;
-  const constructionDiagnostic = constructionMeet?.status === MEET_STATUS.UNREACHABLE
-    ? `Meet 目标不可达：所需深度 ${Number(constructionMeet.requiredDepth).toFixed(3)}，请调整角度或索引。`
-    : constructionMeet?.status === MEET_STATUS.STALE
-      ? "Meet 来源已失效；请重新选择顶点或解除 Meet。"
-      : cutSession.construction.candidate?.status === MEET_STATUS.UNREACHABLE
-            ? `Meet 目标不可达：所需深度 ${Number(cutSession.construction.candidate.requiredDepth).toFixed(3)}，请调整角度或索引。`
-            : cutSession.construction.candidate?.status === MEET_STATUS.STALE
-              ? "Meet 候选来源已失效；请重新定位。"
-          : "";
+  const constructionDiagnostic = constructionBlocksPreview
+    ? (cutSession.construction.candidate?.message || constructionMeet?.message || "Meet 来源失效或目标不可达；请调整自由参数或解除约束。") : "";
   const draftCommitPolicy = draftImpact ? resolveDraftCommitPolicy(draftImpact) : "allow";
   const impactValidationMessage = previewWouldEraseStock
     ? "当前深度会移除全部材料，请减小切入深度。"
@@ -445,7 +377,6 @@ export function App() {
   const validationMessage = draft.error || constructionDiagnostic || impactValidationMessage;
   const primaryDraftFacet = useMemo(() => {
     if (!draft.facets.length) return null;
-    if (patternMode !== "symmetric") return draft.facets[0];
     const activeIndex = normalizeIndex(baseIndex);
     return draft.facets.find((facet) => normalizeIndex(facet.index) === activeIndex) ?? null;
   }, [baseIndex, draft.facets, patternMode]);
@@ -472,7 +403,8 @@ export function App() {
         effectiveIndices: effectiveFacets.map((facet) => facet.index),
         effectiveCount: effectiveFacets.length,
         recordedCount: facets.length,
-        baseIndex: first.baseIndex,
+        baseIndex: first.metadata?.primaryIndex ?? first.metadata?.construction?.primaryIndex ?? first.baseIndex,
+        preform: Boolean(first.metadata?.preform),
         repeat: first.repeat,
         mirror: first.mirror,
         patternMode: first.metadata?.patternMode || (first.repeat === 1 && facets.length > 1 ? "arbitrary" : "symmetric"),
@@ -508,7 +440,13 @@ export function App() {
   }, [document.stock, region]);
 
   const jumpCandidates = useMemo(() => {
-    if (!cutSession.canUseMeetJump || cutSession.construction.meet) return [];
+    if (!cutSession.canUseMeetJump || cutSession.construction.meet?.secondTarget) return [];
+    if (cutSession.construction.meet) {
+      if ([MEET_STATUS.STALE, MEET_STATUS.UNREACHABLE].includes(cutSession.construction.meet.status)) return [];
+      const source = resolvePersistedMeetTarget(cutSession.construction.meet.target, constructionBaseSolid);
+      if (source.status !== MEET_STATUS.VALID) return [];
+      return generateDualJumpCandidates({ baseSolid: constructionBaseSolid, targetA: source.target, baseIndex, region, stock: document.stock, targets: meetTargets });
+    }
     const jumpDraft = {
       industryAngle,
       depth: 0,
@@ -529,16 +467,16 @@ export function App() {
   }, [baseIndex, constructionBaseSolid, customIndices, cutSession.canUseMeetJump, cutSession.construction.meet, document.stock, industryAngle, meetTargets, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
 
   const evaluateJumpCandidate = useCallback((candidate) => {
-    const jumpDraft = { industryAngle, baseIndex, repeat: repeatCount, mirrorOffset, patternMode, customIndices, depth: 0 };
+    const jumpDraft = { industryAngle: candidate.industryAngleDeg ?? industryAngle, baseIndex, repeat: repeatCount, mirrorOffset, patternMode, customIndices, depth: 0 };
     const { facet } = primaryFacetForDraft(jumpDraft);
     return classifyJumpCandidate({
       candidate,
-      baseSolid: constructionBaseSolid,
+      baseSolid: impactBaseSolid,
       normal: facet.plane.normal,
       stock: document.stock,
       planesForDepth: (depth) => resolveDraftGeometry({ ...jumpDraft, depth }, region, document.stock).facets.map(planeEntry),
     });
-  }, [baseIndex, constructionBaseSolid, customIndices, document.stock, industryAngle, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
+  }, [baseIndex, impactBaseSolid, customIndices, document.stock, industryAngle, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
 
   const jumpSession = resolveCutSession(sessionState, { jumpCandidates });
 
@@ -546,6 +484,7 @@ export function App() {
     const index = adjacentJumpCandidateIndex({
       candidates: jumpCandidates,
       currentDepth: Number(cutSession.draft.depth),
+      currentAngle: cutSession.construction.meet ? cutSession.draft.industryAngle : undefined,
       currentKey: cutSession.construction.candidate?.key,
     });
     if (index < 0) return null;
@@ -555,103 +494,48 @@ export function App() {
       position: `${index + 1}/${jumpCandidates.length}`,
       sourceLabel: sourceLabelForTarget(candidate.target),
     };
-  }, [cutSession.construction.candidate?.key, cutSession.draft.depth, evaluateJumpCandidate, jumpCandidates, sourceLabelForTarget]);
+  }, [cutSession.construction.candidate?.key, cutSession.construction.meet, cutSession.draft.depth, cutSession.draft.industryAngle, evaluateJumpCandidate, jumpCandidates, sourceLabelForTarget]);
 
   const candidateFromTarget = useCallback((target, source = "manual") => {
-    const { facet } = primaryFacetForDraft(cutSession.draft);
-    if (!facet) return null;
-    const solved = solveVertexMeet({ normal: facet.plane.normal, target, stock: document.stock });
-    if (solved.status === MEET_STATUS.UNREACHABLE) {
-      return {
-        source,
-        key: target.topologyKey,
-        target,
-        depth: solved.requiredDepth,
-        requiredDepth: solved.requiredDepth,
-        residual: solved.residual,
-        status: MEET_STATUS.UNREACHABLE,
-        classification: "contact-only",
-        threats: [],
-        sourceLabel: sourceLabelForTarget(target),
-      };
-    }
-    const solvedDraft = { ...cutSession.draft, depth: solved.depth };
-    const resolved = resolveDraftGeometry(solvedDraft, region, document.stock);
-    const impact = evaluateDraftImpact({ baseSolid: constructionBaseSolid, planes: resolved.facets.map(planeEntry) });
+    const meet = cutSession.construction.meet
+      ? { ...cutSession.construction.meet, secondTarget: target }
+      : { target };
+    const result = solveDraftConstruction({ draft: cutSession.draft, region, stock: document.stock, meet, baseSolid: constructionBaseSolid });
+    const valid = result.meet.status === MEET_STATUS.VALID;
+    const resolved = valid ? resolveDraftGeometry(result.draft, region, document.stock) : null;
+    const impact = resolved ? evaluateDraftImpact({ baseSolid: impactBaseSolid, planes: resolved.facets.map(planeEntry) }) : null;
     return {
-      source,
-      key: target.topologyKey,
-      target,
-      depth: solved.depth,
-      requiredDepth: solved.requiredDepth,
-      residual: solved.residual,
-      status: impact.status,
-      classification: impact.classification,
-      threats: impact.threats,
+      source, key: target.topologyKey, target,
+      depth: valid ? result.draft.depth : null,
+      industryAngleDeg: cutSession.construction.meet && valid ? result.draft.industryAngle : undefined,
+      requiredDepth: result.meet.requiredDepth, residual: result.meet.residual,
+      status: valid ? impact.status : result.meet.status,
+      message: result.meet.message, reason: result.meet.reason,
+      classification: impact?.classification ?? "contact-only", threats: impact?.threats ?? [],
       sourceLabel: sourceLabelForTarget(target),
     };
-  }, [constructionBaseSolid, cutSession.draft, document.stock, primaryFacetForDraft, region, sourceLabelForTarget]);
+  }, [constructionBaseSolid, impactBaseSolid, cutSession.construction.meet, cutSession.draft, document.stock, region, sourceLabelForTarget]);
 
   const changeDraftWithConstruction = useCallback((patch) => {
-    const nextDraft = { ...cutSession.draft, ...patch };
+    if (Object.keys(patch).every((key) => key === "preform")) {
+      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch });
+      return;
+    }
     const lockedMeet = cutSession.construction.meet;
+    const nextDraft = { ...(cutSession.construction.returnDraft ?? cutSession.draft), ...patch };
+    if (lockedMeet && nextDraft.patternMode === "arbitrary" && !parseCustomIndices(nextDraft.customIndices).indices.includes(normalizeIndex(nextDraft.baseIndex))) {
+      notify("主切面必须保留在自定义索引集合中；请先解除 Meet 或保留该索引。");
+      return;
+    }
     if (!lockedMeet) {
       dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch });
       return;
     }
-
-    const resolvedTarget = resolvePersistedVertexTarget(lockedMeet.target, constructionBaseSolid);
-    if (resolvedTarget.status !== MEET_STATUS.VALID) {
-      dispatchCutSession({
-        type: CUT_SESSION_EVENT.CHANGE_DRAFT,
-        patch,
-        constructionResult: {
-          meet: { ...lockedMeet, status: MEET_STATUS.STALE, message: "Meet 来源拓扑或几何已变化。" },
-        },
-      });
-      return;
-    }
-
-    const { facet } = primaryFacetForDraft(nextDraft);
-    if (!facet) {
-      dispatchCutSession({
-        type: CUT_SESSION_EVENT.CHANGE_DRAFT,
-        patch,
-        constructionResult: { meet: { ...lockedMeet, status: MEET_STATUS.STALE, message: "当前参数无法确定 baseIndex 主切面。" } },
-      });
-      return;
-    }
-    const solved = solveVertexMeet({ normal: facet.plane.normal, target: resolvedTarget.target, stock: document.stock });
-    if (solved.status === MEET_STATUS.UNREACHABLE) {
-      dispatchCutSession({
-        type: CUT_SESSION_EVENT.CHANGE_DRAFT,
-        patch,
-        constructionResult: {
-          meet: { ...lockedMeet, status: MEET_STATUS.UNREACHABLE, requiredDepth: solved.requiredDepth, residual: solved.residual, message: "目标位于当前主切面的可达范围之外。" },
-        },
-      });
-      return;
-    }
-
-    const solvedDraft = { ...nextDraft, depth: solved.depth };
-    const resolved = resolveDraftGeometry(solvedDraft, region, document.stock);
-    const impact = evaluateDraftImpact({ baseSolid: constructionBaseSolid, planes: resolved.facets.map(planeEntry) });
-    dispatchCutSession({
-      type: CUT_SESSION_EVENT.CHANGE_DRAFT,
-      patch: { ...patch, depth: solved.depth },
-      constructionResult: {
-        meet: {
-          ...lockedMeet,
-          target: resolvedTarget.target,
-          status: impact.destructive ? MEET_STATUS.DESTRUCTIVE : MEET_STATUS.VALID,
-          requiredDepth: solved.requiredDepth,
-          residual: solved.residual,
-          threats: impact.threats,
-          message: impact.destructive ? "该解会覆盖已提交切面；保存时将按影响程度提示或确认。" : "",
-        },
-      },
-    });
-  }, [constructionBaseSolid, cutSession.construction.meet, cutSession.draft, document.stock, primaryFacetForDraft, region]);
+    if (!cutSession.depthEditable) nextDraft.depth = (cutSession.construction.returnDraft ?? cutSession.draft).depth;
+    if (!cutSession.angleEditable) nextDraft.industryAngle = (cutSession.construction.returnDraft ?? cutSession.draft).industryAngle;
+    const result = solveDraftConstruction({ draft: nextDraft, region, stock: document.stock, meet: lockedMeet, baseSolid: constructionBaseSolid });
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: result.draft, constructionResult: { meet: result.meet, returnDraft: null, tool: "none" } });
+  }, [constructionBaseSolid, cutSession, document.stock, notify, region]);
   const previewPlanes = cutSession.showCutPlane
     && !constructionBlocksPreview
     && !(editingPatternId && hiddenPatternIds.has(editingPatternId))
@@ -770,22 +654,18 @@ export function App() {
       integerIndexOnly: true,
       patternMode,
     };
-    if ([MEET_STATUS.VALID, MEET_STATUS.DESTRUCTIVE].includes(cutSession.construction.meet?.status)) {
-      const target = cutSession.construction.meet.target;
+    metadata.primaryIndex = normalizeIndex(baseIndex);
+    if (cutSession.canMarkPreform) metadata.preform = Boolean(cutSession.draft.preform);
+    else delete metadata.preform;
+    const lockedMeet = cutSession.construction.meet;
+    if (lockedMeet && [MEET_STATUS.VALID, MEET_STATUS.DESTRUCTIVE].includes(lockedMeet.status)) {
       metadata.construction = {
-        type: "vertex-meet",
-        solverVersion: 1,
-        target: {
-          topologyKey: target.topologyKey,
-          sourceFaceIds: [...target.sourceFaceIds],
-          sourceOperationIds: [...target.sourceOperationIds],
-          sourceGeometrySignature: target.sourceGeometrySignature,
-          fallbackWorldPoint: [...target.fallbackWorldPoint],
-        },
+        type: lockedMeet.secondTarget ? "dual-meet" : lockedMeet.target.kind === "edge-point" ? "edge-meet" : "vertex-meet",
+        solverVersion: 2, primaryIndex: normalizeIndex(baseIndex),
+        target: snapshotMeetTarget(lockedMeet.target),
+        ...(lockedMeet.secondTarget ? { secondTarget: snapshotMeetTarget(lockedMeet.secondTarget) } : {}),
       };
-    } else {
-      delete metadata.construction;
-    }
+    } else delete metadata.construction;
 
     try {
       const facets = draft.facets.map((facet) => ({
@@ -830,20 +710,20 @@ export function App() {
   }, [cutMode, cutSession.canCancel, cutSession.dirty, notify]);
 
   useEffect(() => {
-    if (!cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen) return undefined;
+    if (!cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
     const handleEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       if (cutSession.canCancelConstructionTool) {
         dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
-        notify("已退出顶点选择；当前 Meet 保持不变。");
+        notify("已退出当前构造步骤；已锁约束保持不变。");
       } else {
         cancelCutSession();
       }
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [ascTransfer, cancelCutSession, cutSession.canCancel, cutSession.canCancelConstructionTool, ledgerOpen, modal, notify, opticsActive, presetLibraryOpen, recoveryOpen]);
+  }, [ascTransfer, cancelCutSession, cutSession.canCancel, cutSession.canCancelConstructionTool, ledgerOpen, modal, notify, opticsActive, presetLibraryOpen, recoveryOpen, assistantOpen]);
 
   useEffect(() => {
     if (!opticsActive || modal || ascTransfer || presetLibraryOpen) return undefined;
@@ -876,28 +756,16 @@ export function App() {
     const first = operation.facets[0];
     const persisted = first.metadata?.construction;
     let construction = null;
-    if (persisted?.type === "vertex-meet") {
-      const baseFacets = visibleFacets.filter((facet) => facet.patternId !== id);
-      const baseSolid = clipPolyhedronByPlanes(stockSolid, baseFacets.map(planeEntry));
-      const targetResolution = resolvePersistedVertexTarget(persisted.target, baseSolid);
-      const primary = operation.facets.find((facet) => normalizeIndex(facet.index) === normalizeIndex(first.baseIndex));
-      const solved = targetResolution.target && primary
-        ? solveVertexMeet({ normal: primary.plane.normal, target: targetResolution.target, stock: document.stock })
-        : null;
-      const residual = solved ? operation.depth - solved.requiredDepth : Infinity;
-      const status = targetResolution.status === MEET_STATUS.VALID && solved?.status === MEET_STATUS.VALID && Math.abs(residual) <= 1e-7
-        ? MEET_STATUS.VALID
-        : MEET_STATUS.STALE;
-      construction = {
-        meet: {
-          target: targetResolution.target ?? persisted.target,
-          status,
-          requiredDepth: solved?.requiredDepth ?? operation.depth,
-          residual,
-          threats: [],
-          message: status === MEET_STATUS.STALE ? "Meet 来源或显式切面已发生变化。" : "",
-        },
-      };
+    if (persisted) {
+      const diagnostic = diagnosticsById[id];
+      construction = { meet: {
+        target: persisted.target, ...(persisted.secondTarget ? { secondTarget: persisted.secondTarget } : {}),
+        status: diagnostic?.status ?? MEET_STATUS.STALE,
+        requiredDepth: operation.depth, residual: 0, threats: [],
+        sourceLabel: sourceLabelForTarget(persisted.target),
+        secondSourceLabel: persisted.secondTarget ? sourceLabelForTarget(persisted.secondTarget) : "",
+        message: diagnostic?.message ?? "Meet 来源已失效。",
+      } };
     }
     dispatchCutSession({
       type: CUT_SESSION_EVENT.SELECT_LAYER,
@@ -906,7 +774,8 @@ export function App() {
       draft: {
         industryAngle: first.industryAngleDeg,
         depth: first.depth,
-        baseIndex: first.baseIndex ?? first.index,
+        baseIndex: operation.baseIndex ?? first.index,
+        preform: operation.preform,
         repeat: first.repeat || operation.indices.length,
         mirrorOffset: first.mirror || 0,
         patternMode: operation.patternMode,
@@ -1044,6 +913,7 @@ export function App() {
     const nextIndex = adjacentJumpCandidateIndex({
       candidates: jumpCandidates,
       currentDepth: Number(cutSession.draft.depth),
+      currentAngle: cutSession.construction.meet ? cutSession.draft.industryAngle : undefined,
       currentKey: cutSession.construction.candidate?.key,
       direction,
     });
@@ -1062,40 +932,57 @@ export function App() {
   }, [cutSession.canUseMeetJump, cutSession.construction.candidate?.key, cutSession.construction.meet, cutSession.draft.depth, evaluateJumpCandidate, jumpCandidates, jumpSession.canJumpPrevious, jumpSession.canJumpNext, nextJumpCandidate, notify, sourceLabelForTarget]);
 
   const handleVertexPick = useCallback((target) => {
-    if (!cutSession.canCancelConstructionTool) return;
-    const candidate = candidateFromTarget(target, "manual");
-    if (!candidate) return;
-    dispatchCutSession({ type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate });
-  }, [candidateFromTarget, cutSession.canCancelConstructionTool]);
-
+    if (!["pick-vertex", "pick-edge"].includes(cutSession.construction.tool)) return;
+    const edge = target.kind === "edge" ? target : null;
+    const selected = edge ? createEdgeMeetTarget(edge, 0.5) : target;
+    const candidate = candidateFromTarget(selected);
+    if (candidate) dispatchCutSession({ type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate: { ...candidate, ...(edge ? { edge, ratio: 0.5 } : {}) } });
+  }, [candidateFromTarget, cutSession.construction.tool]);
+  const changeEdgeRatio = (ratio) => {
+    const edge = cutSession.construction.candidate?.edge;
+    if (!cutSession.canEditEdgeRatio || !edge || !Number.isFinite(ratio) || ratio < 0 || ratio > 1) return;
+    const candidate = candidateFromTarget(createEdgeMeetTarget(edge, ratio));
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_EDGE_RATIO, candidate: { ...candidate, edge, ratio } });
+  };
+  const startMeetPick = useCallback(({ kind = "vertex" } = {}) => dispatchCutSession({ type: CUT_SESSION_EVENT.START_MEET_PICK, tool: kind === "edge" ? "pick-edge" : "pick-vertex" }), []);
   const lockMeet = useCallback(() => {
     const candidate = cutSession.construction.candidate;
     if (!candidate || !cutSession.canLockMeet) return;
-    dispatchCutSession({
-      type: CUT_SESSION_EVENT.LOCK_MEET,
-      meet: {
-        target: candidate.target,
-        status: candidate.classification === "destructive" ? MEET_STATUS.DESTRUCTIVE : candidate.status,
-        requiredDepth: candidate.requiredDepth ?? candidate.depth,
-        residual: candidate.residual ?? 0,
-        threats: candidate.threats ?? [],
-        message: candidate.classification === "destructive" ? "该解会覆盖已提交切面；保存时将按影响程度提示或确认。" : "",
-      },
-    });
-  }, [cutSession.canLockMeet, cutSession.construction.candidate]);
-
+    const prior = cutSession.construction.meet;
+    dispatchCutSession({ type: CUT_SESSION_EVENT.LOCK_MEET, meet: {
+      ...(prior ? { ...prior, secondTarget: candidate.target, secondSourceLabel: candidate.sourceLabel } : { target: candidate.target, sourceLabel: candidate.sourceLabel }),
+      status: candidate.classification === "destructive" ? MEET_STATUS.DESTRUCTIVE : candidate.status,
+      requiredDepth: candidate.requiredDepth ?? candidate.depth, residual: candidate.residual ?? 0,
+      threats: candidate.threats ?? [], message: candidate.message ?? "",
+    } });
+  }, [cutSession.canLockMeet, cutSession.construction]);
+  const clearMeet = (slot = "all") => {
+    const current = cutSession.construction.meet;
+    const remaining = slot === "A" ? current?.secondTarget : slot === "B" ? current?.target : null;
+    const draftState = cutSession.construction.returnDraft ?? cutSession.draft;
+    const result = remaining ? solveDraftConstruction({ draft: draftState, region, stock: document.stock, meet: { target: remaining }, baseSolid: constructionBaseSolid }) : null;
+    dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET, slot, ...(result ? { meet: { ...result.meet, sourceLabel: sourceLabelForTarget(remaining) }, patch: result.draft } : {}) });
+  };
   useEffect(() => {
-    if (!cutSession.canUseMeetJump || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen) return undefined;
+    if (!cutSession.canUseMeetJump || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
     const handleJumpKey = (event) => {
-      if (event.key.toLowerCase() !== "j" || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (!["j", "m", "b", "v"].includes(key)) return;
       const target = event.target;
       if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
       event.preventDefault();
-      handleJump(event.shiftKey ? -1 : 1);
+      if (key === "j") handleJump(event.shiftKey ? -1 : 1);
+      else if (key === "m" && !cutSession.construction.meet) lockMeet();
+      else if (key === "b" && cutSession.canLockSecondMeet) lockMeet();
+      else if (key === "v") {
+        if (["pick-vertex", "pick-edge"].includes(cutSession.construction.tool)) dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+        else startMeetPick();
+      }
     };
     window.addEventListener("keydown", handleJumpKey);
     return () => window.removeEventListener("keydown", handleJumpKey);
-  }, [ascTransfer, cutSession.canUseMeetJump, handleJump, ledgerOpen, modal, opticsActive, presetLibraryOpen, recoveryOpen]);
+  }, [ascTransfer, cutSession, handleJump, ledgerOpen, lockMeet, modal, opticsActive, presetLibraryOpen, recoveryOpen, assistantOpen, startMeetPick]);
 
   const handleDepthDrag = (rawDepth) => {
     if (!cutSession.depthEditable) return;
@@ -1103,7 +990,7 @@ export function App() {
   };
 
   const handleAngleDrag = (rawAngle) => {
-    if (region === "girdle" || editingOperation?.locked) return;
+    if (!cutSession.angleEditable) return;
     changeDraftWithConstruction({ industryAngle: Math.min(90, Math.max(0, rawAngle)) });
   };
 
@@ -1121,7 +1008,7 @@ export function App() {
       baseIndex: primaryIndex,
       region,
       industryAngle,
-      angleLocked: region === "girdle" || Boolean(editingOperation?.locked),
+      angleLocked: !cutSession.angleEditable,
       depthLocked: !cutSession.depthEditable,
       arcRadius: indexRadius,
       bearingCenter: [0, 0, 0],
@@ -1137,7 +1024,7 @@ export function App() {
         locked: Boolean(editingOperation?.locked),
       } : null,
     };
-  }, [cutSession.depthEditable, depth, document.stock.size, editingOperation?.locked, industryAngle, mirrorOffset, patternMode, primaryDraftFacet, region, repeatCount]);
+  }, [cutSession.angleEditable, cutSession.depthEditable, depth, document.stock.size, editingOperation?.locked, industryAngle, mirrorOffset, patternMode, primaryDraftFacet, region, repeatCount]);
 
   const depthControlMax = Math.max(document.stock.size * 1.5, depth * 1.25, 1);
 
@@ -1327,7 +1214,7 @@ export function App() {
                   if (cutSession.depthEditable) changeDraftWithConstruction({ depth: normalizeDepthValue(value) });
                 }}
                 depthMax={depthControlMax}
-                angleLocked={Boolean(editingOperation?.locked)}
+                angleLocked={!cutSession.angleEditable}
                 depthEditable={cutSession.depthEditable}
                 construction={cutSession.construction}
                 nextJumpCandidate={nextJumpCandidate}
@@ -1338,10 +1225,19 @@ export function App() {
                 canLockMeet={cutSession.canLockMeet}
                 canCancelConstructionTool={cutSession.canCancelConstructionTool}
                 onJump={handleJump}
-                onStartMeetPick={() => dispatchCutSession({ type: CUT_SESSION_EVENT.START_MEET_PICK })}
+                onStartMeetPick={startMeetPick}
                 onCancelConstructionTool={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL })}
                 onLockMeet={lockMeet}
-                onClearMeet={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET })}
+                onClearMeet={() => clearMeet("all")}
+                canLockSecondMeet={cutSession.canLockSecondMeet}
+                canRemoveMeetA={cutSession.canClearMeetA}
+                canRemoveMeetB={cutSession.canClearMeetB}
+                canClearMeet={cutSession.canClearMeetA}
+                canEditEdgeRatio={cutSession.canEditEdgeRatio}
+                onLockSecondMeet={lockMeet}
+                onRemoveMeet={clearMeet}
+                onEdgeRatioChange={changeEdgeRatio}
+                onFinishEdgeEdit={() => dispatchCutSession({ type: CUT_SESSION_EVENT.FINISH_EDGE_EDIT })}
               />
               <CutComposer
                 patternMode={patternMode}
@@ -1371,7 +1267,11 @@ export function App() {
                 controlsEnabled={cutSession.controlsEnabled}
                 previewEnabled={previewEnabled}
                 lockedPattern={Boolean(editingOperation?.locked)}
-                patternModeLocked={Boolean(cutSession.construction.meet)}
+                primaryIndices={parseCustomIndices(customIndices).indices}
+                primaryIndexEditable={cutSession.controlsEnabled && !editingOperation?.locked}
+                preform={Boolean(cutSession.draft.preform)}
+                canEditPreform={cutSession.canMarkPreform}
+                onPreformChange={(preform) => changeDraftWithConstruction({ preform })}
                 validationMessage={composerValidationMessage}
                 warningMessage={cutSession.active ? impactWarningMessage : ""}
                 status={composerStatus}
@@ -1423,6 +1323,7 @@ export function App() {
             onOpenLedger={() => setLedgerOpen(true)}
             onOpenSettings={() => setModal("settings")}
             onOpenHelp={() => setModal("help")}
+            onOpenAssistant={() => setAssistantOpen(true)}
             viewMode={opticsActive ? opticsViewMode : viewMode}
             onViewMode={opticsActive ? setOpticsViewMode : setViewMode}
             displayMode={renderMode}
@@ -1442,6 +1343,15 @@ export function App() {
             }}
           />
 
+          {assistantOpen ? <ConstructionAssistantDialog
+            stages={constructionStages.map((stage) => ({ ...stage, label: operations.find((operation) => operation.id === stage.id)?.label ?? stage.id }))}
+            currentStageIndex={Math.min(assistantStageIndex, Math.max(0, constructionStages.length - 1))}
+            onStageChange={setAssistantStageIndex}
+            phase={assistantPhase}
+            onPhaseChange={setAssistantPhase}
+            onClose={() => setAssistantOpen(false)}
+            renderStage={(stage, phase) => <GemViewport polyhedron={phase === "before" ? stage.beforeSolid : stage.afterSolid} viewMode="perspective" renderMode="solid" pickingEnabled={false} />}
+          /> : null}
           {!opticsActive ? <CutStack
             operations={operations}
             selectedId={editingPatternId}
@@ -1462,6 +1372,8 @@ export function App() {
             onInlineEdit={inlineEdit}
             onInlineCommit={applyDraft}
             depthEditable={cutSession.depthEditable}
+            angleEditable={cutSession.angleEditable}
+            diagnosticsById={diagnosticsById}
             activeRegion={region}
             onRegionChange={changeRegion}
             groupEditRegion={groupEditRegion}
@@ -1493,6 +1405,12 @@ export function App() {
             onToggle={() => setCutStackOpen((value) => !value)}
           /> : null}
 
+          {!cutSession.active && !opticsActive && constructionStages.some((stage) => stage.construction?.status === "stale") ? (
+            <button type="button" className="construction-stale-notice" onClick={() => {
+              setAssistantStageIndex(constructionStages.findIndex((stage) => stage.construction?.status === "stale"));
+              setAssistantOpen(true);
+            }}>Meet 来源失效 · {constructionStages.filter((stage) => stage.construction?.status === "stale").length} 层 · 检查施工顺序</button>
+          ) : null}
           <GemViewport
             polyhedron={displaySolid}
             meetPolyhedron={constructionBaseSolid}
@@ -1501,7 +1419,7 @@ export function App() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             renderMode={renderMode}
-            suspended={opticsActive}
+            suspended={opticsActive || assistantOpen}
             resetSignal={resetSignal}
             highlightOperationId={hoveredPatternId}
             activeOperationId={cutSession.activePatternId}
@@ -1510,13 +1428,13 @@ export function App() {
             cutGizmo={cutSession.showGizmo && !constructionBlocksPreview ? cutGizmo : null}
             groupGizmo={groupGizmo}
             onFacePick={handleFacePick}
-            meetTargets={meetTargets}
-            meetPickEnabled={cutSession.canCancelConstructionTool && !opticsActive}
-            constructionMarker={cutSession.construction.meet
-              ? { point: cutSession.construction.meet.target?.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true }
-              : cutSession.construction.candidate
-                ? { point: cutSession.construction.candidate.target?.fallbackWorldPoint, status: cutSession.construction.candidate.status, locked: false, position: cutSession.construction.candidate.position }
-                : null}
+            meetTargets={cutSession.construction.tool === "pick-edge" ? meetEdges : meetTargets}
+            meetPickEnabled={["pick-vertex", "pick-edge"].includes(cutSession.construction.tool) && !opticsActive && !assistantOpen}
+            constructionMarkers={[
+              ...(cutSession.construction.meet ? [{ point: cutSession.construction.meet.target.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true, slot: "A" }] : []),
+              ...(cutSession.construction.meet?.secondTarget ? [{ point: cutSession.construction.meet.secondTarget.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true, slot: "B" }] : []),
+              ...(cutSession.construction.candidate ? [{ point: cutSession.construction.candidate.target.fallbackWorldPoint, status: cutSession.construction.candidate.status, locked: false, slot: cutSession.construction.meet ? "B" : "A" }] : []),
+            ]}
             nextJumpMarker={nextJumpCandidate
               ? { point: nextJumpCandidate.target?.fallbackWorldPoint, position: nextJumpCandidate.position }
               : null}

@@ -310,3 +310,17 @@ test("ASC document replacement is one undoable command and remains JSON-compatib
   assert.deepEqual(undoFacetingCommand(history).present, initial);
   assert.deepEqual(importFacetingJSON(exportFacetingJSON(imported)), imported);
 });
+
+test("ASC preflight warns about edge and dual intent and preform labels while preserving explicit planes", async () => {
+  const { enumerateTopologyEdges, createEdgeMeetTarget } = await import("./meetJump.js");
+  const edge = enumerateTopologyEdges(createCenteredCube(2, { sourceOperationId: "rough-cube" }))[0];
+  for (const type of ["edge-meet", "dual-meet"]) {
+    const construction = { type, solverVersion: 2, primaryIndex: 6, target: createEdgeMeetTarget(edge, 0.5),
+      ...(type === "dual-meet" ? { secondTarget: edge.endpoints[0] } : {}) };
+    const facets = resolveFacetPattern({ patternId: "meet", region: "crown", baseIndex: 6, repeat: 4, industryAngleDeg: 32, depth: 0.42,
+      metadata: { patternMode: "symmetric", construction, preform: true } });
+    const result = serializeGemCadAsc(createFacetingDocument({ facets }));
+    assert.ok(result.diagnostics.some((item) => item.code === "MEET_CONSTRUCTION_OMITTED"));
+    assert.ok(result.diagnostics.some((item) => item.code === "PREFORM_PURPOSE_OMITTED"));
+  }
+});

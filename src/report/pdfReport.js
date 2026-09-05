@@ -1,6 +1,6 @@
 import { displayIndex, FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../domain/faceting.js";
-import { clipPolyhedronByPlanes, createCenteredCube } from "../domain/geometry.js";
-import { MEET_STATUS, resolvePersistedVertexTarget, solveVertexMeet, summarizeEffectiveFacets } from "../domain/meetJump.js";
+import { MEET_STATUS, summarizeEffectiveFacets } from "../domain/meetJump.js";
+import { buildConstructionStages } from "../domain/constructionHistory.js";
 import { downloadBlob } from "../utils/download.js";
 
 const A4 = { width: 595.28, height: 841.89 };
@@ -60,55 +60,30 @@ function effectiveFacets(facets, solid) {
   return facets.filter((facet) => survivingFacetIds.has(facet.id));
 }
 
-function planeEntry(facet) {
-  return {
-    ...facet.plane,
-    operationId: facet.patternId,
-    faceId: facet.id,
-    region: facet.region,
-    operationType: facet.metadata?.operationType,
-  };
-}
-
 function attachConstructionSummaries(groups, document, hiddenPatternIds = []) {
-  const labelById = new Map(groups.map((group) => [group.id, group.label.split(/\s+/)[0]]));
-  const hidden = new Set(hiddenPatternIds);
-  const stockSolid = createCenteredCube(document.stock.size, {
-    center: document.stock.center,
-    sourceOperationId: "rough-cube",
-    region: "rough",
-  });
+  const stages = buildConstructionStages(document, { hiddenPatternIds });
+  const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+  const labelById = new Map(stages.map((stage) => [stage.id, (stage.facets[0].label || stage.id).split(/\s+/)[0]]));
+  const describeTarget = (target) => {
+    const sources = target.sourceOperationIds.filter((id) => id !== "rough-cube")
+      .map((id) => labelById.get(id) ?? id).join(" × ") || "毛坯";
+    const kind = target.kind === "edge-point" ? `棱点 ${(target.ratio * 100).toFixed(2)}%` : "顶点";
+    return `${kind} · 来源 ${sources}`;
+  };
   return groups.map((group) => {
-    const metadata = group.facets[0]?.metadata?.construction;
-    if (metadata?.type !== "vertex-meet") return group;
-    const baseFacets = document.facets.filter((facet) => (
-      facet.patternId !== group.id && !hidden.has(facet.patternId)
-    ));
-    const baseSolid = clipPolyhedronByPlanes(stockSolid, baseFacets.map(planeEntry));
-    const targetResolution = resolvePersistedVertexTarget(metadata.target, baseSolid);
-    const primary = group.facets.find((facet) => facet.index === facet.baseIndex);
-    const solved = targetResolution.target && primary
-      ? solveVertexMeet({ normal: primary.plane.normal, target: targetResolution.target, stock: document.stock })
-      : null;
-    const sourceHidden = metadata.target.sourceOperationIds.some((id) => hidden.has(id));
-    const status = !sourceHidden && targetResolution.status === MEET_STATUS.VALID
-      && solved?.status === MEET_STATUS.VALID
-      && Math.abs(primary.depth - solved.requiredDepth) <= 1e-7
-      ? MEET_STATUS.VALID
-      : MEET_STATUS.STALE;
-    const sourceOperationIds = targetResolution.target?.sourceOperationIds
-      ?? metadata.target.sourceOperationIds;
-    const sources = sourceOperationIds
-      .filter((id) => id !== "rough-cube")
-      .map((id) => labelById.get(id) ?? id)
-      .join(" × ") || "毛坯";
+    const stage = stageById.get(group.id);
+    const metadata = stage.facets[0]?.metadata?.construction;
+    const preform = stage.preform;
+    if (!metadata) return preform ? { ...group, preform, construction: { status: "valid", text: "预形工序" } } : group;
+    const diagnosis = stage.construction;
+    const intent = metadata.type === "dual-meet"
+      ? `双 Meet · A ${describeTarget(metadata.target)}；B ${describeTarget(metadata.secondTarget)}`
+      : `Meet · ${describeTarget(metadata.target)}`;
     return {
-      ...group,
+      ...group, preform,
       construction: {
-        status,
-        text: status === MEET_STATUS.VALID
-          ? `Meet · 顶点 · 来源 ${sources}`
-          : "来源已失效，当前切面以显式参数为准",
+        ...diagnosis,
+        text: `${preform ? "预形 · " : ""}${intent}${diagnosis.status === MEET_STATUS.VALID ? "" : `；来源已失效：${diagnosis.message}，当前切面以显式参数为准`}`,
       },
     };
   });
@@ -168,12 +143,21 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
   };
 }
 
+function constructionLines(group) {
+  if (!group.construction) return [];
+  const characters = Array.from(group.construction.text);
+  const lines = [];
+  for (let index = 0; index < characters.length; index += 65) lines.push(characters.slice(index, index + 65).join(""));
+  return lines;
+}
+
 export function buildFacetReportPages(model) {
   const pages = [{ kind: "cover", pageNumber: 1 }];
   model.regions.forEach((region) => {
     region.groups.forEach((group) => {
       const chunks = [];
-      for (let index = 0; index < group.rows.length; index += 18) chunks.push(group.rows.slice(index, index + 18));
+      const rowsPerPage = Math.max(1, Math.min(18, Math.floor((416 - constructionLines(group).length * 10) / 22.5)));
+      for (let index = 0; index < group.rows.length; index += rowsPerPage) chunks.push(group.rows.slice(index, index + rowsPerPage));
       chunks.forEach((rows, index) => pages.push({
         kind: "group", region, group, rows, part: index + 1, parts: chunks.length, pageNumber: pages.length + 1,
       }));
@@ -552,15 +536,8 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
   drawSpecRow(page, panelX + 12, top + 70, panelWidth - 24, "重复 / 镜像", `${group.repeat} / ${group.mirror ? `+${group.mirror}` : "AXIS"}`, assets);
   drawSpecRow(page, panelX + 12, top + 89, panelWidth - 24, "行业角范围", angleRange, assets);
   drawSpecRow(page, panelX + 12, top + 108, panelWidth - 24, "深度范围", depthRange, assets);
-  if (group.construction) {
-    drawTextTop(page, group.construction.text, panelX + 12, top + 127, {
-      font: group.construction.status === MEET_STATUS.VALID ? bold : font,
-      size: 5.8,
-      color: rgbOf(rgb, group.construction.status === MEET_STATUS.VALID ? COLOR.accent : COLOR.muted),
-    });
-  }
   const indices = group.facets.map((facet) => String(displayIndex(facet.index)).padStart(2, "0")).join("-");
-  const indexTop = group.construction ? top + 147 : top + 134;
+  const indexTop = top + 134;
   drawTextTop(page, "INDEX", panelX + 12, indexTop, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, indices.length > 64 ? `${indices.slice(0, 61)}...` : indices, panelX + 50, indexTop - 1, { font: latin, size: 5.4, color: rgbOf(rgb, COLOR.ink) });
 }
@@ -579,7 +556,11 @@ function drawGroupPage(page, model, descriptor, assets) {
     { x: 249, label: "几何 β" }, { x: 310, label: "深度" }, { x: 365, label: "方位角" },
     { x: 435, label: "裁切平面 normal / offset" },
   ];
-  const tableTop = 320;
+  const intentLines = constructionLines(group);
+  intentLines.forEach((line, index) => drawTextTop(page, line, MARGIN, 310 + index * 10, {
+    font, size: 7, color: rgbOf(rgb, group.construction.status === MEET_STATUS.VALID ? COLOR.accent : COLOR.muted),
+  }));
+  const tableTop = 320 + intentLines.length * 10;
   drawRectTop(page, MARGIN, tableTop, 519, 24, { color: rgbOf(rgb, COLOR.ink) });
   columns.forEach((column) => drawTextTop(page, column.label, column.x + 5, tableTop + 8, { font: bold, size: column.x === 435 ? 5.6 : 6.2, color: rgbOf(rgb, COLOR.white) }));
   const rowHeight = 22.5;
@@ -620,8 +601,7 @@ export async function createFacetReportPdfBytes(input, resources) {
 
 export async function createFacetReportPdf(input) {
   const [regularBytes, boldBytes, logoBytes] = await Promise.all([
-    fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-Light.ttf`),
-    fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-SemiBold.ttf`),
+    fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-Light.ttf`), fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-SemiBold.ttf`),
     fetchBytes(`${import.meta.env.BASE_URL}brand/logo-report.png`).catch(() => null),
   ]);
   const bytes = await createFacetReportPdfBytes(input, { regularBytes, boldBytes, logoBytes });

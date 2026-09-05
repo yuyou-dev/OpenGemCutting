@@ -620,8 +620,11 @@ export function serializeGemCadAsc(document) {
   if (flattened) {
     diagnostics.push(diagnostic("warning", "PARAMETRIC_RELATIONSHIP_FLATTENED", "重复与镜像关系会展开为显式索引；刻面几何保持，但该参数关系无法从 ASC 恢复。"));
   }
-  if (document.facets.some((facet) => facet.metadata?.construction?.type === "vertex-meet")) {
-    diagnostics.push(diagnostic("warning", "MEET_CONSTRUCTION_OMITTED", "ASC 只保留显式切面；Meet 顶点来源与构造意图不会写入，请保留 JSON 主文件。"));
+  if (document.facets.some((facet) => facet.metadata?.construction)) {
+    diagnostics.push(diagnostic("warning", "MEET_CONSTRUCTION_OMITTED", "ASC 只保留显式切面；Meet 顶点／棱点来源、比例与双点构造意图不会写入，请保留 JSON 主文件。"));
+  }
+  if (document.facets.some((facet) => facet.metadata?.preform)) {
+    diagnostics.push(diagnostic("warning", "PREFORM_PURPOSE_OMITTED", "ASC 只保留最终有效切面；预形工序用途标记不会写入，请保留 JSON 主文件。"));
   }
   if (omittedFacetCount > 0) {
     diagnostics.push(diagnostic(

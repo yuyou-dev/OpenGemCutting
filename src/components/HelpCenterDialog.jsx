@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useDialogFocus } from "./useDialogFocus.js";
 import {
   IconBook2,
   IconChevronRight,
@@ -12,87 +13,75 @@ import {
 
 const HELP_SECTIONS = [
   {
-    id: "start",
-    label: "快速开始",
-    eyebrow: "START HERE",
-    icon: IconSparkles,
-    title: "从预设或新建设计开始",
-    intro: "先建立可工作的几何，再进入精确切割。所有保存动作都会进入同一份 CUT STACK。",
+    id: "start", label: "快速开始", eyebrow: "START HERE", icon: IconSparkles,
+    title: "先选轮廓 再做你的设计变体",
+    intro: "先想清楚这一版要改变什么：冠部更平缓、刻面会合更整齐，还是四个方向有不同节奏。一次比较一个变化，更容易判断取舍。",
     steps: [
-      ["01", "选择起点", "从文件菜单载入经过校验的预设，或新建边长 2.000 的标准毛坯。"],
-      ["02", "创建切割", "在 CUT STACK 底部进入新建，选择冠部、腰部或亭部并设置参数。"],
-      ["03", "检查并保存", "观察实体预览与 Gizmo，确认面数和几何后再加入序列。"],
+      ["01", "找到接近想法的切型", "文件 → 预设琢型库，比较顶视轮廓与侧面比例，再载入一个起点。先导出 JSON 留住基准版。"],
+      ["02", "改变一个设计要素", "点击 CUT STACK 图层旁的“编辑”，调整角度或深度；想增加一组新刻面，则用列表底部的新建入口。"],
+      ["03", "从几个方向比较", "用顶视看刻面节奏，用正视看冠亭比例；满意后保存。进入光学仿真比较同一材质、环境和视角下的表现。"],
     ],
-    note: "已有备份时会提示恢复或开始新设计；本地备份不能代替 JSON 归档。打开菜单和帮助不改变文档。",
+    note: "完整手册附圆形练习案例：比较冠高、沿棱位置和四向装饰。已有设计先导出 JSON；预设载入和已保存修改均可撤销。",
   },
   {
-    id: "cut",
-    label: "切割工作流",
-    eyebrow: "CUT WORKFLOW",
-    icon: IconTool,
-    title: "一套参数控制一个切割图层",
-    intro: "行业角、深度、96 分度、重复与镜像共同定义当前图层；保存的图层是几何唯一真值。",
+    id: "cut", label: "切割工作流", eyebrow: "CUT WORKFLOW", icon: IconTool,
+    title: "让刻面在你希望的位置会合",
+    intro: "先决定刻面应经过哪里，再选择合适的定位方式。普通切割用于自由试形，Meet 用于保持会合位置，Jump 帮你逐个比较现成的交点。",
     facts: [
-      ["行业角", "控制切割面的垂直姿态，冠部与亭部在内部使用相反的 β 符号。"],
-      ["切入深度", "沿当前切割面法线移动，始终保存完整精度。"],
-      ["96 分度", "1-96 为操作读数，其中 96 与内部索引 0 同位。"],
-      ["重复 / 镜像", "生成完整对称轨道；实体中全部切面都参与计算。"],
-      ["编辑图层", "点击图层参数或面数进入编辑；点击名称可直接改名，Enter / 失焦提交，Escape 取消。"],
-      ["Jump 定位", "新建 CUT 从 0.000 深度开始，并预告切面前方的下一点；预告区会标出仅接触、有效切面或覆盖影响；锁定 Meet 后先解除才能浏览交点。"],
-      ["单顶点 Meet", "显式选择顶点并预览后锁定；角度、索引、重复或镜像变化会自动补偿深度。"],
-      ["面数读数", "命令条统计已提交有效刻面；视口另列毛坯面；会话槽位显示有效 / 生成面数。"],
-      ["覆盖已有面", "普通冠部/亭部切面允许覆盖旧面；整层消失时再次确认，台面、腰部或全部材料失效时仍会阻止。"],
+      ["修改已有刻面", "点击图层旁的“编辑”；名称用于改名，参数和面数也保留快捷入口。保存替换原工序，放弃则回到修改前。"],
+      ["塑造比例", "角度改变刻面的倾斜，深度改变切入位置。冠部／亭部的“整体变换”可一起调整高度、升降与旋转；先看轮廓，再比较细节。"],
+      ["重复与镜像", "用重复建立均匀节奏，用镜像增加成对关系。96 分度的一齿是 3.75°；主切面是当前操纵杆与 Meet 所参考的那一面。"],
+      ["一个固定会合点", "选实体顶点并“锁定 Meet A”，再试角度；目标可达时深度会跟着调整，让主切面继续经过 A。想自由调深度时先解除约束。"],
+      ["比较沿棱位置", "选一条真实棱，比较 ⅓ 与 ⅔ 等比例位置，观察新增刻面如何分配。完成比例调整后锁定 A；0、1 是棱的两个端点。"],
+      ["用第二点定角度", "在单 A 后选择 B，并“锁定 B · 双 Meet”，当前主分度可解时，系统同时确定角度与深度。不可达可换点或主分度。解除 B 留下 A；解除 A 会把 B 提升为 A。"],
+      ["逐个尝试交点", "点击“下一交点”预览候选；有 A 后则浏览第二点。金色预告不移动切面，锁定仍需保存；双 Meet 锁定后停止 Jump。"],
+      ["做有意的方向变化", "在自定义索引中保留希望切割的方向，并明确选择其中一个主分度。可用手册的四向装饰案例，与八向均匀节奏比较。"],
+      ["找出要修的会合关系", "看到 Meet 失效时，用更多工具的“逐层试切助理”查看来源与切割前后。返回对应层编辑，解除失效约束并重新选点；已保存切面不会自动连带变化。"],
+      ["保留施工意图", "“预形工序”标记这一刀的用途，仍会参与切割与面数统计。Meet / Jump 支持冠部／亭部，腰部和固定台面保持原角度限制。"],
     ],
-    note: "Meet 拾取中第一次 Escape 只退出选择，第二次才取消 CUT；所有取消都不会写入历史。",
+    note: "先看新增刻面是否实际形成、是否覆盖了你想保留的形状，再点击“加入序列／保存”。仅接触且有效 0 面不能保存；覆盖已有面需检查影响，不代表一律禁止。",
   },
   {
-    id: "files",
-    label: "文件与交换",
-    eyebrow: "FILES & EXCHANGE",
-    icon: IconFileDescription,
-    title: "按用途选择正确的文件格式",
-    intro: "完整保存、行业交换和工艺交付分别使用不同格式，避免把有损格式当作主文件。",
+    id: "files", label: "文件与交换", eyebrow: "FILES & EXCHANGE", icon: IconFileDescription,
+    title: "留住设计变体 再交给下一位协作者",
+    intro: "先给设计起一个能区分版本的名字，例如“圆形 低冠方案”。保留能继续编辑的主文件，再按协作需要导出工艺资料。",
     facts: [
-      ["本地恢复", "提交后的文档与材质会自动备份；文件菜单可恢复，刷新后会提示。草稿、相机与旧撤销历史不恢复，各页面互不覆盖。"],
-      ["JSON", "完整主文件，保留文档、参数化图层、Meet 构造快照与光学元数据。"],
-      ["GemCad ASC", "用于交换最终有效的 96 齿平面；Meet 构造意图和已被覆盖的工序会省略，导出前必须通过持久预检。"],
-      ["PDF 技术报告", "输出最终有效面的五视图、逐面参数及 Meet 来源或失效说明，适合工艺交付。"],
-      ["预设琢型", "来自公开来源、已经过格式与几何检查，可一键载入并撤销。"],
+      ["继续设计用 JSON", "保留已保存图层、A/B、棱点比例、主分度、预形用途与材质。比较方案前后分别保存一份，也用它跨电脑交接。"],
+      ["意外中断后恢复", "文件菜单可以恢复本地备份，刷新也会提示。只恢复已提交设计与材质；未保存草稿、相机与旧撤销历史不恢复。"],
+      ["讨论工艺用 PDF", "导出当前切型的工艺报告，查看真实视图、有效刻面参数及 Meet 来源。报告用于阅读与沟通，不能代替 JSON 继续编辑。"],
+      ["与 GemCad 交换", "ASC 交换最终有效切面与折射率，不保留 Meet 构造意图和预形用途。先阅读预检，确认齿轮映射、比例与省略内容。"],
+      ["从练习到自己的作品", "手册中的案例 JSON 可作为练习起点；理解每次变化后，再在自己的切型上比较。练习参数不代表所有宝石都适用。"],
     ],
-    note: "JSON、ASC、PDF 均只导出已提交文档，未保存预览不会被自动提交；需要继续编辑时优先保留 JSON。",
+    note: "JSON、ASC、PDF 都只导出已保存的设计，预览不会自动提交。本地备份只属于当前浏览器和站点地址，不能代替长期归档。",
   },
   {
-    id: "optics",
-    label: "光学仿真",
-    eyebrow: "OPTICS",
-    icon: IconSparkles,
-    title: "在不打断编辑现场的前提下检查光学表现",
-    intro: "从显示模式进入聚焦仿真。系统会暂时收起 CUT 工具，只保留当前真实或预览实体。",
+    id: "optics", label: "光学仿真", eyebrow: "OPTICS", icon: IconSparkles,
+    title: "在同样的观察条件下比较两个方案",
+    intro: "先明确要观察什么：台面下的亮暗分布、转动时的闪光节奏，或侧面的体色。保持材质、环境和视角一致，才方便比较几何变化。",
     steps: [
-      ["01", "进入仿真", "打开显示模式，选择“光学仿真”。当前 CUT 会话会原样挂起。"],
-      ["02", "设置材料", "选择材质预设，检查折射率、色散、体色与吸收。"],
-      ["03", "切换观察", "使用台面、亭部、正视、侧视或透视检查亮度、火彩和结构。"],
-      ["04", "返回编辑", "点击退出仿真或按 Escape，恢复进入前的完整编辑现场。"],
+      ["01", "进入观察", "显示模式 → 光学仿真。当前保存或预览形状会进入仿真，切割工具暂时收起。"],
+      ["02", "选定材质与环境", "选择材质预设，确认体色、折射率等设置；先固定环境和观察角度，再比较不同切型。"],
+      ["03", "比较并记录取舍", "从台面、亭部、正视和透视观察，再转动宝石。记录哪种变化更符合设计目标，不只凭某一帧的亮度决定。"],
+      ["04", "返回继续设计", "退出仿真或按 Escape，回到原编辑现场。需要留住当前造型时，回到工作台再保存。"],
     ],
-    note: "材质随文档保存并可撤销，载入预设后撤销也会恢复原材质；VIEW ONLY 参数仅影响当前观察环境。",
+    note: "仿真帮助比较设计方向，不保证实际切磨后的光学表现。材质会随设计保存并可撤销；VIEW ONLY 是观察设置，不是宝石本身的变化。",
   },
   {
-    id: "keys",
-    label: "视口与快捷键",
-    eyebrow: "VIEWPORT & KEYS",
-    icon: IconKeyboard,
-    title: "保持手在画布上完成高频操作",
-    intro: "视口支持鼠标、触控板与键盘。数值输入聚焦时，快捷键不会误触 CUT 会话。",
+    id: "keys", label: "视口与快捷键", eyebrow: "VIEWPORT & KEYS", icon: IconKeyboard,
+    title: "先看清目标 再动手调整",
+    intro: "选点前先旋转宝石，让目标棱或顶点清楚可见。粉色切面边框、圆环与机械臂是操作辅助，不是宝石的真实棱。",
     keys: [
-      ["拖拽 / 方向键", "旋转宝石"],
-      ["Shift + 拖拽", "平移画布"],
-      ["滚轮 / + / -", "缩放视图"],
+      ["拖拽 / 方向键", "旋转宝石，查看背面的刻面关系"],
+      ["Shift + 拖拽", "平移画布，把要看的细节移到中间"],
+      ["滚轮 / + / -", "缩放查看会合点与整体轮廓"],
       ["0", "复位相机"],
-      ["J / Shift + J", "下一 / 上一交点（不循环）"],
-      ["Escape", "优先退出顶点选择；再次取消 CUT；光学中退出仿真"],
-      ["Enter", "提交切型名称或行内参数"],
+      ["J / Shift + J", "浏览下一个／上一个交点；有 A 时浏览第二点"],
+      ["V", "进入或退出顶点选择"],
+      ["M / B", "锁定当前 A／第二点 B 候选"],
+      ["行内参数框 Enter", "编辑已有图层时，在行内参数框提交当前修改"],
+      ["Escape", "先退出当前浮层或选择工具，再退出预览或编辑"],
     ],
-    note: "新建与编辑时，蓝色桥架调行业角，粉色直杆调深度，外圈和内圈分别调索引与镜像轴偏移。",
+    note: "按 Escape 退出棱比例工具时会保留当前候选；退出 B 预览才恢复原单 A 参数。输入框中的快捷键不会误操作底层 CUT；拿不准时使用界面的文字按钮。",
   },
 ];
 
@@ -130,29 +119,24 @@ function HelpContent({ section }) {
         </dl>
       ) : null}
 
-      <aside className="help-note"><strong>NOTE</strong><span>{section.note}</span></aside>
+      <aside className="help-note"><strong>使用提示</strong><span>{section.note}</span></aside>
     </div>
   );
 }
 
 export function HelpCenterDialog({ onClose }) {
   const [activeId, setActiveId] = useState("start");
-  const closeButtonRef = useRef(null);
+  const panelRef = useRef(null);
   const activeSection = HELP_SECTIONS.find((section) => section.id === activeId) ?? HELP_SECTIONS[0];
   const manualUrl = `${import.meta.env.BASE_URL}manual/facet-96-operation-manual.pdf`;
 
-  useEffect(() => {
-    closeButtonRef.current?.focus();
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  useDialogFocus(panelRef, onClose);
 
   return (
     <div className="modal-backdrop help-backdrop" role="presentation" onMouseDown={onClose}>
       <section
+        ref={panelRef}
+        tabIndex={-1}
         className="help-dialog"
         role="dialog"
         aria-modal="true"
@@ -164,9 +148,9 @@ export function HelpCenterDialog({ onClose }) {
           <div>
             <small>HELP CENTER · FACET 96</small>
             <h2 id="help-dialog-title">工作台使用帮助</h2>
-            <p id="help-dialog-summary">从第一个切面到光学检查，按任务快速找到答案。</p>
+            <p id="help-dialog-summary">从设计目标到造型比较，按任务找到下一步。</p>
           </div>
-          <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="关闭帮助中心">
+          <button type="button" onClick={onClose} aria-label="关闭帮助中心">
             <IconX size={17} stroke={1.8} />
           </button>
         </header>
@@ -195,7 +179,7 @@ export function HelpCenterDialog({ onClose }) {
         </div>
 
         <footer className="help-dialog__footer">
-          <div><IconBook2 size={16} stroke={1.7} /><span><strong>完整操作手册</strong><small>A4 PDF · 图解工作流 · 可打印</small></span></div>
+          <div><IconBook2 size={16} stroke={1.7} /><span><strong>完整操作手册</strong><small>A4 PDF · 设计案例与前后对比 · 可打印</small></span></div>
           <a className="secondary-button help-manual-link" href={manualUrl} download>
             <IconDownload size={15} stroke={1.8} />下载 PDF
           </a>

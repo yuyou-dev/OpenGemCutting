@@ -759,6 +759,17 @@ function pickSceneTarget(x, y, scene) {
       geometry: scene.meetGeometry ?? scene.geometry,
     });
     (scene.meetTargets ?? []).forEach((target, index) => {
+      if (target.kind === "edge") {
+        const [a, b] = target.endpoints.map((endpoint) => endpoint.fallbackWorldPoint);
+        const pa = projectDomainPoint(a, frame), pb = projectDomainPoint(b, frame);
+        if (!pa || !pb) return;
+        const hit = pointToSegment2D(x, y, pa.x, pa.y, pb.x, pb.y);
+        const point = a.map((value, axis) => value + (b[axis] - value) * hit.t);
+        if (hit.distance <= 8 && visibility.isSurfacePointVisible(point) && (!bestVertex || hit.distance < bestVertex.distance)) {
+          bestVertex = { kind: "edge", point, index, distance: hit.distance, target };
+        }
+        return;
+      }
       const point = target.point ?? target.target ?? target.fallbackWorldPoint ?? target;
       if (!visibility.isSurfacePointVisible(point)) return;
       const projected = projectDomainPoint(point, frame);
@@ -1188,7 +1199,7 @@ function drawPickOverlay(p, scene) {
   const groupRotationRing = groupControls.rotation;
   if (indexRing) indexRing.active = scene.activeGizmo;
   if (groupRotationRing) groupRotationRing.active = scene.activeGizmo;
-  const hasConstructionOverlay = scene.meetPickEnabled || scene.constructionMarker || scene.nextJumpMarker;
+  const hasConstructionOverlay = scene.meetPickEnabled || scene.constructionMarkers?.length || scene.nextJumpMarker;
   if (!depthHandle && !angleArc && !indexRing && !groupControlList.length && !groupRotationRing && !hasConstructionOverlay) return;
 
   const gl = p.drawingContext;
@@ -1219,6 +1230,13 @@ function drawPickOverlay(p, scene) {
 
   if (scene.meetPickEnabled) {
     (scene.meetTargets ?? []).forEach((target) => {
+      if (target.kind === "edge") {
+        const [a, b] = target.endpoints.map((endpoint) => endpoint.fallbackWorldPoint);
+        p.stroke(42, 93, 82, 235);
+        p.strokeWeight(2);
+        drawClippedWorldSegment(p, a, b, (point) => projectDomainPoint(point, frame), constructionVisibility.isOccluded, () => false);
+        return;
+      }
       const point = target.point ?? target.target ?? target.fallbackWorldPoint ?? target;
       if (!isConstructionPointVisible(point)) return;
       const projected = projectDomainPoint(point, frame);
@@ -1257,8 +1275,7 @@ function drawPickOverlay(p, scene) {
     }
   }
 
-  if (scene.constructionMarker) {
-    const marker = scene.constructionMarker;
+  for (const marker of scene.constructionMarkers ?? []) {
     const point = marker.point ?? marker.target;
     const projected = point ? projectDomainPoint(point, frame) : null;
     if (projected && isConstructionPointVisible(point)) {
@@ -1484,7 +1501,7 @@ function drawGizmoLabels(canvas, scene) {
   const context = canvas.getContext("2d");
   context.setTransform(density, 0, 0, density, 0, 0);
   context.clearRect(0, 0, width, height);
-  if (!scene.pickingEnabled || (!scene.cutGizmo && !scene.groupGizmo && !scene.constructionMarker && !scene.nextJumpMarker)) return;
+  if (!scene.pickingEnabled || (!scene.cutGizmo && !scene.groupGizmo && !scene.constructionMarkers?.length && !scene.nextJumpMarker)) return;
 
   const groupControls = groupControlsScreenInfo(scene.frame, scene.groupGizmo);
   const visibility = createHelperVisibilityContext(scene);
@@ -1492,24 +1509,26 @@ function drawGizmoLabels(canvas, scene) {
     ...scene,
     geometry: scene.meetGeometry ?? scene.geometry,
   });
-  const constructionPoint = scene.constructionMarker?.point ?? scene.constructionMarker?.target;
-  const constructionScreen = constructionPoint ? projectDomainPoint(constructionPoint, scene.frame) : null;
-  if (constructionScreen && constructionVisibility.isSurfacePointVisible(constructionPoint)) {
-    const status = scene.constructionMarker.status;
-    const label = status === "stale"
-      ? "Meet · 来源失效"
-      : status === "unreachable"
-        ? "Meet · 不可达"
-        : status === "destructive"
-          ? "Meet · 覆盖已有面"
-          : scene.constructionMarker.locked ? "Meet · 已锁" : "Meet · 待锁定";
-    drawCanvasBadge(
-      context,
-      constructionScreen.x + 12,
-      constructionScreen.y - 31,
-      label,
-      status === "valid" ? "#ed225d" : status === "destructive" ? "#a67712" : "#b3264d",
-    );
+  for (const marker of scene.constructionMarkers ?? []) {
+    const constructionPoint = marker?.point ?? marker?.target;
+    const constructionScreen = constructionPoint ? projectDomainPoint(constructionPoint, scene.frame) : null;
+    if (constructionScreen && constructionVisibility.isSurfacePointVisible(constructionPoint)) {
+      const status = marker.status;
+      const label = status === "stale"
+        ? "Meet · 来源失效"
+        : status === "unreachable"
+          ? "Meet · 不可达"
+          : status === "destructive"
+            ? "Meet · 覆盖已有面"
+            : marker.locked ? "Meet · 已锁" : "Meet · 待锁定";
+      drawCanvasBadge(
+        context,
+        constructionScreen.x + 12,
+        constructionScreen.y + (marker.slot === "B" ? 10 : -31),
+        `${marker.slot ?? "A"} · ${marker.locked ? label : label.replace("Meet", "预览")}`,
+        status === "valid" ? "#ed225d" : status === "destructive" ? "#a67712" : "#b3264d",
+      );
+    }
   }
   const nextJumpPoint = scene.nextJumpMarker?.point ?? scene.nextJumpMarker?.target;
   const nextJumpScreen = nextJumpPoint ? projectDomainPoint(nextJumpPoint, scene.frame) : null;
@@ -1768,7 +1787,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       if (moved < 4) {
         const { x, y } = canvasPoint(event);
         const target = pickSceneTarget(x, y, sceneRef.current);
-        if (target?.kind === "vertex" && sceneRef.current.meetPickEnabled) {
+        if (["vertex", "edge"].includes(target?.kind) && sceneRef.current.meetPickEnabled) {
           interactionRef.current?.onVertexPick?.(target.target);
         } else if (target?.kind === "face") {
           interactionRef.current?.onFacePick?.(target.operationId);
@@ -1974,7 +1993,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       return;
     }
     const target = pickSceneTarget(x, y, scene);
-    canvas.style.cursor = target?.kind === "face" || (target?.kind === "vertex" && scene.meetPickEnabled) ? "pointer" : "";
+    canvas.style.cursor = target?.kind === "face" || (["vertex", "edge"].includes(target?.kind) && scene.meetPickEnabled) ? "pointer" : "";
   };
 
   const onWheel = (event) => {
@@ -2074,7 +2093,7 @@ export function GemViewport({
   onFacePick,
   meetTargets = [],
   meetPickEnabled = false,
-  constructionMarker = null,
+  constructionMarkers = [],
   nextJumpMarker = null,
   onVertexPick,
   onDepthDrag,
@@ -2143,7 +2162,7 @@ export function GemViewport({
       pickingEnabled,
       meetTargets,
       meetPickEnabled,
-      constructionMarker,
+      constructionMarkers,
       nextJumpMarker,
       cutGizmo,
       groupGizmo,
@@ -2152,7 +2171,7 @@ export function GemViewport({
     if (hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
       ghostBoundsRef.current = copyBounds(normalizedGeometry.bounds);
     }
-  }, [activeOperationId, activeViewMode, constructionMarker, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
+  }, [activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
 
   useEffect(() => {
     const instance = instanceRef.current;

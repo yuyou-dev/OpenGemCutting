@@ -428,11 +428,19 @@ export function rotateFacetsByTeeth(facets, teeth, { stock = DEFAULT_STOCK } = {
   if (!Number.isInteger(step)) {
     throw new RangeError("teeth must be an integer.");
   }
-  return facets.map((facet) => resolveFacet({
-    ...facet,
-    baseIndex: normalizeIndex(facet.baseIndex + step),
-    index: normalizeIndex(facet.index + step),
-  }, { stock }));
+  return facets.map((facet) => {
+    const metadata = facet.metadata && clone(facet.metadata);
+    if (metadata?.primaryIndex !== undefined) metadata.primaryIndex = normalizeIndex(metadata.primaryIndex + step);
+    if (metadata?.construction?.primaryIndex !== undefined) {
+      metadata.construction.primaryIndex = normalizeIndex(metadata.construction.primaryIndex + step);
+    }
+    return resolveFacet({
+      ...facet,
+      ...(metadata ? { metadata } : {}),
+      baseIndex: normalizeIndex(facet.baseIndex + step),
+      index: normalizeIndex(facet.index + step),
+    }, { stock });
+  });
 }
 
 function defaultPatternId({ region, baseIndex, repeat, mirror, industryAngleDeg, depth }) {
@@ -624,33 +632,91 @@ function isCanonicalStock(stock) {
   );
 }
 
+function validateMeetTarget(target, path, errors, allowEdge = true) {
+  if (!isPlainObject(target)) {
+    addValidationError(errors, path, "must be a Meet target object");
+    return;
+  }
+  if (typeof target.topologyKey !== "string" || !target.topologyKey) {
+    addValidationError(errors, `${path}.topologyKey`, "must be a non-empty string");
+  }
+  for (const key of ["sourceFaceIds", "sourceOperationIds"]) {
+    if (!Array.isArray(target[key]) || target[key].length === 0
+      || !target[key].every((value) => typeof value === "string" && value.length > 0)
+      || new Set(target[key]).size !== target[key].length) {
+      addValidationError(errors, `${path}.${key}`, "must be a non-empty array of unique source identifiers");
+    }
+  }
+  if (typeof target.sourceGeometrySignature !== "string" || !target.sourceGeometrySignature) {
+    addValidationError(errors, `${path}.sourceGeometrySignature`, "must be a non-empty string");
+  }
+  if (!Array.isArray(target.fallbackWorldPoint) || target.fallbackWorldPoint.length !== 3
+    || !target.fallbackWorldPoint.every(Number.isFinite)) {
+    addValidationError(errors, `${path}.fallbackWorldPoint`, "must contain three finite coordinates");
+  }
+  if (target.kind !== undefined && target.kind !== "vertex" && target.kind !== "edge-point") {
+    addValidationError(errors, `${path}.kind`, "must identify a vertex or edge-point");
+  }
+  if (target.kind === "edge-point") {
+    if (!allowEdge) {
+      addValidationError(errors, path, "must be a vertex target");
+      return;
+    }
+    if (!Number.isFinite(target.ratio) || target.ratio < 0 || target.ratio > 1) {
+      addValidationError(errors, `${path}.ratio`, "must be a finite ratio from 0 to 1");
+    }
+    if (typeof target.edgeTopologyKey !== "string" || !target.edgeTopologyKey) {
+      addValidationError(errors, `${path}.edgeTopologyKey`, "must identify the source edge");
+    }
+    if (!Array.isArray(target.endpoints) || target.endpoints.length !== 2) {
+      addValidationError(errors, `${path}.endpoints`, "must contain two vertex targets");
+    } else {
+      target.endpoints.forEach((endpoint, index) => validateMeetTarget(endpoint, `${path}.endpoints[${index}]`, errors, false));
+      if (target.endpoints[0]?.topologyKey === target.endpoints[1]?.topologyKey) {
+        addValidationError(errors, `${path}.endpoints`, "must identify two distinct vertices");
+      }
+      const [start, end] = target.endpoints;
+      if (typeof start?.topologyKey === "string" && typeof end?.topologyKey === "string") {
+        const edgeKey = `edge:${[start.topologyKey, end.topologyKey].map(encodeURIComponent).join("|")}`;
+        if (start.topologyKey >= end.topologyKey || target.edgeTopologyKey !== edgeKey
+          || target.topologyKey !== `${edgeKey}@${target.ratio}`) {
+          addValidationError(errors, `${path}.edgeTopologyKey`, "must preserve the ordered endpoint identities and ratio");
+        }
+      }
+      if ([start?.fallbackWorldPoint, end?.fallbackWorldPoint, target.fallbackWorldPoint]
+        .every((point) => Array.isArray(point) && point.length === 3 && point.every(Number.isFinite))) {
+        if (target.fallbackWorldPoint.some((value, axis) => Math.abs(value - (
+          start.fallbackWorldPoint[axis] + (end.fallbackWorldPoint[axis] - start.fallbackWorldPoint[axis]) * target.ratio
+        )) > 1e-7)) addValidationError(errors, `${path}.fallbackWorldPoint`, "must match the endpoint ratio");
+      }
+
+    }
+  }
+}
+
 function validateMeetConstruction(construction, path, errors) {
   if (!isPlainObject(construction)) {
     addValidationError(errors, path, "must be a Meet construction object");
     return;
   }
-  if (construction.type !== "vertex-meet") addValidationError(errors, `${path}.type`, "must be vertex-meet");
-  if (construction.solverVersion !== 1) addValidationError(errors, `${path}.solverVersion`, "must be 1");
-  const target = construction.target;
-  if (!isPlainObject(target)) {
-    addValidationError(errors, `${path}.target`, "must be an object");
-    return;
+  const legacy = construction.solverVersion === 1;
+  if (![1, 2].includes(construction.solverVersion)) addValidationError(errors, `${path}.solverVersion`, "must be 1 or 2");
+  const types = legacy ? ["vertex-meet"] : ["vertex-meet", "edge-meet", "dual-meet"];
+  if (!types.includes(construction.type)) addValidationError(errors, `${path}.type`, "must match the solver version and target kind");
+  validateMeetTarget(construction.target, `${path}.target`, errors, !legacy);
+  if (!legacy && (!Number.isInteger(construction.primaryIndex) || construction.primaryIndex < 0 || construction.primaryIndex >= 96)) {
+    addValidationError(errors, `${path}.primaryIndex`, "must be an integer index from 0 to 95");
   }
-  if (typeof target.topologyKey !== "string" || !target.topologyKey) {
-    addValidationError(errors, `${path}.target.topologyKey`, "must be a non-empty string");
+  if (construction.type === "dual-meet") {
+    validateMeetTarget(construction.secondTarget, `${path}.secondTarget`, errors);
+  } else if (construction.secondTarget !== undefined) {
+    addValidationError(errors, `${path}.secondTarget`, "is only supported by dual-meet");
   }
-  for (const key of ["sourceFaceIds", "sourceOperationIds"]) {
-    if (!Array.isArray(target[key]) || !target[key].every((value) => typeof value === "string")) {
-      addValidationError(errors, `${path}.target.${key}`, "must be an array of strings");
-    }
+  if (construction.type === "edge-meet" && construction.target?.kind !== "edge-point") {
+    addValidationError(errors, `${path}.target.kind`, "must be edge-point for edge-meet");
   }
-  if (typeof target.sourceGeometrySignature !== "string" || !target.sourceGeometrySignature) {
-    addValidationError(errors, `${path}.target.sourceGeometrySignature`, "must be a non-empty string");
-  }
-  if (!Array.isArray(target.fallbackWorldPoint)
-    || target.fallbackWorldPoint.length !== 3
-    || !target.fallbackWorldPoint.every(Number.isFinite)) {
-    addValidationError(errors, `${path}.target.fallbackWorldPoint`, "must contain three finite coordinates");
+  if (construction.type === "vertex-meet" && construction.target?.kind === "edge-point") {
+    addValidationError(errors, `${path}.target.kind`, "must identify a vertex for vertex-meet");
   }
 }
 
@@ -728,11 +794,24 @@ function validateResolvedFacet(facet, path, stock, errors) {
     if (facet.region !== FACET_REGION.CROWN && facet.region !== FACET_REGION.PAVILION) {
       addValidationError(errors, `${path}.metadata.construction`, "is supported only on crown or pavilion facets");
     }
-    if (facet.metadata?.patternMode !== "symmetric") {
-      addValidationError(errors, `${path}.metadata.patternMode`, "must be symmetric when Meet construction is present");
+    if (!["symmetric", "arbitrary"].includes(facet.metadata?.patternMode)
+      || (facet.metadata.construction?.solverVersion === 1 && facet.metadata?.patternMode !== "symmetric")) {
+      addValidationError(errors, `${path}.metadata.patternMode`, "must be symmetric, or arbitrary with solverVersion 2");
     }
-    if (facet.metadata?.operationType === "table" || facet.industryAngleDeg === 0) {
+    if (facet.metadata?.operationType === "table") {
       addValidationError(errors, `${path}.metadata.construction`, "is not supported on the fixed table");
+    }
+  }
+
+  if (facet.metadata?.primaryIndex !== undefined && (!Number.isInteger(facet.metadata.primaryIndex)
+    || facet.metadata.primaryIndex < 0 || facet.metadata.primaryIndex >= 96)) {
+    addValidationError(errors, `${path}.metadata.primaryIndex`, "must be an integer index from 0 to 95");
+  }
+  if (facet.metadata?.preform !== undefined) {
+    if (typeof facet.metadata.preform !== "boolean") addValidationError(errors, `${path}.metadata.preform`, "must be boolean");
+    if (![FACET_REGION.CROWN, FACET_REGION.PAVILION].includes(facet.region)
+      || facet.metadata.operationType === "table") {
+      addValidationError(errors, `${path}.metadata.preform`, "is supported only on ordinary crown or pavilion layers");
     }
   }
 
@@ -870,6 +949,21 @@ export function validateFacetingDocument(document) {
       }
     });
     patternFacets.forEach((entries) => {
+      const preform = entries[0].facet.metadata?.preform ?? false;
+      entries.forEach(({ facet, index }) => {
+        if ((facet.metadata?.preform ?? false) !== preform) {
+          addValidationError(errors, `$.facets[${index}].metadata.preform`, "must match every facet in the pattern");
+        }
+      });
+      const selectedPrimary = entries[0].facet.metadata?.primaryIndex;
+      entries.forEach(({ facet, index }) => {
+        if (facet.metadata?.primaryIndex !== selectedPrimary) {
+          addValidationError(errors, `$.facets[${index}].metadata.primaryIndex`, "must match every facet in the pattern");
+        }
+      });
+      if (selectedPrimary !== undefined && !entries.some(({ facet }) => facet.index === selectedPrimary)) {
+        addValidationError(errors, `$.facets[${entries[0].index}].metadata.primaryIndex`, "must belong to the pattern index set");
+      }
       const constructions = entries.map(({ facet }) => facet.metadata?.construction);
       const annotated = constructions.filter((construction) => construction !== undefined);
       if (annotated.length === 0) return;
@@ -881,17 +975,18 @@ export function validateFacetingDocument(document) {
         });
         return;
       }
-      const fingerprint = (construction) => JSON.stringify({
-        type: construction?.type,
-        solverVersion: construction?.solverVersion,
-        target: {
-          topologyKey: construction?.target?.topologyKey,
-          sourceFaceIds: construction?.target?.sourceFaceIds,
-          sourceOperationIds: construction?.target?.sourceOperationIds,
-          sourceGeometrySignature: construction?.target?.sourceGeometrySignature,
-          fallbackWorldPoint: construction?.target?.fallbackWorldPoint,
-        },
-      });
+      const targetFingerprint = (target) => target && [target.kind, target.topologyKey, target.sourceFaceIds,
+        target.sourceOperationIds, target.sourceGeometrySignature, target.fallbackWorldPoint,
+        target.edgeTopologyKey, target.ratio, Array.isArray(target.endpoints) ? target.endpoints.map(targetFingerprint) : target.endpoints];
+      const fingerprint = (construction) => JSON.stringify([construction?.type, construction?.solverVersion,
+        construction?.primaryIndex, targetFingerprint(construction?.target), targetFingerprint(construction?.secondTarget)]);
+      const primaryIndex = annotated[0]?.primaryIndex;
+      if (selectedPrimary !== undefined && primaryIndex !== undefined && selectedPrimary !== primaryIndex) {
+        addValidationError(errors, `$.facets[${entries[0].index}].metadata.primaryIndex`, "must match the Meet primaryIndex");
+      }
+      if (annotated[0]?.solverVersion === 2 && !entries.some(({ facet }) => facet.index === primaryIndex)) {
+        addValidationError(errors, `$.facets[${entries[0].index}].metadata.construction.primaryIndex`, "must belong to the pattern index set");
+      }
       const expected = fingerprint(annotated[0]);
       entries.forEach(({ facet, index }) => {
         if (fingerprint(facet.metadata.construction) !== expected) {

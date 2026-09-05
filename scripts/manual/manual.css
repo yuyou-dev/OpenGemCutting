@@ -1,0 +1,286 @@
+@page {
+  size: A4;
+  margin: 0;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #ddd;
+  color: #252b2b;
+  font-family: "Noto Sans SC Variable", sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.page {
+  background: white;
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  padding: 22mm 17mm 19mm;
+  break-after: page;
+}
+.page:last-child {
+  break-after: auto;
+}
+.chrome {
+  position: absolute;
+  left: 17mm;
+  right: 17mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8pt;
+  color: #727876;
+}
+.head {
+  top: 9mm;
+  border-bottom: 0.25mm solid #d4d9d7;
+  padding-bottom: 3mm;
+}
+.head b {
+  color: #151b19;
+}
+.head img {
+  height: 5mm;
+  width: 5mm;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 2mm;
+}
+.head em {
+  font-style: normal;
+  font-size: 7pt;
+  margin-left: 2mm;
+  color: #8b928f;
+}
+.foot {
+  bottom: 8mm;
+  border-top: 0.25mm solid #d4d9d7;
+  padding-top: 3mm;
+}
+.foot b {
+  color: #ed1e5b;
+}
+.kicker {
+  font-size: 9pt;
+  color: #b72451;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  margin: 6mm 0 3mm;
+}
+h1 {
+  font-size: 23pt;
+  line-height: 1.35;
+  letter-spacing: -0.45px;
+  margin: 0 0 5mm;
+  max-width: 175mm;
+}
+p.intro {
+  font-size: 10.3pt;
+  line-height: 1.75;
+  color: #55605a;
+  margin: 0 0 5mm;
+}
+figure {
+  margin: 0 0 5mm;
+}
+figure img {
+  display: block;
+  width: 100%;
+  height: 100mm;
+  object-fit: contain;
+  background: #fff;
+  border: 0.25mm solid #d4d9d7;
+  border-radius: 2mm;
+}
+figcaption {
+  font-size: 8.5pt;
+  color: #69736e;
+  line-height: 1.6;
+  margin-top: 2mm;
+}
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+  margin-top: 3mm;
+}
+.pair figure img {
+  height: 90mm;
+}
+.pair figcaption {
+  text-align: center;
+  font-size: 9.1pt;
+  font-weight: 600;
+  color: #354c40;
+}
+.caption {
+  font-size: 8.5pt;
+  line-height: 1.6;
+  color: #637068;
+  margin: 0 0 5mm;
+}
+.blocks {
+  display: grid;
+  gap: 3mm;
+}
+.block {
+  padding-left: 3.2mm;
+  border-left: 0.7mm solid #d5dfd8;
+}
+.block h3 {
+  font-size: 10.5pt;
+  margin: 0 0 1.3mm;
+  color: #243e30;
+}
+.block p {
+  font-size: 10.5pt;
+  line-height: 1.75;
+  margin: 0;
+  color: #505c54;
+}
+.steps {
+  display: grid;
+  gap: 3mm;
+}
+.step {
+  display: grid;
+  grid-template-columns: 9mm 1fr;
+  gap: 3mm;
+}
+.step > b {
+  display: grid;
+  place-content: center;
+  width: 7mm;
+  height: 7mm;
+  border-radius: 50%;
+  color: #fff;
+  background: #2d7853;
+  font-size: 9pt;
+}
+.step h3 {
+  font-size: 10.5pt;
+  margin: 0 0 1.1mm;
+}
+.step p {
+  font-size: 10.5pt;
+  line-height: 1.7;
+  margin: 0;
+  color: #505c54;
+}
+.question,
+.note {
+  margin-top: 4mm;
+  padding: 3mm 4mm;
+  background: #f2f7f3;
+  border-left: 0.8mm solid #54836a;
+  border-radius: 1mm;
+  font-size: 9.3pt;
+  line-height: 1.7;
+  color: #395243;
+}
+.question b,
+.note b {
+  display: block;
+  color: #2c5940;
+  margin-bottom: 1mm;
+}
+.note {
+  background: #faf6f1;
+  border-left-color: #b79962;
+  color: #68614e;
+  font-size: 8.8pt;
+}
+.note b {
+  color: #7c662f;
+}
+.toc {
+  margin-top: 10mm;
+}
+.toc article {
+  display: grid;
+  grid-template-columns: 15mm 1fr;
+  gap: 6mm;
+  padding: 6mm 0;
+  border-bottom: 0.25mm solid #d7dfda;
+}
+.toc span {
+  font-size: 11pt;
+  font-weight: 700;
+  color: #bf315e;
+}
+.toc h3 {
+  font-size: 13pt;
+  margin: 0 0 2mm;
+}
+.toc p {
+  margin: 0;
+  font-size: 10pt;
+  color: #667169;
+}
+.cover h1 {
+  font-size: 32pt;
+  line-height: 1.28;
+  max-width: 158mm;
+  margin-top: 4mm;
+}
+.cover .kicker {
+  font-size: 11pt;
+  margin-top: 7mm;
+}
+.cover-brand {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+}
+.cover-brand img {
+  width: 9mm;
+  height: 9mm;
+  object-fit: contain;
+}
+.cover-brand b {
+  display: block;
+  font-size: 14pt;
+  color: #111;
+}
+.cover-brand small {
+  display: block;
+  color: #8b928f;
+  font-size: 8pt;
+  margin-top: 1mm;
+}
+.cover figure img {
+  height: 114mm;
+}
+.cover .blocks {
+  grid-template-columns: 1fr 1fr;
+  gap: 7mm;
+  margin-top: 6mm;
+}
+.cover .intro {
+  font-size: 11pt;
+}
+.text-only .blocks {
+  gap: 6mm;
+  margin-top: 8mm;
+}
+.text-only .block h3 {
+  font-size: 12pt;
+}
+.text-only .block p {
+  font-size: 10.5pt;
+}
+.controls figure img {
+  height: 104mm;
+}
+.body {
+  position: relative;
+}
+.page.no-image .intro {
+  margin-bottom: 6mm;
+}
+.page.no-image .question {
+  margin-top: 9mm;
+}

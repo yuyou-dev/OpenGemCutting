@@ -7,28 +7,39 @@
 以下条款是规范性约束，违反的实现不予合入：
 
 - CUT 交互一律经由 `src/domain/cutSession.js` 的事件驱动状态机：组件只调用 `dispatchCutSession` 发送 `CUT_SESSION_EVENT`，不得自行 setState 切换会话身份。
-- UI 组件不得自行判断 `mode` 分支渲染逻辑；只消费 `resolveCutSession(session)` 返回的能力位（`controlsEnabled`、`showGizmo`、`showCutPlane`、`showNewButton`、`highlightActiveLayer`、`canCancel`、`canPickLayer`、`canChangeRegion`、`canMutateStack`、`canStartGroup`、`canUseMeetJump`、`canJumpPrevious`、`canJumpNext`、`canPickMeetTarget`、`canLockMeet`、`canCancelConstructionTool`、`depthEditable`、`constructionValid`）与派生态（`active`、`previewEnabled`、`canCommit`、`activePatternId`、`groupRegion`）。
+- UI 组件不得自行用 `mode` 推导操作权限或切换会话；操作权限只消费 `resolveCutSession(session)` 返回的能力位（`controlsEnabled`、`showGizmo`、`showCutPlane`、`showNewButton`、`highlightActiveLayer`、`canCancel`、`canPickLayer`、`canChangeRegion`、`canMutateStack`、`canStartGroup`、`canUseMeetJump`、`canJumpPrevious`、`canJumpNext`、`canPickMeetTarget`、`canLockMeet`、`canCancelConstructionTool`、`depthEditable`、`constructionValid`）与派生态（`active`、`previewEnabled`、`canCommit`、`activePatternId`、`groupRegion`）。标题和状态文案可展示传入的会话身份，不得据此另建权限判断。
 - 按钮与控件的 `disabled` 必须由能力位或派生态驱动，不得在组件内另写与 `CUT_SESSION_TABLE` 平行的条件。
 - 新增 CUT 交互的标准流程：新增事件类型 → 在 `CUT_SESSION_TABLE` 评审并声明能力位 → 更新 reducer 转换 → 更新对应契约测试。四步缺一不可。
 - 草稿参数（`industryAngle / depth / baseIndex / repeat / mirrorOffset / patternMode / customIndices`）、草稿构造状态 `construction` 与群组参数（`deltaZ / scale / rotationTeeth`）只存在于会话对象的 `draft` / `construction` / `group` 字段，经状态机事件更新。参数 patch 和 Meet 自动求解后的深度必须由同一个 `changeDraftWithConstruction()` 编排入口原子派发到 `CHANGE_DRAFT`，禁止侧栏、行内编辑、Gizmo、分度环或组件本地 state 各自求解；区域默认值只从 `DEFAULT_DRAFT_ANGLES` / `DEFAULT_DRAFT_DEPTHS` / `defaultDraftForRegion` 取得。
 - 领域锁定在状态机层强制，而不是只靠 UI 禁用：腰部 `industryAngle` 锁定 `90°` 由 `CHANGE_DRAFT` 直接压回，固定台面 `0°` 同理不依赖控件 disabled。UI 禁用只是配套提示。
+- 图层的常显“编辑”按钮、参数／面数兼容入口和视口选层共用 `SELECT_LAYER` 事件与 `canPickLayer` 能力；传给列表的 `canSelectLayers` 仅映射该能力。选中只恢复保存参数和构造，不提交、不改变实体或历史；按钮样式归设计规范。此入口复用既有事件，不创建新的 CUT 状态。
 - 提交、取消和文档替换都必须经状态机事件（`COMMIT_SUCCESS` / `CANCEL` / `DOCUMENT_*`）收尾，保证会话身份、`dirty`、草稿与 Gizmo 现场同步释放。
 
-## v0.7.0 Meet / Jump 构造契约
+## Meet / Jump 构造契约（v0.7.2 当前规则）
 
-- v0.7.0 只在对称模式的冠部与亭部新建/编辑会话中提供单顶点 Meet 和 Jump。它们是 `create` / `edit` 内的构造子状态，不新增 CUT 第五态；腰部、固定台面、arbitrary 自定义索引、Edge Meet、双 Meet 和全局依赖约束均不在本里程碑范围。
-- 构造子状态由 `src/domain/cutSession.js` 所有，并通过 `START_MEET_PICK`、`CANCEL_CONSTRUCTION_TOOL`、`SELECT_MEET_CANDIDATE`、`LOCK_MEET`、`CLEAR_MEET` 与扩展后的 `CHANGE_DRAFT` 更新。`tool` 仅允许 `none | pick-vertex`；候选和已锁 Meet 分开保存，选择候选只预览，必须经显式“锁定 Meet”才能约束深度。
-- Meet 顶点只可在显式拾取模式从当前可见、已提交的 base solid 选择；编辑时先排除正在编辑的图层，禁止引用自身、未保存预览或隐藏图层。普通点击、空白点击和相机旋转、缩放、平移不得创建或解除 Meet。
-- 锁定 Meet 后，深度滑杆、数字输入、行内深度与 3D 深度杆统一只读；只能通过 `CLEAR_MEET` 明确解除。行业角、`baseIndex`、`repeat`、`mirrorOffset` 变化必须通过统一参数入口重新求解深度；锁定期间禁止切换到 arbitrary 自定义索引。切换区域沿既有规则重建新草稿，并完整清除构造子状态。
-- `Escape` 在显式拾取期间只派发 `CANCEL_CONSTRUCTION_TOOL`，退出拾取且保留已有 Meet；再次按下才按原契约取消 CUT 会话。进入光学仿真只暂停构造交互，退出后必须原样恢复构造子状态。
-- Jump 只从当前可见、已提交的 base solid 顶点生成，编辑时同样排除活动图层。候选按深度从浅到深稳定排序、按容差去重，同深度使用稳定拓扑键决定代表点；`J` 前进、`Shift+J` 后退，首尾不循环。手动改动 CUT 参数后清除 Jump 候选标记但保留当前深度，下次按键重新计算。
-- 未锁定 Meet 时，视口应从当前显式深度实时派生并预告严格更深的“下一点”；预告只显示目标位置、序号、来源和所需深度，不移动切面、不写入 `construction`、历史或文档。点击“下一交点”或按 `J` 后才把该候选深度原子写入草稿；已到末尾时不显示预告。
-- Jump 候选枚举只计算稳定深度、排序和来源；复用已提交实体的拓扑缓存，仅在显示下一点或选择某个候选时按完整重复/镜像 CUT 做精确影响分类。不得在角度、分度等连续输入中同步裁切全部候选。新建预览在缓存的可见已提交实体上追加草稿，编辑已有层仍按原序位替换；隐藏层语义与提交检查保持独立。
-- Jump 候选统一分类为 `contact-only`（仅接触）、`facet`（形成有效切面）或 `destructive`（产生覆盖影响）。`contact-only` 与求解后零有效面的 Meet 可以浏览、预览和锁定定位，但不得提交；普通 CUT、Jump 与 Meet 共用同一提交前影响评估，不能由 helper 或组件另写近似规则。
-- Meet 求解状态必须区分 `valid`、`unreachable`、`stale`、`destructive`。所需深度为负时记录原始 `requiredDepth`，不得压成 0；保留用户新参数与上一次有效深度、隐藏误导性实体预览并显示目标诊断，恢复到可解参数后自动恢复求解。不可达、来源失效、实体为空或结构层整体失效始终硬阻断提交；普通 C/P 层的覆盖影响按下述有效面契约处理。
-- Meet 始终绑定 `baseIndex` 对应的主切面；排序后的首面、重复成员和 Mirror 副轨道都不得取代主面。顶点记录稳定 `topologyKey`、来源面/图层标识与来源几何签名，`fallbackWorldPoint` 只用于诊断，来源不匹配时不得据此偷偷恢复有效状态。
-- 提交后的 Meet 是构造快照而非实时依赖：显式切面仍是几何真值，来源层变更、隐藏、重排、群组变换或拓扑不匹配不得级联修改已提交切面。重新编辑和导出 PDF 时重新验证来源签名与 Meet 残差；不满足时标记 `stale`，要求重新选择或解除。
-- 未锁定的 Jump 只留下最终显式深度，不单独写入文档、JSON 或 PDF。已锁定 Meet 将 `vertex-meet`、solver 版本、目标拓扑键、来源面/图层标识、来源几何签名和诊断坐标作为同层 facet metadata 写入文档并完整 JSON 往返；格式错误必须明确拒绝导入。ASC 只交换最终有效的显式切面，并在导出预检中提示 Meet 构造意图会被省略；PDF 显示有效 Meet 的顶点来源，失效时明确说明当前切面仅以显式参数为准。
+本节是当前唯一构造约定；v0.7.0 单顶点版本的范围限制不再适用，旧 JSON 仍按兼容规则读取。
+
+- 支持冠部／亭部对称及 arbitrary 自定义索引；固定台面／腰部继续不可用。arbitrary 主索引须在当前索引集合中，不能按排序首面代替；移除已锁 Meet 的主索引阻断该编辑并解释原因。
+- `construction` 仍为会话唯一构造状态，含 `tool: none | pick-vertex | pick-edge | edit-edge`、`candidate`、`meet` 和仅供取消第二点预览的 `returnDraft`／`returnDirty`。`meet.target` 是 A，`meet.secondTarget` 可选为 B。点可为真实顶点或棱上比例点，比例 0–1，端点按顶点处理；端点身份和比例方向保持稳定。
+- `START_MEET_PICK` 接收 `tool`；`SELECT_MEET_CANDIDATE` 接收已统一求解的点、深度与可选行业角。`CHANGE_EDGE_RATIO` 与其复用相同候选转换，但仅针对当前棱候选；`FINISH_EDGE_EDIT` 结束比例编辑。单 Meet 的第二点预览保留 A，并在首次预览时记录 `returnDraft`。不得另建组件参数副本。
+- `LOCK_MEET` 显式将候选锁为 A 或 B；`CLEAR_MEET` 的 `slot: A | B | all` 支持解除，解除 A 时将 B 提升为 A，保留当前角度／深度；清除 B 回到 A。解除期间若存在 B 预览，先还原 `returnDraft`。
+- `CANCEL_CONSTRUCTION_TOOL` 优先关闭棱编辑器、退出拾取，保留当前候选与参数；其后取消第二点预览并还原单 A 现场；再一次 Escape 才取消 CUT。模态弹窗与光学模式优先于这些事件。
+- `CUT_SESSION_TABLE` 明确声明 `angleEditable`、`canPickMeetTarget`、`canLockMeet`、`canLockSecondMeet`、`canClearMeetA/B`、`canEditEdgeRatio`、`canMarkPreform` 等能力；`resolveCutSession` 根据 A/B、候选有效性及部位派生。已失效或不可达的 A 暂停第二点拾取，必须先修复自由参数或解除 A；单点接管深度，双点接管角度和深度，reducer 拒绝未经统一构造求解的锁定参数写入。
+- 双 Meet 在固定主分度下解角度和深度；重合点、无唯一角度、超部位解域、负深度与来源失效分别诊断。不可解时保留约束和上次有效被锁参数，允许修改自由参数恢复，阻断提交及误导性预览。
+- 无 A 的 Jump 保持按深度排序；单 A 的 Jump 仅枚举可解离散顶点 B，按行业角及稳定拓扑键排序去重、首尾不循环。候选预告不改草稿；Jump 才原子应用候选角度和深度，锁定后成为双 Meet。双 Meet 停止 Jump。枚举不裁切，只有显示／选择的候选按完整轨道分类。
+- `M` 锁 A、`B` 锁 B、`V` 切换顶点拾取，`J`／`Shift+J` 前后浏览。输入、textarea、select、contenteditable 及模态状态隔离这些快捷键。
+- 编辑来源为该层之前的可见施工阶段；新建来源为全部可见已提交工序。依赖诊断按文档及显隐变化重新派生，不能在连续草稿输入时重建全部阶段。来源不存在、不在前序阶段、隐藏、签名变化或主切面残差超差均标记 stale；已保存显式切面不自动变动，撤销恢复来源时诊断随之恢复。
+- 新构造 metadata 使用 `vertex-meet | edge-meet | dual-meet`、solverVersion 2、`target`／可选 `secondTarget` 和 `primaryIndex`；旧 vertex-meet v1 继续读取。普通冠／亭层的 `metadata.preform` 只标记施工用途。所有成员 metadata 一致，经 JSON 统一验证并进入文档历史、备份和报告。
+- 试切助理的开关、步骤和前后查看是 UI chrome，仅引用共享施工阶段及诊断，不修改 CUT 会话、文档、相机或历史。
+
+- 通过视口直接选顶点／棱时，只能在显式拾取模式选择；Jump 仍可通过候选事件定位。普通点击、空白点击、相机旋转、缩放和平移不得创建或解除 Meet；禁止引用自身、未保存预览和隐藏来源。
+- 草稿的角度、深度、分度、重复、镜像和自定义索引变化统一经过构造求解入口，再原子写入状态机。锁定参数不能由控件直接绕过求解；切换区域沿既有规则重建草稿并清除构造子状态。
+- Meet 的几何参考始终是 `baseIndex` 主切面；排序后的首面、重复成员和镜像副轨道都不能取代它。目标携带稳定拓扑身份、来源面／图层及来源几何签名；`fallbackWorldPoint` 只用于诊断，不能在来源不匹配时据此恢复有效。
+- 求解状态区分 `valid`、`unreachable`、`stale`、`destructive`。负深度保留原始 `requiredDepth`，不得压成零；不可解时保留约束、自由参数和上次有效被锁参数，隐藏误导性实体预览。恢复到可解参数后重新派生，不静默删除约束。
+- 候选影响统一分为 `contact-only`（仅接触）、`facet`（形成有效面）与 `destructive`（覆盖影响）。零有效面的候选可以浏览、预览和锁定，但不能提交；普通 CUT、Jump 与 Meet 共用下面的提交前评估规则，不能由 helper 另写近似判断。
+- 已提交拓扑和施工阶段必须复用缓存；候选枚举仅计算解析解、稳定排序与来源，不能同步裁切全部候选。只为当前预告／所选候选按完整重复和镜像轨道计算影响；来源采用施工前缀，最终提交影响仍采用完整工序实体。
+- 未锁定的 Jump 只留下显式草稿参数，不单独持久化；提交后才将已锁构造快照写入同层全部 facet metadata。JSON／备份保留构造，PDF 展示来源与比例或明确失效，ASC 预检说明仅交换显式有效切面而丢失构造意图。
+- 进入光学仿真只暂停构造交互；退出须恢复原会话及构造状态，不提交、不取消、不写入历史。
 
 ## 参数化工序与最终有效面
 
@@ -54,7 +65,7 @@
 
 - 浮层统一隔离底层 CUT 快捷键：刻面表打开时 Escape 只关闭刻面表，J / Shift+J 不改变草稿；对话框管理焦点并在关闭时返回触发控件。
 - 光学物理参数与计算参数从 `document.metadata.optics` 读取，通过文档命令更新；载入、撤销和重做自然恢复材质，不保留第二份可漂移的材质 state。VIEW ONLY 参数仅留在会话 UI 中。旧 ASC 的 `refractiveIndex` 与当前 `material.ior` 在领域边界统一兼容，当前字段优先。
-- Jump 沿用 `SELECT_MEET_CANDIDATE` 事件；`resolveCutSession(session, { jumpCandidates })` 派生 `canJumpPrevious` / `canJumpNext`，在锁定 Meet、空候选及首尾边界禁用相应操作，按钮与键盘共用能力位。候选分类直接使用领域影响评估，不另做近似判定。
+- Jump 沿用 `SELECT_MEET_CANDIDATE` 事件；`resolveCutSession(session, { jumpCandidates })` 派生 `canJumpPrevious` / `canJumpNext`，在双 Meet 锁定、空候选及首尾边界禁用相应操作；单 A 锁定时继续按角度浏览第二点候选，按钮与键盘共用能力位。候选分类直接使用领域影响评估，不另做近似判定。
 - 文档有效面数不含毛坯面；视口状态分别列出当前有效刻面与残余毛坯面。活动图层显示生成数与实际贡献的有效面数，切割指令只列出有效索引；未形成有效面的草稿以状态文字说明。JSON / ASC / PDF 只导出已提交文档，活动草稿不得被导出动作隐式提交。
 
 - 会话状态永不写入 JSON 或 ASC：保存的是命令作用后的文档，不是编辑过程。唯一例外是提交后附着在显式 facet 上的 Meet 构造快照，它随文档写入 JSON，但不写 ASC，也不构成对来源图层的实时依赖。

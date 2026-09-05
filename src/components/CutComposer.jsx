@@ -13,13 +13,17 @@ export function CutComposer({
   onMirrorChange,
   customIndices,
   onCustomIndicesChange,
+  primaryIndices = [],
+  primaryIndexEditable = false,
+  preform = false,
+  canEditPreform = false,
+  onPreformChange,
   generatedCount,
   instructionGroups,
   mode,
   controlsEnabled = false,
   previewEnabled,
   lockedPattern = false,
-  patternModeLocked = false,
   validationMessage,
   warningMessage,
   status,
@@ -41,7 +45,7 @@ export function CutComposer({
           className={patternMode === "symmetric" ? "is-active" : ""}
           onClick={() => onPatternModeChange("symmetric")}
           aria-pressed={patternMode === "symmetric"}
-          disabled={lockedPattern || patternModeLocked || controlsDisabled}
+          disabled={lockedPattern || controlsDisabled}
         >
           对称模式
         </button>
@@ -50,7 +54,7 @@ export function CutComposer({
           className={patternMode === "arbitrary" ? "is-active" : ""}
           onClick={() => onPatternModeChange("arbitrary")}
           aria-pressed={patternMode === "arbitrary"}
-          disabled={lockedPattern || patternModeLocked || controlsDisabled}
+          disabled={lockedPattern || controlsDisabled}
         >
           自定义索引
         </button>
@@ -83,6 +87,7 @@ export function CutComposer({
           </div>
         </div>
       ) : (
+        <div className="composer-custom">
         <label className="custom-index-field">
           <span>整数索引列表</span>
           <textarea
@@ -94,7 +99,23 @@ export function CutComposer({
             placeholder="02 22 26 46 50 70 74 94"
           />
         </label>
+        <label className="custom-primary-field">
+          <span>主切面分度</span>
+          <select aria-label="自定义主切面分度" value={primaryIndices.includes(baseIndex) ? baseIndex : ""} disabled={!primaryIndexEditable} onChange={(event) => onBaseIndexChange(Number(event.target.value))}>
+            {!primaryIndices.includes(baseIndex) ? <option value="" disabled>请选择</option> : null}
+            {primaryIndices.map((index) => <option key={index} value={index}>{String(displayIndex(index)).padStart(2, "0")}</option>)}
+          </select>
+          <small>主切面控制 Meet / Jump 与操纵杆，必须在索引列表内。</small>
+        </label>
+        </div>
       )}
+
+      {canEditPreform || preform ? (
+        <label className="construction-preform-field">
+          <input type="checkbox" checked={preform} disabled={!canEditPreform} onChange={(event) => onPreformChange?.(event.target.checked)} />
+          <span><strong>预形工序</strong><small>标记施工用途；仍参与几何与有效面统计。</small></span>
+        </label>
+      ) : null}
 
       <div className="generated-indices">
         <div className="generated-instructions-heading">

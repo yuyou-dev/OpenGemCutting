@@ -1,4 +1,4 @@
-import { rotationalStockSupportOffset } from "./faceting.js";
+import { facetNormal, industryAngleToBetaDeg, rotationalStockSupportOffset } from "./faceting.js";
 import { clipPolyhedronByPlanes } from "./geometry.js";
 
 export const MEET_STATUS = Object.freeze({
@@ -110,6 +110,58 @@ export function enumerateTopologyVertices(polyhedron) {
   }).sort((left, right) => compareText(left.topologyKey, right.topologyKey));
 }
 
+/** Polygon boundary segments only: no triangulation diagonals or inferred chords. */
+export function enumerateTopologyEdges(polyhedron, {
+  targets = enumerateTopologyVertices(polyhedron),
+  tolerance = DEFAULT_TOLERANCE,
+} = {}) {
+  const byVertex = new Map(targets.map((target) => [target.vertexIndex, target]));
+  const edges = new Map();
+  for (const face of polyhedron.faces) {
+    face.vertexIndices.forEach((vertexIndex, index) => {
+      const nextIndex = face.vertexIndices[(index + 1) % face.vertexIndices.length];
+      const endpoints = [byVertex.get(vertexIndex), byVertex.get(nextIndex)]
+        .sort((left, right) => compareText(left.topologyKey, right.topologyKey));
+      const [start, end] = endpoints.map((target) => target.fallbackWorldPoint);
+      if (Math.hypot(...start.map((value, axis) => value - end[axis])) <= tolerance) return;
+      const topologyKey = `edge:${endpoints.map((target) => encodeURIComponent(target.topologyKey)).join("|")}`;
+      if (edges.has(topologyKey)) return;
+      edges.set(topologyKey, {
+        kind: "edge",
+        topologyKey,
+        endpoints,
+        vertexIndices: endpoints.map((target) => target.vertexIndex),
+        sourceFaceIds: [...new Set(endpoints.flatMap((target) => target.sourceFaceIds))].sort(compareText),
+        sourceOperationIds: [...new Set(endpoints.flatMap((target) => target.sourceOperationIds))].sort(compareText),
+        sourceGeometrySignature: `e1:${hash(endpoints.map((target) => (
+          `${target.topologyKey}:${target.sourceGeometrySignature}`
+        )).join("|"))}`,
+      });
+    });
+  }
+  return [...edges.values()].sort((left, right) => compareText(left.topologyKey, right.topologyKey));
+}
+
+/** Ratio direction follows the stable endpoint order, never the polygon winding. */
+export function createEdgeMeetTarget(edge, ratio) {
+  if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) {
+    throw new RangeError("edge ratio must be between 0 and 1");
+  }
+  if (ratio === 0 || ratio === 1) return edge.endpoints[ratio];
+  const [start, end] = edge.endpoints.map((target) => target.fallbackWorldPoint);
+  return {
+    kind: "edge-point",
+    topologyKey: `${edge.topologyKey}@${ratio}`,
+    edgeTopologyKey: edge.topologyKey,
+    ratio,
+    endpoints: edge.endpoints,
+    sourceFaceIds: edge.sourceFaceIds,
+    sourceOperationIds: edge.sourceOperationIds,
+    sourceGeometrySignature: edge.sourceGeometrySignature,
+    fallbackWorldPoint: start.map((value, axis) => value + (end[axis] - value) * ratio),
+  };
+}
+
 /** Solve the faceting-machine depth required for one normalized plane to pass through a vertex. */
 export function solveVertexMeet({ normal: rawNormal, target, stock, tolerance = DEFAULT_TOLERANCE }) {
   const normal = normalize(rawNormal);
@@ -126,6 +178,43 @@ export function solveVertexMeet({ normal: rawNormal, target, stock, tolerance = 
     residual: Math.abs(residual) <= tolerance ? 0 : residual,
     normal,
     offset,
+  };
+}
+
+/** Two points constrain angle and depth while the integer machine index stays fixed. */
+export function solveDualMeet({
+  targetA, targetB, baseIndex, region, stock, tolerance = DEFAULT_TOLERANCE,
+}) {
+  if (region !== "crown" && region !== "pavilion") {
+    throw new RangeError("dual Meet requires crown or pavilion");
+  }
+  const radial = facetNormal(baseIndex, 0);
+  const start = coordinates(targetA.fallbackWorldPoint ?? targetA.point ?? targetA);
+  const end = coordinates(targetB.fallbackWorldPoint ?? targetB.point ?? targetB);
+  const delta = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
+  const failure = (reason) => ({
+    status: MEET_STATUS.UNREACHABLE, reason, industryAngleDeg: null,
+    requiredDepth: null, depth: null, residuals: null, normal: null, offset: null,
+  });
+  if (Math.hypot(delta.x, delta.y, delta.z) <= tolerance) return failure("duplicate-points");
+  const horizontal = dot(radial, delta);
+  const vertical = (region === "crown" ? 1 : -1) * delta.z;
+  if (Math.hypot(horizontal, vertical) <= tolerance) return failure("non-unique-angle");
+
+  // horizontal * sin(angle) + vertical * cos(angle) = 0; solutions repeat every pi.
+  let angle = Math.atan2(-vertical, horizontal);
+  if (angle < 0) angle += Math.PI;
+  if (angle >= Math.PI) angle -= Math.PI;
+  if (angle > Math.PI / 2) return failure("angle-out-of-range");
+  const industryAngleDeg = angle * 180 / Math.PI;
+  const normal = facetNormal(baseIndex, industryAngleToBetaDeg(region, industryAngleDeg));
+  const result = solveVertexMeet({ normal, target: targetA, stock, tolerance });
+  const residualB = dot(normal, end) - result.offset;
+  return {
+    ...result,
+    reason: result.status === MEET_STATUS.VALID ? null : "negative-depth",
+    industryAngleDeg,
+    residuals: [result.residual, Math.abs(residualB) <= tolerance ? 0 : residualB],
   };
 }
 
@@ -278,6 +367,45 @@ export function generateJumpCandidates({
   }));
 }
 
+/** With A locked, enumerate possible B vertices analytically without clipping any orbit. */
+export function generateDualJumpCandidates({
+  baseSolid,
+  targetA,
+  baseIndex,
+  region,
+  stock,
+  targets = enumerateTopologyVertices(baseSolid),
+  tolerance = DEFAULT_TOLERANCE,
+}) {
+  const solved = targets.map((target) => ({
+    target,
+    ...solveDualMeet({ targetA, targetB: target, baseIndex, region, stock, tolerance }),
+  })).filter((entry) => entry.status === MEET_STATUS.VALID)
+    .sort((left, right) => left.industryAngleDeg - right.industryAngleDeg
+      || compareText(left.target.topologyKey, right.target.topologyKey));
+  const groups = [];
+  for (const entry of solved) {
+    const group = groups.at(-1);
+    if (group && Math.abs(entry.industryAngleDeg - group[0].industryAngleDeg) <= tolerance) {
+      group.push(entry);
+    } else {
+      groups.push([entry]);
+    }
+  }
+  return groups.map((group, index) => {
+    const entry = [...group].sort((left, right) => compareText(left.target.topologyKey, right.target.topologyKey))[0];
+    return {
+      source: "jump",
+      key: entry.target.topologyKey,
+      target: entry.target,
+      depth: entry.depth,
+      industryAngleDeg: entry.industryAngleDeg,
+      normal: entry.normal,
+      index,
+    };
+  });
+}
+
 /** Classify only a displayed or selected stop, using the complete CUT orbit. */
 export function classifyJumpCandidate({
   candidate,
@@ -285,11 +413,14 @@ export function classifyJumpCandidate({
   normal: rawNormal,
   stock,
   planesForDepth,
+  planesForCandidate,
   tolerance = DEFAULT_TOLERANCE,
 }) {
-  const normal = normalize(rawNormal);
-  const planes = planesForDepth
-    ? planesForDepth(candidate.depth)
+  const normal = normalize(candidate.normal ?? rawNormal);
+  const planes = planesForCandidate
+    ? planesForCandidate(candidate)
+    : planesForDepth
+      ? planesForDepth(candidate.depth)
     : [{
       normal,
       offset: rotationalStockSupportOffset(normal, stock) - candidate.depth,
@@ -304,6 +435,7 @@ export function classifyJumpCandidate({
 export function adjacentJumpCandidateIndex({
   candidates,
   currentDepth,
+  currentAngle,
   currentKey = null,
   direction = 1,
   tolerance = 1e-7,
@@ -313,21 +445,35 @@ export function adjacentJumpCandidateIndex({
     const adjacent = currentIndex + (direction < 0 ? -1 : 1);
     return adjacent >= 0 && adjacent < candidates.length ? adjacent : -1;
   }
+  const value = currentAngle ?? currentDepth;
+  const field = currentAngle == null ? "depth" : "industryAngleDeg";
   return direction < 0
-    ? candidates.findLastIndex((candidate) => candidate.depth < currentDepth - tolerance)
-    : candidates.findIndex((candidate) => candidate.depth > currentDepth + tolerance);
+    ? candidates.findLastIndex((candidate) => candidate[field] < value - tolerance)
+    : candidates.findIndex((candidate) => candidate[field] > value + tolerance);
 }
 
 /** Resolve persisted construction metadata without using its fallback point as a live target. */
 export function resolvePersistedVertexTarget(target, baseSolid) {
-  const match = enumerateTopologyVertices(baseSolid)
+  return resolvePersistedMeetTarget(target, baseSolid);
+}
+
+/** Both endpoint identities must still exist; diagnostic coordinates never restore a source. */
+export function resolvePersistedMeetTarget(target, baseSolid, {
+  vertices = enumerateTopologyVertices(baseSolid),
+  edges,
+} = {}) {
+  const isEdge = target.kind === "edge-point";
+  const match = isEdge
+    ? (edges ?? enumerateTopologyEdges(baseSolid, { targets: vertices }))
+      .find((candidate) => candidate.topologyKey === target.edgeTopologyKey)
+    : vertices
     .find((candidate) => candidate.topologyKey === target.topologyKey);
 
   if (!match) {
     return { status: MEET_STATUS.STALE, target: null, reason: "topology-missing" };
   }
   if (match.sourceGeometrySignature !== target.sourceGeometrySignature) {
-    return { status: MEET_STATUS.STALE, target: match, reason: "geometry-changed" };
+    return { status: MEET_STATUS.STALE, target: isEdge ? createEdgeMeetTarget(match, target.ratio) : match, reason: "geometry-changed" };
   }
-  return { status: MEET_STATUS.VALID, target: match, reason: null };
+  return { status: MEET_STATUS.VALID, target: isEdge ? createEdgeMeetTarget(match, target.ratio) : match, reason: null };
 }

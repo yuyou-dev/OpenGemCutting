@@ -13,6 +13,7 @@
 
 ```bash
 npm ci
+npm audit
 npm run check
 npm run build:pages
 git remote -v              # 只允许指向公开 OpenGemCutting 仓库
@@ -23,7 +24,8 @@ git status --short --branch
 
 - `public/presets/catalog.json` 与全部引用的规范化文档、四视图；
 - `public/manual/facet-96-operation-manual.pdf`；
-- README 顶部 Live Demo 与操作手册链接；
+- README 顶部 Live Demo、操作手册与设计练习链接；
+- 手册正文、页脚及案例均适用于当前公开版，不含其他发行版说明；
 - `package.json`、手册页脚与发布 tag 的版本号一致。
 
 ## 3. Create a release commit

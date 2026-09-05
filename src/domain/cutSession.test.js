@@ -18,6 +18,7 @@ const LAYER_DRAFT = Object.freeze({
   mirrorOffset: 3,
   patternMode: "symmetric",
   customIndices: "02 22",
+  preform: false,
 });
 
 const MEET_TARGET = Object.freeze({
@@ -104,6 +105,12 @@ test("every resolved mode exposes the same Meet and Jump capability keys", () =>
     "canLockMeet",
     "canCancelConstructionTool",
     "depthEditable",
+    "angleEditable",
+    "canLockSecondMeet",
+    "canClearMeetA",
+    "canClearMeetB",
+    "canEditEdgeRatio",
+    "canMarkPreform",
     "constructionValid",
   ];
   Object.values(CUT_SESSION_MODE).forEach((mode) => {
@@ -116,25 +123,24 @@ test("every resolved mode exposes the same Meet and Jump capability keys", () =>
   });
 });
 
-test("Meet and Jump are available only to symmetric crown and pavilion drafts", () => {
+test("Meet and Jump support symmetric and custom crown/pavilion drafts with an explicit member primary", () => {
   for (const mode of Object.values(CUT_SESSION_MODE)) {
     for (const region of ["crown", "girdle", "pavilion"]) {
       for (const patternMode of ["symmetric", "arbitrary"]) {
         let session = createCutSession(mode, {
           patternId: "C1",
           region,
-          draft: { ...LAYER_DRAFT, patternMode },
+          draft: { ...LAYER_DRAFT, patternMode, customIndices: "08 36" },
         });
         if (mode === CUT_SESSION_MODE.CREATE && patternMode === "arbitrary") {
           session = cutSessionReducer(session, {
             type: CUT_SESSION_EVENT.CHANGE_DRAFT,
-            patch: { patternMode },
+            patch: { patternMode, customIndices: "08 36" },
           });
         }
         const view = resolveCutSession(session);
         const expected = (mode === CUT_SESSION_MODE.CREATE || mode === CUT_SESSION_MODE.EDIT)
-          && (region === "crown" || region === "pavilion")
-          && patternMode === "symmetric";
+          && (region === "crown" || region === "pavilion");
         assert.equal(view.canUseMeetJump, expected, `${mode}/${region}/${patternMode}`);
         assert.equal(view.canPickMeetTarget, expected, `${mode}/${region}/${patternMode}`);
       }
@@ -184,6 +190,7 @@ test("region defaults rebuild drafts while index preferences survive", () => {
     mirrorOffset: 0,
     patternMode: "symmetric",
     customIndices: "02 22 26 46 50 70 74 94",
+    preform: false,
   });
   assert.equal(defaultDraftForRegion("girdle").repeat, 16);
   assert.equal(defaultDraftForRegion("pavilion").depth, 0);
@@ -301,7 +308,7 @@ test("Meet picking is explicit and cancelling the tool preserves an existing Mee
   assert.equal(cancelled.dirty, false);
 });
 
-test("choosing a replacement target clears the old Meet only after selection", () => {
+test("choosing a second candidate preserves A until explicitly locking B", () => {
   const edit = createCutSession(CUT_SESSION_MODE.EDIT, {
     patternId: "C1",
     region: "crown",
@@ -312,11 +319,15 @@ test("choosing a replacement target clears the old Meet only after selection", (
   assert.deepEqual(picking.construction.meet, VALID_MEET);
   const selected = cutSessionReducer(picking, {
     type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE,
-    candidate: { ...VALID_CANDIDATE, key: "replacement" },
+    candidate: { ...VALID_CANDIDATE, key: "second", industryAngleDeg: 37.75 },
   });
-  assert.equal(selected.construction.meet, null);
-  assert.equal(selected.construction.candidate.key, "replacement");
+  assert.equal(selected.construction.meet, VALID_MEET);
+  assert.equal(selected.construction.candidate.key, "second");
+  assert.equal(selected.draft.industryAngle, 37.75);
+  assert.equal(selected.construction.returnDirty, false);
+  assert.deepEqual(selected.construction.returnDraft, edit.draft);
   assert.equal(resolveCutSession(selected).canLockMeet, true);
+  assert.equal(resolveCutSession(selected).canLockSecondMeet, true);
 });
 
 test("selecting, locking, and clearing a Meet updates one construction substate", () => {
@@ -520,4 +531,242 @@ test("Jump capabilities respect candidate boundaries and locked Meet", () => {
   assert.equal(resolveCutSession(session, { jumpCandidates }).canJumpPrevious, true);
   assert.equal(resolveCutSession(session).canJumpNext, false);
   assert.equal(resolveCutSession(createCutSession(), { jumpCandidates }).canJumpNext, false);
+});
+
+const SECOND_TARGET = { ...MEET_TARGET, topologyKey: "second", fallbackWorldPoint: [0.3, 0.2, 0.1] };
+const SECOND_CANDIDATE = {
+  ...VALID_CANDIDATE, key: "second", target: SECOND_TARGET,
+  industryAngleDeg: 37.123456, depth: 0.6123456,
+};
+
+function singleMeetSession() {
+  return createCutSession(CUT_SESSION_MODE.EDIT, {
+    region: "crown", patternId: "C1", draft: LAYER_DRAFT, construction: { meet: VALID_MEET },
+  });
+}
+
+function doubleMeetSession() {
+  return cutSessionReducer(cutSessionReducer(singleMeetSession(), {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate: SECOND_CANDIDATE,
+  }), { type: CUT_SESSION_EVENT.LOCK_MEET });
+}
+
+test("B preview navigation preserves the first A snapshot and Escape restores draft and clean edit status", () => {
+  const original = singleMeetSession();
+  let session = cutSessionReducer(original, {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate: SECOND_CANDIDATE,
+  });
+  session = cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE,
+    candidate: { ...SECOND_CANDIDATE, key: "third", industryAngleDeg: 44.25, depth: 0.55 },
+  });
+  assert.equal(session.draft.industryAngle, 44.25);
+  assert.equal(session.draft.depth, 0.55);
+  assert.deepEqual(session.construction.returnDraft, original.draft);
+  assert.equal(session.construction.returnDirty, false);
+  const picker = cutSessionReducer(session, { type: CUT_SESSION_EVENT.START_MEET_PICK, tool: "pick-edge" });
+  assert.equal(picker.construction.tool, "pick-edge");
+  const firstEscape = cutSessionReducer(picker, { type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+  assert.equal(firstEscape.construction.tool, "none");
+  assert.equal(firstEscape.construction.candidate.key, "third");
+  assert.equal(resolveCutSession(firstEscape).canCancelConstructionTool, true);
+  const secondEscape = cutSessionReducer(firstEscape, { type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+  assert.deepEqual(secondEscape, original);
+  assert.equal(resolveCutSession(secondEscape).canCancelConstructionTool, false);
+});
+
+test("locked double Meet controls angle and depth while the solver may atomically update both", () => {
+  const session = doubleMeetSession();
+  const capabilities = resolveCutSession(session);
+  assert.equal(capabilities.depthEditable, false);
+  assert.equal(capabilities.angleEditable, false);
+  assert.equal(capabilities.canPickMeetTarget, false);
+  assert.equal(capabilities.canClearMeetA, true);
+  assert.equal(capabilities.canClearMeetB, true);
+  assert.deepEqual(session.construction.meet.target, MEET_TARGET);
+  assert.deepEqual(session.construction.meet.secondTarget, SECOND_TARGET);
+  assert.equal(session.construction.returnDraft, undefined);
+  assert.equal(cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: 60, depth: 1 },
+  }), session);
+  const updatedMeet = { ...session.construction.meet, requiredDepth: 0.7 };
+  const updated = cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { baseIndex: 9, industryAngle: 39.99, depth: 0.7 },
+    constructionResult: { meet: updatedMeet },
+  });
+  assert.equal(updated.draft.baseIndex, 9);
+  assert.equal(updated.draft.industryAngle, 39.99);
+  assert.equal(updated.draft.depth, 0.7);
+  assert.deepEqual(updated.construction.meet, updatedMeet);
+});
+
+test("single Meet rejects raw depth but permits angle changes and marks an omitted solver result stale", () => {
+  const session = singleMeetSession();
+  assert.equal(resolveCutSession(session).angleEditable, true);
+  assert.equal(cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { depth: 1 },
+  }), session);
+  const next = cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: 35, depth: 1 },
+  });
+  assert.equal(next.draft.industryAngle, 35);
+  assert.equal(next.draft.depth, session.draft.depth);
+  assert.equal(next.construction.meet.status, "stale");
+});
+
+test("unsolved double constraints preserve locked parameters and recover through a new atomic result", () => {
+  const session = doubleMeetSession();
+  const invalidMeet = { ...session.construction.meet, status: "unreachable", reason: "angle-out-of-range" };
+  const invalid = cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { baseIndex: 90, industryAngle: 140, depth: -1 },
+    constructionResult: { meet: invalidMeet },
+  });
+  assert.equal(invalid.draft.baseIndex, 90);
+  assert.equal(invalid.draft.industryAngle, session.draft.industryAngle);
+  assert.equal(invalid.draft.depth, session.draft.depth);
+  assert.deepEqual(invalid.construction.meet.secondTarget, SECOND_TARGET);
+  assert.equal(resolveCutSession(invalid).canCommit, false);
+  const recovered = cutSessionReducer(invalid, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { baseIndex: 8, industryAngle: 37.5, depth: 0.61 },
+    constructionResult: { meet: { ...invalidMeet, status: "valid", reason: null } },
+  });
+  assert.equal(recovered.draft.industryAngle, 37.5);
+  assert.equal(recovered.draft.depth, 0.61);
+  assert.equal(resolveCutSession(recovered).canCommit, true);
+});
+
+test("clear B keeps A, clear A promotes B, clear all frees both parameters and applies remaining solver result", () => {
+  const session = doubleMeetSession();
+  const keepA = cutSessionReducer(session, { type: CUT_SESSION_EVENT.CLEAR_MEET, slot: "B" });
+  assert.deepEqual(keepA.construction.meet.target, MEET_TARGET);
+  assert.equal(keepA.construction.meet.secondTarget, undefined);
+  assert.equal(resolveCutSession(keepA).angleEditable, true);
+  assert.equal(resolveCutSession(keepA).depthEditable, false);
+  const promoted = cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CLEAR_MEET, slot: "A",
+    meet: { ...VALID_MEET, target: SECOND_TARGET, requiredDepth: 0.7 }, patch: { depth: 0.7 },
+  });
+  assert.equal(promoted.construction.meet.target, SECOND_TARGET);
+  assert.equal(promoted.draft.depth, 0.7);
+  const cleared = cutSessionReducer(session, { type: CUT_SESSION_EVENT.CLEAR_MEET, slot: "all" });
+  assert.equal(cleared.construction.meet, null);
+  assert.equal(resolveCutSession(cleared).depthEditable, true);
+  assert.equal(resolveCutSession(cleared).angleEditable, true);
+  const preview = cutSessionReducer(singleMeetSession(), {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate: SECOND_CANDIDATE,
+  });
+  const previewCleared = cutSessionReducer(preview, { type: CUT_SESSION_EVENT.CLEAR_MEET, slot: "all" });
+  assert.deepEqual(previewCleared.draft, LAYER_DRAFT);
+});
+
+test("edge ratio editing retains endpoint controls and Escape closes editor before undoing B preview", () => {
+  const edgeCandidate = {
+    ...SECOND_CANDIDATE,
+    edge: { topologyKey: "edge:test" }, ratio: 0.5,
+    target: { ...SECOND_TARGET, kind: "edge-point", ratio: 0.5 },
+  };
+  const selected = cutSessionReducer(singleMeetSession(), {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate: edgeCandidate,
+  });
+  assert.equal(selected.construction.tool, "edit-edge");
+  assert.equal(resolveCutSession(selected).canEditEdgeRatio, true);
+  const endpoint = cutSessionReducer(selected, {
+    type: CUT_SESSION_EVENT.CHANGE_EDGE_RATIO,
+    candidate: { ...edgeCandidate, target: SECOND_TARGET, ratio: 1, depth: 0.8 },
+  });
+  assert.equal(endpoint.draft.depth, 0.8);
+  assert.equal(resolveCutSession(endpoint).canEditEdgeRatio, true);
+  const finished = cutSessionReducer(endpoint, { type: CUT_SESSION_EVENT.FINISH_EDGE_EDIT });
+  assert.equal(finished.construction.tool, "none");
+  assert.equal(finished.construction.candidate.ratio, 1);
+  const cancelled = cutSessionReducer(finished, { type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+  assert.deepEqual(cancelled, singleMeetSession());
+  assert.equal(cutSessionReducer(cancelled, {
+    type: CUT_SESSION_EVENT.CHANGE_EDGE_RATIO, candidate: edgeCandidate,
+  }), cancelled);
+});
+
+test("custom Meet requires a selected member and rejects deleting the locked primary atomically", () => {
+  let session = cutSessionReducer(singleMeetSession(), {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { patternMode: "arbitrary", customIndices: "08 22 96" },
+    constructionResult: { meet: VALID_MEET },
+  });
+  assert.equal(resolveCutSession(session).canUseMeetJump, true);
+  assert.equal(cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { customIndices: "22 96" }, constructionResult: { meet: VALID_MEET },
+  }), session);
+  const invalidPrimary = createCutSession(CUT_SESSION_MODE.EDIT, {
+    region: "crown", patternId: "C1", draft: { ...LAYER_DRAFT, patternMode: "arbitrary" },
+  });
+  assert.equal(resolveCutSession(invalidPrimary).canUseMeetJump, false);
+  session = cutSessionReducer(session, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { baseIndex: 0 }, constructionResult: { meet: VALID_MEET },
+  });
+  assert.equal(session.draft.baseIndex, 0);
+  assert.equal(resolveCutSession(session).canUseMeetJump, true);
+});
+
+test("single A navigates angle-sorted Jump B candidates while locked double Meet stops all Jump", () => {
+  const candidates = [
+    { ...SECOND_CANDIDATE, key: "first", industryAngleDeg: 20 },
+    { ...SECOND_CANDIDATE, key: "last", industryAngleDeg: 60 },
+  ];
+  const single = resolveCutSession(singleMeetSession(), { jumpCandidates: candidates });
+  assert.equal(single.canJumpPrevious, true);
+  assert.equal(single.canJumpNext, true);
+  const double = resolveCutSession(doubleMeetSession(), { jumpCandidates: candidates });
+  assert.equal(double.canJumpPrevious, false);
+  assert.equal(double.canJumpNext, false);
+  assert.equal(double.canLockSecondMeet, false);
+});
+
+test("preform is ordinary crown/pavilion metadata only and resets on new actions", () => {
+  const marked = cutSessionReducer(singleMeetSession(), {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { preform: true },
+  });
+  assert.equal(marked.draft.preform, true);
+  assert.equal(marked.construction.meet.status, "valid");
+  const preview = cutSessionReducer(singleMeetSession(), {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate: SECOND_CANDIDATE,
+  });
+  const markedPreview = cutSessionReducer(preview, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { preform: true },
+  });
+  assert.deepEqual(markedPreview.construction.candidate, SECOND_CANDIDATE);
+  const cancelledPreview = cutSessionReducer(markedPreview, { type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+  assert.equal(cancelledPreview.draft.preform, true);
+  assert.equal(cancelledPreview.draft.industryAngle, LAYER_DRAFT.industryAngle);
+  assert.equal(cancelledPreview.dirty, true);
+  assert.equal(cutSessionReducer(marked, {
+    type: CUT_SESSION_EVENT.CHANGE_REGION, region: "pavilion",
+  }).draft.preform, false);
+  for (const settings of [{ region: "girdle" }, { region: "crown", lockedLayer: true }]) {
+    const structural = createCutSession(CUT_SESSION_MODE.EDIT, {
+      ...settings, patternId: "structural", draft: { ...LAYER_DRAFT, preform: true },
+    });
+    assert.equal(structural.draft.preform, false);
+    assert.equal(resolveCutSession(structural).canMarkPreform, false);
+    assert.equal(cutSessionReducer(structural, {
+      type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { preform: true },
+    }), structural);
+  }
+});
+
+
+test("invalid A cannot start a misleading second-point pick before repair", () => {
+  for (const status of ["stale", "unreachable"]) {
+    const session = createCutSession(CUT_SESSION_MODE.EDIT, {
+      patternId: "C1", region: "crown", draft: LAYER_DRAFT,
+      construction: { meet: { ...VALID_MEET, status } },
+    });
+    assert.equal(resolveCutSession(session).canPickMeetTarget, false);
+    assert.equal(resolveCutSession(session).canClearMeetA, true);
+    assert.equal(cutSessionReducer(session, { type: CUT_SESSION_EVENT.START_MEET_PICK }), session);
+  }
 });
