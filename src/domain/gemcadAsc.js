@@ -9,6 +9,7 @@ import {
   validateFacetingDocument,
 } from "./faceting.js";
 import { clipPolyhedronByPlanes, createCenteredCube } from "./geometry.js";
+import { summarizeEffectiveFacets } from "./meetJump.js";
 
 const TARGET_GEAR = 96;
 const EPSILON = 1e-9;
@@ -294,6 +295,7 @@ function geometrySummary(document) {
     operationId: facet.patternId,
     faceId: facet.id,
     region: facet.region,
+    operationType: facet.metadata?.operationType,
   })));
   if (solid.vertices.length === 0) return { solid, dimensions: null };
   const xs = solid.vertices.map((point) => point.x);
@@ -518,13 +520,18 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
   };
 }
 
-function groupFacets(document) {
+function groupFacets(facets) {
   const groups = new Map();
-  document.facets.forEach((facet) => {
+  facets.forEach((facet) => {
     if (!groups.has(facet.patternId)) groups.set(facet.patternId, []);
     groups.get(facet.patternId).push(facet);
   });
   return [...groups.values()];
+}
+
+function effectiveFacets(facets, solid) {
+  const survivingFacetIds = new Set(summarizeEffectiveFacets(solid).effectiveFacetIds);
+  return facets.filter((facet) => survivingFacetIds.has(facet.id));
 }
 
 function safeTierName(value, fallback, diagnostics) {
@@ -550,14 +557,17 @@ export function serializeGemCadAsc(document) {
     return { status: "error", text: "", diagnostics, summary: null };
   }
 
-  const groups = groupFacets(document).sort((left, right) => operationRank(left) - operationRank(right));
+  const geometry = geometrySummary(document);
+  const exportedFacets = effectiveFacets(document.facets, geometry.solid);
+  const omittedFacetCount = document.facets.length - exportedFacets.length;
+  const groups = groupFacets(exportedFacets).sort((left, right) => operationRank(left) - operationRank(right));
   const ascMetadata = document.metadata?.asc ?? {};
   const symmetry = Number.isInteger(ascMetadata.symmetry) && ascMetadata.symmetry > 0 ? ascMetadata.symmetry : 1;
   const mirror = ascMetadata.mirrorSymmetry ? "y" : "n";
   if (!ascMetadata.symmetry) {
     diagnostics.push(diagnostic("warning", "SYMMETRY_NORMALIZED", "全局对称设置将写为 1-fold / no mirror；所有真实刻面仍由显式索引完整保留。"));
   }
-  const ri = Number(document.metadata?.optics?.refractiveIndex);
+  const ri = Number(document.metadata?.optics?.material?.ior ?? document.metadata?.optics?.refractiveIndex);
   const refractiveIndex = Number.isFinite(ri) && ri > 1 ? ri : 1.54;
   const headings = [document.name, ...(Array.isArray(ascMetadata.headings) ? ascMetadata.headings.slice(1) : [])].slice(0, 4);
   const footnotes = Array.isArray(ascMetadata.footnotes) ? ascMetadata.footnotes.slice(0, 4) : [];
@@ -610,13 +620,22 @@ export function serializeGemCadAsc(document) {
   if (flattened) {
     diagnostics.push(diagnostic("warning", "PARAMETRIC_RELATIONSHIP_FLATTENED", "重复与镜像关系会展开为显式索引；刻面几何保持，但该参数关系无法从 ASC 恢复。"));
   }
+  if (document.facets.some((facet) => facet.metadata?.construction?.type === "vertex-meet")) {
+    diagnostics.push(diagnostic("warning", "MEET_CONSTRUCTION_OMITTED", "ASC 只保留显式切面；Meet 顶点来源与构造意图不会写入，请保留 JSON 主文件。"));
+  }
+  if (omittedFacetCount > 0) {
+    diagnostics.push(diagnostic(
+      "warning",
+      "OVERWRITTEN_FACETS_OMITTED",
+      `最终实体中有 ${omittedFacetCount} 条刻面记录已被后续切割覆盖，ASC 已省略；完整 CUT STACK 仍保留在 JSON 主文件中。`,
+    ));
+  }
   const opticsKeys = Object.keys(document.metadata?.optics ?? {}).filter((key) => key !== "refractiveIndex");
   if (opticsKeys.length > 0) {
     diagnostics.push(diagnostic("warning", "OPTICS_METADATA_OMITTED", "ASC 只保存折射率；色散、体色、吸收与观察环境仍只保留在 JSON 中。"));
   }
   diagnostics.push(diagnostic("warning", "EDITOR_STATE_OMITTED", "ASC 不包含撤销历史、隐藏状态、毛坯定义或编辑器会话；请同时保留 JSON 作为完整主文件。"));
 
-  const geometry = geometrySummary(document);
   const summary = {
     sourceGear: TARGET_GEAR,
     targetGear: TARGET_GEAR,
@@ -624,7 +643,10 @@ export function serializeGemCadAsc(document) {
     mirrorSymmetry: mirror === "y",
     refractiveIndex,
     tierCount: groups.length,
-    facetCount: document.facets.length,
+    facetCount: exportedFacets.length,
+    storedFacetCount: document.facets.length,
+    effectiveFacetCount: exportedFacets.length,
+    omittedFacetCount,
     dimensions: geometry.dimensions,
   };
   if (diagnostics.some((item) => item.severity === "error")) {

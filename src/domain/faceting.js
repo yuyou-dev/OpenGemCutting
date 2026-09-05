@@ -51,12 +51,11 @@ export const DEFAULT_STOCK = Object.freeze({
 });
 
 const COMMAND_TYPE = Object.freeze({
-  ADD_PATTERN: "pattern/add",
   REPLACE_PATTERN: "pattern/replace",
   ADD_FACETS: "facets/add",
-  UPDATE_FACET: "facet/update",
   REMOVE_FACETS: "facets/remove",
   REPLACE_DOCUMENT: "document/replace",
+  UPDATE_OPTICS: "document/optics",
 });
 
 const EPSILON = 1e-9;
@@ -625,6 +624,36 @@ function isCanonicalStock(stock) {
   );
 }
 
+function validateMeetConstruction(construction, path, errors) {
+  if (!isPlainObject(construction)) {
+    addValidationError(errors, path, "must be a Meet construction object");
+    return;
+  }
+  if (construction.type !== "vertex-meet") addValidationError(errors, `${path}.type`, "must be vertex-meet");
+  if (construction.solverVersion !== 1) addValidationError(errors, `${path}.solverVersion`, "must be 1");
+  const target = construction.target;
+  if (!isPlainObject(target)) {
+    addValidationError(errors, `${path}.target`, "must be an object");
+    return;
+  }
+  if (typeof target.topologyKey !== "string" || !target.topologyKey) {
+    addValidationError(errors, `${path}.target.topologyKey`, "must be a non-empty string");
+  }
+  for (const key of ["sourceFaceIds", "sourceOperationIds"]) {
+    if (!Array.isArray(target[key]) || !target[key].every((value) => typeof value === "string")) {
+      addValidationError(errors, `${path}.target.${key}`, "must be an array of strings");
+    }
+  }
+  if (typeof target.sourceGeometrySignature !== "string" || !target.sourceGeometrySignature) {
+    addValidationError(errors, `${path}.target.sourceGeometrySignature`, "must be a non-empty string");
+  }
+  if (!Array.isArray(target.fallbackWorldPoint)
+    || target.fallbackWorldPoint.length !== 3
+    || !target.fallbackWorldPoint.every(Number.isFinite)) {
+    addValidationError(errors, `${path}.target.fallbackWorldPoint`, "must contain three finite coordinates");
+  }
+}
+
 function validateResolvedFacet(facet, path, stock, errors) {
   if (!isPlainObject(facet)) {
     addValidationError(errors, path, "must be an object");
@@ -693,6 +722,18 @@ function validateResolvedFacet(facet, path, stock, errors) {
   }
   if (typeof facet.depth !== "number" || !Number.isFinite(facet.depth) || facet.depth < 0) {
     addValidationError(errors, `${path}.depth`, "must be a non-negative finite number");
+  }
+  if (facet.metadata?.construction !== undefined) {
+    validateMeetConstruction(facet.metadata.construction, `${path}.metadata.construction`, errors);
+    if (facet.region !== FACET_REGION.CROWN && facet.region !== FACET_REGION.PAVILION) {
+      addValidationError(errors, `${path}.metadata.construction`, "is supported only on crown or pavilion facets");
+    }
+    if (facet.metadata?.patternMode !== "symmetric") {
+      addValidationError(errors, `${path}.metadata.patternMode`, "must be symmetric when Meet construction is present");
+    }
+    if (facet.metadata?.operationType === "table" || facet.industryAngleDeg === 0) {
+      addValidationError(errors, `${path}.metadata.construction`, "is not supported on the fixed table");
+    }
   }
 
   const primitivesValid =
@@ -814,14 +855,49 @@ export function validateFacetingDocument(document) {
     addValidationError(errors, "$.facets", "must be an array");
   } else if (isCanonicalStock(document.stock)) {
     const ids = new Set();
+    const patternFacets = new Map();
     document.facets.forEach((facet, index) => {
       validateResolvedFacet(facet, `$.facets[${index}]`, document.stock, errors);
+      if (isPlainObject(facet) && typeof facet.patternId === "string") {
+        if (!patternFacets.has(facet.patternId)) patternFacets.set(facet.patternId, []);
+        patternFacets.get(facet.patternId).push({ facet, index });
+      }
       if (isPlainObject(facet) && typeof facet.id === "string") {
         if (ids.has(facet.id)) {
           addValidationError(errors, `$.facets[${index}].id`, "must be unique");
         }
         ids.add(facet.id);
       }
+    });
+    patternFacets.forEach((entries) => {
+      const constructions = entries.map(({ facet }) => facet.metadata?.construction);
+      const annotated = constructions.filter((construction) => construction !== undefined);
+      if (annotated.length === 0) return;
+      if (annotated.length !== entries.length) {
+        entries.forEach(({ facet, index }) => {
+          if (facet.metadata?.construction === undefined) {
+            addValidationError(errors, `$.facets[${index}].metadata.construction`, "must be present on every facet in the pattern");
+          }
+        });
+        return;
+      }
+      const fingerprint = (construction) => JSON.stringify({
+        type: construction?.type,
+        solverVersion: construction?.solverVersion,
+        target: {
+          topologyKey: construction?.target?.topologyKey,
+          sourceFaceIds: construction?.target?.sourceFaceIds,
+          sourceOperationIds: construction?.target?.sourceOperationIds,
+          sourceGeometrySignature: construction?.target?.sourceGeometrySignature,
+          fallbackWorldPoint: construction?.target?.fallbackWorldPoint,
+        },
+      });
+      const expected = fingerprint(annotated[0]);
+      entries.forEach(({ facet, index }) => {
+        if (fingerprint(facet.metadata.construction) !== expected) {
+          addValidationError(errors, `$.facets[${index}].metadata.construction`, "must match every facet in the pattern");
+        }
+      });
     });
   }
   return { valid: errors.length === 0, errors };
@@ -932,6 +1008,10 @@ export function createReplaceDocumentCommand(document, { description } = {}) {
   return createCommand(COMMAND_TYPE.REPLACE_DOCUMENT, { document, description });
 }
 
+export function createUpdateOpticsCommand(optics) {
+  return createCommand(COMMAND_TYPE.UPDATE_OPTICS, { optics, description: "更新光学材质与计算参数" });
+}
+
 function normalizeCommand(command) {
   if (!isPlainObject(command) || typeof command.type !== "string") {
     throw new TypeError("command must have a string type.");
@@ -944,13 +1024,6 @@ function normalizeCommand(command) {
 
   // Commands own any generated identity so replay never creates different
   // facet ids merely because the author omitted an optional pattern id.
-  if (command.type === COMMAND_TYPE.ADD_PATTERN && isPlainObject(payload.pattern)) {
-    payload.pattern.patternId =
-      payload.pattern.patternId ??
-      payload.pattern.groupId ??
-      payload.pattern.id ??
-      `${id}:pattern`;
-  }
   if (command.type === COMMAND_TYPE.ADD_FACETS && Array.isArray(payload.facets)) {
     payload.facets = payload.facets.map((facet, index) => {
       if (!isPlainObject(facet)) return facet;
@@ -984,13 +1057,13 @@ export function applyFacetingCommand(document, command) {
   const normalized = normalizeCommand(command);
   const { type, payload } = normalized;
 
+  if (type === COMMAND_TYPE.UPDATE_OPTICS) {
+    return { ...document, metadata: { ...document.metadata, optics: payload.optics } };
+  }
+
   if (type === COMMAND_TYPE.REPLACE_DOCUMENT) {
     assertValidFacetingDocument(payload.document);
     return clone(payload.document);
-  }
-  if (type === COMMAND_TYPE.ADD_PATTERN) {
-    const additions = resolveFacetPattern(payload.pattern, { stock: document.stock });
-    return appendFacets(document, additions);
   }
   if (type === COMMAND_TYPE.ADD_FACETS) {
     if (!Array.isArray(payload.facets)) {
@@ -1009,28 +1082,6 @@ export function applyFacetingCommand(document, command) {
       patternId: payload.patternId,
     }, { stock: document.stock }));
     const facets = replacePatternFacets(document.facets, payload.patternId, replacements);
-    const next = { ...document, facets };
-    assertValidFacetingDocument(next);
-    return next;
-  }
-  if (type === COMMAND_TYPE.UPDATE_FACET) {
-    const facetIndex = document.facets.findIndex(
-      (facet) => facet.id === payload.facetId,
-    );
-    if (facetIndex < 0) {
-      throw new RangeError(`Unknown facet id: ${payload.facetId}`);
-    }
-    const current = document.facets[facetIndex];
-    const updated = resolveFacet(
-      {
-        ...current,
-        ...(isPlainObject(payload.changes) ? payload.changes : {}),
-        id: current.id,
-      },
-      { stock: document.stock },
-    );
-    const facets = document.facets.slice();
-    facets[facetIndex] = updated;
     const next = { ...document, facets };
     assertValidFacetingDocument(next);
     return next;

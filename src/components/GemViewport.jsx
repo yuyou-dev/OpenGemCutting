@@ -566,6 +566,10 @@ function createHelperVisibilityContext(scene) {
     isOccluded,
     isInsideSolid,
     isInsideSilhouette,
+    isSurfacePointVisible(point) {
+      const projected = projectDomainPoint(point, frame, false);
+      return Boolean(projected && !isOccluded(projected));
+    },
     isWorldPointVisible(point) {
       const projected = projectDomainPoint(point, frame, false);
       return Boolean(projected && !isInsideSolid(point) && !isOccluded(projected));
@@ -634,17 +638,6 @@ function drawProjectedWorldSegment(
     ) continue;
     drawProjectedScreenSegment(p, projectedStart, projectedEnd);
   }
-}
-
-function collectUniqueEdges(faces) {
-  const edges = new Map();
-  faces.forEach((face) => {
-    face.points.forEach((point, index) => {
-      const next = face.points[(index + 1) % face.points.length];
-      edges.set(edgeKey(point, next), [point, next]);
-    });
-  });
-  return [...edges.values()];
 }
 
 function pointToSegment2D(x, y, ax, ay, bx, by) {
@@ -754,34 +747,29 @@ function groupRotationRingHit(x, y, ring, visibility) {
 }
 
 const PICK_VERTEX_PX = 12;
-const PICK_EDGE_PX = 8;
 
 function pickSceneTarget(x, y, scene) {
-  const { frame, vertices = [], edges = [], faces = [] } = scene;
+  const { frame, faces = [] } = scene;
   if (!frame) return null;
 
-  let bestVertex = null;
-  vertices.forEach((point, index) => {
-    const projected = projectDomainPoint(point, frame);
-    if (!projected) return;
-    const distance = Math.hypot(projected.x - x, projected.y - y);
-    if (distance <= PICK_VERTEX_PX && (!bestVertex || distance < bestVertex.distance)) {
-      bestVertex = { kind: "vertex", point, index, distance };
-    }
-  });
-  if (bestVertex) return bestVertex;
-
-  let bestEdge = null;
-  edges.forEach(([a, b]) => {
-    const pa = projectDomainPoint(a, frame);
-    const pb = projectDomainPoint(b, frame);
-    if (!pa || !pb) return;
-    const { distance } = pointToSegment2D(x, y, pa.x, pa.y, pb.x, pb.y);
-    if (distance <= PICK_EDGE_PX && (!bestEdge || distance < bestEdge.distance)) {
-      bestEdge = { kind: "edge", a, b, distance };
-    }
-  });
-  if (bestEdge) return bestEdge;
+  if (scene.meetPickEnabled) {
+    let bestVertex = null;
+    const visibility = createHelperVisibilityContext({
+      ...scene,
+      geometry: scene.meetGeometry ?? scene.geometry,
+    });
+    (scene.meetTargets ?? []).forEach((target, index) => {
+      const point = target.point ?? target.target ?? target.fallbackWorldPoint ?? target;
+      if (!visibility.isSurfacePointVisible(point)) return;
+      const projected = projectDomainPoint(point, frame);
+      if (!projected) return;
+      const distance = Math.hypot(projected.x - x, projected.y - y);
+      if (distance <= PICK_VERTEX_PX && (!bestVertex || distance < bestVertex.distance)) {
+        bestVertex = { kind: "vertex", point, index, distance, target };
+      }
+    });
+    return bestVertex;
+  }
 
   const hitFaces = faces
     .filter((face) => face.operationId)
@@ -1200,7 +1188,8 @@ function drawPickOverlay(p, scene) {
   const groupRotationRing = groupControls.rotation;
   if (indexRing) indexRing.active = scene.activeGizmo;
   if (groupRotationRing) groupRotationRing.active = scene.activeGizmo;
-  if (!depthHandle && !angleArc && !indexRing && !groupControlList.length && !groupRotationRing) return;
+  const hasConstructionOverlay = scene.meetPickEnabled || scene.constructionMarker || scene.nextJumpMarker;
+  if (!depthHandle && !angleArc && !indexRing && !groupControlList.length && !groupRotationRing && !hasConstructionOverlay) return;
 
   const gl = p.drawingContext;
   const {
@@ -1209,6 +1198,11 @@ function drawPickOverlay(p, scene) {
     isInsideSilhouette,
     isWorldPointVisible,
   } = createHelperVisibilityContext(scene);
+  const constructionVisibility = createHelperVisibilityContext({
+    ...scene,
+    geometry: scene.meetGeometry ?? scene.geometry,
+  });
+  const isConstructionPointVisible = constructionVisibility.isSurfacePointVisible;
   const isDepthOccluded = (point) => (
     isOccluded(point)
     || Boolean(
@@ -1222,6 +1216,74 @@ function drawPickOverlay(p, scene) {
   p.camera(0, 0, 400, 0, 0, 0, 0, 1, 0);
   p.ortho(-p.width / 2, p.width / 2, -p.height / 2, p.height / 2, -1000, 1000);
   const toLocal = (screen) => [screen.x - p.width / 2, screen.y - p.height / 2, overlayDepth(screen)];
+
+  if (scene.meetPickEnabled) {
+    (scene.meetTargets ?? []).forEach((target) => {
+      const point = target.point ?? target.target ?? target.fallbackWorldPoint ?? target;
+      if (!isConstructionPointVisible(point)) return;
+      const projected = projectDomainPoint(point, frame);
+      if (!projected) return;
+      const [x, y, z] = toLocal(projected);
+      p.push();
+      p.translate(x, y, z);
+      p.fill(255, 255, 255, 225);
+      p.stroke(42, 93, 82, 235);
+      p.strokeWeight(1.5);
+      p.circle(0, 0, 11);
+      p.pop();
+    });
+  }
+
+  if (scene.nextJumpMarker) {
+    const point = scene.nextJumpMarker.point ?? scene.nextJumpMarker.target;
+    const projected = point ? projectDomainPoint(point, frame) : null;
+    if (projected) {
+      const hidden = constructionVisibility.isOccluded(projected);
+      const [x, y, z] = toLocal(projected);
+      p.push();
+      p.translate(x, y, z);
+      p.noFill();
+      p.stroke(166, 119, 18, hidden ? 135 : 245);
+      p.strokeWeight(1.8);
+      p.beginShape();
+      p.vertex(0, -7);
+      p.vertex(7, 0);
+      p.vertex(0, 7);
+      p.vertex(-7, 0);
+      p.endShape(p.CLOSE);
+      p.line(-3, 0, 3, 0);
+      p.line(0, -3, 0, 3);
+      p.pop();
+    }
+  }
+
+  if (scene.constructionMarker) {
+    const marker = scene.constructionMarker;
+    const point = marker.point ?? marker.target;
+    const projected = point ? projectDomainPoint(point, frame) : null;
+    if (projected && isConstructionPointVisible(point)) {
+      const [x, y, z] = toLocal(projected);
+      const isError = marker.status === "unreachable" || marker.status === "stale";
+      const isWarning = marker.status === "destructive";
+      p.push();
+      p.translate(x, y, z);
+      p.noFill();
+      p.stroke(isError ? 179 : isWarning ? 166 : 237, isError ? 38 : isWarning ? 119 : 34, isError ? 77 : isWarning ? 18 : 93, 255);
+      p.strokeWeight(2);
+      if (isError) {
+        for (let start = 0; start < p.TWO_PI; start += p.PI / 3) p.arc(0, 0, 19, 19, start, start + p.PI / 6);
+      } else if (marker.locked) {
+        p.fill(237, 34, 93, 245);
+        p.circle(0, 0, 13);
+        p.noFill();
+        p.rect(-5, -1, 10, 8, 2);
+        p.arc(0, -1, 7, 8, p.PI, p.TWO_PI);
+      } else {
+        p.circle(0, 0, 15);
+      }
+      p.pop();
+    }
+  }
 
   groupControlList.forEach((groupControl) => {
     const active = scene.activeGizmo === `group-${groupControl.kind}`;
@@ -1422,10 +1484,45 @@ function drawGizmoLabels(canvas, scene) {
   const context = canvas.getContext("2d");
   context.setTransform(density, 0, 0, density, 0, 0);
   context.clearRect(0, 0, width, height);
-  if (!scene.pickingEnabled || (!scene.cutGizmo && !scene.groupGizmo)) return;
+  if (!scene.pickingEnabled || (!scene.cutGizmo && !scene.groupGizmo && !scene.constructionMarker && !scene.nextJumpMarker)) return;
 
   const groupControls = groupControlsScreenInfo(scene.frame, scene.groupGizmo);
   const visibility = createHelperVisibilityContext(scene);
+  const constructionVisibility = createHelperVisibilityContext({
+    ...scene,
+    geometry: scene.meetGeometry ?? scene.geometry,
+  });
+  const constructionPoint = scene.constructionMarker?.point ?? scene.constructionMarker?.target;
+  const constructionScreen = constructionPoint ? projectDomainPoint(constructionPoint, scene.frame) : null;
+  if (constructionScreen && constructionVisibility.isSurfacePointVisible(constructionPoint)) {
+    const status = scene.constructionMarker.status;
+    const label = status === "stale"
+      ? "Meet · 来源失效"
+      : status === "unreachable"
+        ? "Meet · 不可达"
+        : status === "destructive"
+          ? "Meet · 覆盖已有面"
+          : scene.constructionMarker.locked ? "Meet · 已锁" : "Meet · 待锁定";
+    drawCanvasBadge(
+      context,
+      constructionScreen.x + 12,
+      constructionScreen.y - 31,
+      label,
+      status === "valid" ? "#ed225d" : status === "destructive" ? "#a67712" : "#b3264d",
+    );
+  }
+  const nextJumpPoint = scene.nextJumpMarker?.point ?? scene.nextJumpMarker?.target;
+  const nextJumpScreen = nextJumpPoint ? projectDomainPoint(nextJumpPoint, scene.frame) : null;
+  if (nextJumpScreen) {
+    const hidden = constructionVisibility.isOccluded(nextJumpScreen);
+    drawCanvasBadge(
+      context,
+      nextJumpScreen.x + 12,
+      nextJumpScreen.y + 10,
+      `下一点 · ${scene.nextJumpMarker.position ?? "—"}${hidden ? " · 背面" : ""}`,
+      hidden ? "#887b58" : "#a67712",
+    );
+  }
   const translateControl = groupControls.translate;
   const scaleControl = groupControls.scale;
   const rotationRing = groupControls.rotation;
@@ -1529,7 +1626,7 @@ function drawGizmoLabels(canvas, scene) {
         context,
         indexRing.outerHandle.x + 12,
         indexRing.outerHandle.y + 10,
-        `I ${displayIndex(indexRing.baseIndex)} · ${(indexRing.baseIndex * DEGREES_PER_TOOTH).toFixed(1)}°`,
+        `主切面 · I${String(displayIndex(indexRing.baseIndex)).padStart(2, "0")}`,
         indexRing.locked ? "rgba(31, 38, 42, 0.45)" : "#1f262a",
       );
     }
@@ -1671,7 +1768,9 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       if (moved < 4) {
         const { x, y } = canvasPoint(event);
         const target = pickSceneTarget(x, y, sceneRef.current);
-        if (target?.kind === "face") {
+        if (target?.kind === "vertex" && sceneRef.current.meetPickEnabled) {
+          interactionRef.current?.onVertexPick?.(target.target);
+        } else if (target?.kind === "face") {
           interactionRef.current?.onFacePick?.(target.operationId);
         }
       }
@@ -1727,7 +1826,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       } else if (angleHandleHit(x, y, arc)) {
         gizmoDrag = { kind: "angle", arc };
         scene.activeGizmo = "angle";
-      } else if (depthHandleHit(x, y, depth)) {
+      } else if (!scene.cutGizmo?.depthLocked && depthHandleHit(x, y, depth)) {
         gizmoDrag = { kind: "depth", startX: x, startY: y, startDepth: scene.cutGizmo.value, info: depth };
         scene.activeGizmo = "depth";
       } else if (mirrorRingHandleHit(x, y, indexRing)) {
@@ -1862,7 +1961,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       canvas.style.cursor = "grab";
       return;
     }
-    if (depthHandleHit(x, y, depth)) {
+    if (!scene.cutGizmo?.depthLocked && depthHandleHit(x, y, depth)) {
       canvas.style.cursor = "grab";
       return;
     }
@@ -1875,7 +1974,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       return;
     }
     const target = pickSceneTarget(x, y, scene);
-    canvas.style.cursor = target?.kind === "face" ? "pointer" : "";
+    canvas.style.cursor = target?.kind === "face" || (target?.kind === "vertex" && scene.meetPickEnabled) ? "pointer" : "";
   };
 
   const onWheel = (event) => {
@@ -1959,6 +2058,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
 
 export function GemViewport({
   polyhedron,
+  meetPolyhedron = null,
   previewPlanes = [],
   selectedIndex = 0,
   viewMode = "perspective",
@@ -1972,6 +2072,11 @@ export function GemViewport({
   cutGizmo = null,
   groupGizmo = null,
   onFacePick,
+  meetTargets = [],
+  meetPickEnabled = false,
+  constructionMarker = null,
+  nextJumpMarker = null,
+  onVertexPick,
   onDepthDrag,
   onAngleDrag,
   onIndexDrag,
@@ -1989,7 +2094,10 @@ export function GemViewport({
   const gizmoLabelCanvasRef = useRef(null);
   const instanceRef = useRef(null);
   const normalizedGeometry = useMemo(() => normalizeGeometry(polyhedron), [polyhedron]);
-  const pickEdges = useMemo(() => collectUniqueEdges(normalizedGeometry.faces), [normalizedGeometry]);
+  const normalizedMeetGeometry = useMemo(
+    () => normalizeGeometry(meetPolyhedron ?? polyhedron),
+    [meetPolyhedron, polyhedron],
+  );
   const hasExplicitGeometry = Array.isArray(polyhedron?.vertices) && Array.isArray(polyhedron?.faces);
   const ghostBoundsRef = useRef(null);
   const initialMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
@@ -1997,6 +2105,7 @@ export function GemViewport({
 
   interactionRef.current = {
     onFacePick,
+    onVertexPick,
     onDepthDrag,
     onAngleDrag,
     onIndexDrag,
@@ -2022,8 +2131,7 @@ export function GemViewport({
     // is owned by the interaction handlers and must survive re-renders.
     Object.assign(sceneRef.current, {
       geometry: normalizedGeometry,
-      vertices: normalizedGeometry.vertices,
-      edges: pickEdges,
+      meetGeometry: normalizedMeetGeometry,
       faces: normalizedGeometry.faces,
       previewPlanes: Array.isArray(previewPlanes) ? previewPlanes : [],
       selectedIndex,
@@ -2033,6 +2141,10 @@ export function GemViewport({
       activeOperationId,
       previewOperationId,
       pickingEnabled,
+      meetTargets,
+      meetPickEnabled,
+      constructionMarker,
+      nextJumpMarker,
       cutGizmo,
       groupGizmo,
       suspended,
@@ -2040,7 +2152,7 @@ export function GemViewport({
     if (hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
       ghostBoundsRef.current = copyBounds(normalizedGeometry.bounds);
     }
-  }, [activeOperationId, activeViewMode, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, normalizedGeometry, pickEdges, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
+  }, [activeOperationId, activeViewMode, constructionMarker, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
 
   useEffect(() => {
     const instance = instanceRef.current;

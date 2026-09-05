@@ -100,7 +100,7 @@ export function AscTransferDialog({ mode, fileName, result, onClose, onConfirm, 
             <strong>{isImport ? "确认后的影响" : "本次导出范围"}</strong>
             <p>{isImport
               ? "当前文档与未保存 CUT 预览会被替换；导入作为一次文档命令写入，可使用撤销恢复。"
-              : "只写出已保存 CUT STACK 的 96 齿显式刻面；未保存预览不会进入 ASC。JSON 仍是完整主文件。"}</p>
+              : "只写出已提交文档的最终有效 96 齿刻面与当前文档折射率；未保存 CUT / 整体变换预览、被覆盖面及毛坯面不会进入 ASC。JSON 仍是完整主文件。"}</p>
           </div>
 
           <div className="asc-diagnostics" aria-label="兼容诊断">

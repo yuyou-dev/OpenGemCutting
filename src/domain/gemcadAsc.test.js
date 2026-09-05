@@ -221,6 +221,20 @@ test("warns when native repeat, mirror and JSON-only optics are flattened", () =
     industryAngleDeg: 32,
     depth: 0.42,
     label: "C1 冠部",
+    metadata: {
+      patternMode: "symmetric",
+      construction: {
+        type: "vertex-meet",
+        solverVersion: 1,
+        target: {
+          topologyKey: "vertex:a|b|c",
+          sourceFaceIds: ["a", "b", "c"],
+          sourceOperationIds: ["pavilion-1"],
+          sourceGeometrySignature: "v1:0123456789abcdef",
+          fallbackWorldPoint: [0, 0, 0],
+        },
+      },
+    },
   });
   const document = createFacetingDocument({
     name: "原生测试",
@@ -232,7 +246,56 @@ test("warns when native repeat, mirror and JSON-only optics are flattened", () =
   assert.ok(result.diagnostics.some((item) => item.code === "PARAMETRIC_RELATIONSHIP_FLATTENED"));
   assert.ok(result.diagnostics.some((item) => item.code === "OPTICS_METADATA_OMITTED"));
   assert.ok(result.diagnostics.some((item) => item.code === "UNICODE_TEXT"));
+  assert.ok(result.diagnostics.some((item) => item.code === "MEET_CONSTRUCTION_OMITTED"));
   assert.match(result.text, /I 2\.417/);
+});
+
+test("exports only surviving facet records and reports overwritten omissions", () => {
+  const partialDocument = createFacetingDocument({
+    name: "Surviving facets",
+    facets: [
+      ...resolveFacetPattern({
+        patternId: "partial-old", label: "OLD", region: "crown", baseIndex: 0,
+        repeat: 4, mirror: 0, industryAngleDeg: 32, depth: 0.2,
+      }),
+      ...resolveFacetPattern({
+        patternId: "partial-new", label: "NEW", region: "crown", baseIndex: 0,
+        repeat: 1, mirror: 0, industryAngleDeg: 32, depth: 0.4,
+      }),
+    ],
+  });
+  const partial = serializeGemCadAsc(partialDocument);
+  const partialTiers = parseGemCadAsc(partial.text).tiers;
+
+  assert.equal(partial.summary.storedFacetCount, 5);
+  assert.equal(partial.summary.effectiveFacetCount, 4);
+  assert.equal(partial.summary.omittedFacetCount, 1);
+  assert.equal(partial.summary.facetCount, 4);
+  assert.deepEqual(partialTiers.find((tier) => tier.name === "OLD").indexTokens, ["24", "48", "72"]);
+  assert.deepEqual(partialTiers.find((tier) => tier.name === "NEW").indexTokens, ["96"]);
+  assert.match(
+    partial.diagnostics.find((item) => item.code === "OVERWRITTEN_FACETS_OMITTED").message,
+    /1 条刻面记录/,
+  );
+  assert.equal(JSON.parse(exportFacetingJSON(partialDocument)).facets.length, 5);
+
+  const fullyCoveredDocument = createFacetingDocument({
+    name: "Covered operation",
+    facets: [
+      ...resolveFacetPattern({
+        patternId: "fully-old", label: "OLD", region: "crown", baseIndex: 0,
+        repeat: 1, mirror: 0, industryAngleDeg: 32, depth: 0.2,
+      }),
+      ...resolveFacetPattern({
+        patternId: "fully-new", label: "NEW", region: "crown", baseIndex: 0,
+        repeat: 1, mirror: 0, industryAngleDeg: 32, depth: 0.4,
+      }),
+    ],
+  });
+  const fullyCovered = serializeGemCadAsc(fullyCoveredDocument);
+
+  assert.equal(fullyCovered.summary.tierCount, 1);
+  assert.deepEqual(parseGemCadAsc(fullyCovered.text).tiers.map((tier) => tier.name), ["NEW"]);
 });
 
 test("ASC document replacement is one undoable command and remains JSON-compatible", async () => {

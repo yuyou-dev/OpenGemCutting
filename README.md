@@ -29,9 +29,11 @@
 
 打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON、GemCad ASC 与 PDF 均在浏览器本地导入、导出或生成。
 
-第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是独立的 12 页 A4 图解手册，覆盖预设起步、CUT 编辑、文件交换、光学仿真、快捷操作与交付检查；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
+第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是独立的 13 页 A4 图解手册，覆盖预设起步、CUT 编辑、文件交换、光学仿真、快捷操作与交付检查；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
 
-当前版本为 **v0.6.1**：新增 Codex 一句话安装、升级与启动流程，并提供 OpenGemCutting Companion，让普通用户能在 Codex 中打开工作台、整理社区反馈、检查本地改动并准备 Pull Request。所有公开发布、push 和 PR 创建仍需最终预览与明确确认。
+当前版本为 **v0.7.1**：增加冠部/亭部的 Meet 与 Jump 定位、统一最终有效面统计和导出范围，提供已提交文档与材质的本地恢复，并修复材质撤销、图层改名和浮层交互。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+
+v0.6.1 引入的 Codex 一句话安装、升级与启动流程及 OpenGemCutting Companion 继续保留，可用于打开工作台、整理社区反馈、检查本地改动并准备 Pull Request。所有公开发布、push 和 PR 创建仍需最终预览与明确确认。
 
 建议使用启用 WebGL 与硬件加速的最新版 Chrome、Edge 或 Safari 桌面版，并使用不低于 `1280px` 的窗口宽度。在线演示与 `main` 分支保持同步，由 GitHub Pages 自动构建发布。
 
@@ -48,11 +50,13 @@ OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用
 - **57 个精选预设琢型**：按名称、设计者、来源与外形检索，载入前核对真实几何的轴测、顶、底、正四视图。
 - **GemCad ASC 交换**：导入/导出前持久预检齿轮映射、统一比例、L/W、层面统计与不可逆信息；不精确映射、preform 或异常台面会明确阻断。
 - **CUT 四态工作流**：空闲、新建、编辑、群组变换由单一事件状态机管理，取消和 `Escape` 路径明确。
+- **Meet / Jump 定位**：冠部与亭部对称 CUT 支持单顶点 Meet、交点前后跳转与下一点分类预告；锁定 Meet 后随角度和分度统一求解深度。
+- **本地恢复**：自动备份已提交文档与光学材质，重新打开时提示恢复；各页面独立备份，可从文件菜单管理。未保存 CUT 草稿、相机与旧撤销历史不跨刷新恢复。
 - **精密 3D 操作**：实体/X-ray、顶/正/侧/透视相机、角度桥架、深度杆和同心分度环。
 - **聚焦光学仿真**：当前真实几何直接进入折射、Fresnel、全反射、多次内反射、RGB 色散与 Beer-Lambert 体色观察。
-- **非破坏式文档历史**：图层显隐、重排、重命名、撤销/重做与 JSON 往返保持参数语义。
-- **工艺输出**：A4 矢量优先 PDF，包含多视图、工程尺寸、分层参数与真实刻面高亮。
-- **完整学习入口**：品牌加载页、任务式应用内帮助，以及可下载的 12 页 A4 图解操作手册。
+- **非破坏式文档历史**：图层显隐、重排、重命名、光学材质撤销/重做与 JSON 往返保持文档语义；被后续切割覆盖的参数化工序仍保留，可随撤销恢复。
+- **工艺输出**：A4 矢量优先 PDF 包含多视图、工程尺寸、分层参数与真实刻面高亮；面数、刻面台账、切割指令、PDF 与 ASC 统一读取已提交实体中的最终有效面。
+- **完整学习入口**：品牌加载页、任务式应用内帮助，以及可下载的 13 页 A4 图解操作手册。
 - **完整交付链路**：常规 Vite 客户端与 OpenAI Sites worker 产物由同一构建命令生成并测试。
 
 ## 快速开始 · Quick start
@@ -123,12 +127,16 @@ npm run preview
 
 1. 从“文件 → 浏览预设琢型”选择一个经过校验的起点，先核对四视图、面数、层数、分度与 L/W，再载入当前文档。
 2. 从 `CUT STACK` 底部的 `+` 开始一个新 CUT，设置行业角、切入深度、基础索引、重复数与镜像轴偏移；主切割面和 Gizmo 会同步预览。
-3. 保存后，图层按堆栈顺序参与布尔裁切。选择既有图层可编辑，拖动非台面层可重排；冠部/亭部整体变换可在一步历史中组合升降、比例与旋转。
-4. 使用顶部命令条切换相机与实体/X-ray；从显示模式进入聚焦光学仿真，检查材质、体色与观察环境，退出后完整恢复编辑现场。
-5. 在“文件”菜单保存完整 JSON、交换 GemCad ASC 或生成 PDF 技术报告；ASC 操作必须先通过预检。
-6. 遇到问题时从“更多 → 帮助与操作手册”打开任务式帮助，或下载完整 A4 图解手册。
+3. 冠部/亭部对称 CUT 可用 `J` / `Shift+J` 浏览交点，或显式选择顶点后锁定 Meet。新 CUT 从 `0.000` 深度开始，只有形成有效面后才能加入序列；候选会提示仅接触、有效切面或覆盖影响。
+4. 保存后，图层按堆栈顺序参与布尔裁切。点击名称直接改名，点击参数或面数进入编辑，拖动非台面层可重排；冠部/亭部整体变换可在一步历史中组合升降、比例与旋转。
+5. 使用顶部命令条切换相机与实体/X-ray；从显示模式进入聚焦光学仿真，检查材质、体色与观察环境，退出后完整恢复编辑现场。
+6. 在“文件”菜单保存完整 JSON、交换 GemCad ASC 或生成 PDF 技术报告；ASC 操作必须先通过预检。导出只使用已提交文档，不会自动保存当前预览。
+7. 已提交文档及材质变更会自动备份。重新打开时选择恢复或开始新设计，也可从“文件 → 恢复本地设计”管理备份；恢复载入可一步撤销。
+8. 遇到问题时从“更多 → 帮助与操作手册”打开任务式帮助，或下载完整 A4 图解手册。
 
-键盘约定：名称编辑按 `Enter` 保存、`Escape` 取消；任何活动 CUT 会话也可按 `Escape` 安全退出。
+键盘约定：名称编辑按 `Enter` 或失焦保存、`Escape` 取消；`J` / `Shift+J` 在可用的 Meet / Jump 区域前后跳转，首尾不循环。`Escape` 优先关闭浮层或退出顶点拾取，再按才取消底层 CUT 会话。
+
+本地备份属于当前浏览器与站点地址。清理站点数据、换浏览器或改变本地开发端口后，原备份可能无法读取；请下载 JSON 作为长期归档。备份不包含未保存草稿、相机、观看参数或旧撤销历史。
 
 ### 预设、编辑与光学 · Presets, editing and optics
 
@@ -149,9 +157,12 @@ src/
     PresetLibraryDialog.jsx     预设检索、四视图与载入
     AscTransferDialog.jsx       GemCad ASC 持久预检
     HelpCenterDialog.jsx        任务式帮助与手册入口
-    Modal.jsx                   通用居中模态框
+    RecoveryDialog.jsx          本地备份选择、恢复与删除
+    Modal.jsx                   通用居中模态框与焦点管理
   domain/
-    cutSession.js               CUT 四态事件状态机
+    cutSession.js               CUT 四态事件状态机与构造子状态
+    meetJump.js                 顶点来源、候选、Meet 求解与影响评估
+    localRecovery.js            独立备份存储与恢复校验
     faceting.js                 96 分度、图层、序列化与命令
     geometry.js                 凸多面体裁切与测量
     gemcadAsc.js                ASC 解析、预检、比例换算与导出
@@ -184,7 +195,9 @@ tests/sites-worker.test.mjs     Sites 产物契约测试
 - 内部水平索引为 `0..95`，界面把 `0` 显示为行业常用的 `96`。
 - 保存的 `CUT STACK` 是几何唯一数据源；每个 `T/C/G/P` 图层是一份不可变参数快照，并按列表顺序应用一次。
 - 新文档以边长 `2.000`、轴心在原点的立方体为毛坯，包含固定 `T1 台面` 与可编辑 `G1 腰部` 预形。
-- N 折旋转重复生成 N 个有效裁切面；非零镜像偏移可增加第二组 N 面轨道，重合面会去重。
+- N 折旋转重复生成 N 个明确裁切平面；非零镜像偏移可增加第二组 N 面轨道，重合面会去重。提交时至少形成一个有效面，后续覆盖可使实际贡献面数减少。
+- 普通冠部/亭部工序部分消面时显示提示，整层消失前需要确认；空实体和台面/腰部结构层整体失效会阻断。被覆盖的工序仍留在 CUT STACK 与 JSON，最终面数、工艺输出与 ASC 不计入被覆盖面。
+- Meet 是附在已提交切面上的构造快照，来源变化不会级联修改切面；JSON 保存并校验 Meet 元数据，PDF 标注有效来源或失效状态，ASC 只导出有效显式切面并提示构造意图丢失。
 - JSON 保留全精度；界面中的舍入仅用于显示。旧格式导入时会重新解析几何以维持兼容。
 
 修改几何前请先阅读 `src/domain/*.test.js` 与 `AGENTS.md` 中的领域约束。
@@ -192,7 +205,7 @@ tests/sites-worker.test.mjs     Sites 产物契约测试
 ## 测试与质量 · Testing
 
 ```bash
-npm run check        # 公开内容扫描 + 领域/报告测试 + 构建 + Sites 测试
+npm run check        # 公开内容扫描 + 领域/报告 + Companion + 构建 + Sites 测试
 npm test             # Node.js 领域与 PDF 测试
 npm run companion:test # Companion manifest、MCP Apps 与发布确认链路
 npm run test:sites   # Sites 产物契约
@@ -243,6 +256,8 @@ OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA�
 ## English overview
 
 OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 57 validated presets, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
+
+Version **v0.7.1** adds single-vertex Meet and Jump for symmetric crown/pavilion cuts, consistent final-facet counts and exports, and local recovery of committed documents and optical materials. Recovery is offered on startup and each page keeps a separate backup; unsaved drafts, cameras and previous undo history are excluded. Optical material changes now follow document undo/redo, and dialogs isolate keyboard shortcuts from the underlying CUT session. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 Codex users can copy the setup sentence in [Quick start](#快速开始--quick-start) to install, verify, run, and open the workbench without manually entering Git or npm commands. The optional Companion adds guided GitHub onboarding, categorized Discussions and community drafts, plus reviewed Pull Request preparation; it never performs an external write without a final preview and explicit confirmation.
 

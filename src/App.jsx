@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { IconChevronLeft, IconChevronRight, IconHistory } from "@tabler/icons-react";import { Header } from "./components/Header.jsx";
+import { IconChevronLeft, IconChevronRight, IconHistory } from "@tabler/icons-react";
+import { Header } from "./components/Header.jsx";
 import { GemViewport } from "./components/GemViewport.jsx";
 import { OpticsViewport } from "./components/OpticsViewport.jsx";
 import { OpticsInspector } from "./components/OpticsInspector.jsx";
@@ -12,6 +13,8 @@ import { AscTransferDialog } from "./components/AscTransferDialog.jsx";
 import { PresetLibraryDialog } from "./components/PresetLibraryDialog.jsx";
 import { HelpCenterDialog } from "./components/HelpCenterDialog.jsx";
 import { Modal } from "./components/Modal.jsx";
+import { RecoveryDialog } from "./components/RecoveryDialog.jsx";
+import { useLocalRecovery } from "./components/useLocalRecovery.js";
 import { downloadBlob } from "./utils/download.js";
 import {
   CUT_SESSION_EVENT,
@@ -52,7 +55,18 @@ import {
   createCenteredCube,
   measurePolyhedron,
 } from "./domain/geometry.js";
-import { DEFAULT_OPTICS_SETTINGS, resolveOpticsSettings } from "./domain/optics.js";
+import {
+  MEET_STATUS,
+  adjacentJumpCandidateIndex,
+  enumerateTopologyVertices,
+  evaluateDraftImpact,
+  generateJumpCandidates,
+  resolveDraftCommitPolicy,
+  resolvePersistedVertexTarget,
+  solveVertexMeet,
+  summarizeEffectiveFacets,
+} from "./domain/meetJump.js";
+import { DEFAULT_OPTICS_SETTINGS, createDocumentOpticsCommand, resolveOpticsSettings } from "./domain/optics.js";
 import { inspectGemCadAsc, serializeGemCadAsc } from "./domain/gemcadAsc.js";
 import { createPresetLibrary, createStaticPresetProvider } from "./domain/presetLibrary.js";
 import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
@@ -89,11 +103,49 @@ function planeEntry(facet) {
     operationId: facet.patternId,
     faceId: facet.id,
     region: facet.region,
+    operationType: facet.metadata?.operationType,
   };
 }
 
+function resolveDraftGeometry(draft, region, stock) {
+  try {
+    if (draft.patternMode === "symmetric") {
+      return {
+        facets: resolveFacetPattern({
+          patternId: "draft-symmetric",
+          region,
+          baseIndex: draft.baseIndex,
+          repeat: draft.repeat,
+          mirror: draft.mirrorOffset,
+          industryAngleDeg: draft.industryAngle,
+          depth: draft.depth,
+        }, { stock }),
+        error: "",
+      };
+    }
+    const parsed = parseCustomIndices(draft.customIndices);
+    if (parsed.error) return { facets: [], error: parsed.error };
+    return {
+      facets: parsed.indices.map((index, ordinal) => resolveFacet({
+        id: `draft-arbitrary:${displayIndex(index)}`,
+        patternId: "draft-arbitrary",
+        ordinal,
+        region,
+        baseIndex: index,
+        repeat: 1,
+        mirror: 0,
+        index,
+        industryAngleDeg: draft.industryAngle,
+        depth: draft.depth,
+      }, { stock })),
+      error: "",
+    };
+  } catch (error) {
+    return { facets: [], error: error.message };
+  }
+}
+
 function commandPatternId(command) {
-  if (command.type === "pattern/add") return command.payload?.pattern?.patternId;
   if (command.type === "pattern/replace") return command.payload?.patternId;
   if (command.type === "facets/add") return command.payload?.facets?.[0]?.patternId;
   return undefined;
@@ -112,11 +164,6 @@ function formatClock(value) {
 
 function describeCommand(command) {
   if (command.payload?.description) return command.payload.description;
-  if (command.type === "pattern/add") {
-    const pattern = command.payload?.pattern ?? {};
-    const count = resolveFacetPattern(pattern).length;
-    return `切割 ${count} 个${FACET_REGION_LABELS[pattern.region] ?? ""}面`;
-  }
   if (command.type === "facets/add") {
     const facets = command.payload?.facets ?? [];
     return `新增 ${facets.length} 个预切割面`;
@@ -139,7 +186,7 @@ export function App() {
   const [opticsActive, setOpticsActive] = useState(false);
   const [opticsInspectorOpen, setOpticsInspectorOpen] = useState(true);
   const [opticsTab, setOpticsTab] = useState("material");
-  const [opticsSettings, setOpticsSettings] = useState(() => resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS));
+  const [opticsViewSettings, setOpticsViewSettings] = useState(DEFAULT_OPTICS_SETTINGS.view);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -148,6 +195,7 @@ export function App() {
   const [hoveredPatternId, setHoveredPatternId] = useState(null);
   const [hiddenPatternIds, setHiddenPatternIds] = useState(() => new Set());
   const [modal, setModal] = useState(null);
+  const [pendingFullRemovalCommit, setPendingFullRemovalCommit] = useState(null);
   const [toast, setToast] = useState("");
   const [reportIncludeGirdle, setReportIncludeGirdle] = useState(false);
   const [ascTransfer, setAscTransfer] = useState(null);
@@ -158,9 +206,25 @@ export function App() {
   const operationSequence = useRef(0);
   const projectSequence = useRef(1);
 
+  const [recoveryStarted, setRecoveryStarted] = useState(false);
   const document = history.present;
+  const localRecovery = useLocalRecovery(document, recoveryStarted || history.commands.length > 0);
+  const [recoveryOpen, setRecoveryOpen] = useState(() => localRecovery.records.length > 0 || localRecovery.unreadableCount > 0);
+  const [recoveryStartup, setRecoveryStartup] = useState(true);
+  const opticsSettings = useMemo(() => ({
+    ...resolveOpticsSettings(document.metadata?.optics),
+    view: opticsViewSettings,
+  }), [document.metadata?.optics, opticsViewSettings]);
+  const changeOpticsSettings = (settings) => {
+    const normalized = resolveOpticsSettings(settings);
+    setOpticsViewSettings(normalized.view);
+    if (JSON.stringify([normalized.material, normalized.advanced])
+      === JSON.stringify([opticsSettings.material, opticsSettings.advanced])) return;
+    setHistory((current) => executeFacetingCommand(current, createDocumentOpticsCommand(normalized)));
+  };
   const cutSession = resolveCutSession(sessionState);
   const cutMode = cutSession.mode;
+  const hasUnsavedPreview = cutSession.previewEnabled || Boolean(cutSession.group && cutSession.dirty);
   const region = cutSession.region;
   const {
     industryAngle,
@@ -191,40 +255,7 @@ export function App() {
 
   useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
-  const draft = useMemo(() => {
-    try {
-      if (patternMode === "symmetric") {
-        const facets = resolveFacetPattern({
-          patternId: "draft-symmetric",
-          region,
-          baseIndex,
-          repeat: repeatCount,
-          mirror: mirrorOffset,
-          industryAngleDeg: industryAngle,
-          depth,
-        }, { stock: document.stock });
-        return { facets, error: "" };
-      }
-
-      const parsed = parseCustomIndices(customIndices);
-      if (parsed.error) return { facets: [], error: parsed.error };
-      const facets = parsed.indices.map((index, ordinal) => resolveFacet({
-        id: `draft-arbitrary:${displayIndex(index)}`,
-        patternId: "draft-arbitrary",
-        ordinal,
-        region,
-        baseIndex: index,
-        repeat: 1,
-        mirror: 0,
-        index,
-        industryAngleDeg: industryAngle,
-        depth,
-      }, { stock: document.stock }));
-      return { facets, error: "" };
-    } catch (error) {
-      return { facets: [], error: error.message };
-    }
-  }, [baseIndex, customIndices, depth, document.stock, industryAngle, mirrorOffset, patternMode, region, repeatCount]);
+  const draft = useMemo(() => resolveDraftGeometry(cutSession.draft, region, document.stock), [cutSession.draft, document.stock, region]);
 
   const stockSolid = useMemo(() => createCenteredCube(document.stock.size, {
     center: document.stock.center,
@@ -235,6 +266,11 @@ export function App() {
   const savedSolid = useMemo(
     () => clipPolyhedronByPlanes(stockSolid, document.facets.map(planeEntry)),
     [document.facets, stockSolid],
+  );
+  const savedEffectiveFacets = useMemo(() => summarizeEffectiveFacets(savedSolid), [savedSolid]);
+  const savedEffectiveFacetIds = useMemo(
+    () => new Set(savedEffectiveFacets.effectiveFacetIds),
+    [savedEffectiveFacets],
   );
   const girdleBoundary = useMemo(() => {
     const girdlePatternIds = new Set(
@@ -321,11 +357,35 @@ export function App() {
 
   const visibleFacets = useMemo(() => groupPreview.facets.filter((facet) => !hiddenPatternIds.has(facet.patternId)), [groupPreview.facets, hiddenPatternIds]);
   const committedSolid = useMemo(() => clipPolyhedronByPlanes(stockSolid, visibleFacets.map(planeEntry)), [stockSolid, visibleFacets]);
+  const constructionBaseFacets = useMemo(
+    () => editingPatternId ? visibleFacets.filter((facet) => facet.patternId !== editingPatternId) : visibleFacets,
+    [editingPatternId, visibleFacets],
+  );
+  const constructionBaseSolid = useMemo(
+    () => clipPolyhedronByPlanes(stockSolid, constructionBaseFacets.map(planeEntry)),
+    [constructionBaseFacets, stockSolid],
+  );
+  const impactBaseSolid = useMemo(() => {
+    const facets = editingPatternId
+      ? document.facets.filter((facet) => facet.patternId !== editingPatternId)
+      : document.facets;
+    return clipPolyhedronByPlanes(stockSolid, facets.map(planeEntry));
+  }, [document.facets, editingPatternId, stockSolid]);
+  const meetTargets = useMemo(() => enumerateTopologyVertices(constructionBaseSolid), [constructionBaseSolid]);
   const reportSolid = savedSolid;
   const reportMetrics = useMemo(() => measurePolyhedron(reportSolid), [reportSolid]);
 
+  const constructionBlocksPreview = [MEET_STATUS.UNREACHABLE, MEET_STATUS.STALE]
+    .includes(cutSession.construction.meet?.status);
+  const draftImpact = useMemo(() => {
+    if (!previewEnabled || constructionBlocksPreview || draft.facets.length === 0) return null;
+    return evaluateDraftImpact({
+      baseSolid: impactBaseSolid,
+      planes: draft.facets.map(planeEntry),
+    });
+  }, [constructionBlocksPreview, draft.facets, impactBaseSolid, previewEnabled]);
   const previewSolid = useMemo(() => {
-    if (!previewEnabled || draft.facets.length === 0 || (editingPatternId && hiddenPatternIds.has(editingPatternId))) return committedSolid;
+    if (!previewEnabled || constructionBlocksPreview || draft.facets.length === 0 || (editingPatternId && hiddenPatternIds.has(editingPatternId))) return committedSolid;
     const draftFacets = editingPatternId
       ? draft.facets.map((facet) => ({ ...facet, patternId: editingPatternId }))
       : draft.facets;
@@ -333,9 +393,10 @@ export function App() {
       ? replacePatternFacets(visibleFacets, editingPatternId, draftFacets)
       : [...visibleFacets, ...draftFacets];
     return clipPolyhedronByPlanes(stockSolid, sequence.map(planeEntry));
-  }, [committedSolid, draft.facets, editingPatternId, hiddenPatternIds, previewEnabled, stockSolid, visibleFacets]);
+  }, [committedSolid, constructionBlocksPreview, draft.facets, editingPatternId, hiddenPatternIds, previewEnabled, stockSolid, visibleFacets]);
 
-  const previewWouldEraseStock = previewEnabled && draft.facets.length > 0 && previewSolid.vertices.length === 0;
+  const previewWouldEraseStock = Boolean(draftImpact?.solidErased)
+    || (previewEnabled && draft.facets.length > 0 && previewSolid.vertices.length === 0);
   const displaySolid = previewWouldEraseStock ? committedSolid : previewSolid;
   const metrics = useMemo(() => measurePolyhedron(displaySolid), [displaySolid]);
   const groupGizmo = useMemo(() => {
@@ -362,13 +423,33 @@ export function App() {
       maxDelta: groupSafeRange.max,
     };
   }, [document.stock, girdleBoundary, groupBaseHeight, groupDeltaZ, groupEditRegion, groupRotationTeeth, groupSafeRange, groupScale]);
-  const validationMessage = draft.error || (previewWouldEraseStock ? "当前深度会移除全部材料，请减小切入深度。" : "");
-  const generatedIndices = draft.facets.map((facet) => facet.index);
+  const constructionMeet = cutSession.construction.meet;
+  const constructionDiagnostic = constructionMeet?.status === MEET_STATUS.UNREACHABLE
+    ? `Meet 目标不可达：所需深度 ${Number(constructionMeet.requiredDepth).toFixed(3)}，请调整角度或索引。`
+    : constructionMeet?.status === MEET_STATUS.STALE
+      ? "Meet 来源已失效；请重新选择顶点或解除 Meet。"
+      : cutSession.construction.candidate?.status === MEET_STATUS.UNREACHABLE
+            ? `Meet 目标不可达：所需深度 ${Number(cutSession.construction.candidate.requiredDepth).toFixed(3)}，请调整角度或索引。`
+            : cutSession.construction.candidate?.status === MEET_STATUS.STALE
+              ? "Meet 候选来源已失效；请重新定位。"
+          : "";
+  const draftCommitPolicy = draftImpact ? resolveDraftCommitPolicy(draftImpact) : "allow";
+  const impactValidationMessage = previewWouldEraseStock
+    ? "当前深度会移除全部材料，请减小切入深度。"
+    : draftCommitPolicy === "block" && draftImpact?.noOp
+      ? "当前切面尚未形成任何有效面；可继续 Jump 或选择顶点，但不能作为空切保存。"
+      : draftCommitPolicy === "block"
+        ? "当前参数会让台面或腰部结构层整体失效；请减小切入深度。"
+        : "";
+  const impactWarningMessage = ["warn", "confirm"].includes(draftCommitPolicy)
+    ? `当前切割将覆盖 ${draftImpact.removedFaceCount} 个已有有效面；普通 C/P 消面允许，整层消失时保存前会再次确认。`
+    : "";
+  const validationMessage = draft.error || constructionDiagnostic || impactValidationMessage;
   const primaryDraftFacet = useMemo(() => {
     if (!draft.facets.length) return null;
     if (patternMode !== "symmetric") return draft.facets[0];
     const activeIndex = normalizeIndex(baseIndex);
-    return draft.facets.find((facet) => normalizeIndex(facet.index) === activeIndex) ?? draft.facets[0];
+    return draft.facets.find((facet) => normalizeIndex(facet.index) === activeIndex) ?? null;
   }, [baseIndex, draft.facets, patternMode]);
   const operations = useMemo(() => {
     const groups = new Map();
@@ -380,6 +461,7 @@ export function App() {
     return [...groups.entries()].map(([id, facets]) => {
       const first = facets[0];
       const locked = first.metadata?.operationType === "table";
+      const effectiveFacets = facets.filter((facet) => savedEffectiveFacetIds.has(facet.id));
       if (!locked) regionCounts[first.region] += 1;
       return {
         id,
@@ -389,6 +471,9 @@ export function App() {
         signedBeta: first.betaDeg,
         depth: first.depth,
         indices: facets.map((facet) => facet.index),
+        effectiveIndices: effectiveFacets.map((facet) => facet.index),
+        effectiveCount: effectiveFacets.length,
+        recordedCount: facets.length,
         baseIndex: first.baseIndex,
         repeat: first.repeat,
         mirror: first.mirror,
@@ -396,14 +481,185 @@ export function App() {
         facets,
         locked,
         visible: !hiddenPatternIds.has(id),
-        status: hiddenPatternIds.has(id) ? "显示隐藏" : "参与解析",
+        status: hiddenPatternIds.has(id)
+          ? "显示隐藏"
+          : effectiveFacets.length === 0
+            ? "已被后续切面覆盖"
+            : effectiveFacets.length < facets.length
+              ? `${effectiveFacets.length}/${facets.length} 个最终有效面`
+              : "参与解析",
       };
     });
-  }, [document.facets, hiddenPatternIds]);
+  }, [document.facets, hiddenPatternIds, savedEffectiveFacetIds]);
   const editingOperation = operations.find((operation) => operation.id === editingPatternId) ?? null;
-  const previewPlanes = cutSession.showCutPlane && !(editingPatternId && hiddenPatternIds.has(editingPatternId))
+  const sourceLabelForTarget = useCallback((target) => {
+    const labels = (target?.sourceOperationIds ?? [])
+      .filter((id) => id !== "rough-cube")
+      .map((id) => operations.find((operation) => operation.id === id)?.label?.split(/\s+/)[0] ?? id);
+    return labels.length ? labels.join(" × ") : "毛坯";
+  }, [operations]);
+
+  const primaryFacetForDraft = useCallback((draftState) => {
+    const resolved = resolveDraftGeometry(draftState, region, document.stock);
+    if (resolved.error || resolved.facets.length === 0) return { facet: null, resolved };
+    const wanted = normalizeIndex(draftState.baseIndex);
+    return {
+      facet: resolved.facets.find((facet) => normalizeIndex(facet.index) === wanted) ?? null,
+      resolved,
+    };
+  }, [document.stock, region]);
+
+  const jumpCandidates = useMemo(() => {
+    if (!cutSession.canUseMeetJump || cutSession.construction.meet) return [];
+    const jumpDraft = {
+      industryAngle,
+      depth: 0,
+      baseIndex,
+      repeat: repeatCount,
+      mirrorOffset,
+      patternMode,
+      customIndices,
+    };
+    const { facet } = primaryFacetForDraft(jumpDraft);
+    if (!facet) return [];
+    return generateJumpCandidates({
+      baseSolid: constructionBaseSolid,
+      normal: facet.plane.normal,
+      stock: document.stock,
+      planesForDepth: (candidateDepth) => resolveDraftGeometry(
+        { ...jumpDraft, depth: candidateDepth },
+        region,
+        document.stock,
+      ).facets.map(planeEntry),
+    });
+  }, [baseIndex, constructionBaseSolid, customIndices, cutSession.canUseMeetJump, cutSession.construction.meet, document.stock, industryAngle, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
+
+  const jumpSession = resolveCutSession(sessionState, { jumpCandidates });
+
+  const nextJumpCandidate = useMemo(() => {
+    const index = adjacentJumpCandidateIndex({
+      candidates: jumpCandidates,
+      currentDepth: Number(cutSession.draft.depth),
+      currentKey: cutSession.construction.candidate?.key,
+    });
+    if (index < 0) return null;
+    const candidate = jumpCandidates[index];
+    return {
+      ...candidate,
+      position: `${index + 1}/${jumpCandidates.length}`,
+      sourceLabel: sourceLabelForTarget(candidate.target),
+    };
+  }, [cutSession.construction.candidate?.key, cutSession.draft.depth, jumpCandidates, sourceLabelForTarget]);
+
+  const candidateFromTarget = useCallback((target, source = "manual") => {
+    const { facet } = primaryFacetForDraft(cutSession.draft);
+    if (!facet) return null;
+    const solved = solveVertexMeet({ normal: facet.plane.normal, target, stock: document.stock });
+    if (solved.status === MEET_STATUS.UNREACHABLE) {
+      return {
+        source,
+        key: target.topologyKey,
+        target,
+        depth: solved.requiredDepth,
+        requiredDepth: solved.requiredDepth,
+        residual: solved.residual,
+        status: MEET_STATUS.UNREACHABLE,
+        classification: "contact-only",
+        threats: [],
+        sourceLabel: sourceLabelForTarget(target),
+      };
+    }
+    const solvedDraft = { ...cutSession.draft, depth: solved.depth };
+    const resolved = resolveDraftGeometry(solvedDraft, region, document.stock);
+    const impact = evaluateDraftImpact({ baseSolid: constructionBaseSolid, planes: resolved.facets.map(planeEntry) });
+    return {
+      source,
+      key: target.topologyKey,
+      target,
+      depth: solved.depth,
+      requiredDepth: solved.requiredDepth,
+      residual: solved.residual,
+      status: impact.status,
+      classification: impact.classification,
+      threats: impact.threats,
+      sourceLabel: sourceLabelForTarget(target),
+    };
+  }, [constructionBaseSolid, cutSession.draft, document.stock, primaryFacetForDraft, region, sourceLabelForTarget]);
+
+  const changeDraftWithConstruction = useCallback((patch) => {
+    const nextDraft = { ...cutSession.draft, ...patch };
+    const lockedMeet = cutSession.construction.meet;
+    if (!lockedMeet) {
+      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch });
+      return;
+    }
+
+    const resolvedTarget = resolvePersistedVertexTarget(lockedMeet.target, constructionBaseSolid);
+    if (resolvedTarget.status !== MEET_STATUS.VALID) {
+      dispatchCutSession({
+        type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+        patch,
+        constructionResult: {
+          meet: { ...lockedMeet, status: MEET_STATUS.STALE, message: "Meet 来源拓扑或几何已变化。" },
+        },
+      });
+      return;
+    }
+
+    const { facet } = primaryFacetForDraft(nextDraft);
+    if (!facet) {
+      dispatchCutSession({
+        type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+        patch,
+        constructionResult: { meet: { ...lockedMeet, status: MEET_STATUS.STALE, message: "当前参数无法确定 baseIndex 主切面。" } },
+      });
+      return;
+    }
+    const solved = solveVertexMeet({ normal: facet.plane.normal, target: resolvedTarget.target, stock: document.stock });
+    if (solved.status === MEET_STATUS.UNREACHABLE) {
+      dispatchCutSession({
+        type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+        patch,
+        constructionResult: {
+          meet: { ...lockedMeet, status: MEET_STATUS.UNREACHABLE, requiredDepth: solved.requiredDepth, residual: solved.residual, message: "目标位于当前主切面的可达范围之外。" },
+        },
+      });
+      return;
+    }
+
+    const solvedDraft = { ...nextDraft, depth: solved.depth };
+    const resolved = resolveDraftGeometry(solvedDraft, region, document.stock);
+    const impact = evaluateDraftImpact({ baseSolid: constructionBaseSolid, planes: resolved.facets.map(planeEntry) });
+    dispatchCutSession({
+      type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+      patch: { ...patch, depth: solved.depth },
+      constructionResult: {
+        meet: {
+          ...lockedMeet,
+          target: resolvedTarget.target,
+          status: impact.destructive ? MEET_STATUS.DESTRUCTIVE : MEET_STATUS.VALID,
+          requiredDepth: solved.requiredDepth,
+          residual: solved.residual,
+          threats: impact.threats,
+          message: impact.destructive ? "该解会覆盖已提交切面；保存时将按影响程度提示或确认。" : "",
+        },
+      },
+    });
+  }, [constructionBaseSolid, cutSession.construction.meet, cutSession.draft, document.stock, primaryFacetForDraft, region]);
+  const previewPlanes = cutSession.showCutPlane
+    && !constructionBlocksPreview
+    && !(editingPatternId && hiddenPatternIds.has(editingPatternId))
     ? draft.facets.map((facet) => ({ ...facet.plane, index: facet.index, primary: facet === primaryDraftFacet }))
     : [];
+
+  const draftEffectiveIds = useMemo(
+    () => new Set(draftImpact?.resultSolid.faces.map((face) => face.id) ?? []),
+    [draftImpact],
+  );
+  const activeEffectiveIndices = useMemo(() => previewEnabled
+    ? draft.facets.filter((facet) => draftEffectiveIds.has(facet.id)).map((facet) => facet.index)
+    : editingOperation?.effectiveIndices ?? [],
+  [draft.facets, draftEffectiveIds, editingOperation?.effectiveIndices, previewEnabled]);
 
   const instructionGroups = useMemo(() => {
     const rows = operations.map((operation) => {
@@ -414,7 +670,7 @@ export function App() {
         prefix: operation.label.split(/\s+/)[0],
         region: operation.region,
         angle: livePreview ? industryAngle : operation.industryAngleDeg,
-        indices: livePreview ? generatedIndices : operation.indices,
+        indices: livePreview ? activeEffectiveIndices : operation.effectiveIndices,
         active: isActive,
         locked: operation.locked,
         hidden: !operation.visible,
@@ -428,33 +684,27 @@ export function App() {
         prefix: `${FACET_REGION_PREFIXES[region]}${number}`,
         region,
         angle: industryAngle,
-        indices: generatedIndices,
+        indices: activeEffectiveIndices,
         active: true,
         locked: false,
         hidden: false,
       });
     }
 
+    const effectiveRows = rows.filter((row) => row.indices.length > 0);
     return {
-      pavilion: rows
+      pavilion: effectiveRows
         .filter((row) => row.region === "pavilion"),
-      girdle: rows
+      girdle: effectiveRows
         .filter((row) => row.region === "girdle"),
-      crown: rows
+      crown: effectiveRows
         .filter((row) => row.region === "crown")
         .sort((left, right) => Number(left.locked) - Number(right.locked)),
     };
-  }, [draft.facets.length, editingPatternId, generatedIndices, groupEditRegion, industryAngle, operations, previewEnabled, region]);
-
-  useEffect(() => {
-    if (editingPatternId && !operations.some((operation) => operation.id === editingPatternId)) {
-      dispatchCutSession({ type: CUT_SESSION_EVENT.ACTIVE_LAYER_REMOVED, patternId: editingPatternId });
-    }
-  }, [editingPatternId, operations]);
+  }, [activeEffectiveIndices, draft.facets.length, editingPatternId, groupEditRegion, industryAngle, operations, previewEnabled, region]);
 
   const historyEntries = useMemo(() => history.commands.slice(0, history.cursor).map((command) => {
-    const createdAt = command.payload?.pattern?.metadata?.createdAt
-      ?? command.payload?.facets?.[0]?.metadata?.createdAt;
+    const createdAt = command.payload?.facets?.[0]?.metadata?.createdAt;
     return {
       id: command.id,
       patternId: commandPatternId(command),
@@ -472,31 +722,39 @@ export function App() {
     };
   }, [operations]);
 
-  const applyDraft = () => {
+  const applyDraft = (confirmedFullRemoval = false) => {
     if (!cutSession.canCommit || validationMessage || draft.facets.length === 0) return;
     const current = operations.find((operation) => operation.id === editingPatternId);
 
-    // Commit-time destruction guard: refuse parameters that would erase
-    // another committed layer's faces. Shrinking is normal (later tiers
-    // share edges); erasing means the earlier tier is gone.
     const baseFacets = current
-      ? visibleFacets.filter((facet) => facet.patternId !== current.id)
-      : visibleFacets;
+      ? document.facets.filter((facet) => facet.patternId !== current.id)
+      : document.facets;
     const baseSolid = clipPolyhedronByPlanes(stockSolid, baseFacets.map(planeEntry));
-    const afterSolid = clipPolyhedronByPlanes(baseSolid, draft.facets.map(planeEntry));
-    const survivingIds = new Set(afterSolid.faces.map((face) => face.id));
-    const destroyed = baseSolid.faces.filter(
-      (face) => face.sourceOperationId && face.sourceOperationId !== "rough-cube" && !survivingIds.has(face.id),
-    );
-    if (destroyed.length > 0) {
-      const names = [...new Set(destroyed.map((face) => face.sourceOperationId))];
-      const labels = names.map((id) => operations.find((operation) => operation.id === id)?.label ?? id).join("、");
-      notify(`已拒绝保存：当前参数会消除「${labels}」的面。请减小切入深度，或先删除对应图层。`);
+    const impact = evaluateDraftImpact({ baseSolid, planes: draft.facets.map(planeEntry) });
+    const policy = resolveDraftCommitPolicy(impact);
+    if (policy === "block") {
+      notify(impact.solidErased
+        ? "已拒绝保存：当前参数会移除全部材料，请减小切入深度。"
+        : impact.noOp
+          ? "已拒绝空切：当前切面没有形成任何有效面。"
+          : "已拒绝保存：当前参数会让台面或腰部结构层整体失效。");
+      return;
+    }
+    const fullyRemovedOperations = impact.threats.filter((threat) => threat.fullyRemoved);
+    if (policy === "confirm" && confirmedFullRemoval !== true) {
+      setPendingFullRemovalCommit({
+        removedFaceCount: impact.removedFaceCount,
+        operations: fullyRemovedOperations.map((threat) => ({
+          ...threat,
+          label: operations.find((operation) => operation.id === threat.operationId)?.label ?? threat.operationId,
+        })),
+      });
+      setModal("confirm-face-removal");
       return;
     }
 
     const { patternId, label } = current
-      ? { patternId: current.id, label: current.locked ? current.label : `${current.label.split(/\s+/)[0]} ${FACET_REGION_LABELS[region]}` }
+      ? { patternId: current.id, label: current.label }
       : makeOperationIdentity(region);
     const createdAt = new Date().toISOString();
     const metadata = {
@@ -506,6 +764,22 @@ export function App() {
       integerIndexOnly: true,
       patternMode,
     };
+    if ([MEET_STATUS.VALID, MEET_STATUS.DESTRUCTIVE].includes(cutSession.construction.meet?.status)) {
+      const target = cutSession.construction.meet.target;
+      metadata.construction = {
+        type: "vertex-meet",
+        solverVersion: 1,
+        target: {
+          topologyKey: target.topologyKey,
+          sourceFaceIds: [...target.sourceFaceIds],
+          sourceOperationIds: [...target.sourceOperationIds],
+          sourceGeometrySignature: target.sourceGeometrySignature,
+          fallbackWorldPoint: [...target.fallbackWorldPoint],
+        },
+      };
+    } else {
+      delete metadata.construction;
+    }
 
     try {
       const facets = draft.facets.map((facet) => ({
@@ -518,11 +792,15 @@ export function App() {
       const command = current
         ? createReplacePatternCommand(patternId, facets)
         : createAddFacetsCommand(facets);
-      setHistory(executeFacetingCommand(history, command));
+      setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
       dispatchCutSession({ type: CUT_SESSION_EVENT.COMMIT_SUCCESS });
-      notify(current
+      setPendingFullRemovalCommit(null);
+      const successMessage = current
         ? `已更新“${label}”并退出编辑，${draft.facets.length} 个面已重新解析。`
-        : `已加入“${label}”并退出编辑；再次选择该层可继续调整。`);
+        : `已加入“${label}”并退出编辑；再次选择该层可继续调整。`;
+      notify(impact.removedFaceCount > 0
+        ? `${successMessage} 最终实体同步移除 ${impact.removedFaceCount} 个被覆盖面。`
+        : successMessage);
     } catch (error) {
       notify(error.message);
     }
@@ -546,15 +824,20 @@ export function App() {
   }, [cutMode, cutSession.canCancel, cutSession.dirty, notify]);
 
   useEffect(() => {
-    if (!cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || opticsActive) return undefined;
+    if (!cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen) return undefined;
     const handleEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      cancelCutSession();
+      if (cutSession.canCancelConstructionTool) {
+        dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+        notify("已退出顶点选择；当前 Meet 保持不变。");
+      } else {
+        cancelCutSession();
+      }
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [ascTransfer, cancelCutSession, cutSession.canCancel, modal, opticsActive, presetLibraryOpen]);
+  }, [ascTransfer, cancelCutSession, cutSession.canCancel, cutSession.canCancelConstructionTool, ledgerOpen, modal, notify, opticsActive, presetLibraryOpen, recoveryOpen]);
 
   useEffect(() => {
     if (!opticsActive || modal || ascTransfer || presetLibraryOpen) return undefined;
@@ -585,6 +868,31 @@ export function App() {
     const operation = operations.find((item) => item.id === id);
     if (!operation) return;
     const first = operation.facets[0];
+    const persisted = first.metadata?.construction;
+    let construction = null;
+    if (persisted?.type === "vertex-meet") {
+      const baseFacets = visibleFacets.filter((facet) => facet.patternId !== id);
+      const baseSolid = clipPolyhedronByPlanes(stockSolid, baseFacets.map(planeEntry));
+      const targetResolution = resolvePersistedVertexTarget(persisted.target, baseSolid);
+      const primary = operation.facets.find((facet) => normalizeIndex(facet.index) === normalizeIndex(first.baseIndex));
+      const solved = targetResolution.target && primary
+        ? solveVertexMeet({ normal: primary.plane.normal, target: targetResolution.target, stock: document.stock })
+        : null;
+      const residual = solved ? operation.depth - solved.requiredDepth : Infinity;
+      const status = targetResolution.status === MEET_STATUS.VALID && solved?.status === MEET_STATUS.VALID && Math.abs(residual) <= 1e-7
+        ? MEET_STATUS.VALID
+        : MEET_STATUS.STALE;
+      construction = {
+        meet: {
+          target: targetResolution.target ?? persisted.target,
+          status,
+          requiredDepth: solved?.requiredDepth ?? operation.depth,
+          residual,
+          threats: [],
+          message: status === MEET_STATUS.STALE ? "Meet 来源或显式切面已发生变化。" : "",
+        },
+      };
+    }
     dispatchCutSession({
       type: CUT_SESSION_EVENT.SELECT_LAYER,
       patternId: id,
@@ -598,6 +906,8 @@ export function App() {
         patternMode: operation.patternMode,
         customIndices: operation.indices.map((index) => displayIndex(index)).join(" "),
       },
+      construction,
+      lockedLayer: operation.locked,
     });
   };
 
@@ -609,7 +919,8 @@ export function App() {
       notify("台面是固定结构层，只能调整深度，不能删除。");
       return;
     }
-    setHistory(executeFacetingCommand(history, createRemoveFacetsCommand(operation.facets.map((facet) => facet.id))));
+    const command = createRemoveFacetsCommand(operation.facets.map((facet) => facet.id));
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     setHiddenPatternIds((current) => {
       const next = new Set(current);
       next.delete(id);
@@ -623,7 +934,8 @@ export function App() {
     const operation = operations.find((item) => item.id === id);
     if (!operation || operation.locked) return;
     const facets = operation.facets.map((facet) => ({ ...facet, label }));
-    setHistory(executeFacetingCommand(history, createReplacePatternCommand(id, facets)));
+    const command = createReplacePatternCommand(id, facets);
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     notify(`已重命名为“${label}”。`);
   };
 
@@ -639,7 +951,8 @@ export function App() {
     const facets = [...document.facets].sort(
       (a, b) => (positionById.get(a.patternId) ?? 0) - (positionById.get(b.patternId) ?? 0),
     );
-    setHistory(executeFacetingCommand(history, createReplaceDocumentCommand({ ...document, facets })));
+    const command = createReplaceDocumentCommand({ ...document, facets });
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     notify(`已调整布尔顺序：“${moved.label}”移至第 ${toIndex + 1} 位。`);
   };
 
@@ -647,9 +960,9 @@ export function App() {
   const inlineEdit = (field, value) => {
     if (!editingPatternId) return;
     if (field === "angle") {
-      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: Math.min(90, Math.max(0, value)) } });
+      changeDraftWithConstruction({ industryAngle: Math.min(90, Math.max(0, value)) });
     } else if (field === "depth") {
-      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { depth: normalizeDepthValue(value) } });
+      if (cutSession.depthEditable) changeDraftWithConstruction({ depth: normalizeDepthValue(value) });
     }
   };
 
@@ -686,11 +999,8 @@ export function App() {
     const rotation = Math.round(Number(groupRotationTeeth) || 0);
     if (!groupEditRegion || !cutSession.canCommit || groupPreview.error) return;
 
-    const beforeSolid = clipPolyhedronByPlanes(
-      stockSolid,
-      document.facets.filter((facet) => !hiddenPatternIds.has(facet.patternId)).map(planeEntry),
-    );
-    const afterSolid = clipPolyhedronByPlanes(stockSolid, visibleFacets.map(planeEntry));
+    const beforeSolid = savedSolid;
+    const afterSolid = clipPolyhedronByPlanes(stockSolid, groupPreview.facets.map(planeEntry));
     const survivingIds = new Set(afterSolid.faces.map((face) => face.id));
     const destroyed = beforeSolid.faces.filter(
       (face) => face.sourceOperationId && face.sourceOperationId !== "rough-cube" && !survivingIds.has(face.id),
@@ -712,7 +1022,8 @@ export function App() {
     };
     const groupLabel = groupEditRegion === "crown" ? "冠部与台面" : "亭部";
     const description = `${groupLabel}整体变换 · ΔZ ${shift >= 0 ? "+" : ""}${shift.toFixed(3)} · H ${(scale * 100).toFixed(1)}% · R ${rotation >= 0 ? "+" : ""}${rotation}T`;
-    setHistory(executeFacetingCommand(history, createReplaceDocumentCommand(nextDocument, { description })));
+    const command = createReplaceDocumentCommand(nextDocument, { description });
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     dispatchCutSession({ type: CUT_SESSION_EVENT.COMMIT_SUCCESS });
     notify(`已应用${groupLabel}整体变换；可一步撤销。`);
   };
@@ -722,13 +1033,70 @@ export function App() {
     selectCut(operationId);
   };
 
+  const handleJump = useCallback((direction) => {
+    if (!(direction < 0 ? jumpSession.canJumpPrevious : jumpSession.canJumpNext)) return;
+    const nextIndex = adjacentJumpCandidateIndex({
+      candidates: jumpCandidates,
+      currentDepth: Number(cutSession.draft.depth),
+      currentKey: cutSession.construction.candidate?.key,
+      direction,
+    });
+    const raw = jumpCandidates[nextIndex];
+    const candidate = {
+      ...raw,
+      status: raw.classification === "destructive" ? MEET_STATUS.DESTRUCTIVE : MEET_STATUS.VALID,
+      requiredDepth: raw.depth,
+      residual: 0,
+      position: `${nextIndex + 1}/${jumpCandidates.length}`,
+      sourceLabel: sourceLabelForTarget(raw.target),
+    };
+    dispatchCutSession({ type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate });
+  }, [cutSession.canUseMeetJump, cutSession.construction.candidate?.key, cutSession.construction.meet, cutSession.draft.depth, jumpCandidates, jumpSession.canJumpPrevious, jumpSession.canJumpNext, notify, sourceLabelForTarget]);
+
+  const handleVertexPick = useCallback((target) => {
+    if (!cutSession.canCancelConstructionTool) return;
+    const candidate = candidateFromTarget(target, "manual");
+    if (!candidate) return;
+    dispatchCutSession({ type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate });
+  }, [candidateFromTarget, cutSession.canCancelConstructionTool]);
+
+  const lockMeet = useCallback(() => {
+    const candidate = cutSession.construction.candidate;
+    if (!candidate || !cutSession.canLockMeet) return;
+    dispatchCutSession({
+      type: CUT_SESSION_EVENT.LOCK_MEET,
+      meet: {
+        target: candidate.target,
+        status: candidate.classification === "destructive" ? MEET_STATUS.DESTRUCTIVE : candidate.status,
+        requiredDepth: candidate.requiredDepth ?? candidate.depth,
+        residual: candidate.residual ?? 0,
+        threats: candidate.threats ?? [],
+        message: candidate.classification === "destructive" ? "该解会覆盖已提交切面；保存时将按影响程度提示或确认。" : "",
+      },
+    });
+  }, [cutSession.canLockMeet, cutSession.construction.candidate]);
+
+  useEffect(() => {
+    if (!cutSession.canUseMeetJump || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen) return undefined;
+    const handleJumpKey = (event) => {
+      if (event.key.toLowerCase() !== "j" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      event.preventDefault();
+      handleJump(event.shiftKey ? -1 : 1);
+    };
+    window.addEventListener("keydown", handleJumpKey);
+    return () => window.removeEventListener("keydown", handleJumpKey);
+  }, [ascTransfer, cutSession.canUseMeetJump, handleJump, ledgerOpen, modal, opticsActive, presetLibraryOpen, recoveryOpen]);
+
   const handleDepthDrag = (rawDepth) => {
-    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { depth: normalizeDepthValue(rawDepth) } });
+    if (!cutSession.depthEditable) return;
+    changeDraftWithConstruction({ depth: normalizeDepthValue(rawDepth) });
   };
 
   const handleAngleDrag = (rawAngle) => {
     if (region === "girdle" || editingOperation?.locked) return;
-    dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: Math.min(90, Math.max(0, rawAngle)) } });
+    changeDraftWithConstruction({ industryAngle: Math.min(90, Math.max(0, rawAngle)) });
   };
 
   const cutGizmo = useMemo(() => {
@@ -746,6 +1114,7 @@ export function App() {
       region,
       industryAngle,
       angleLocked: region === "girdle" || Boolean(editingOperation?.locked),
+      depthLocked: !cutSession.depthEditable,
       arcRadius: indexRadius,
       bearingCenter: [0, 0, 0],
       bearingRadius: indexRadius,
@@ -760,13 +1129,14 @@ export function App() {
         locked: Boolean(editingOperation?.locked),
       } : null,
     };
-  }, [depth, document.stock.size, editingOperation?.locked, industryAngle, mirrorOffset, patternMode, primaryDraftFacet, region, repeatCount]);
+  }, [cutSession.depthEditable, depth, document.stock.size, editingOperation?.locked, industryAngle, mirrorOffset, patternMode, primaryDraftFacet, region, repeatCount]);
 
   const depthControlMax = Math.max(document.stock.size * 1.5, depth * 1.25, 1);
 
   const resetDocument = (name) => {
+    setRecoveryStarted(true);
     setHistory(createCommandHistory(createWorkbenchDocument(name)));
-    setOpticsSettings(resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS));
+    setOpticsViewSettings(DEFAULT_OPTICS_SETTINGS.view);
     setHiddenPatternIds(new Set());
     dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_CREATE, region: "crown" });
     setResetSignal((value) => value + 1);
@@ -786,15 +1156,12 @@ export function App() {
       { ...document, name: nextName },
       { description: `重命名切型 · ${nextName}` },
     );
-    setHistory(executeFacetingCommand(history, command));
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     notify(`切型已重命名为“${nextName}”。`);
   };
 
   const exportDocument = () => {
-    const json = exportFacetingJSON({
-      ...document,
-      metadata: { ...(document.metadata ?? {}), optics: opticsSettings },
-    });
+    const json = exportFacetingJSON(document);
     const blob = new Blob([json], { type: "application/json" });
     downloadBlob(blob, `${document.name.replace(/[^\p{L}\p{N}-]+/gu, "-") || "facet-96"}.json`);
     notify(`已导出 ${document.facets.length} 个面的完整 JSON 参数。`);
@@ -804,9 +1171,15 @@ export function App() {
     setModal(null);
     notify("正在生成切磨数据报告…");
     try {
-      await downloadFacetReport({ document, solid: reportSolid, metrics: reportMetrics, includeGirdle: reportIncludeGirdle });
+      await downloadFacetReport({
+        document,
+        solid: reportSolid,
+        metrics: reportMetrics,
+        includeGirdle: reportIncludeGirdle,
+        hiddenPatternIds: [...hiddenPatternIds],
+      });
       notify(reportIncludeGirdle
-        ? `PDF 报告已生成：${document.facets.length} 个刻面，含腰部逐面表。`
+        ? `PDF 报告已生成：${savedEffectiveFacets.effectiveFacetIds.length} 个最终有效面，含腰部逐面表。`
         : `PDF 报告已生成：腰部逐面表按默认规则省略，几何视图中仍可见。`);
     } catch (error) {
       notify(`PDF 导出失败：${error.message}`);
@@ -816,7 +1189,6 @@ export function App() {
   const applyImportedDocument = (imported, { description } = {}) => {
     const command = createReplaceDocumentCommand(imported, description ? { description } : undefined);
     setHistory((current) => executeFacetingCommand(current, command));
-    setOpticsSettings(resolveOpticsSettings(imported.metadata?.optics));
     setHiddenPatternIds(new Set());
     dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
   };
@@ -844,10 +1216,7 @@ export function App() {
   };
 
   const openAscExport = () => {
-    const result = serializeGemCadAsc({
-      ...document,
-      metadata: { ...(document.metadata ?? {}), optics: opticsSettings },
-    });
+    const result = serializeGemCadAsc(document);
     setAscTransfer({
       mode: "export",
       fileName: `${safeFileStem(document.name)}.asc`,
@@ -906,7 +1275,8 @@ export function App() {
     }
   };
 
-  const composerStatus = `实时解析 · ${metrics.faces.length} 面 · 体积 ${metrics.volume.toFixed(3)}`;
+  const visibleEffectiveCount = useMemo(() => summarizeEffectiveFacets(displaySolid).effectiveFacetIds.length, [displaySolid]);
+  const composerStatus = `有效刻面 ${visibleEffectiveCount} · 毛坯面 ${metrics.faces.length - visibleEffectiveCount} · 体积 ${metrics.volume.toFixed(3)}`;
   const composerValidationMessage = groupEditRegion
     ? `正在整体变换${groupEditRegion === "crown" ? "冠部与台面" : "亭部"}；请先应用或取消。`
     : cutSession.active ? validationMessage : "";
@@ -943,42 +1313,59 @@ export function App() {
                 depth={depth}
                 disabled={!cutSession.controlsEnabled}
                 onAngleChange={(value) => {
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: value } });
+                  changeDraftWithConstruction({ industryAngle: value });
                 }}
                 onDepthChange={(value) => {
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { depth: normalizeDepthValue(value) } });
+                  if (cutSession.depthEditable) changeDraftWithConstruction({ depth: normalizeDepthValue(value) });
                 }}
                 depthMax={depthControlMax}
                 angleLocked={Boolean(editingOperation?.locked)}
+                depthEditable={cutSession.depthEditable}
+                construction={cutSession.construction}
+                nextJumpCandidate={nextJumpCandidate}
+                canUseMeetJump={cutSession.canUseMeetJump}
+                canJumpPrevious={jumpSession.canJumpPrevious}
+                canJumpNext={jumpSession.canJumpNext}
+                canPickMeetTarget={cutSession.canPickMeetTarget}
+                canLockMeet={cutSession.canLockMeet}
+                canCancelConstructionTool={cutSession.canCancelConstructionTool}
+                onJump={handleJump}
+                onStartMeetPick={() => dispatchCutSession({ type: CUT_SESSION_EVENT.START_MEET_PICK })}
+                onCancelConstructionTool={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL })}
+                onLockMeet={lockMeet}
+                onClearMeet={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET })}
               />
               <CutComposer
                 patternMode={patternMode}
                 onPatternModeChange={(value) => {
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { patternMode: value } });
+                  changeDraftWithConstruction({ patternMode: value });
                 }}
                 baseIndex={baseIndex}
                 onBaseIndexChange={(value) => {
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { baseIndex: normalizeIndex(value) } });
+                  changeDraftWithConstruction({ baseIndex: normalizeIndex(value) });
                 }}
                 repeatCount={repeatCount}
                 repeatOptions={VALID_REPEAT_COUNTS}
                 onRepeatChange={(value) => {
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { repeat: value } });
+                  changeDraftWithConstruction({ repeat: value });
                 }}
                 mirrorOffset={mirrorOffset}
                 onMirrorChange={(value) => {
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { mirrorOffset: Math.min(48, Math.max(0, Math.round(value))) } });
+                  changeDraftWithConstruction({ mirrorOffset: Math.min(48, Math.max(0, Math.round(value))) });
                 }}
                 customIndices={customIndices}
                 onCustomIndicesChange={(value) => {
-                  dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { customIndices: value } });
+                  changeDraftWithConstruction({ customIndices: value });
                 }}
                 generatedCount={draft.facets.length}
                 instructionGroups={instructionGroups}
                 mode={cutMode}
+                controlsEnabled={cutSession.controlsEnabled}
                 previewEnabled={previewEnabled}
                 lockedPattern={Boolean(editingOperation?.locked)}
+                patternModeLocked={Boolean(cutSession.construction.meet)}
                 validationMessage={composerValidationMessage}
+                warningMessage={cutSession.active ? impactWarningMessage : ""}
                 status={composerStatus}
               />
             </details>
@@ -1002,12 +1389,18 @@ export function App() {
           <Header
             projectName={document.name}
             onProjectNameChange={renameProject}
-            facetCount={operations.reduce((sum, item) => sum + item.indices.length, 0)}
+            facetCount={operations.reduce((sum, item) => sum + item.effectiveCount, 0)}
             onNew={() => setModal("new")}
             onOpenPresets={() => setPresetLibraryOpen(true)}
             onImport={() => importRef.current?.click()}
             onImportAsc={() => ascImportRef.current?.click()}
-            onExport={exportDocument}
+            onExport={() => hasUnsavedPreview ? setModal("json-export") : exportDocument()}
+            backupStatus={localRecovery.status}
+            onOpenRecovery={() => {
+              localRecovery.refresh();
+              setRecoveryStartup(false);
+              setRecoveryOpen(true);
+            }}
             onExportAsc={openAscExport}
             onExportPdf={() => setModal("pdf")}
             onUndo={() => {
@@ -1060,6 +1453,7 @@ export function App() {
             inlineValues={{ angle: industryAngle, depth }}
             onInlineEdit={inlineEdit}
             onInlineCommit={applyDraft}
+            depthEditable={cutSession.depthEditable}
             activeRegion={region}
             onRegionChange={changeRegion}
             groupEditRegion={groupEditRegion}
@@ -1079,10 +1473,12 @@ export function App() {
             canCancelSession={cutSession.canCancel && cutMode !== CUT_SESSION_MODE.GROUP}
             sessionMode={cutMode}
             sessionFaceCount={draft.facets.length}
+            sessionEffectiveCount={activeEffectiveIndices.length}
+            sessionDirty={cutSession.dirty}
             canCommitSession={cutSession.canCommit}
             commitDisabledReason={composerValidationMessage
               || (cutMode === CUT_SESSION_MODE.EDIT && !cutSession.canCommit ? "参数未修改" : "")}
-            onCommitSession={applyDraft}
+            onCommitSession={() => applyDraft()}
             onCancelSession={cancelCutSession}
             floating
             collapsed={!cutStackOpen}
@@ -1091,6 +1487,7 @@ export function App() {
 
           <GemViewport
             polyhedron={displaySolid}
+            meetPolyhedron={constructionBaseSolid}
             previewPlanes={previewPlanes}
             selectedIndex={baseIndex}
             viewMode={viewMode}
@@ -1102,18 +1499,29 @@ export function App() {
             activeOperationId={cutSession.activePatternId}
             previewOperationId={cutMode === "create" ? `draft-${patternMode}` : null}
             pickingEnabled
-            cutGizmo={cutSession.showGizmo ? cutGizmo : null}
+            cutGizmo={cutSession.showGizmo && !constructionBlocksPreview ? cutGizmo : null}
             groupGizmo={groupGizmo}
             onFacePick={handleFacePick}
+            meetTargets={meetTargets}
+            meetPickEnabled={cutSession.canCancelConstructionTool && !opticsActive}
+            constructionMarker={cutSession.construction.meet
+              ? { point: cutSession.construction.meet.target?.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true }
+              : cutSession.construction.candidate
+                ? { point: cutSession.construction.candidate.target?.fallbackWorldPoint, status: cutSession.construction.candidate.status, locked: false, position: cutSession.construction.candidate.position }
+                : null}
+            nextJumpMarker={nextJumpCandidate
+              ? { point: nextJumpCandidate.target?.fallbackWorldPoint, position: nextJumpCandidate.position }
+              : null}
+            onVertexPick={handleVertexPick}
             onDepthDrag={handleDepthDrag}
             onAngleDrag={handleAngleDrag}
             onIndexDrag={(value) => {
               if (editingOperation?.locked) return;
-              dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { baseIndex: normalizeIndex(value) } });
+              changeDraftWithConstruction({ baseIndex: normalizeIndex(value) });
             }}
             onMirrorDrag={(value) => {
               if (editingOperation?.locked) return;
-              dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { mirrorOffset: Math.min(48, Math.max(0, Math.round(value))) } });
+              changeDraftWithConstruction({ mirrorOffset: Math.min(48, Math.max(0, Math.round(value))) });
             }}
             onGroupDeltaDrag={(value) => changeGroupDelta(value.toFixed(6))}
             onGroupScaleDrag={(value) => changeGroupScale(Number(value.toFixed(6)))}
@@ -1135,7 +1543,7 @@ export function App() {
               settings={opticsSettings}
               tab={opticsTab}
               onTabChange={setOpticsTab}
-              onChange={setOpticsSettings}
+              onChange={changeOpticsSettings}
               onClose={() => setOpticsInspectorOpen(false)}
             />
           ) : null}
@@ -1205,14 +1613,51 @@ export function App() {
         />
       ) : null}
 
+      {localRecovery.status.state === "error" ? (
+        <div className="backup-error" role="alert">
+          <div><strong>本地备份未完成</strong><p>{localRecovery.status.message}</p></div>
+          <div className="backup-error-actions">
+            <button type="button" onClick={localRecovery.retry}>重试备份</button>
+            <button type="button" onClick={() => hasUnsavedPreview ? setModal("json-export") : exportDocument()}>导出 JSON</button>
+          </div>
+        </div>
+      ) : null}
+
+      {recoveryOpen ? (
+        <RecoveryDialog
+          records={localRecovery.records}
+          unreadableCount={localRecovery.unreadableCount}
+          error={localRecovery.error}
+          startup={recoveryStartup}
+          discardingDraft={!recoveryStartup && hasUnsavedPreview}
+          onClose={() => setRecoveryOpen(false)}
+          onRefresh={localRecovery.refresh}
+          onRemove={localRecovery.remove}
+          onRestore={(record) => {
+            applyImportedDocument(ensureTableFacet(record.document), { description: `恢复本地设计 · ${record.document.name}` });
+            setRecoveryOpen(false);
+            setResetSignal((value) => value + 1);
+            notify("已恢复文档与材质；未保存草稿、相机和旧撤销历史不包含在备份中。");
+          }}
+        />
+      ) : null}
+
       {modal === "new" ? (
         <Modal title="新建设计" confirmLabel="创建新设计" onClose={() => setModal(null)} onConfirm={startNewDocument}>
           <p>当前设计会从工作区移除。新文件将从边长 2.000 的立方体开始，并恢复固定台面 T1 与默认 32 面腰部 G1。</p>
         </Modal>
       ) : null}
 
+      {modal === "json-export" ? (
+        <Modal eyebrow="JSON · EXPORT" title="导出已提交的 JSON" confirmLabel="导出已提交文档" onClose={() => setModal(null)} onConfirm={() => { setModal(null); exportDocument(); }}>
+          <p>当前还有未保存的 CUT / 整体变换预览，本次导出不包含这些修改，也不会提交或取消它们。</p>
+          <p>JSON 保留已提交的完整 CUT STACK（含被覆盖工序）、Meet 快照和光学材质。需要导出当前预览时，请先取消此窗口并保存切割。</p>
+        </Modal>
+      ) : null}
+
       {modal === "pdf" ? (
-        <Modal title="导出 PDF 技术报告" confirmLabel="生成报告" onClose={() => setModal(null)} onConfirm={exportPdfReport}>
+        <Modal eyebrow="PDF · REPORT" title="导出 PDF 技术报告" confirmLabel="生成报告" onClose={() => setModal(null)} onConfirm={exportPdfReport}>
+          <p>本次报告只包含已提交文档的 {savedEffectiveFacets.effectiveFacetIds.length} 个最终有效刻面；{hasUnsavedPreview ? "当前未保存 CUT / 整体变换预览不包含在内。" : "不包含毛坯面。"}</p>
           <p>报告包含封面五视图（含台面宽 T 标注）与分区逐面参数表。腰部是辅助面，逐面表默认不导出。</p>
           <label className="modal-check">
             <input
@@ -1220,8 +1665,31 @@ export function App() {
               checked={reportIncludeGirdle}
               onChange={(event) => setReportIncludeGirdle(event.target.checked)}
             />
-            <span>包含腰部逐面参数表（{operations.filter((item) => item.region === "girdle").reduce((sum, item) => sum + item.indices.length, 0)} 面）</span>
+            <span>包含腰部逐面参数表（{operations.filter((item) => item.region === "girdle").reduce((sum, item) => sum + item.effectiveCount, 0)} 面）</span>
           </label>
+        </Modal>
+      ) : null}
+
+      {modal === "confirm-face-removal" && pendingFullRemovalCommit ? (
+        <Modal
+          title="确认覆盖已有切面"
+          confirmLabel="确认切割并保留历史"
+          destructive
+          onClose={() => {
+            setPendingFullRemovalCommit(null);
+            setModal(null);
+          }}
+          onConfirm={() => {
+            setModal(null);
+            applyDraft(true);
+          }}
+        >
+          <p>新切面会让以下普通图层在最终实体中完全消失。原参数化工序仍保留在 CUT STACK 和 JSON 中；撤销或移除覆盖层后可以自动恢复。</p>
+          <ul>
+            {pendingFullRemovalCommit.operations.map((operation) => (
+              <li key={operation.operationId}>{operation.label}：覆盖 {operation.removedCount} 个有效面</li>
+            ))}
+          </ul>
         </Modal>
       ) : null}
 

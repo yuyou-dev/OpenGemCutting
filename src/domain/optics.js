@@ -1,3 +1,5 @@
+import { createUpdateOpticsCommand } from "./faceting.js";
+
 export const OPTICAL_PRESETS = Object.freeze({
   diamond: Object.freeze({
     id: "diamond",
@@ -68,7 +70,7 @@ function clamp(value, minimum, maximum, fallback) {
 
 export function resolveOpticsSettings(value = {}) {
   const preset = OPTICAL_PRESETS[value?.material?.preset ?? value?.material?.id]
-    ?? OPTICAL_PRESETS.diamond;
+    ?? (Number(value?.refractiveIndex) > 1 ? OPTICAL_PRESETS.custom : OPTICAL_PRESETS.diamond);
   const material = value?.material ?? {};
   const view = value?.view ?? {};
   const advanced = value?.advanced ?? {};
@@ -83,7 +85,7 @@ export function resolveOpticsSettings(value = {}) {
     material: {
       preset: preset.id,
       label: preset.label,
-      ior: clamp(material.ior, 1.001, 3.5, preset.ior),
+      ior: clamp(material.ior ?? value?.refractiveIndex, 1.001, 3.5, preset.ior),
       dispersion: clamp(material.dispersion, 0, 0.15, preset.dispersion),
       bodyColor: /^#[0-9a-f]{6}$/i.test(material.bodyColor ?? "")
         ? material.bodyColor
@@ -105,6 +107,11 @@ export function resolveOpticsSettings(value = {}) {
       maxBounces: Math.round(clamp(advanced.maxBounces, 2, 8, 6)),
     },
   };
+}
+
+export function createDocumentOpticsCommand(settings) {
+  const { material, advanced } = resolveOpticsSettings(settings);
+  return createUpdateOpticsCommand({ material, advanced });
 }
 
 export function applyOpticalPreset(settings, presetId) {

@@ -18,7 +18,13 @@ const facets = [
 const document = createFacetingDocument({ name: "未命名切型 01", facets });
 const solid = clipPolyhedronByPlanes(
   createCenteredCube(2),
-  facets.map((facet) => ({ ...facet.plane, operationId: facet.patternId, faceId: facet.id, region: facet.region })),
+  facets.map((facet) => ({
+    ...facet.plane,
+    operationId: facet.patternId,
+    faceId: facet.id,
+    region: facet.region,
+    operationType: facet.metadata?.operationType,
+  })),
 );
 const [regularBytes, boldBytes, logoBytes] = await Promise.all([
   readFile(path.join(root, "public/fonts/NotoSerifSC-Light.ttf")),

@@ -23,7 +23,7 @@ function chipLetter(operation) {
 }
 
 /** Inline quick-edit for the selected layer: angle + depth, live preview, explicit Enter commits. */
-function InlineEditor({ operation, values, onEdit, onCommit }) {
+function InlineEditor({ operation, values, onEdit, onCommit, depthEditable = true }) {
   const [angle, setAngle] = useState(String(values.angle));
   const [depth, setDepth] = useState(String(values.depth));
   const angleRef = useRef(null);
@@ -73,6 +73,7 @@ function InlineEditor({ operation, values, onEdit, onCommit }) {
           step="0.005"
           value={depth}
           ref={depthRef}
+          disabled={!depthEditable}
           onChange={(event) => {
             setDepth(event.target.value);
             emit("depth", event.target.value);
@@ -105,6 +106,7 @@ export function CutStack({
   inlineValues,
   onInlineEdit,
   onInlineCommit,
+  depthEditable = true,
   activeRegion,
   onRegionChange,
   groupEditRegion,
@@ -124,6 +126,8 @@ export function CutStack({
   canCancelSession = false,
   sessionMode = "idle",
   sessionFaceCount = 0,
+  sessionEffectiveCount = 0,
+  sessionDirty = false,
   canCommitSession = false,
   commitDisabledReason = "",
   onCommitSession,
@@ -134,6 +138,7 @@ export function CutStack({
 }) {
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const cancelRenameRef = useRef(false);
   const [dragIndex, setDragIndex] = useState(null);
   const [dropIndex, setDropIndex] = useState(null);
   const filteredOperations = operations.filter((operation) => operation.region === activeRegion);
@@ -141,7 +146,8 @@ export function CutStack({
   const commitRename = (operation) => {
     const next = renameValue.trim();
     setRenamingId(null);
-    if (next && next !== operation.label) onRename?.(operation.id, next);
+    if (!cancelRenameRef.current && next && next !== operation.label) onRename?.(operation.id, next);
+    cancelRenameRef.current = false;
   };
 
   const handleDrop = (targetIndex) => {
@@ -328,39 +334,52 @@ export function CutStack({
                   <span className={`cut-stack-chip region-${operation.locked ? "table" : operation.region}`} aria-hidden="true">
                     {chipLetter(operation)}
                   </span>
-                  <button type="button" className="cut-stack-select" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers}>
-                    <span className="cut-stack-copy">
+                  <div className="cut-stack-select">
+                    <div className="cut-stack-copy">
                       {renamingId === operation.id ? (
                         <input
                           className="cut-stack-rename"
                           value={renameValue}
                           autoFocus
+                          onFocus={(event) => event.currentTarget.select()}
                           onChange={(event) => setRenameValue(event.target.value)}
                           onBlur={() => commitRename(operation)}
                           onKeyDown={(event) => {
-                            if (event.key === "Enter") commitRename(operation);
-                            if (event.key === "Escape") setRenamingId(null);
+                            event.stopPropagation();
+                            if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              cancelRenameRef.current = true;
+                              event.currentTarget.blur();
+                            }
                           }}
-                          onClick={(event) => event.stopPropagation()}
                           aria-label={`重命名 ${operation.label}`}
                         />
                       ) : (
-                        <strong
-                          onDoubleClick={(event) => {
-                            event.stopPropagation();
-                            if (operation.locked || !canMutateStack) return;
+                        <button
+                          type="button"
+                          className="cut-stack-name"
+                          disabled={!canMutateStack || operation.locked}
+                          onClick={() => {
                             setRenamingId(operation.id);
                             setRenameValue(operation.label);
                           }}
-                          title={operation.locked ? operation.label : `${operation.label} · 双击重命名`}
+                          title={operation.locked ? operation.label : "点击名称改名；点击下方参数编辑切割"}
+                          aria-label={`重命名 ${operation.label}`}
                         >
-                          {operation.label}{selected ? <em>EDIT</em> : null}
-                        </strong>
+                          <strong>{operation.label}{selected ? <em>EDIT</em> : null}</strong>
+                        </button>
                       )}
-                      <small>{operation.industryAngleDeg.toFixed(2)}° · D {operation.depth.toFixed(3)}</small>
-                    </span>
-                    <span className="cut-stack-count">{operation.indices.length}F</span>
-                  </button>
+                      <button type="button" className="cut-stack-parameters" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} aria-label={`编辑 ${operation.label}`}>
+                        <small>{operation.industryAngleDeg.toFixed(2)}° · D {operation.depth.toFixed(3)}{operation.status === "参与解析" ? "" : ` · ${operation.status}`}</small>
+                      </button>
+                    </div>
+                    <button type="button" className="cut-stack-count" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} title={`有效 ${operation.effectiveCount} / 生成 ${operation.recordedCount} 面`} aria-label={`编辑 ${operation.label}，有效 ${operation.effectiveCount} 面`}>
+                      {operation.effectiveCount === operation.recordedCount
+                        ? `${operation.recordedCount}F`
+                        : `${operation.effectiveCount}/${operation.recordedCount}F`}
+                    </button>
+                  </div>
                   <button
                     type="button"
                     className="cut-stack-icon"
@@ -388,6 +407,7 @@ export function CutStack({
                     values={inlineValues ?? { angle: operation.industryAngleDeg, depth: operation.depth }}
                     onEdit={onInlineEdit}
                     onCommit={onInlineCommit}
+                    depthEditable={depthEditable}
                   />
                 ) : null}
               </div>
@@ -411,9 +431,10 @@ export function CutStack({
           <span className="cut-stack-session-copy">
             <strong>
               {sessionMode === "edit"
-                ? `${sessionFaceCount} 面${canCommitSession ? " · 未保存" : ""}`
-                : `新建${REGION_TABS.find(([id]) => id === activeRegion)?.[1]} · ${sessionFaceCount} 面`}
+                ? `编辑${sessionDirty ? " · 未保存" : ""}`
+                : `新建${REGION_TABS.find(([id]) => id === activeRegion)?.[1]}`}
             </strong>
+            <small>有效 {sessionEffectiveCount} / 生成 {sessionFaceCount} 面</small>
           </span>
           <span className="cut-stack-session-actions">
             <button
@@ -428,10 +449,10 @@ export function CutStack({
               type="button"
               className="cut-stack-session-commit"
               onClick={onCommitSession}
-              disabled={Boolean(commitDisabledReason) || sessionFaceCount === 0}
+              disabled={!canCommitSession || Boolean(commitDisabledReason) || sessionFaceCount === 0}
               title={commitDisabledReason || undefined}
             >
-              {sessionMode === "edit" ? "保存" : `加入序列 · ${sessionFaceCount} 面`}
+              {sessionMode === "edit" ? "保存" : `加入序列 · ${sessionEffectiveCount} 面`}
             </button>
           </span>
         </div>

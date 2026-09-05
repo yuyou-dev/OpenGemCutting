@@ -64,6 +64,8 @@ export function Header({
   onDisplayMode,
   onNew,
   onOpenPresets,
+  onOpenRecovery,
+  backupStatus,
   onImport,
   onImportAsc,
   onExport,
@@ -129,8 +131,8 @@ export function Header({
             </button>
           ))}
         </div>
-        <div className="toolbar-project-status is-readonly" title={`${projectName} · ${facetCount} 个面`}>
-          <strong>{projectName}</strong><small>{facetCount} F</small>
+        <div className="toolbar-project-status is-readonly" title={`${projectName} · 已提交 ${facetCount} 个有效刻面`}>
+          <strong>{projectName}</strong><small title="已提交文档的最终有效刻面，不含毛坯面与未保存预览">{facetCount} 有效面</small>
         </div>
         {!opticsInspectorOpen ? (
           <button type="button" className="optics-toolbar-button" onClick={onOpenOpticsInspector}>
@@ -169,7 +171,7 @@ export function Header({
         </div>
       </details>
 
-      <div className="toolbar-project-status" title={`${projectName} · ${facetCount} 个面`}>
+      <div className="toolbar-project-status" title={`${projectName} · 已提交 ${facetCount} 个有效刻面`}>
         <input
           ref={projectNameInputRef}
           type="text"
@@ -195,7 +197,7 @@ export function Header({
             }
           }}
         />
-        <small>{facetCount} F</small>
+        <small title="已提交文档的最终有效刻面，不含毛坯面与未保存预览">{facetCount} 有效面</small>
       </div>
 
       <details className="toolbar-menu toolbar-display-menu" name="toolbar-menu">
@@ -222,8 +224,12 @@ export function Header({
           <IconFolder size={16} stroke={1.7} />
           <IconChevronDown size={13} stroke={1.7} />
         </summary>
-        <div className="toolbar-menu-popover" role="menu" aria-label="文件">
+        <div className="toolbar-menu-popover is-right" role="menu" aria-label="文件">
           <span className="toolbar-menu-label">FILE 文件</span>
+          <p className="toolbar-backup-status" role="status">{backupStatus?.message || "提交文档后自动备份；未保存草稿不备份"}{backupStatus?.savedAt ? ` · ${new Date(backupStatus.savedAt).toLocaleTimeString("zh-CN")}` : ""}</p>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenRecovery)}>
+            <IconHistory size={15} /><span>恢复本地设计</span>
+          </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onNew)}>
             <IconFilePlus size={15} />
             <span>新建设计</span>

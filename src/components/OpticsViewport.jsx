@@ -554,7 +554,7 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
         <span><IconZoomIn size={15} stroke={1.7} />滚轮缩放</span>
         <span><IconHandMove size={15} stroke={1.7} />Shift + 拖拽平移</span>
       </div>
-      <span className="optics-viewport__geometry-status">REAL GEOMETRY · {geometry.faceCount} F</span>
+      <span className="optics-viewport__geometry-status">视口实体 · {geometry.faceCount} 面{polyhedron.faces.some((face) => face.sourceOperationId === "rough-cube") ? "（含毛坯面）" : "（全部为刻面）"}</span>
     </section>
   );
 }

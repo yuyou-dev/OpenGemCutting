@@ -1,4 +1,6 @@
 import { displayIndex, FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../domain/faceting.js";
+import { clipPolyhedronByPlanes, createCenteredCube } from "../domain/geometry.js";
+import { MEET_STATUS, resolvePersistedVertexTarget, solveVertexMeet, summarizeEffectiveFacets } from "../domain/meetJump.js";
 import { downloadBlob } from "../utils/download.js";
 
 const A4 = { width: 595.28, height: 841.89 };
@@ -53,8 +55,69 @@ function groupFacets(facets) {
   });
 }
 
-export function createFacetReportModel({ document, solid, metrics, generatedAt = new Date(), includeGirdle = true }) {
-  const groups = groupFacets(document.facets);
+function effectiveFacets(facets, solid) {
+  const survivingFacetIds = new Set(summarizeEffectiveFacets(solid).effectiveFacetIds);
+  return facets.filter((facet) => survivingFacetIds.has(facet.id));
+}
+
+function planeEntry(facet) {
+  return {
+    ...facet.plane,
+    operationId: facet.patternId,
+    faceId: facet.id,
+    region: facet.region,
+    operationType: facet.metadata?.operationType,
+  };
+}
+
+function attachConstructionSummaries(groups, document, hiddenPatternIds = []) {
+  const labelById = new Map(groups.map((group) => [group.id, group.label.split(/\s+/)[0]]));
+  const hidden = new Set(hiddenPatternIds);
+  const stockSolid = createCenteredCube(document.stock.size, {
+    center: document.stock.center,
+    sourceOperationId: "rough-cube",
+    region: "rough",
+  });
+  return groups.map((group) => {
+    const metadata = group.facets[0]?.metadata?.construction;
+    if (metadata?.type !== "vertex-meet") return group;
+    const baseFacets = document.facets.filter((facet) => (
+      facet.patternId !== group.id && !hidden.has(facet.patternId)
+    ));
+    const baseSolid = clipPolyhedronByPlanes(stockSolid, baseFacets.map(planeEntry));
+    const targetResolution = resolvePersistedVertexTarget(metadata.target, baseSolid);
+    const primary = group.facets.find((facet) => facet.index === facet.baseIndex);
+    const solved = targetResolution.target && primary
+      ? solveVertexMeet({ normal: primary.plane.normal, target: targetResolution.target, stock: document.stock })
+      : null;
+    const sourceHidden = metadata.target.sourceOperationIds.some((id) => hidden.has(id));
+    const status = !sourceHidden && targetResolution.status === MEET_STATUS.VALID
+      && solved?.status === MEET_STATUS.VALID
+      && Math.abs(primary.depth - solved.requiredDepth) <= 1e-7
+      ? MEET_STATUS.VALID
+      : MEET_STATUS.STALE;
+    const sourceOperationIds = targetResolution.target?.sourceOperationIds
+      ?? metadata.target.sourceOperationIds;
+    const sources = sourceOperationIds
+      .filter((id) => id !== "rough-cube")
+      .map((id) => labelById.get(id) ?? id)
+      .join(" × ") || "毛坯";
+    return {
+      ...group,
+      construction: {
+        status,
+        text: status === MEET_STATUS.VALID
+          ? `Meet · 顶点 · 来源 ${sources}`
+          : "来源已失效，当前切面以显式参数为准",
+      },
+    };
+  });
+}
+
+export function createFacetReportModel({ document, solid, metrics, generatedAt = new Date(), includeGirdle = true, hiddenPatternIds = [] }) {
+  const reportFacets = effectiveFacets(document.facets, solid);
+  const omittedFacetCount = document.facets.length - reportFacets.length;
+  const groups = attachConstructionSummaries(groupFacets(reportFacets), document, hiddenPatternIds);
   const bounds = boundsOf(solid.vertices);
   const girdleGroups = groups.filter((group) => group.region === "girdle");
   const girdleFacetCount = girdleGroups.reduce((sum, group) => sum + group.facets.length, 0);
@@ -85,8 +148,12 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
   return {
     name: document.name, stock: document.stock,
     generatedAt: generatedAt.toLocaleString("zh-CN", { hour12: false }),
-    facetCount: document.facets.length, operationCount: groups.length, faceCount: metrics.faces.length,
-    exportedFacetCount: document.facets.length - (includeGirdle ? 0 : girdleFacetCount),
+    facetCount: document.facets.length,
+    storedFacetCount: document.facets.length,
+    effectiveFacetCount: reportFacets.length,
+    omittedFacetCount,
+    operationCount: groups.length, faceCount: metrics.faces.length,
+    exportedFacetCount: reportFacets.length - (includeGirdle ? 0 : girdleFacetCount),
     includeGirdle,
     girdleSummary: { groupCount: girdleGroups.length, facetCount: girdleFacetCount },
     volume: metrics.volume, surfaceArea: metrics.surfaceArea, centroid: metrics.centroid,
@@ -417,7 +484,7 @@ function drawCover(page, model, assets, pageNumber) {
   drawTextTop(page, model.name, MARGIN, 557, { font: bold, size: 12.5, color: rgbOf(rgb, COLOR.ink) });
   drawTextTop(page, "SUVA FACET 96  /  TECHNICAL CUT", MARGIN, 578, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
   drawSpecRow(page, MARGIN, 595, specWidth, "分度系统", "96 INDEX", assets, true);
-  drawSpecRow(page, MARGIN, 614, specWidth, "记录 / 几何面", `${model.exportedFacetCount} / ${model.faceCount} FACES`, assets);
+  drawSpecRow(page, MARGIN, 614, specWidth, "存储 / 有效记录", `${model.storedFacetCount} / ${model.effectiveFacetCount} FACES`, assets);
   drawSpecRow(page, MARGIN, 633, specWidth, "外包尺寸 L / W / H", `${fixed(model.bounds.size.x, 3)} / ${fixed(model.bounds.size.y, 3)} / ${fixed(model.bounds.size.z, 3)}`, assets);
   const ratioX = 307;
   drawTextTop(page, "MEASURED RATIOS", ratioX, 540, { font: latinBold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
@@ -444,6 +511,11 @@ function drawCover(page, model, assets, pageNumber) {
   }
   drawTextTop(page, "DRAWING NOTES", MARGIN, 761, { font: latinBold, size: 5.8, color: rgbOf(rgb, COLOR.ink) });
   drawTextTop(page, "所有视图均为不穿透投影；含斜45°标准视图，尺寸线以双向箭头直接标注外包尺寸和台面宽度 T。", MARGIN, 777, { font, size: 6, color: rgbOf(rgb, COLOR.muted) });
+  if (model.omittedFacetCount > 0) {
+    drawTextTop(page, `最终实体已省略 ${model.omittedFacetCount} 条被后续切割覆盖的存储记录；完整 CUT STACK 请查阅 JSON 主文件。`, MARGIN, 789, {
+      font, size: 5.8, color: rgbOf(rgb, COLOR.accent),
+    });
+  }
 }
 
 function drawGroupAnalysis(page, model, region, group, top, assets) {
@@ -480,9 +552,17 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
   drawSpecRow(page, panelX + 12, top + 70, panelWidth - 24, "重复 / 镜像", `${group.repeat} / ${group.mirror ? `+${group.mirror}` : "AXIS"}`, assets);
   drawSpecRow(page, panelX + 12, top + 89, panelWidth - 24, "行业角范围", angleRange, assets);
   drawSpecRow(page, panelX + 12, top + 108, panelWidth - 24, "深度范围", depthRange, assets);
+  if (group.construction) {
+    drawTextTop(page, group.construction.text, panelX + 12, top + 127, {
+      font: group.construction.status === MEET_STATUS.VALID ? bold : font,
+      size: 5.8,
+      color: rgbOf(rgb, group.construction.status === MEET_STATUS.VALID ? COLOR.accent : COLOR.muted),
+    });
+  }
   const indices = group.facets.map((facet) => String(displayIndex(facet.index)).padStart(2, "0")).join("-");
-  drawTextTop(page, "INDEX", panelX + 12, top + 134, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.accent) });
-  drawTextTop(page, indices.length > 64 ? `${indices.slice(0, 61)}...` : indices, panelX + 50, top + 133, { font: latin, size: 5.4, color: rgbOf(rgb, COLOR.ink) });
+  const indexTop = group.construction ? top + 147 : top + 134;
+  drawTextTop(page, "INDEX", panelX + 12, indexTop, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.accent) });
+  drawTextTop(page, indices.length > 64 ? `${indices.slice(0, 61)}...` : indices, panelX + 50, indexTop - 1, { font: latin, size: 5.4, color: rgbOf(rgb, COLOR.ink) });
 }
 
 function drawGroupPage(page, model, descriptor, assets) {

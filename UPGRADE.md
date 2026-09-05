@@ -30,6 +30,10 @@ npm run check
 
 Restart the project with `npm run dev` in a persistent session. Read the printed `127.0.0.1` URL, verify HTTP 200, and open it in Codex's built-in browser when available.
 
+## Design files and local recovery
+
+v0.7.1 adds local recovery of committed documents and optical materials. Existing JSON documents remain importable. On startup, select a backup explicitly; unsaved CUT drafts, camera/view settings, and previous undo history are not restored. Export JSON before stopping an editing session. Browser backups belong to the current browser and site origin, so restarting on a different local port does not carry them across; import the saved JSON at the new address.
+
 ## Upgrade the Companion when requested
 
 Follow the **Upgrade** section in [`plugins/opengemcutting-companion/LIFECYCLE.md`](plugins/opengemcutting-companion/LIFECYCLE.md). The updated plugin is available only after a full Codex desktop restart, a new task, and explicit selection through `Sources` → `Use plugins`.

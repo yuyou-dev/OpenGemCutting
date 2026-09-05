@@ -16,14 +16,17 @@ export function CutComposer({
   generatedCount,
   instructionGroups,
   mode,
+  controlsEnabled = false,
   previewEnabled,
   lockedPattern = false,
+  patternModeLocked = false,
   validationMessage,
+  warningMessage,
   status,
 }) {
   const editing = mode === "edit";
   const creating = mode === "create";
-  const controlsDisabled = mode === "idle" || mode === "group";
+  const controlsDisabled = !controlsEnabled;
 
   return (
     <aside className="composer-panel" aria-labelledby="composer-title">
@@ -38,7 +41,7 @@ export function CutComposer({
           className={patternMode === "symmetric" ? "is-active" : ""}
           onClick={() => onPatternModeChange("symmetric")}
           aria-pressed={patternMode === "symmetric"}
-          disabled={lockedPattern || controlsDisabled}
+          disabled={lockedPattern || patternModeLocked || controlsDisabled}
         >
           对称模式
         </button>
@@ -47,7 +50,7 @@ export function CutComposer({
           className={patternMode === "arbitrary" ? "is-active" : ""}
           onClick={() => onPatternModeChange("arbitrary")}
           aria-pressed={patternMode === "arbitrary"}
-          disabled={lockedPattern || controlsDisabled}
+          disabled={lockedPattern || patternModeLocked || controlsDisabled}
         >
           自定义索引
         </button>
@@ -124,6 +127,7 @@ export function CutComposer({
       </div>
 
       {validationMessage ? <p className="validation-message" role="alert">{validationMessage}</p> : null}
+      {!validationMessage && warningMessage ? <p className="impact-warning" role="status">{warningMessage}</p> : null}
 
       <p className="composer-status">
         {creating ? "新建预览" : editing ? (previewEnabled ? "编辑预览" : "已选中保存图层") : mode === "group" ? "整体调整中" : "等待新建图层"} · {status}

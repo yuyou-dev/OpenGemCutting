@@ -545,6 +545,7 @@ export function clipPolyhedron(polyhedron, planeInput, options = {}) {
       ?? descriptor.sourceOperationId
       ?? descriptor.operationId;
     const region = options.region ?? record?.region ?? descriptor.region;
+    const operationType = options.operationType ?? record?.operationType ?? descriptor.operationType;
     const requestedFaceId = options.faceId ?? record?.faceId ?? descriptor.faceId;
     const cap = {
       id: uniqueFaceId(polyhedron.faces, requestedFaceId),
@@ -553,6 +554,7 @@ export function clipPolyhedron(polyhedron, planeInput, options = {}) {
     };
     if (sourceOperationId !== undefined) cap.sourceOperationId = sourceOperationId;
     if (region !== undefined) cap.region = region;
+    if (operationType !== undefined) cap.operationType = operationType;
     polygons.push(cap);
   }
 

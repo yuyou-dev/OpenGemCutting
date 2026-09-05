@@ -375,6 +375,78 @@ test("exports and imports validated JSON with explicit resolved facet data", () 
   );
 });
 
+test("round-trips valid vertex Meet metadata and rejects malformed construction records", () => {
+  const construction = {
+    type: "vertex-meet",
+    solverVersion: 1,
+    target: {
+      topologyKey: "vertex:a|b|c",
+      sourceFaceIds: ["a", "b", "c"],
+      sourceOperationIds: ["crown-1", "girdle-1"],
+      sourceGeometrySignature: "v1:0123456789abcdef",
+      fallbackWorldPoint: [0.25, -0.5, 0.125],
+    },
+  };
+  const facets = resolveFacetPattern({
+    patternId: "meet-tier",
+    region: "pavilion",
+    baseIndex: 0,
+    repeat: 4,
+    mirror: 0,
+    industryAngleDeg: 41,
+    depth: 0.42,
+    metadata: { patternMode: "symmetric", construction },
+  });
+  const document = createFacetingDocument({ facets });
+  assert.deepEqual(importFacetingJSON(exportFacetingJSON(document)), document);
+
+  const malformed = structuredClone(document);
+  malformed.facets[0].metadata.construction.target.fallbackWorldPoint = [0, 1];
+  assert.throws(
+    () => importFacetingJSON(JSON.stringify(malformed)),
+    (error) => error instanceof FacetingDocumentValidationError
+      && error.errors.some((item) => item.path.endsWith("fallbackWorldPoint")),
+  );
+});
+
+test("rejects Meet metadata outside one consistent symmetric crown or pavilion pattern", () => {
+  const construction = {
+    type: "vertex-meet",
+    solverVersion: 1,
+    target: {
+      topologyKey: "vertex:a|b|c",
+      sourceFaceIds: ["a", "b", "c"],
+      sourceOperationIds: ["crown-1", "girdle-1"],
+      sourceGeometrySignature: "v1:0123456789abcdef",
+      fallbackWorldPoint: [0.25, -0.5, 0.125],
+    },
+  };
+  const girdle = resolveFacetPattern({
+    patternId: "bad-girdle", region: "girdle", baseIndex: 0, repeat: 4,
+    industryAngleDeg: 90, depth: 0.2, metadata: { patternMode: "symmetric", construction },
+  });
+  assert.throws(() => createFacetingDocument({ facets: girdle }), FacetingDocumentValidationError);
+
+  const arbitrary = resolveFacetPattern({
+    patternId: "bad-arbitrary", region: "crown", baseIndex: 0, repeat: 4,
+    industryAngleDeg: 32, depth: 0.2, metadata: { patternMode: "arbitrary", construction },
+  });
+  assert.throws(() => createFacetingDocument({ facets: arbitrary }), FacetingDocumentValidationError);
+
+  const facets = resolveFacetPattern({
+    patternId: "consistent", region: "pavilion", baseIndex: 0, repeat: 4,
+    industryAngleDeg: 41, depth: 0.42, metadata: { patternMode: "symmetric", construction },
+  });
+  const document = createFacetingDocument({ facets });
+  const partial = structuredClone(document);
+  delete partial.facets[1].metadata.construction;
+  assert.ok(validateFacetingDocument(partial).errors.some((error) => /every facet/.test(error.message)));
+
+  const conflicting = structuredClone(document);
+  conflicting.facets[1].metadata.construction.target.topologyKey = "vertex:other";
+  assert.ok(validateFacetingDocument(conflicting).errors.some((error) => /must match every facet/.test(error.message)));
+});
+
 test("imports the previous inverted crown and pavilion convention by re-resolving geometry", () => {
   const legacy = createFacetingDocument({
     facets: [

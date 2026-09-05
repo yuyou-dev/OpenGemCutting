@@ -20,6 +20,31 @@ const LAYER_DRAFT = Object.freeze({
   customIndices: "02 22",
 });
 
+const MEET_TARGET = Object.freeze({
+  topologyKey: "v:C1.0|G1.2|G1.3",
+  sourceFaceIds: ["C1.0", "G1.2", "G1.3"],
+  sourceOperationIds: ["C1", "G1"],
+  sourceGeometrySignature: "geometry-1",
+  fallbackWorldPoint: [0.2, -0.1, 0.3],
+});
+
+const VALID_CANDIDATE = Object.freeze({
+  source: "manual",
+  key: MEET_TARGET.topologyKey,
+  target: MEET_TARGET,
+  depth: 0.625,
+  classification: "valid",
+  threats: [],
+});
+
+const VALID_MEET = Object.freeze({
+  target: MEET_TARGET,
+  status: "valid",
+  requiredDepth: 0.625,
+  residual: 0,
+  threats: [],
+});
+
 test("defines one closed interaction contract for every CUT mode", () => {
   Object.values(CUT_SESSION_MODE).forEach((mode) => {
     const config = CUT_SESSION_TABLE[mode];
@@ -44,11 +69,16 @@ test("resolveCutSession invariants per mode", () => {
   assert.equal(idle.canCommit, false);
   assert.ok(idle.draft);
   assert.equal(idle.group, null);
+  assert.deepEqual(idle.construction, { tool: "none", candidate: null, meet: null });
+  assert.equal(idle.canUseMeetJump, false);
+  assert.equal(idle.depthEditable, false);
 
   const create = resolveCutSession(createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" }));
   assert.equal(create.dirty, true);
   assert.equal(create.previewEnabled, true);
   assert.equal(create.canCommit, true);
+  assert.equal(create.canUseMeetJump, true);
+  assert.equal(create.depthEditable, true);
 
   const edit = createCutSession(CUT_SESSION_MODE.EDIT, { patternId: "P2", region: "pavilion", draft: LAYER_DRAFT });
   assert.equal(resolveCutSession(edit).canCommit, false);
@@ -63,6 +93,69 @@ test("resolveCutSession invariants per mode", () => {
   const groupDirty = cutSessionReducer(group, { type: CUT_SESSION_EVENT.CHANGE_GROUP, patch: { rotationTeeth: 2 } });
   assert.equal(resolveCutSession(groupDirty).canCommit, groupDirty.dirty);
   assert.equal(resolveCutSession(groupDirty).canCommit, true);
+});
+
+test("every resolved mode exposes the same Meet and Jump capability keys", () => {
+  const capabilityKeys = [
+    "canUseMeetJump",
+    "canJumpPrevious",
+    "canJumpNext",
+    "canPickMeetTarget",
+    "canLockMeet",
+    "canCancelConstructionTool",
+    "depthEditable",
+    "constructionValid",
+  ];
+  Object.values(CUT_SESSION_MODE).forEach((mode) => {
+    const view = resolveCutSession(createCutSession(mode, {
+      patternId: "C1",
+      region: "crown",
+      draft: LAYER_DRAFT,
+    }));
+    capabilityKeys.forEach((key) => assert.equal(typeof view[key], "boolean", `${mode}.${key}`));
+  });
+});
+
+test("Meet and Jump are available only to symmetric crown and pavilion drafts", () => {
+  for (const mode of Object.values(CUT_SESSION_MODE)) {
+    for (const region of ["crown", "girdle", "pavilion"]) {
+      for (const patternMode of ["symmetric", "arbitrary"]) {
+        let session = createCutSession(mode, {
+          patternId: "C1",
+          region,
+          draft: { ...LAYER_DRAFT, patternMode },
+        });
+        if (mode === CUT_SESSION_MODE.CREATE && patternMode === "arbitrary") {
+          session = cutSessionReducer(session, {
+            type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+            patch: { patternMode },
+          });
+        }
+        const view = resolveCutSession(session);
+        const expected = (mode === CUT_SESSION_MODE.CREATE || mode === CUT_SESSION_MODE.EDIT)
+          && (region === "crown" || region === "pavilion")
+          && patternMode === "symmetric";
+        assert.equal(view.canUseMeetJump, expected, `${mode}/${region}/${patternMode}`);
+        assert.equal(view.canPickMeetTarget, expected, `${mode}/${region}/${patternMode}`);
+      }
+    }
+  }
+});
+
+test("fixed table layers keep zero degrees and never expose Meet or Jump", () => {
+  const edit = createCutSession(CUT_SESSION_MODE.EDIT, {
+    patternId: "table-facet",
+    region: "crown",
+    lockedLayer: true,
+    draft: { ...LAYER_DRAFT, industryAngle: 0 },
+  });
+  assert.equal(resolveCutSession(edit).canUseMeetJump, false);
+  const changed = cutSessionReducer(edit, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { industryAngle: 35, depth: 0.35 },
+  });
+  assert.equal(changed.draft.industryAngle, 0);
+  assert.equal(changed.draft.depth, 0.35);
 });
 
 test("every active session cancels back to idle keeping its region", () => {
@@ -85,7 +178,7 @@ test("every active session cancels back to idle keeping its region", () => {
 test("region defaults rebuild drafts while index preferences survive", () => {
   assert.deepEqual(defaultDraftForRegion("crown"), {
     industryAngle: 32,
-    depth: 0.42,
+    depth: 0,
     baseIndex: 36,
     repeat: 8,
     mirrorOffset: 0,
@@ -93,6 +186,7 @@ test("region defaults rebuild drafts while index preferences survive", () => {
     customIndices: "02 22 26 46 50 70 74 94",
   });
   assert.equal(defaultDraftForRegion("girdle").repeat, 16);
+  assert.equal(defaultDraftForRegion("pavilion").depth, 0);
 
   const create = createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" });
   const tuned = cutSessionReducer(create, {
@@ -133,6 +227,30 @@ test("selecting a layer enters a clean edit session carrying the layer draft", (
   assert.equal(resolveCutSession(edit).activePatternId, "C1");
 });
 
+test("selecting a layer can restore a validated Meet construction", () => {
+  const idle = createCutSession();
+  const edit = cutSessionReducer(idle, {
+    type: CUT_SESSION_EVENT.SELECT_LAYER,
+    patternId: "C2",
+    region: "crown",
+    draft: LAYER_DRAFT,
+    construction: { tool: "none", candidate: null, meet: VALID_MEET },
+  });
+  assert.deepEqual(edit.construction, { tool: "none", candidate: null, meet: VALID_MEET });
+  assert.equal(edit.dirty, false);
+  assert.equal(resolveCutSession(edit).depthEditable, false);
+  assert.equal(resolveCutSession(edit).constructionValid, true);
+
+  const bareMeet = cutSessionReducer(idle, {
+    type: CUT_SESSION_EVENT.SELECT_LAYER,
+    patternId: "C3",
+    region: "crown",
+    draft: LAYER_DRAFT,
+    construction: VALID_MEET,
+  });
+  assert.deepEqual(bareMeet.construction.meet, VALID_MEET);
+});
+
 test("draft changes merge patches and make edit committable without changing its identity", () => {
   const clean = createCutSession(CUT_SESSION_MODE.EDIT, { patternId: "P2", region: "pavilion", draft: LAYER_DRAFT });
   assert.equal(resolveCutSession(clean).canCommit, false);
@@ -145,6 +263,163 @@ test("draft changes merge patches and make edit committable without changing its
   assert.equal(dirty.patternId, "P2");
   assert.equal(resolveCutSession(dirty).canCommit, true);
   assert.equal(resolveCutSession(dirty).activePatternId, "P2");
+});
+
+test("ordinary draft changes clear transient candidates", () => {
+  const create = createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" });
+  const selected = cutSessionReducer(create, {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE,
+    candidate: VALID_CANDIDATE,
+  });
+  assert.deepEqual(selected.construction.candidate, VALID_CANDIDATE);
+  const changed = cutSessionReducer(selected, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { baseIndex: 24 },
+  });
+  assert.equal(changed.construction.candidate, null);
+  assert.equal(changed.draft.baseIndex, 24);
+  assert.equal(changed.draft.depth, VALID_CANDIDATE.depth);
+});
+
+test("Meet picking is explicit and cancelling the tool preserves an existing Meet", () => {
+  const edit = createCutSession(CUT_SESSION_MODE.EDIT, {
+    patternId: "C1",
+    region: "crown",
+    draft: LAYER_DRAFT,
+    construction: { meet: VALID_MEET },
+  });
+  const picking = cutSessionReducer(edit, { type: CUT_SESSION_EVENT.START_MEET_PICK });
+  assert.equal(picking.construction.tool, "pick-vertex");
+  assert.deepEqual(picking.construction.meet, VALID_MEET);
+  assert.equal(resolveCutSession(picking).canCancelConstructionTool, true);
+  assert.equal(picking.dirty, false);
+
+  const cancelled = cutSessionReducer(picking, { type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+  assert.equal(cancelled.construction.tool, "none");
+  assert.equal(cancelled.construction.candidate, null);
+  assert.deepEqual(cancelled.construction.meet, VALID_MEET);
+  assert.equal(cancelled.dirty, false);
+});
+
+test("choosing a replacement target clears the old Meet only after selection", () => {
+  const edit = createCutSession(CUT_SESSION_MODE.EDIT, {
+    patternId: "C1",
+    region: "crown",
+    draft: LAYER_DRAFT,
+    construction: { meet: VALID_MEET },
+  });
+  const picking = cutSessionReducer(edit, { type: CUT_SESSION_EVENT.START_MEET_PICK });
+  assert.deepEqual(picking.construction.meet, VALID_MEET);
+  const selected = cutSessionReducer(picking, {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE,
+    candidate: { ...VALID_CANDIDATE, key: "replacement" },
+  });
+  assert.equal(selected.construction.meet, null);
+  assert.equal(selected.construction.candidate.key, "replacement");
+  assert.equal(resolveCutSession(selected).canLockMeet, true);
+});
+
+test("selecting, locking, and clearing a Meet updates one construction substate", () => {
+  const create = createCutSession(CUT_SESSION_MODE.CREATE, { region: "pavilion" });
+  const picking = cutSessionReducer(create, { type: CUT_SESSION_EVENT.START_MEET_PICK });
+  const selected = cutSessionReducer(picking, {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE,
+    candidate: VALID_CANDIDATE,
+  });
+  assert.equal(selected.construction.tool, "none");
+  assert.deepEqual(selected.construction.candidate, VALID_CANDIDATE);
+  assert.equal(selected.draft.depth, VALID_CANDIDATE.depth);
+  assert.equal(resolveCutSession(selected).canLockMeet, true);
+
+  const locked = cutSessionReducer(selected, {
+    type: CUT_SESSION_EVENT.LOCK_MEET,
+    meet: VALID_MEET,
+  });
+  assert.deepEqual(locked.construction, { tool: "none", candidate: null, meet: VALID_MEET });
+  assert.equal(resolveCutSession(locked).depthEditable, false);
+  assert.equal(resolveCutSession(locked).constructionValid, true);
+  assert.equal(resolveCutSession(locked).canCommit, true);
+
+  const cleared = cutSessionReducer(locked, { type: CUT_SESSION_EVENT.CLEAR_MEET });
+  assert.deepEqual(cleared.construction, { tool: "none", candidate: null, meet: null });
+  assert.equal(resolveCutSession(cleared).depthEditable, true);
+});
+
+test("destructive candidates stay committable for the shared impact confirmation", () => {
+  const create = createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" });
+  const selected = cutSessionReducer(create, {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE,
+    candidate: { ...VALID_CANDIDATE, classification: "destructive", threats: ["C1"] },
+  });
+  assert.equal(resolveCutSession(selected).canLockMeet, true);
+  assert.equal(resolveCutSession(selected).constructionValid, true);
+  assert.equal(resolveCutSession(selected).canCommit, true);
+
+  const locked = cutSessionReducer(selected, { type: CUT_SESSION_EVENT.LOCK_MEET });
+  assert.equal(locked.construction.meet.status, "destructive");
+  assert.equal(resolveCutSession(locked).canCommit, true);
+});
+
+test("unreachable candidates preserve the last valid depth and cannot be locked", () => {
+  const create = createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" });
+  const selected = cutSessionReducer(create, {
+    type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE,
+    candidate: { ...VALID_CANDIDATE, depth: -0.25, status: "unreachable" },
+  });
+  assert.equal(selected.draft.depth, create.draft.depth);
+  assert.equal(resolveCutSession(selected).constructionValid, false);
+  assert.equal(resolveCutSession(selected).canLockMeet, false);
+  assert.equal(resolveCutSession(selected).canCommit, false);
+});
+
+test("locked Meet draft changes atomically merge solver depth and result", () => {
+  const edit = createCutSession(CUT_SESSION_MODE.EDIT, {
+    patternId: "C1",
+    region: "crown",
+    draft: LAYER_DRAFT,
+    construction: { meet: VALID_MEET, candidate: VALID_CANDIDATE },
+  });
+  const recomputedMeet = { ...VALID_MEET, requiredDepth: 0.64, residual: 1e-10 };
+  const changed = cutSessionReducer(edit, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { industryAngle: 40.8, depth: 0.64 },
+    constructionResult: { meet: recomputedMeet },
+  });
+  assert.equal(changed.draft.industryAngle, 40.8);
+  assert.equal(changed.draft.depth, 0.64);
+  assert.equal(changed.construction.candidate, null);
+  assert.deepEqual(changed.construction.meet, recomputedMeet);
+  assert.equal(resolveCutSession(changed).constructionValid, true);
+  assert.equal(resolveCutSession(changed).canCommit, true);
+});
+
+test("locked Meet changes without a solver result become stale", () => {
+  const edit = createCutSession(CUT_SESSION_MODE.EDIT, {
+    patternId: "C1",
+    region: "crown",
+    draft: LAYER_DRAFT,
+    construction: { meet: VALID_MEET },
+  });
+  const changed = cutSessionReducer(edit, {
+    type: CUT_SESSION_EVENT.CHANGE_DRAFT,
+    patch: { baseIndex: 9 },
+  });
+  assert.equal(changed.construction.meet.status, "stale");
+  assert.equal(resolveCutSession(changed).constructionValid, false);
+  assert.equal(resolveCutSession(changed).canCommit, false);
+  assert.equal(resolveCutSession(changed).depthEditable, false);
+});
+
+test("unreachable and stale Meet statuses block draft commits", () => {
+  for (const status of ["unreachable", "stale"]) {
+    const create = createCutSession(CUT_SESSION_MODE.CREATE, {
+      region: "crown",
+      construction: { meet: { ...VALID_MEET, status } },
+    });
+    const view = resolveCutSession(create);
+    assert.equal(view.constructionValid, false, status);
+    assert.equal(view.canCommit, false, status);
+  }
 });
 
 test("girdle sessions force the industry angle back to 90 degrees on any patch", () => {
@@ -222,4 +497,27 @@ test("the reducer rejects cross-mode layer and group entry events", () => {
   assert.equal(cutSessionReducer(create, { type: CUT_SESSION_EVENT.SELECT_LAYER, patternId: "C1" }), create);
   assert.equal(cutSessionReducer(create, { type: CUT_SESSION_EVENT.START_GROUP, region: "crown" }), create);
   assert.equal(cutSessionReducer(group, { type: CUT_SESSION_EVENT.CHANGE_REGION, region: "crown" }), group);
+});
+
+test("Jump capabilities respect candidate boundaries and locked Meet", () => {
+  let session = createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" });
+  const jumpCandidates = [
+    { ...VALID_CANDIDATE, key: "first", depth: 0.2 },
+    { ...VALID_CANDIDATE, key: "last", depth: 0.4 },
+  ];
+  let capabilities = resolveCutSession(session, { jumpCandidates });
+  assert.equal(capabilities.canJumpPrevious, false);
+  assert.equal(capabilities.canJumpNext, true);
+  session = cutSessionReducer(session, { type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate: jumpCandidates[1] });
+  capabilities = resolveCutSession(session, { jumpCandidates });
+  assert.equal(capabilities.canJumpPrevious, true);
+  assert.equal(capabilities.canJumpNext, false);
+  session = cutSessionReducer(session, { type: CUT_SESSION_EVENT.LOCK_MEET });
+  capabilities = resolveCutSession(session, { jumpCandidates });
+  assert.equal(capabilities.canJumpPrevious, false);
+  assert.equal(capabilities.canJumpNext, false);
+  session = cutSessionReducer(session, { type: CUT_SESSION_EVENT.CLEAR_MEET });
+  assert.equal(resolveCutSession(session, { jumpCandidates }).canJumpPrevious, true);
+  assert.equal(resolveCutSession(session).canJumpNext, false);
+  assert.equal(resolveCutSession(createCutSession(), { jumpCandidates }).canJumpNext, false);
 });
