@@ -60,6 +60,7 @@ import {
   adjacentJumpCandidateIndex,
   enumerateTopologyVertices,
   evaluateDraftImpact,
+  classifyJumpCandidate,
   generateJumpCandidates,
   resolveDraftCommitPolicy,
   resolvePersistedVertexTarget,
@@ -386,12 +387,9 @@ export function App() {
   }, [constructionBlocksPreview, draft.facets, impactBaseSolid, previewEnabled]);
   const previewSolid = useMemo(() => {
     if (!previewEnabled || constructionBlocksPreview || draft.facets.length === 0 || (editingPatternId && hiddenPatternIds.has(editingPatternId))) return committedSolid;
-    const draftFacets = editingPatternId
-      ? draft.facets.map((facet) => ({ ...facet, patternId: editingPatternId }))
-      : draft.facets;
-    const sequence = editingPatternId
-      ? replacePatternFacets(visibleFacets, editingPatternId, draftFacets)
-      : [...visibleFacets, ...draftFacets];
+    if (!editingPatternId) return clipPolyhedronByPlanes(committedSolid, draft.facets.map(planeEntry));
+    const draftFacets = draft.facets.map((facet) => ({ ...facet, patternId: editingPatternId }));
+    const sequence = replacePatternFacets(visibleFacets, editingPatternId, draftFacets);
     return clipPolyhedronByPlanes(stockSolid, sequence.map(planeEntry));
   }, [committedSolid, constructionBlocksPreview, draft.facets, editingPatternId, hiddenPatternIds, previewEnabled, stockSolid, visibleFacets]);
 
@@ -526,13 +524,21 @@ export function App() {
       baseSolid: constructionBaseSolid,
       normal: facet.plane.normal,
       stock: document.stock,
-      planesForDepth: (candidateDepth) => resolveDraftGeometry(
-        { ...jumpDraft, depth: candidateDepth },
-        region,
-        document.stock,
-      ).facets.map(planeEntry),
+      targets: meetTargets,
     });
-  }, [baseIndex, constructionBaseSolid, customIndices, cutSession.canUseMeetJump, cutSession.construction.meet, document.stock, industryAngle, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
+  }, [baseIndex, constructionBaseSolid, customIndices, cutSession.canUseMeetJump, cutSession.construction.meet, document.stock, industryAngle, meetTargets, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
+
+  const evaluateJumpCandidate = useCallback((candidate) => {
+    const jumpDraft = { industryAngle, baseIndex, repeat: repeatCount, mirrorOffset, patternMode, customIndices, depth: 0 };
+    const { facet } = primaryFacetForDraft(jumpDraft);
+    return classifyJumpCandidate({
+      candidate,
+      baseSolid: constructionBaseSolid,
+      normal: facet.plane.normal,
+      stock: document.stock,
+      planesForDepth: (depth) => resolveDraftGeometry({ ...jumpDraft, depth }, region, document.stock).facets.map(planeEntry),
+    });
+  }, [baseIndex, constructionBaseSolid, customIndices, document.stock, industryAngle, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
 
   const jumpSession = resolveCutSession(sessionState, { jumpCandidates });
 
@@ -543,13 +549,13 @@ export function App() {
       currentKey: cutSession.construction.candidate?.key,
     });
     if (index < 0) return null;
-    const candidate = jumpCandidates[index];
+    const candidate = evaluateJumpCandidate(jumpCandidates[index]);
     return {
       ...candidate,
       position: `${index + 1}/${jumpCandidates.length}`,
       sourceLabel: sourceLabelForTarget(candidate.target),
     };
-  }, [cutSession.construction.candidate?.key, cutSession.draft.depth, jumpCandidates, sourceLabelForTarget]);
+  }, [cutSession.construction.candidate?.key, cutSession.draft.depth, evaluateJumpCandidate, jumpCandidates, sourceLabelForTarget]);
 
   const candidateFromTarget = useCallback((target, source = "manual") => {
     const { facet } = primaryFacetForDraft(cutSession.draft);
@@ -1041,7 +1047,9 @@ export function App() {
       currentKey: cutSession.construction.candidate?.key,
       direction,
     });
-    const raw = jumpCandidates[nextIndex];
+    const raw = nextIndex === nextJumpCandidate?.index
+      ? nextJumpCandidate
+      : evaluateJumpCandidate(jumpCandidates[nextIndex]);
     const candidate = {
       ...raw,
       status: raw.classification === "destructive" ? MEET_STATUS.DESTRUCTIVE : MEET_STATUS.VALID,
@@ -1051,7 +1059,7 @@ export function App() {
       sourceLabel: sourceLabelForTarget(raw.target),
     };
     dispatchCutSession({ type: CUT_SESSION_EVENT.SELECT_MEET_CANDIDATE, candidate });
-  }, [cutSession.canUseMeetJump, cutSession.construction.candidate?.key, cutSession.construction.meet, cutSession.draft.depth, jumpCandidates, jumpSession.canJumpPrevious, jumpSession.canJumpNext, notify, sourceLabelForTarget]);
+  }, [cutSession.canUseMeetJump, cutSession.construction.candidate?.key, cutSession.construction.meet, cutSession.draft.depth, evaluateJumpCandidate, jumpCandidates, jumpSession.canJumpPrevious, jumpSession.canJumpNext, nextJumpCandidate, notify, sourceLabelForTarget]);
 
   const handleVertexPick = useCallback((target) => {
     if (!cutSession.canCancelConstructionTool) return;

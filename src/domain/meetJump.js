@@ -242,12 +242,12 @@ export function generateJumpCandidates({
   baseSolid,
   normal: rawNormal,
   stock,
-  planesForDepth,
+  targets = enumerateTopologyVertices(baseSolid),
   tolerance = DEFAULT_TOLERANCE,
 }) {
   const normal = normalize(rawNormal);
   const supportOffset = rotationalStockSupportOffset(normal, stock);
-  const solved = enumerateTopologyVertices(baseSolid)
+  const solved = targets
     .map((target) => ({
       target,
       depth: supportOffset - dot(normal, target.fallbackWorldPoint),
@@ -269,26 +269,35 @@ export function generateJumpCandidates({
     (left, right) => compareText(left.target.topologyKey, right.target.topologyKey),
   )[0]);
 
-  return representatives.map(({ target, depth }, index) => {
-    const planes = planesForDepth
-      ? planesForDepth(depth)
-      : [{
-        normal,
-        offset: supportOffset - depth,
-        faceId: "meet-jump-primary",
-        operationId: "meet-jump-preview",
-      }];
-    const impact = evaluateDraftImpact({ baseSolid, planes, tolerance });
-    return {
-      source: "jump",
-      key: target.topologyKey,
-      target,
-      depth,
-      index,
-      classification: impact.classification,
-      threats: impact.threats,
-    };
-  });
+  return representatives.map(({ target, depth }, index) => ({
+    source: "jump",
+    key: target.topologyKey,
+    target,
+    depth,
+    index,
+  }));
+}
+
+/** Classify only a displayed or selected stop, using the complete CUT orbit. */
+export function classifyJumpCandidate({
+  candidate,
+  baseSolid,
+  normal: rawNormal,
+  stock,
+  planesForDepth,
+  tolerance = DEFAULT_TOLERANCE,
+}) {
+  const normal = normalize(rawNormal);
+  const planes = planesForDepth
+    ? planesForDepth(candidate.depth)
+    : [{
+      normal,
+      offset: rotationalStockSupportOffset(normal, stock) - candidate.depth,
+      faceId: "meet-jump-primary",
+      operationId: "meet-jump-preview",
+    }];
+  const impact = evaluateDraftImpact({ baseSolid, planes, tolerance });
+  return { ...candidate, classification: impact.classification, threats: impact.threats };
 }
 
 /** Resolve the previous or next stable Jump stop without mutating draft state. */

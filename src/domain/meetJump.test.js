@@ -7,6 +7,7 @@ import {
   JUMP_CLASSIFICATION,
   MEET_STATUS,
   adjacentJumpCandidateIndex,
+  classifyJumpCandidate,
   enumerateTopologyVertices,
   evaluateDraftImpact,
   generateJumpCandidates,
@@ -355,8 +356,13 @@ test("jump candidates sort by depth, dedupe equal depths, and choose the lowest 
   assert.ok(candidates[0].depth < candidates[1].depth);
   approximately(candidates[0].depth, support - 0.5);
   approximately(candidates[1].depth, support + 1);
-  assert.equal(candidates[0].classification, JUMP_CLASSIFICATION.CONTACT_ONLY);
-  assert.equal(candidates[1].classification, JUMP_CLASSIFICATION.DESTRUCTIVE);
+  assert.ok(candidates.every((candidate) => !Object.hasOwn(candidate, "classification")));
+  assert.ok(candidates.every((candidate) => !Object.hasOwn(candidate, "threats")));
+
+  const classified = candidates.map((candidate) => classifyJumpCandidate({ candidate, baseSolid, normal }));
+  assert.equal(classified[0].classification, JUMP_CLASSIFICATION.CONTACT_ONLY);
+  assert.equal(classified[1].classification, JUMP_CLASSIFICATION.DESTRUCTIVE);
+  assert.ok(candidates.every((candidate) => !Object.hasOwn(candidate, "classification")));
 
   const targetsAtFirstDepth = enumerateTopologyVertices(baseSolid)
     .filter((target) => target.fallbackWorldPoint[0] === 0.5)
@@ -374,13 +380,11 @@ test("jump depth deduplication uses the supplied geometric tolerance", () => {
     baseSolid: almostCube,
     normal: { x: 1, y: 0, z: 0 },
     tolerance: 1e-8,
-    planesForDepth: () => [],
   });
   const distinct = generateJumpCandidates({
     baseSolid: almostCube,
     normal: { x: 1, y: 0, z: 0 },
     tolerance: 1e-10,
-    planesForDepth: () => [],
   });
 
   assert.equal(deduped.length, 2);
@@ -404,17 +408,50 @@ test("adjacent Jump lookup previews the next stop without changing the current d
 
 test("jump evaluates the whole symmetric draft while using only the primary normal for depths", () => {
   const baseSolid = cutCube();
-  const candidates = generateJumpCandidates({
-    baseSolid,
-    normal: { x: 1, y: 0, z: 0 },
+  const normal = { x: 1, y: 0, z: 0 };
+  const candidates = generateJumpCandidates({ baseSolid, normal });
+  const classified = candidates.map((candidate) => classifyJumpCandidate({
+    candidate, baseSolid, normal,
     planesForDepth: (depth) => [
       { normal: { x: 1, y: 0, z: 0 }, offset: 1 - depth, faceId: "draft:primary" },
       { normal: { x: -1, y: 0, z: 0 }, offset: -0.75, faceId: "draft:mirror" },
     ],
+  }));
+
+  assert.ok(classified.every((candidate) => candidate.classification === JUMP_CLASSIFICATION.DESTRUCTIVE));
+  assert.ok(classified.every((candidate) => candidate.threats.some(({ operationId }) => operationId === "C1")));
+});
+
+test("classifying one Jump stop resolves its repeated and mirrored planes once without classifying other stops", () => {
+  const baseSolid = cutCube();
+  const pattern = { patternId: "draft", region: "crown", baseIndex: 33, repeat: 8, mirror: 3, industryAngleDeg: 30.97 };
+  const facetsAtDepth = (depth) => resolveFacetPattern({ ...pattern, depth });
+  const initialFacets = facetsAtDepth(0);
+  const normal = initialFacets.find((facet) => facet.index === pattern.baseIndex).plane.normal;
+  const candidates = generateJumpCandidates({ baseSolid, normal });
+  assert.ok(candidates.length > 2);
+  assert.equal(initialFacets.length, 16);
+  const originalCandidates = structuredClone(candidates);
+  const selected = candidates[1];
+  const planes = facetsAtDepth(selected.depth).map((facet) => ({
+    ...facet.plane, faceId: facet.id, operationId: facet.patternId, region: facet.region,
+  }));
+  const expected = evaluateDraftImpact({ baseSolid, planes });
+  let resolutions = 0;
+  const classified = classifyJumpCandidate({
+    candidate: selected, baseSolid, normal,
+    planesForDepth: (depth) => {
+      resolutions += 1;
+      assert.equal(depth, selected.depth);
+      return planes;
+    },
   });
 
-  assert.ok(candidates.every((candidate) => candidate.classification === JUMP_CLASSIFICATION.DESTRUCTIVE));
-  assert.ok(candidates.every((candidate) => candidate.threats.some(({ operationId }) => operationId === "C1")));
+  assert.equal(resolutions, 1);
+  assert.deepEqual(classified, {
+    ...selected, classification: expected.classification, threats: expected.threats,
+  });
+  assert.deepEqual(candidates, originalCandidates);
 });
 
 test("persisted targets resolve only while topology and source geometry signatures still match", () => {
