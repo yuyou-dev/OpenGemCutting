@@ -52,13 +52,15 @@
 
 | 状态 | owner 模块 | 变更入口 | 入文档 | 入撤销历史 |
 | --- | --- | --- | --- | --- |
-| 文档与 `CUT STACK` | `src/domain/faceting.js` + `src/domain/document.js`（初始化） | `src/App.jsx` 命令模式编排，所有几何变更是一条命令 | 是（JSON 完整往返） | 是 |
-| CUT 会话（含 `draft` / `construction` / `group`） | `src/domain/cutSession.js` 状态机，`src/App.jsx` `useReducer` | `dispatchCutSession` 事件 | 否；仅提交后的 Meet metadata 入文档 | 否 |
+| 文档与 `CUT STACK` | `src/WorkbenchEditor.jsx` 命令历史；`src/domain/faceting.js` 与 `src/domain/document.js` 提供领域操作和初始化 | `WorkbenchEditor` 命令编排，所有几何变更是一条命令 | 是（JSON 完整往返） | 是 |
+| CUT 会话（含 `draft` / `construction` / `group`） | `src/domain/cutSession.js` 状态机，`src/WorkbenchEditor.jsx` `useReducer` | `dispatchCutSession` 事件 | 否；仅提交后的 Meet metadata 入文档 | 否 |
 | 光学物理设置 | 持久化在 `document.metadata.optics`；归一化在 `src/domain/optics.js` | `document/optics` 命令更新；视图实时从文档派生 | 是（metadata） | 是 |
-| 光学会话内 UI 态（激活、检查器折叠、观察位、VIEW ONLY 参数） | `src/App.jsx` 本地 state | 显示模式菜单与仿真命令条 | 否 | 否 |
-| UI chrome（对话框、预设层、历史/台账面板、抽屉与 `CUT STACK` 折叠、toast） | `src/App.jsx` 与各组件本地 state | 组件自身交互 | 否 | 否 |
+| 光学会话内 UI 态（激活、检查器折叠、观察位、VIEW ONLY 参数） | `src/WorkbenchEditor.jsx` 本地 state | 显示模式菜单、仿真命令条与画布视角条 | 否 | 否 |
+| 编辑器 UI chrome（对话框、预设层、历史/台账面板、抽屉与 `CUT STACK` 折叠、toast） | `src/WorkbenchEditor.jsx` 与各组件本地 state | 组件自身交互 | 否 | 否 |
+| 页面与当前项目身份 | `src/App.jsx` | 主页／编辑／实验室导航、新建与打开项目；切换前处理未保存预览 | 否；项目 id 在项目库中独立保存 | 否 |
+| 本地项目库与保存反馈 | `src/domain/projectLibrary.js`、`src/components/useProjects.js`；`src/App.jsx` 编排自动保存 | 当前编辑器单向传出已提交快照，按项目 id 保存 | 保存文档与物理材质／计算参数；不含会话、相机、VIEW ONLY 参数和历史 | 保存不入历史；打开项目建立新的编辑器历史 |
 | 预设库 provider | `src/domain/presetLibrary.js`（契约）+ 各 provider 实现 | `list / load / 可选 save`；载入经统一文档命令 | 载入结果入文档 | 载入入历史，浏览不入 |
-| 本地恢复备份 | `src/domain/localRecovery.js` 与 `useLocalRecovery` | 已提交文档变化后自动备份；恢复沿 `DOCUMENT_IMPORT` 收尾 | 仅文档与材质，不含草稿、相机、旧历史 | 恢复载入作为一次命令 |
+| 旧本地恢复记录 | `src/domain/localRecovery.js` 与 `useLocalRecovery` | 兼容读取、显式删除与恢复；不再自动写入，恢复沿 `DOCUMENT_IMPORT` 收尾 | 载入旧文档与材质，不含草稿、相机、旧历史 | 恢复载入作为一次命令 |
 | Sites / 构建产物 | `worker/`、`.openai/`、`scripts/prepare-sites-build.mjs` | `npm run build` / `npm run check` | 否 | 否 |
 
 ## 边界说明
@@ -73,11 +75,22 @@
 - UI chrome 状态可以短暂存在，但不得反向影响文档或会话；快捷键处理必须以这些状态做守卫（如对话框打开时屏蔽 `Escape` 取消 CUT）。
 - 新状态若无法归入上表任何一类，先在本文件登记新行并说明 owner 与持久化边界，再写实现。
 
-## 本地恢复（已确认范围）
+## 旧本地恢复记录（兼容范围）
 
-- 每个页面实例使用独立备份 id，复制标签页、刷新后恢复或在另一页恢复均创建独立副本，不覆盖来源或其他标签页。备份按更新时间排列，不自动清理历史记录；用户可在恢复窗口明确删除选中的备份。
-- 只备份已提交文档及物理材质/计算参数，不写入 CUT 草稿、群组预览、相机、VIEW ONLY 参数或撤销历史。新页面的默认空白文档不自动覆盖已有备份。
-- 启动发现备份时提示「恢复所选设计 / 开始新设计」，不擅自恢复。文件菜单常驻恢复入口；手动恢复未保存现场前明确说明草稿将被替换。恢复只使用经过同一 JSON 校验器验证的快照，并作为一次可撤销文档替换。
-- 已提交文档变更后 300ms 保存，pagehide / 页面隐藏时补写尚未保存的最新文档。读取失败、损坏与写入失败必须明确提示；不得把失败标为成功，也不得悄悄删除损坏记录。失败时提供重试与 JSON 导出。
-- OpenGemCutting 备份使用 `opengemcutting:recovery:v1:` 独立命名空间，不读取或删除同源其他应用的存储。
+- v0.8.0 以前的恢复记录按页面实例独立保存；当前版本保留读取与显式恢复，不再创建或更新这类备份。列表按原保存时间排列，不自动清理；用户仍可明确删除选中的旧备份。
+- 旧记录只包含已提交文档及物理材质／计算参数，不含 CUT 草稿、群组预览、相机、VIEW ONLY 参数或撤销历史。恢复会替换当前项目的文档并进入该项目的自动保存，不覆盖来源备份。
+- v0.8.0 启动进入项目主页，旧备份按下方迁移约定列为项目，不擅自打开设计。文件菜单常驻恢复入口；手动恢复未保存现场前明确说明草稿将被替换。恢复只使用经过同一 JSON 校验器验证的快照，并作为一次可撤销文档替换。
+- 旧记录读取失败、损坏或删除失败必须明确提示，不得悄悄删除损坏记录。当前项目的自动保存与失败处理遵守下节约定。
 - localStorage 按当前浏览器与 origin 隔离；清理站点数据、使用其他浏览器或改变本地开发端口后不可承诺继续读取原备份。JSON 是长期归档格式，备份不是文件下载。
+
+## v0.8.0 项目与页面
+
+- 应用页面为主页、切型编辑、光学实验室，归 `src/App.jsx` 的页面 chrome；启动进入主页。页面导航不属于 CUT 会话，也不改变几何、提交/取消草稿或写入撤销历史。
+- 当前编辑器保持挂载；去主页或实验室只暂停绘制、拾取与键盘事件，返回同一项目恢复原 CUT、Meet、相机与历史。切换到另一项目或新建项目才建立独立编辑器；若当前存在未保存预览，先明确保留当前现场或放弃预览后切换。
+- 当前文档仍只归 `WorkbenchEditor` 的命令历史；项目列表读取单向传出的已提交快照，不反向修改编辑会话。项目打开后只以初始文档初始化历史，不能把自动保存后的列表更新重新灌入编辑器。
+- 本地项目以稳定项目 id 独立存储，保存仅含已提交文档及物理材质／计算参数，300ms 合并写入，页面导航、切换项目、pagehide 与页面隐藏时冲刷待保存快照；持久化失败明确显示并保留内存中的设计、重试与 JSON 导出入口，不显示保存成功，不因失败切换到另一项目。
+- 旧恢复记录按稳定来源 id 一次迁入项目；保留原备份，删除项目不重新迁回。新项目不再写入旧恢复记录；文件菜单继续提供旧备份的显式恢复。项目存储与旧恢复均按浏览器 origin 隔离，JSON 继续是长期归档格式。
+- 右侧两个正交视图直接读取主视口的 `displaySolid`，包括当前新建、编辑或群组预览及显隐结果；上图冠部/亭部切换仅改变该预览的 top/bottom 观察位，下图固定 side。预览不提供 CUT 拾取或相机交互，不重新计算另一份切割状态。
+- 光学实验室在本里程碑只提供导航、当前项目名称及空白三栏骨架；不生成实验结果。现有聚焦光学仿真继续保留显示菜单入口及原有挂起/恢复边界。
+
+- OpenGemCutting 项目、迁移标记与旧备份分别使用 `opengemcutting:project:v1:`、`opengemcutting:project-migration:v1:`、`opengemcutting:recovery:v1:` 独立命名空间，不读取或删除同源其他应用的存储。

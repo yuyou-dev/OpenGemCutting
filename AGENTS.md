@@ -35,7 +35,7 @@
 - 预设 UI 只依赖 `list / load / 可选 save` 的 provider 契约。内置静态资料、未来个人 ASC/JSON 和“当前文档存为预设”必须沿这一契约扩展，不能把个人资料逻辑耦合到内置 catalog。载入预设作为一次可撤销的文档替换命令。
 - 切型名称是文档元数据，不是独立 UI 状态。命令条内联输入以 `Enter` 或失焦提交、`Escape` 取消，并通过统一文档命令进入撤销/重做；输入框键盘事件不得冒泡影响 CUT 会话。JSON、ASC 与 PDF 文件名、报告标题统一读取 `document.name`。
 - 品牌固定为黑色“切磨工作台”，`Alpha` 和产品线为灰色；拼写为 `SUVA`，不得写成 `SUWA`。
-- 本机版与所有公开托管版本必须在品牌区常驻保留“GitHub 仓库”按钮，固定指向 `https://github.com/yuyou-dev/OpenGemCutting`，新标签页打开；普通编辑、侧栏收起和光学仿真均可访问，不得按版本、域名或部署路径隐藏。
+- 本机版与所有公开托管版本必须在品牌区常驻保留“GitHub 仓库”按钮，固定指向 `https://github.com/yuyou-dev/OpenGemCutting`，新标签页打开；主页、编辑、光学实验室、侧栏收起和光学仿真均可访问，不得按版本、域名或部署路径隐藏。
 - 帮助入口固定在“更多工具”，不得增加常驻导航。帮助中心按“快速开始、切割工作流、文件与交换、光学仿真、视口与快捷键”组织，可按 `Escape` 退出且不改变文档或 CUT 会话；完整 A4 操作手册固定由 `public/manual/facet-96-operation-manual.pdf` 提供。
 - 操作手册由 `npm run manual:build` 从 `docs/manual/screenshots/` 的真实界面截图可重复生成；界面、产品规则或版本号变化时必须同步截图与手册，不允许以占位图或旧界面充数。版式、截图密度与光学图例细则见 `design-system.md`；结尾保留 MIT、商标权利边界与第三方致谢。
 - 聚焦光学仿真以 `docs/assets/design/optics-focus-simulation.png` 为视觉真值：进入后隐藏参数抽屉、`CUT STACK`、图层与全部 CUT helper，仅显示当前真实/预览实体、仿真命令条和可收起的右侧光学检查器；退出或按 `Escape` 必须恢复进入前的完整编辑现场。仿真不是 CUT 第五态，进入与退出不得提交、取消或写入历史。

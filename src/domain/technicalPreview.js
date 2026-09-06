@@ -10,22 +10,27 @@ const VIEW_CONFIG = Object.freeze({
   top: Object.freeze({ label: "TOP", axes: Object.freeze(["x", "y"]), viewAxis: "z", viewSign: 1 }),
   bottom: Object.freeze({ label: "BOTTOM", axes: Object.freeze(["x", "y"]), viewAxis: "z", viewSign: -1 }),
   front: Object.freeze({ label: "FRONT", axes: Object.freeze(["x", "z"]), viewAxis: "y", viewSign: 1 }),
+  side: Object.freeze({ label: "SIDE", axes: Object.freeze(["y", "z"]), viewAxis: "x", viewSign: 1 }),
 });
 
-export const TECHNICAL_PREVIEW_VIEWS = Object.freeze(Object.keys(VIEW_CONFIG));
+// The preset catalog keeps its original four assets; side is a live workspace view.
+export const TECHNICAL_PREVIEW_VIEWS = Object.freeze(["isometric", "top", "bottom", "front"]);
 
 function dot(left, right) {
   return left.x * right.x + left.y * right.y + left.z * right.z;
 }
 
-function visibleFace(face, config) {
-  const facing = config.basis
+function faceFacing(face, config) {
+  return config.basis
     ? dot(face.normal, config.basis.view)
     : (face.normal?.[config.viewAxis] ?? 0) * config.viewSign;
+}
+
+function visibleFace(face, config) {
   // Faces parallel to the view collapse into the projected silhouette. Their
   // non-zero edges must remain visible even when no front-facing facet reaches
   // the stone's outer profile (for example, an oval pavilion below its girdle).
-  return facing >= -1e-6;
+  return faceFacing(face, config) >= -1e-6;
 }
 
 function visibleEdges(solid, config) {
@@ -42,7 +47,7 @@ function visibleEdges(solid, config) {
 export function projectTechnicalPreview(solid, view, { width = 320, height = 240, padding = 20 } = {}) {
   const config = VIEW_CONFIG[view];
   if (!config) throw new RangeError(`unknown technical preview view: ${view}`);
-  if (!solid?.vertices?.length) return { view, label: config.label, width, height, points: [], edges: [] };
+  if (!solid?.vertices?.length) return { view, label: config.label, width, height, points: [], edges: [], faces: [] };
 
   const horizontal = config.basis
     ? (vertex) => dot(vertex, config.basis.horizontal)
@@ -87,6 +92,9 @@ export function projectTechnicalPreview(solid, view, { width = 320, height = 240
     height,
     points,
     edges: projectedEdges,
+    // Convex solids need only their observer-facing facets. Parallel facets
+    // contribute silhouette edges above, but no area that could receive fill.
+    faces: solid.faces.filter((face) => faceFacing(face, config) > 1e-6),
   };
 }
 

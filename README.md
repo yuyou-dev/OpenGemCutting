@@ -27,13 +27,13 @@
 
 ## 在线体验 · Live demo
 
-品牌附近始终保留 **“GitHub 仓库”** 入口，普通编辑、收起侧栏和光学仿真时均可使用。点击会在新标签页打开 [OpenGemCutting 仓库](https://github.com/yuyou-dev/OpenGemCutting)，当前设计留在原页面；本机、GitHub Pages 与其他部署均使用同一入口和地址。
+品牌导航组始终保留 **“GitHub 仓库”** 入口，项目主页、普通编辑、收起侧栏、光学仿真和光学实验室均可使用；窄窗口也保持入口与导航同行。点击会在新标签页打开 [OpenGemCutting 仓库](https://github.com/yuyou-dev/OpenGemCutting)，当前设计留在原页面；本机、GitHub Pages 与其他部署均使用同一入口和地址。
 
 打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON、GemCad ASC 与 PDF 均在浏览器本地导入、导出或生成。
 
-第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是面向设计师的 22 页 A4 图解手册，配套 [7 份原创练习](docs/manual/README.md)，通过真实案例说明冠高、棱上比例、双点会合和四向节奏的设计用途，覆盖文件交换、光学观察与交付；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
+第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是面向设计师的 25 页 A4 图解手册，配套 [7 份原创练习](docs/manual/README.md)，通过真实案例说明冠高、棱上比例、双点会合和四向节奏的设计用途，覆盖文件交换、光学观察与交付；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
 
-当前版本为 **v0.7.2**：补全棱上比例点、双 Meet、自定义主切面及第二点 Jump；按施工顺序诊断来源变化，并提供逐层试切助理、预形用途和明确的“编辑”按钮。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本为 **v0.8.0**：从项目主页开始设计，按名称搜索并继续本机保存的项目；编辑页采用三栏布局，右侧集中显示 CUT STACK、冠部／亭部与侧视预览。光学仿真的视角切换移至画布左上角；新增光学实验室空白入口，实验工具尚未实现。现有 Meet / Jump、施工检查和文件交换能力继续保留。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 v0.6.1 引入的 Codex 一句话安装、升级与启动流程及 OpenGemCutting Companion 继续保留，可用于打开工作台、整理社区反馈、检查本地改动并准备 Pull Request。所有公开发布、push 和 PR 创建仍需最终预览与明确确认。
 
@@ -47,6 +47,8 @@ OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用
 
 ## 关键能力 · Features
 
+- **项目主页**：快速新建、按名称组合搜索、真实几何缩略图与本机项目自动保存；主页以少量粉色点缀延续工作台视觉。
+- **三栏编辑布局**：左侧参数、中央 3D、右侧可滚动 CUT STACK；同步显示冠部／亭部顶底视图和固定侧视图，直接观察当前真实或预览几何。
 - **真实参数化裁切**：凸多面体半空间裁切，旋转重复与镜像轨道都参与最终几何。
 - **96 分度工艺模型**：整数索引、行业角、切入深度、自定义索引和冠/腰/亭区域语义。
 - **252 个精选预设琢型、27 类外形**：按名称、设计者、来源、外形、有效面数与真实 L/W 组合筛选，每页 60 项；载入前核对真实几何的轴测、顶、底、正四视图。
@@ -54,12 +56,13 @@ OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用
 - **CUT 四态工作流**：空闲、新建、编辑、群组变换由单一事件状态机管理，取消和 `Escape` 路径明确。
 - **Meet / Jump 定位**：冠部与亭部的对称及自定义索引支持顶点／棱点 A、双 Meet 和第二点 Jump。单 A 求解深度，双点在固定主分度下联合求解角度与深度；来源变化立即诊断，由设计师手动修复。
 - **施工回顾**：逐层试切助理只读比较切割前后及 A/B 来源，预形标记表达用途；已保存切面不会因来源变化自动级联改动。
-- **本地恢复**：自动备份已提交文档与光学材质，重新打开时提示恢复；各页面独立备份，可从文件菜单管理。未保存 CUT 草稿、相机与旧撤销历史不跨刷新恢复。
+- **本机项目保存**：已提交文档与光学材质自动保存到当前项目，刷新后回到主页继续选择；同一站点的旧版有效备份会一次性迁入项目列表，原备份仍可从文件菜单管理。未保存 CUT 草稿、相机与旧撤销历史不跨刷新恢复。
 - **精密 3D 操作**：实体/X-ray、顶/正/侧/透视相机、角度桥架、深度杆和同心分度环。
-- **聚焦光学仿真**：当前真实几何直接进入折射、Fresnel、全反射、多次内反射、RGB 色散与 Beer-Lambert 体色观察。
+- **聚焦光学仿真**：当前真实几何直接进入折射、Fresnel、全反射、多次内反射、RGB 色散与 Beer-Lambert 体色观察；画布左上角提供独立视角切换。
+- **光学实验室入口**：主页和编辑页可进入保留当前项目上下文的空白实验室，也可返回编辑；实验工具仍待后续开发，与现有光学仿真分开。
 - **非破坏式文档历史**：图层显隐、重排、重命名、光学材质撤销/重做与 JSON 往返保持文档语义；被后续切割覆盖的参数化工序仍保留，可随撤销恢复。
 - **工艺输出**：A4 矢量优先 PDF 包含多视图、工程尺寸、分层参数与真实刻面高亮；面数、刻面台账、切割指令、PDF 与 ASC 统一读取已提交实体中的最终有效面。
-- **完整学习入口**：品牌加载页、任务式应用内帮助，以及22 页设计师操作手册和 7 份可导入的原创案例。
+- **完整学习入口**：品牌加载页、任务式应用内帮助，以及 25 页设计师操作手册和 7 份可导入的原创案例。
 - **完整交付链路**：常规 Vite 客户端与 OpenAI Sites worker 产物由同一构建命令生成并测试。
 
 ## 快速开始 · Quick start
@@ -128,18 +131,18 @@ npm run preview
 
 ## 操作指南 · Workflow
 
-1. 从“文件 → 浏览预设琢型”选择一个经过校验的起点，先核对四视图、面数、层数、分度与 L/W，再载入当前文档。
+1. 在项目主页“新建项目”或打开已有项目。进入编辑页后，可从“文件 → 浏览预设琢型”选择一个经过校验的起点，先核对四视图、面数、层数、分度与 L/W，再载入当前项目。
 2. 从 `CUT STACK` 底部的 `+` 开始一个新 CUT，设置行业角、切入深度、基础索引、重复数与镜像轴偏移；主切割面和 Gizmo 会同步预览。
 3. 冠部/亭部对称 CUT 可用 `J` / `Shift+J` 浏览交点，或显式选择顶点后锁定 Meet。新 CUT 从 `0.000` 深度开始，只有形成有效面后才能加入序列；候选会提示仅接触、有效切面或覆盖影响。
-4. 保存后，图层按堆栈顺序参与布尔裁切。点击名称直接改名，点击参数或面数进入编辑，拖动非台面层可重排；冠部/亭部整体变换可在一步历史中组合升降、比例与旋转。
-5. 使用顶部命令条切换相机与实体/X-ray；从显示模式进入聚焦光学仿真，检查材质、体色与观察环境，退出后完整恢复编辑现场。
+4. 保存后，图层按堆栈顺序参与布尔裁切。右侧 CUT STACK 可独立滚动，点击“编辑”、参数或面数进入编辑，点击名称直接改名，拖动非台面层可重排；下方冠部／亭部切换与侧视图实时辅助观察，冠部/亭部整体变换可在一步历史中组合升降、比例与旋转。
+5. 使用顶部命令条切换相机与实体/X-ray；从显示模式进入聚焦光学仿真，通过画布左上角视角条切换观察方向，检查材质、体色与观察环境，退出后完整恢复编辑现场。
 6. 在“文件”菜单保存完整 JSON、交换 GemCad ASC 或生成 PDF 技术报告；ASC 操作必须先通过预检。导出只使用已提交文档，不会自动保存当前预览。
-7. 已提交文档及材质变更会自动备份。重新打开时选择恢复或开始新设计，也可从“文件 → 恢复本地设计”管理备份；恢复载入可一步撤销。
+7. 已提交文档及材质变更会自动保存到当前项目，刷新后从主页再次打开。页面内往返主页或光学实验室会保留当前编辑现场；切换到其他项目时，未保存预览需要明确处理。同一站点的旧有效备份会一次性迁入主页，仍可从“文件 → 恢复本地设计”管理原备份。
 8. 遇到问题时从“更多 → 帮助与操作手册”打开任务式帮助，或下载完整 A4 图解手册。
 
 键盘约定：名称编辑按 `Enter` 或失焦保存、`Escape` 取消；`J` / `Shift+J` 在可用的 Meet / Jump 区域前后跳转，首尾不循环。`Escape` 优先关闭浮层或退出顶点拾取，再按才取消底层 CUT 会话。
 
-本地备份属于当前浏览器与站点地址。清理站点数据、换浏览器或改变本地开发端口后，原备份可能无法读取；请下载 JSON 作为长期归档。备份不包含未保存草稿、相机、观看参数或旧撤销历史。
+本机项目与旧备份属于当前浏览器与站点地址。清理站点数据、换浏览器或改变本地开发端口后，原项目不会自动迁移到新地址；请下载 JSON 作为长期归档，并在新地址导入。自动保存不包含未保存草稿、相机、观看参数或旧撤销历史。
 
 ### 预设、编辑与光学 · Presets, editing and optics
 
@@ -151,8 +154,13 @@ npm run preview
 
 ```text
 src/
-  App.jsx                       文档、历史、CUT 会话与导出编排
+  App.jsx                       项目主页、页面切换与项目保存编排
+  WorkbenchEditor.jsx           单项目文档、历史、CUT 会话与导出编排
   components/
+    HomePage.jsx                项目搜索、新建与真实几何项目卡片
+    OpticalLabPage.jsx          保留项目上下文的空白实验室
+    OrthographicPreviews.jsx    冠部／亭部与侧视实时几何预览
+    useProjects.js              浏览器项目存储与列表同步
     GemViewport.jsx             p5.js WebGL、相机、Gizmo 与命中
     OpticsViewport.jsx          当前实体的光学追迹与观察环境
     CutStack.jsx                参数化图层与会话入口
@@ -168,7 +176,8 @@ src/
     meetJump.js                 顶点／棱来源、候选、单／双 Meet 求解
     cutConstruction.js          草稿主面与统一参数求解
     constructionHistory.js      施工阶段实体与来源失效诊断
-    localRecovery.js            独立备份存储与恢复校验
+    projectLibrary.js           项目存储、校验与旧备份一次迁移
+    localRecovery.js            旧版独立备份读取与恢复校验
     faceting.js                 96 分度、图层、序列化与命令
     geometry.js                 凸多面体裁切与测量
     gemcadAsc.js                ASC 解析、预检、比例换算与导出
@@ -263,7 +272,7 @@ OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA�
 
 OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 252 validated presets across 27 outline categories, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
 
-Version **v0.7.2** adds edge-ratio targets, dual Meet, custom primary facets, and second-point Jump for crown/pavilion cuts. Construction-order diagnostics preserve saved geometry while asking designers to repair changed references explicitly. A read-only construction assistant, preform intent labels and visible Edit buttons make the workflow easier to follow. The 22-page designer manual includes seven original practice files and comparable shape variants. Existing local recovery, material undo/redo and isolated dialog shortcuts are preserved. See [CHANGELOG.md](CHANGELOG.md) for details.
+Version **v0.8.0** opens on a project home page with name search, real-geometry project cards and browser-local saving. The three-column editor places a scrollable CUT STACK and live crown/pavilion and side previews on the right. Optical simulation has a floating view selector inside its canvas; the new optical laboratory is an empty workspace for future tools. Navigating between pages preserves the active editing session. Valid legacy backups migrate once on the same site, while JSON remains the portable archive across browsers and addresses. Existing Meet / Jump, construction diagnostics and material undo/redo remain available. The updated 25-page designer manual includes seven original practice files. See [CHANGELOG.md](CHANGELOG.md) for details.
 
 Codex users can copy the setup sentence in [Quick start](#快速开始--quick-start) to install, verify, run, and open the workbench without manually entering Git or npm commands. The optional Companion adds guided GitHub onboarding, categorized Discussions and community drafts, plus reviewed Pull Request preparation; it never performs an external write without a final preview and explicit confirmation.
 

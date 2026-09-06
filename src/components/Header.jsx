@@ -44,14 +44,6 @@ const VIEWS = [
   ["side", "侧视"],
 ];
 
-const OPTICS_VIEWS = [
-  ["perspective", "透视"],
-  ["top", "台面"],
-  ["bottom", "亭部"],
-  ["front", "正视"],
-  ["side", "侧视"],
-];
-
 function runMenuAction(event, action) {
   action();
   event.currentTarget.closest("details")?.removeAttribute("open");
@@ -89,7 +81,7 @@ export function Header({
   onOpenOpticsInspector,
   onExitOptics,
 }) {
-  const activeView = (opticsActive ? OPTICS_VIEWS : VIEWS)
+  const activeView = VIEWS
     .find(([value]) => value === viewMode)?.[1] ?? "透视";
   const isXray = displayMode === "xray";
   const projectNameInputRef = useRef(null);
@@ -119,19 +111,6 @@ export function Header({
   if (opticsActive) {
     return (
       <header className={`app-header floating-toolbar is-optics-toolbar${opticsInspectorOpen ? "" : " is-inspector-closed"}`} aria-label="光学仿真工具栏">
-        <div className="optics-view-switch" role="group" aria-label={`光学观察视角，当前${activeView}`}>
-          {OPTICS_VIEWS.map(([value, label]) => (
-            <button
-              type="button"
-              className={viewMode === value ? "is-active" : ""}
-              aria-pressed={viewMode === value}
-              onClick={() => onViewMode(value)}
-              key={value}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <div className="toolbar-project-status is-readonly" title={`${projectName} · 已提交 ${facetCount} 个有效刻面`}>
           <strong>{projectName}</strong><small title="已提交文档的最终有效刻面，不含毛坯面与未保存预览">{facetCount} 有效面</small>
         </div>

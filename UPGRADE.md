@@ -30,9 +30,15 @@ npm run check
 
 Restart the project with `npm run dev` in a persistent session. Read the printed `127.0.0.1` URL, verify HTTP 200, and open it in Codex's built-in browser when available.
 
-## Design files and local recovery
+## Design files and local projects
 
-v0.7.1 adds local recovery of committed documents and optical materials. Existing JSON documents remain importable. On startup, select a backup explicitly; unsaved CUT drafts, camera/view settings, and previous undo history are not restored. Export JSON before stopping an editing session. Browser backups belong to the current browser and site origin, so restarting on a different local port does not carry them across; import the saved JSON at the new address.
+v0.8.0 starts on the project home page. Committed documents and optical materials are saved to the active browser-local project, which can be reopened from the home page after a refresh. Existing JSON documents remain importable.
+
+When upgrading on the same browser and site origin, valid legacy OpenGemCutting recovery records are migrated once into the project list. Original backups remain available through the file menu; migration does not erase them or repeatedly recreate projects. Unsaved CUT drafts, camera/view settings and previous undo history are not restored after a refresh. Finish or cancel the current preview before exporting an archival JSON file.
+
+Projects and backups belong to the current browser and site origin. Clearing site data, changing browsers, domains or local ports does not automatically carry projects across. Before restarting on a different address, export each important project as JSON; import those files into projects at the new address. JSON remains the portable long-term archive.
+
+The optical laboratory in v0.8.0 is an empty workspace with project context and return navigation. Existing optical simulation remains available from the editor's display menu.
 
 ## Upgrade the Companion when requested
 
