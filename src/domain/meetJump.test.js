@@ -15,7 +15,6 @@ import {
   generateJumpCandidates,
   generateDualJumpCandidates,
   resolveDraftCommitPolicy,
-  resolvePersistedVertexTarget,
   resolvePersistedMeetTarget,
   solveDualMeet,
   solveVertexMeet,
@@ -644,12 +643,12 @@ test("classifying one Jump stop resolves its repeated and mirrored planes once w
   assert.deepEqual(candidates, originalCandidates);
 });
 
-test("persisted targets resolve only while topology and source geometry signatures still match", () => {
+test("persisted vertex targets resolve only while topology and source geometry signatures still match", () => {
   const original = cutCube();
   const target = enumerateTopologyVertices(original)
     .find((candidate) => candidate.sourceFaceIds.includes("C1:96")
       && candidate.fallbackWorldPoint[1] === 1);
-  const valid = resolvePersistedVertexTarget(target, structuredClone(original));
+  const valid = resolvePersistedMeetTarget(target, structuredClone(original));
   assert.equal(valid.status, MEET_STATUS.VALID);
   assert.deepEqual(valid.target, target);
 
@@ -659,13 +658,13 @@ test("persisted targets resolve only while topology and source geometry signatur
     operationId: "C2",
     faceId: "C2:24",
   });
-  const missing = resolvePersistedVertexTarget(target, topologyChanged);
+  const missing = resolvePersistedMeetTarget(target, topologyChanged);
   assert.equal(missing.status, MEET_STATUS.STALE);
   assert.equal(missing.reason, "topology-missing");
 
   const geometryChanged = structuredClone(original);
   geometryChanged.vertices[target.vertexIndex].x -= 0.1;
-  const changed = resolvePersistedVertexTarget(target, geometryChanged);
+  const changed = resolvePersistedMeetTarget(target, geometryChanged);
   assert.equal(changed.status, MEET_STATUS.STALE);
   assert.equal(changed.reason, "geometry-changed");
   assert.ok(changed.target);

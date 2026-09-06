@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight, IconHistory, IconHome, IconFlask } from "@tabler/icons-react";
 import { RepositoryLink } from "./components/RepositoryLink.jsx";
 import { OrthographicPreviews } from "./components/OrthographicPreviews.jsx";
@@ -19,6 +19,7 @@ import { Modal } from "./components/Modal.jsx";
 import { RecoveryDialog } from "./components/RecoveryDialog.jsx";
 import { useLocalRecovery } from "./components/useLocalRecovery.js";
 import { downloadBlob } from "./utils/download.js";
+import { safeFileStem } from "./utils/format.js";
 import {
   CUT_SESSION_EVENT,
   CUT_SESSION_MODE,
@@ -81,10 +82,6 @@ import { downloadFacetReport } from "./report/pdfReport.js";
 
 function normalizeDepthValue(value) {
   return Math.max(0, Number(value) || 0);
-}
-
-function safeFileStem(value, fallback = "facet-96") {
-  return value.replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "") || fallback;
 }
 
 function commandPatternId(command) {
@@ -151,7 +148,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const operationSequence = useRef(0);
 
   const document = history.present;
-  const localRecovery = useLocalRecovery(document, false);
+  const localRecovery = useLocalRecovery();
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const opticsSettings = useMemo(() => ({
     ...resolveOpticsSettings(document.metadata?.optics),
@@ -200,6 +197,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
   const draft = useMemo(() => resolveDraftGeometry(cutSession.draft, region, document.stock), [cutSession.draft, document.stock, region]);
+  const deferredDraftFacets = useDeferredValue(draft.facets);
 
   const stockSolid = useMemo(() => createCenteredCube(document.stock.size, {
     center: document.stock.center,
@@ -320,22 +318,22 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const constructionBlocksPreview = [cutSession.construction.meet, cutSession.construction.candidate]
     .some((entry) => [MEET_STATUS.UNREACHABLE, MEET_STATUS.STALE].includes(entry?.status));
   const draftImpact = useMemo(() => {
-    if (!previewEnabled || constructionBlocksPreview || draft.facets.length === 0) return null;
+    if (!previewEnabled || constructionBlocksPreview || deferredDraftFacets.length === 0) return null;
     return evaluateDraftImpact({
       baseSolid: impactBaseSolid,
-      planes: draft.facets.map(planeEntry),
+      planes: deferredDraftFacets.map(planeEntry),
     });
-  }, [constructionBlocksPreview, draft.facets, impactBaseSolid, previewEnabled]);
+  }, [constructionBlocksPreview, deferredDraftFacets, impactBaseSolid, previewEnabled]);
   const previewSolid = useMemo(() => {
-    if (!previewEnabled || constructionBlocksPreview || draft.facets.length === 0 || (editingPatternId && hiddenPatternIds.has(editingPatternId))) return committedSolid;
-    if (!editingPatternId) return clipPolyhedronByPlanes(committedSolid, draft.facets.map(planeEntry));
-    const draftFacets = draft.facets.map((facet) => ({ ...facet, patternId: editingPatternId }));
+    if (!previewEnabled || constructionBlocksPreview || deferredDraftFacets.length === 0 || (editingPatternId && hiddenPatternIds.has(editingPatternId))) return committedSolid;
+    if (!editingPatternId) return clipPolyhedronByPlanes(committedSolid, deferredDraftFacets.map(planeEntry));
+    const draftFacets = deferredDraftFacets.map((facet) => ({ ...facet, patternId: editingPatternId }));
     const sequence = replacePatternFacets(visibleFacets, editingPatternId, draftFacets);
     return clipPolyhedronByPlanes(stockSolid, sequence.map(planeEntry));
-  }, [committedSolid, constructionBlocksPreview, draft.facets, editingPatternId, hiddenPatternIds, previewEnabled, stockSolid, visibleFacets]);
+  }, [committedSolid, constructionBlocksPreview, deferredDraftFacets, editingPatternId, hiddenPatternIds, previewEnabled, stockSolid, visibleFacets]);
 
   const previewWouldEraseStock = Boolean(draftImpact?.solidErased)
-    || (previewEnabled && draft.facets.length > 0 && previewSolid.vertices.length === 0);
+    || (previewEnabled && deferredDraftFacets.length > 0 && previewSolid.vertices.length === 0);
   const displaySolid = previewWouldEraseStock ? committedSolid : previewSolid;
   const metrics = useMemo(() => measurePolyhedron(displaySolid), [displaySolid]);
   const groupGizmo = useMemo(() => {
@@ -549,14 +547,14 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     [draftImpact],
   );
   const activeEffectiveIndices = useMemo(() => previewEnabled
-    ? draft.facets.filter((facet) => draftEffectiveIds.has(facet.id)).map((facet) => facet.index)
+    ? deferredDraftFacets.filter((facet) => draftEffectiveIds.has(facet.id)).map((facet) => facet.index)
     : editingOperation?.effectiveIndices ?? [],
-  [draft.facets, draftEffectiveIds, editingOperation?.effectiveIndices, previewEnabled]);
+  [deferredDraftFacets, draftEffectiveIds, editingOperation?.effectiveIndices, previewEnabled]);
 
   const instructionGroups = useMemo(() => {
     const rows = operations.map((operation) => {
       const isActive = operation.id === editingPatternId;
-      const livePreview = isActive && draft.facets.length > 0;
+      const livePreview = isActive && deferredDraftFacets.length > 0;
       return {
         id: operation.id,
         prefix: operation.label.split(/\s+/)[0],
@@ -569,7 +567,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       };
     });
 
-    if (!editingPatternId && !groupEditRegion && previewEnabled && draft.facets.length > 0) {
+    if (!editingPatternId && !groupEditRegion && previewEnabled && deferredDraftFacets.length > 0) {
       const number = operations.filter((operation) => operation.region === region && !operation.locked).length + 1;
       rows.push({
         id: "draft-instruction",
@@ -593,7 +591,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
         .filter((row) => row.region === "crown")
         .sort((left, right) => Number(left.locked) - Number(right.locked)),
     };
-  }, [activeEffectiveIndices, draft.facets.length, editingPatternId, groupEditRegion, industryAngle, operations, previewEnabled, region]);
+  }, [activeEffectiveIndices, deferredDraftFacets.length, editingPatternId, groupEditRegion, industryAngle, operations, previewEnabled, region]);
 
   const historyEntries = useMemo(() => history.commands.slice(0, history.cursor).map((command) => {
     const createdAt = command.payload?.facets?.[0]?.metadata?.createdAt;
@@ -1052,7 +1050,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const exportDocument = () => {
     const json = exportFacetingJSON(document);
     const blob = new Blob([json], { type: "application/json" });
-    downloadBlob(blob, `${document.name.replace(/[^\p{L}\p{N}-]+/gu, "-") || "facet-96"}.json`);
+    downloadBlob(blob, `${safeFileStem(document.name)}.json`);
     notify(`已导出 ${document.facets.length} 个面的完整 JSON 参数。`);
   };
 
@@ -1529,16 +1527,6 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           onClose={() => setPresetLibraryOpen(false)}
           onLoad={loadPreset}
         />
-      ) : null}
-
-      {localRecovery.status.state === "error" ? (
-        <div className="backup-error" role="alert">
-          <div><strong>本地备份未完成</strong><p>{localRecovery.status.message}</p></div>
-          <div className="backup-error-actions">
-            <button type="button" onClick={localRecovery.retry}>重试备份</button>
-            <button type="button" onClick={() => hasUnsavedPreview ? setModal("json-export") : exportDocument()}>导出 JSON</button>
-          </div>
-        </div>
       ) : null}
 
       {recoveryOpen ? (

@@ -2,6 +2,7 @@ import { displayIndex, FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../dom
 import { MEET_STATUS, summarizeEffectiveFacets } from "../domain/meetJump.js";
 import { buildConstructionStages } from "../domain/constructionHistory.js";
 import { downloadBlob } from "../utils/download.js";
+import { formatAngle, formatDepth, safeFileStem } from "../utils/format.js";
 
 const A4 = { width: 595.28, height: 841.89 };
 const MARGIN = 38;
@@ -104,10 +105,10 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
         group: group.label,
         face: `${index + 1}`,
         index: String(displayIndex(facet.index)).padStart(2, "0"),
-        industryAngle: `${fixed(facet.industryAngleDeg, 2)}°`,
-        beta: `${facet.betaDeg > 0 ? "+" : ""}${fixed(facet.betaDeg, 2)}°`,
-        depth: fixed(facet.depth, 3),
-        azimuth: `${fixed(facet.azimuthDeg, 2)}°`,
+        industryAngle: `${formatAngle(facet.industryAngleDeg)}°`,
+        beta: `${facet.betaDeg > 0 ? "+" : ""}${formatAngle(facet.betaDeg)}°`,
+        depth: formatDepth(facet.depth),
+        azimuth: `${formatAngle(facet.azimuthDeg)}°`,
         plane: `n(${fixed(facet.plane.normal.x, 3)}, ${fixed(facet.plane.normal.y, 3)}, ${fixed(facet.plane.normal.z, 3)}) d=${fixed(facet.plane.offset, 3)}`,
       })),
     }));
@@ -530,8 +531,8 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
   drawTextTop(page, group.label, panelX + 12, top + 29, { font: bold, size: 11, color: rgbOf(rgb, COLOR.ink) });
   const angles = group.facets.map((facet) => facet.industryAngleDeg);
   const depths = group.facets.map((facet) => facet.depth);
-  const angleRange = angles.length ? `${fixed(Math.min(...angles), 2)}°  /  ${fixed(Math.max(...angles), 2)}°` : "-";
-  const depthRange = depths.length ? `${fixed(Math.min(...depths), 3)}  /  ${fixed(Math.max(...depths), 3)}` : "-";
+  const angleRange = angles.length ? `${formatAngle(Math.min(...angles))}°  /  ${formatAngle(Math.max(...angles))}°` : "-";
+  const depthRange = depths.length ? `${formatDepth(Math.min(...depths))}  /  ${formatDepth(Math.max(...depths))}` : "-";
   drawSpecRow(page, panelX + 12, top + 51, panelWidth - 24, "记录面", `${group.facets.length} FACES`, assets);
   drawSpecRow(page, panelX + 12, top + 70, panelWidth - 24, "重复 / 镜像", `${group.repeat} / ${group.mirror ? `+${group.mirror}` : "AXIS"}`, assets);
   drawSpecRow(page, panelX + 12, top + 89, panelWidth - 24, "行业角范围", angleRange, assets);
@@ -610,6 +611,6 @@ export async function createFacetReportPdf(input) {
 
 export async function downloadFacetReport(input) {
   const blob = await createFacetReportPdf(input);
-  const safeName = input.document.name.replace(/[^\p{L}\p{N}-]+/gu, "-") || "facet-96";
+  const safeName = safeFileStem(input.document.name);
   downloadBlob(blob, `${safeName}-切磨技术报告.pdf`);
 }

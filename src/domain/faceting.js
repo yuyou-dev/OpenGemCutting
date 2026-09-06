@@ -1283,12 +1283,10 @@ export function redoFacetingCommand(history) {
 }
 
 export function canUndo(history) {
-  assertHistory(history);
   return history.cursor > 0;
 }
 
 export function canRedo(history) {
-  assertHistory(history);
   return history.cursor < history.commands.length;
 }
 

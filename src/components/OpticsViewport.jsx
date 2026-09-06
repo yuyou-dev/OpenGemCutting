@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { IconCube, IconHandMove, IconRotate3d, IconZoomIn } from "@tabler/icons-react";
 import { backgroundColor, resolveOpticsSettings } from "../domain/optics.js";
 import { crossVectors as cross, normalizeVector } from "../utils/vector3.js";
+import { clamp } from "../utils/format.js";
 import "./OpticsViewport.css";
 
 const MAX_PLANES = 192;
@@ -522,7 +523,7 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
         }}
         onWheel={(event) => {
           event.preventDefault();
-          cameraRef.current.zoom = Math.max(0.55, Math.min(2.4, cameraRef.current.zoom * Math.exp(-event.deltaY * 0.0012)));
+          cameraRef.current.zoom = clamp(cameraRef.current.zoom * Math.exp(-event.deltaY * 0.0012), 0.55, 2.4);
           drawRef.current(0.8);
           window.requestAnimationFrame(() => drawRef.current());
         }}

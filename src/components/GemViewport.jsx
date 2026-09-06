@@ -14,6 +14,7 @@ import {
   subtractVectors as subtract,
   vectorLength as length,
 } from "../utils/vector3.js";
+import { clamp } from "../utils/format.js";
 import "./GemViewport.css";
 
 const VIEW_POSES = {
@@ -44,8 +45,6 @@ const FALLBACK_POLYHEDRON = {
     [3, 0, 4, 7],
   ],
 };
-
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function toPoint(value) {
   if (Array.isArray(value)) {
@@ -644,7 +643,7 @@ function pointToSegment2D(x, y, ax, ay, bx, by) {
   const dx = bx - ax;
   const dy = by - ay;
   const lengthSq = dx * dx + dy * dy;
-  const t = lengthSq < 1e-9 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / lengthSq));
+  const t = lengthSq < 1e-9 ? 0 : clamp(((x - ax) * dx + (y - ay) * dy) / lengthSq, 0, 1);
   const px = ax + t * dx;
   const py = ay + t * dy;
   return { distance: Math.hypot(x - px, y - py), t };

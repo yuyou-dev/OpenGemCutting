@@ -655,11 +655,6 @@ export function polyhedronVolume(polyhedron) {
   return massProperties(polyhedron).volume;
 }
 
-/** Volume centroid of the polyhedron. */
-export function polyhedronCentroid(polyhedron) {
-  return massProperties(polyhedron).centroid;
-}
-
 export function polyhedronSurfaceArea(polyhedron) {
   return polyhedron.faces.reduce((sum, face) => sum + faceArea(polyhedron, face), 0);
 }

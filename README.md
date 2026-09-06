@@ -160,17 +160,22 @@ src/
     HomePage.jsx                项目搜索、新建与真实几何项目卡片
     OpticalLabPage.jsx          保留项目上下文的空白实验室
     OrthographicPreviews.jsx    冠部／亭部与侧视实时几何预览
+    TechnicalPreview.jsx        真实几何单视图线稿，卡片与正交预览共用
     useProjects.js              浏览器项目存储与列表同步
     GemViewport.jsx             p5.js WebGL、相机、Gizmo 与命中
     OpticsViewport.jsx          当前实体的光学追迹与观察环境
+    OpticsViewSwitch.jsx        光学画布的观察视角浮动切换条
     CutStack.jsx                参数化图层与会话入口
     CutComposer.jsx             分区切割指令
     PresetLibraryDialog.jsx     预设检索、四视图与载入
     AscTransferDialog.jsx       GemCad ASC 持久预检
     HelpCenterDialog.jsx        任务式帮助与手册入口
     RecoveryDialog.jsx          本地备份选择、恢复与删除
+    useLocalRecovery.js         旧本地备份的读取与删除 hook
     ConstructionAssistantDialog.jsx 逐层试切与来源检查
     Modal.jsx                   通用居中模态框与焦点管理
+    useDialogFocus.js           对话框焦点循环与 Escape 隔离 hook
+    RepositoryLink.jsx          常驻 GitHub 仓库入口，新标签页打开
   domain/
     cutSession.js               CUT 四态事件状态机与构造子状态
     meetJump.js                 顶点／棱来源、候选、单／双 Meet 求解
@@ -182,6 +187,7 @@ src/
     geometry.js                 凸多面体裁切与测量
     gemcadAsc.js                ASC 解析、预检、比例换算与导出
     presetLibrary.js            可扩展的预设 provider 边界
+    presetQuality.js            预设候选实体的拓扑与质量验收
     optics.js                   光学材料、色散与吸收模型
     document.js                 默认 T1 台面与 G1 腰部文档初始化
   utils/

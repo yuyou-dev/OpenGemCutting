@@ -1,6 +1,6 @@
 {
   "name": "opengemcutting",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "A browser-based parametric gemstone faceting workbench for the 96-index system.",
   "license": "MIT",
@@ -26,7 +26,7 @@
     "manual:build": "node scripts/generate-user-manual.mjs",
     "report:sample": "node scripts/generate-report-sample.mjs",
     "companion:test": "node --test plugins/opengemcutting-companion/tests/*.test.mjs",
-    "test": "node --test src/**/*.test.js",
+    "test": "node --test src/",
     "check": "npm run scan:public && npm run test && npm run companion:test && npm run build && npm run test:sites",
     "scan:public": "node scripts/public-scan.mjs",
     "test:sites": "node --test tests/sites-worker.test.mjs"

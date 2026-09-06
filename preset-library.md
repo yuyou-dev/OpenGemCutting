@@ -40,7 +40,8 @@ GEM 二进制和 PDF 不属于当前参数导入格式，不能从图片猜造�
 ## 批量更新
 
 ```bash
-npm run presets:build -- --archive tmp/source/facetdiagrams_open_parameters --report tmp/preset-library-audit.json
+# 源归档为 tmp/facetdiagrams_open_parameters_complete_2026-09-04.zip，需先解压（如 tmp/facetdiagrams-open-archive/）
+npm run presets:build -- --archive tmp/facetdiagrams-open-archive --report tmp/preset-library-audit.json
 npm run check
 ```
 

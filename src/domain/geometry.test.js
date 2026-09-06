@@ -7,7 +7,6 @@ import {
   faceArea,
   faceCentroid,
   measurePolyhedron,
-  polyhedronCentroid,
   polyhedronSurfaceArea,
   polyhedronVolume,
 } from "./geometry.js";
@@ -56,7 +55,6 @@ test("centered cube has outward faces and exact base measurements", () => {
 
   approximately(polyhedronVolume(cube), 8);
   approximately(polyhedronSurfaceArea(cube), 24);
-  approximatelyVector(polyhedronCentroid(cube), { x: 0, y: 0, z: 0 });
   approximatelyVector(faceCentroid(cube, "cube:+z"), { x: 0, y: 0, z: 1 });
 });
 
@@ -75,7 +73,6 @@ test("axis-aligned clipping creates an outward cap with operation metadata", () 
   assert.equal(clipped.faces.length, 6);
   assert.equal(clipped.faces.some((face) => face.id === "cube:+x"), false);
   approximately(polyhedronVolume(clipped), 4);
-  approximatelyVector(polyhedronCentroid(clipped), { x: -0.5, y: 0, z: 0 });
 
   const cap = clipped.faces.find((face) => face.id === "facet-17");
   assert.ok(cap);
@@ -149,7 +146,6 @@ test("fully rejected and translated solids have well-defined measurements", () =
   assert.deepEqual(empty.vertices, []);
   assert.deepEqual(empty.faces, []);
   assert.equal(polyhedronVolume(empty), 0);
-  approximatelyVector(polyhedronCentroid(empty), { x: 0, y: 0, z: 0 });
 
   const translated = createCenteredCube({ size: 4, center: [10, -3, 7] });
   const measurements = measurePolyhedron(translated);

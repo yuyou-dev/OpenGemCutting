@@ -8,6 +8,7 @@ import { useProjects } from "./components/useProjects.js";
 import { createWorkbenchDocument } from "./domain/document.js";
 import { exportFacetingJSON } from "./domain/faceting.js";
 import { downloadBlob } from "./utils/download.js";
+import { safeFileStem } from "./utils/format.js";
 
 export function App() {
   const projects = useProjects();
@@ -86,7 +87,7 @@ export function App() {
   };
   const exportCurrent = () => {
     if (!latestDocument) return;
-    downloadBlob(new Blob([exportFacetingJSON(latestDocument)], { type: "application/json" }), `${latestDocument.name.replace(/[^\p{L}\p{N}-]+/gu, "-") || "facet-96"}.json`);
+    downloadBlob(new Blob([exportFacetingJSON(latestDocument)], { type: "application/json" }), `${safeFileStem(latestDocument.name)}.json`);
   };
   const projectList = projects.records.map((record) => record.id === active?.id && latestDocument
     ? { ...record, document: latestDocument } : record);

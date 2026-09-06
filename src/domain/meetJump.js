@@ -452,11 +452,6 @@ export function adjacentJumpCandidateIndex({
     : candidates.findIndex((candidate) => candidate[field] > value + tolerance);
 }
 
-/** Resolve persisted construction metadata without using its fallback point as a live target. */
-export function resolvePersistedVertexTarget(target, baseSolid) {
-  return resolvePersistedMeetTarget(target, baseSolid);
-}
-
 /** Both endpoint identities must still exist; diagnostic coordinates never restore a source. */
 export function resolvePersistedMeetTarget(target, baseSolid, {
   vertices = enumerateTopologyVertices(baseSolid),
