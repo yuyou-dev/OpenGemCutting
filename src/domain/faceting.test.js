@@ -375,6 +375,31 @@ test("exports and imports validated JSON with explicit resolved facet data", () 
   );
 });
 
+test("accepts sibling-edition schema ids and normalizes them to the local one", () => {
+  const facets = resolveFacetPattern({
+    patternId: "crown-1",
+    region: "crown",
+    baseIndex: 0,
+    repeat: 4,
+    mirror: 0,
+    industryAngleDeg: 42,
+    depth: 0.3,
+  });
+  const document = createFacetingDocument({ name: "Cross edition", facets });
+  const foreign = structuredClone(document);
+  foreign.$schema = "https://sibling-edition.example/schemas/document-v1.schema.json";
+
+  assert.equal(validateFacetingDocument(foreign).valid, true);
+  const restored = importFacetingJSON(JSON.stringify(foreign));
+  assert.equal(restored.$schema, document.$schema);
+  assert.deepEqual(restored, document);
+
+  const alien = structuredClone(document);
+  alien.$schema = "https://sibling-edition.example/schemas/document-v2.schema.json";
+  assert.equal(validateFacetingDocument(alien).valid, false);
+  assert.throws(() => importFacetingJSON(JSON.stringify(alien)), FacetingDocumentValidationError);
+});
+
 test("round-trips valid vertex Meet metadata and rejects malformed construction records", () => {
   const construction = {
     type: "vertex-meet",

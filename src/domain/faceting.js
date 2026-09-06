@@ -43,6 +43,9 @@ const DOCUMENT_KIND = "facet-96-document";
 const DOCUMENT_SCHEMA_VERSION = 1;
 const DOCUMENT_SCHEMA_ID =
   "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json";
+// Any edition of the workbench family may use its own schema host; the
+// document-v1 format is identified by this suffix plus schemaVersion/kind.
+const DOCUMENT_SCHEMA_ID_SUFFIX = "/document-v1.schema.json";
 
 export const DEFAULT_STOCK = Object.freeze({
   kind: "cube",
@@ -907,8 +910,8 @@ export function validateFacetingDocument(document) {
       errors: [{ path: "$", message: "document must be an object" }],
     };
   }
-  if (document.$schema !== DOCUMENT_SCHEMA_ID) {
-    addValidationError(errors, "$.$schema", `must equal ${DOCUMENT_SCHEMA_ID}`);
+  if (typeof document.$schema !== "string" || !document.$schema.endsWith(DOCUMENT_SCHEMA_ID_SUFFIX)) {
+    addValidationError(errors, "$.$schema", `must be a document-v1 schema id ending with ${DOCUMENT_SCHEMA_ID_SUFFIX}`);
   }
   if (document.schemaVersion !== DOCUMENT_SCHEMA_VERSION) {
     addValidationError(errors, "$.schemaVersion", "unsupported schema version");
@@ -1048,6 +1051,7 @@ export function importFacetingJSON(json) {
   }
   const normalizedDocument = migrateLegacyFacetGeometry(parsed);
   assertValidFacetingDocument(normalizedDocument);
+  normalizedDocument.$schema = DOCUMENT_SCHEMA_ID;
   return clone(normalizedDocument);
 }
 
