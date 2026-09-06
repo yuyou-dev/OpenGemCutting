@@ -1323,7 +1323,7 @@ input:disabled {
   min-height: 49px;
   padding: 8px 12px;
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 210px auto;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(130px, 0.8fr) minmax(160px, 1fr) auto;
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid #d7d7d2;
@@ -1359,7 +1359,10 @@ input:disabled {
 
 .preset-library-toolbar input { flex: 1; padding: 0 9px 0 4px; cursor: text; }
 .preset-library-toolbar select { width: 100%; padding: 0 8px; }
-.preset-library-toolbar > small { padding: 0 5px; color: #92938f; font: 9px/1 var(--mono); }
+.preset-search { grid-column: 1 / -1; }
+.preset-filter-summary { display: flex; align-items: center; gap: 12px; font-size: 11px; white-space: nowrap; }
+.preset-filter-summary button { padding: 5px 0; color: #315b47; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+.preset-filter-summary button:disabled { color: #959691; cursor: default; text-decoration: none; }
 .preset-search svg { flex: 0 0 auto; margin-left: 9px; color: #71736e; }
 .preset-library-toolbar label:focus-within { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
 
@@ -1369,13 +1372,26 @@ input:disabled {
   grid-template-columns: 280px minmax(0, 1fr);
 }
 
+.preset-list-column {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  border-right: 1px solid #d7d7d2;
+}
+
+.preset-pagination { padding: 8px; display: grid; gap: 6px; border-top: 1px solid #d7d7d2; font: 10px/1.3 var(--mono); background: #fafaf8; }
+.preset-pagination > span { color: #62645f; text-align: center; }
+.preset-pagination > div { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.preset-pagination button { min-height: 30px; padding: 0 9px; border: 1px solid #c8c9c4; border-radius: 3px; background: #fff; font-size: 11px; }
+.preset-pagination button:hover:not(:disabled) { border-color: #315b47; color: #315b47; }
+.preset-pagination button:disabled { color: #969791; background: #f1f1ee; cursor: default; }
+
 .preset-list {
   min-height: 0;
   padding: 8px;
   display: grid;
   align-content: start;
   gap: 5px;
-  border-right: 1px solid #d7d7d2;
   overflow-y: auto;
   background: #f8f8f6;
 }
@@ -1398,7 +1414,7 @@ input:disabled {
 .preset-list img { width: 76px; height: 58px; display: block; object-fit: contain; border: 1px solid #e2e2de; background: #fff; }
 .preset-list span { min-width: 0; display: grid; gap: 6px; }
 .preset-list strong { overflow: hidden; font-size: 11px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
-.preset-list small { color: #767873; font: 9px/1 var(--mono); }
+.preset-list small { color: #767873; font: 9px/1.4 var(--mono); }
 .preset-list > p { margin: 22px 12px; color: #737570; font-size: 11px; line-height: 1.6; }
 
 .preset-detail {
@@ -1406,7 +1422,7 @@ input:disabled {
   min-height: 0;
   padding: 15px 18px 14px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  grid-template-rows: auto minmax(306px, 1fr) auto auto auto;
   gap: 11px;
   overflow-y: auto;
 }
@@ -1473,9 +1489,10 @@ input:disabled {
 .preset-library-state.is-error { color: #a72f50; }
 
 @media (max-width: 760px) {
-  .preset-library-toolbar { grid-template-columns: 1fr 150px; }
-  .preset-library-toolbar > small { display: none; }
+  .preset-library-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .preset-filter-summary { justify-content: space-between; gap: 6px; }
   .preset-library-body { grid-template-columns: 210px minmax(0, 1fr); }
+  .preset-detail { grid-template-rows: auto minmax(598px, 1fr) auto auto auto; }
   .preset-preview-grid { grid-template-columns: 1fr; grid-template-rows: repeat(4, minmax(145px, 1fr)); }
 }
 
@@ -1484,10 +1501,10 @@ input:disabled {
   .preset-library-panel { height: 100vh; border: 0; border-radius: 0; }
   .preset-library-heading { grid-template-columns: 1fr 30px; }
   .preset-library-heading > span { display: none; }
-  .preset-library-toolbar { grid-template-columns: 1fr; }
+  .preset-library-toolbar label > span { padding-left: 6px; }
   .preset-library-body { grid-template-columns: 1fr; overflow-y: auto; }
-  .preset-list { max-height: 220px; border-right: 0; border-bottom: 1px solid #d7d7d2; }
-  .preset-detail { overflow: visible; }
+  .preset-list-column { height: 290px; border-right: 0; border-bottom: 1px solid #d7d7d2; }
+  .preset-detail { overflow: visible; grid-template-rows: auto minmax(266px, 1fr) auto auto auto; }
   .preset-preview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(130px, 1fr)); }
 }
 
@@ -3967,4 +3984,49 @@ input:disabled {
 @media (max-width: 700px) {
   .construction-assistant-stage-content { grid-template-columns: minmax(0, 1fr); }
   .construction-assistant-stage-content .construction-assistant-viewport { height: 250px; }
+}
+
+/* Keep the repository destination in every workspace mode and distribution. */
+.has-repository .workspace-brand {
+  min-height: 106px;
+  padding-top: 11px;
+  padding-bottom: 10px;
+  row-gap: 9px;
+}
+.workspace-brand > .brand-community {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.brand-community > small { color: #767873; font-size: 11px; }
+.repository-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid #c5c8c3;
+  border-radius: 4px;
+  background: #fff;
+  color: #323a35;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.repository-link:hover { color: #183e2c; border-color: #6b8d7a; background: #f1f7f3; }
+.repository-link:focus-visible { outline: 2px solid #37684e; outline-offset: 3px; }
+.optics-brand-rail .repository-link { margin-left: 4px; }
+.has-repository .is-sidebar-collapsed .cut-stack.is-floating,
+.has-repository .sidebar-reopen { top: 70px; }
+@media (max-width: 1180px) {
+  .has-repository .optics-brand-rail { flex-wrap: wrap; height: auto; width: 210px; }
+  .has-repository .optics-brand-rail .repository-link { margin-left: 0; }
+  .has-repository .is-sidebar-collapsed .cut-stack.is-floating,
+  .has-repository .sidebar-reopen { top: 108px; }
 }

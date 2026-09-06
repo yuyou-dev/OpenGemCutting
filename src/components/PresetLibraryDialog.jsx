@@ -1,24 +1,28 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { IconSearch, IconX } from "@tabler/icons-react";
-import { filterPresetCatalog } from "../domain/presetLibrary.js";
+import { filterPresetCatalog, PRESET_FACET_RANGES, PRESET_RATIO_RANGES } from "../domain/presetLibrary.js";
+
+const PAGE_SIZE = 60;
+const presetKey = (preset) => `${preset.providerId}:${preset.id}`;
 
 const VIEW_LABELS = { isometric: "45° 轴测", top: "顶视", bottom: "底视", front: "正视" };
 
 export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft = false }) {
   const [presets, setPresets] = useState([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [query, setQuery] = useState("");
-  const [shape, setShape] = useState("all");
+  const [selectedKey, setSelectedKey] = useState("");
+  const [filters, setFilters] = useState({ query: "", shape: "all", facets: "all", ratio: "all" });
+  const [page, setPage] = useState(1);
+  const listRef = useRef(null);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
-  const deferredQuery = useDeferredValue(query);
+  const deferredQuery = useDeferredValue(filters.query);
 
   useEffect(() => {
     let active = true;
     library.list().then((items) => {
       if (!active) return;
       setPresets(items);
-      setSelectedId(items[0]?.id ?? "");
+      setSelectedKey(items[0] ? presetKey(items[0]) : "");
       setStatus("ready");
     }).catch((reason) => {
       if (!active) return;
@@ -31,17 +35,35 @@ export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft 
   const shapes = useMemo(() => [...new Map(
     presets.map((preset) => [preset.shapeKey, preset.shape]),
   ).entries()].sort((left, right) => left[1].localeCompare(right[1], "zh-CN")), [presets]);
-  const visiblePresets = useMemo(() => filterPresetCatalog(presets, {
-    query: deferredQuery,
-    shape,
-  }), [deferredQuery, presets, shape]);
-  const selected = visiblePresets.find((preset) => preset.id === selectedId) ?? visiblePresets[0];
+  const appliedFilters = useMemo(() => ({ ...filters, query: deferredQuery }), [deferredQuery, filters]);
+  const visiblePresets = useMemo(() => filterPresetCatalog(presets, appliedFilters), [appliedFilters, presets]);
+  const filterCounts = useMemo(() => Object.fromEntries([
+    ["shape", shapes.map(([id]) => ({ id }))],
+    ["facets", PRESET_FACET_RANGES],
+    ["ratio", PRESET_RATIO_RANGES],
+  ].map(([key, options]) => [key, Object.fromEntries(options.map(({ id }) => [
+    id, filterPresetCatalog(presets, { ...appliedFilters, [key]: id }).length,
+  ]))])), [appliedFilters, presets, shapes]);
+  const pageCount = Math.max(1, Math.ceil(visiblePresets.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pagePresets = visiblePresets.slice(pageStart, pageStart + PAGE_SIZE);
+  const selected = pagePresets.find((preset) => presetKey(preset) === selectedKey) ?? pagePresets[0];
+  const hasFilters = filters.query || [filters.shape, filters.facets, filters.ratio].some((value) => value !== "all");
+
+  const updateFilters = (patch) => {
+    setFilters((current) => ({ ...current, ...patch }));
+    setPage(1);
+    setSelectedKey("");
+  };
+  const changePage = (nextPage) => {
+    setPage(nextPage);
+    setSelectedKey("");
+  };
 
   useEffect(() => {
-    if (visiblePresets.length && !visiblePresets.some((preset) => preset.id === selectedId)) {
-      setSelectedId(visiblePresets[0].id);
-    }
-  }, [selectedId, visiblePresets]);
+    listRef.current?.scrollTo({ top: 0 });
+  }, [currentPage, visiblePresets]);
 
   const loadSelected = async () => {
     if (!selected || status === "loading-preset") return;
@@ -60,28 +82,36 @@ export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft 
       <section className="preset-library-panel" role="dialog" aria-modal="true" aria-label="预设琢型" onMouseDown={(event) => event.stopPropagation()}>
         <header className="preset-library-heading">
           <div><small>PRESET CUTS</small><h2>预设琢型</h2></div>
-          <span>{presets.length} 个内置精选</span>
+          <span>{presets.length} 个可用琢型</span>
           <button type="button" onClick={onClose} aria-label="关闭预设琢型"><IconX size={17} /></button>
         </header>
 
         <div className="preset-library-toolbar">
-          <label className="preset-search"><IconSearch size={14} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索名称、作者或来源" aria-label="搜索预设琢型" /></label>
-          <label><span>外形</span><select value={shape} onChange={(event) => setShape(event.target.value)} aria-label="按外形筛选"><option value="all">全部外形</option>{shapes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-          <small>{visiblePresets.length} RESULTS</small>
+          <label className="preset-search"><IconSearch size={14} /><input autoFocus value={filters.query} onChange={(event) => updateFilters({ query: event.target.value })} placeholder="搜索名称、作者或来源，可组合关键词" aria-label="搜索预设琢型" /></label>
+          <label><span>外形</span><select value={filters.shape} onChange={(event) => updateFilters({ shape: event.target.value })} aria-label="按外形筛选"><option value="all">全部外形</option>{shapes.map(([value, label]) => <option value={value} key={value}>{label} · {filterCounts.shape[value]}</option>)}</select></label>
+          <label><span>刻面</span><select value={filters.facets} onChange={(event) => updateFilters({ facets: event.target.value })} aria-label="按有效刻面数筛选"><option value="all">全部面数</option>{PRESET_FACET_RANGES.map(({ id, label }) => <option value={id} key={id}>{label} · {filterCounts.facets[id]}</option>)}</select></label>
+          <label><span>L/W</span><select value={filters.ratio} onChange={(event) => updateFilters({ ratio: event.target.value })} aria-label="按长宽比筛选"><option value="all">全部比例</option>{PRESET_RATIO_RANGES.map(({ id, label }) => <option value={id} key={id}>{label} · {filterCounts.ratio[id]}</option>)}</select></label>
+          <div className="preset-filter-summary"><span aria-live="polite">找到 <strong>{visiblePresets.length}</strong> / {presets.length} 个琢型</span><button type="button" onClick={() => updateFilters({ query: "", shape: "all", facets: "all", ratio: "all" })} disabled={!hasFilters}>清除筛选</button></div>
         </div>
 
         {status === "loading" ? <div className="preset-library-state">正在读取预设索引…</div> : null}
         {status === "error" ? <div className="preset-library-state is-error">{error}</div> : null}
         {status !== "loading" && status !== "error" ? (
           <div className="preset-library-body">
-            <div className="preset-list" role="listbox" aria-label="预设琢型列表">
-              {visiblePresets.map((preset) => (
-                <button type="button" role="option" aria-selected={preset.id === selected?.id} className={preset.id === selected?.id ? "is-selected" : ""} onClick={() => setSelectedId(preset.id)} key={`${preset.providerId}:${preset.id}`}>
+            <div className="preset-list-column">
+            <div className="preset-list" ref={listRef} role="listbox" aria-label="预设琢型列表">
+              {pagePresets.map((preset) => (
+                <button type="button" role="option" aria-selected={presetKey(preset) === (selected && presetKey(selected))} className={presetKey(preset) === (selected && presetKey(selected)) ? "is-selected" : ""} onClick={() => setSelectedKey(presetKey(preset))} key={`${preset.providerId}:${preset.id}`}>
                   <img src={preset.previews.isometric} loading="lazy" alt={`${preset.name} 45° 轴测预览`} />
-                  <span><strong>{preset.name}</strong><small>{preset.shape} · {preset.facetCount} F</small></span>
+                  <span><strong>{preset.name}</strong><small>{preset.shape} · {preset.facetCount} 面 · L/W {preset.lengthToWidth.toFixed(2)}</small></span>
                 </button>
               ))}
               {visiblePresets.length === 0 ? <p>没有符合当前条件的预设。</p> : null}
+            </div>
+            <nav className="preset-pagination" aria-label="预设列表分页">
+              <span>{visiblePresets.length ? `${pageStart + 1}–${Math.min(pageStart + PAGE_SIZE, visiblePresets.length)}` : "0"} / {visiblePresets.length}</span>
+              <div><button type="button" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>上一页</button><span>{currentPage} / {pageCount}</span><button type="button" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>下一页</button></div>
+            </nav>
             </div>
 
             {selected ? <article className="preset-detail">

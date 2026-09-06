@@ -27,6 +27,8 @@
 
 ## 在线体验 · Live demo
 
+品牌附近始终保留 **“GitHub 仓库”** 入口，普通编辑、收起侧栏和光学仿真时均可使用。点击会在新标签页打开 [OpenGemCutting 仓库](https://github.com/yuyou-dev/OpenGemCutting)，当前设计留在原页面；本机、GitHub Pages 与其他部署均使用同一入口和地址。
+
 打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON、GemCad ASC 与 PDF 均在浏览器本地导入、导出或生成。
 
 第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是面向设计师的 22 页 A4 图解手册，配套 [7 份原创练习](docs/manual/README.md)，通过真实案例说明冠高、棱上比例、双点会合和四向节奏的设计用途，覆盖文件交换、光学观察与交付；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
@@ -47,7 +49,7 @@ OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用
 
 - **真实参数化裁切**：凸多面体半空间裁切，旋转重复与镜像轨道都参与最终几何。
 - **96 分度工艺模型**：整数索引、行业角、切入深度、自定义索引和冠/腰/亭区域语义。
-- **57 个精选预设琢型**：按名称、设计者、来源与外形检索，载入前核对真实几何的轴测、顶、底、正四视图。
+- **252 个精选预设琢型、27 类外形**：按名称、设计者、来源、外形、有效面数与真实 L/W 组合筛选，每页 60 项；载入前核对真实几何的轴测、顶、底、正四视图。
 - **GemCad ASC 交换**：导入/导出前持久预检齿轮映射、统一比例、L/W、层面统计与不可逆信息；不精确映射、preform 或异常台面会明确阻断。
 - **CUT 四态工作流**：空闲、新建、编辑、群组变换由单一事件状态机管理，取消和 `Escape` 路径明确。
 - **Meet / Jump 定位**：冠部与亭部的对称及自定义索引支持顶点／棱点 A、双 Meet 和第二点 Jump。单 A 求解深度，双点在固定主分度下联合求解角度与深度；来源变化立即诊断，由设计师手动修复。
@@ -178,7 +180,7 @@ src/
     vector3.js                  视口共用三维向量工具
   report/pdfReport.js           A4 矢量技术报告
 public/
-  presets/                      57 项内置规范化文档与四视图
+  presets/                      252 项内置规范化文档与 1,008 张四视图
   manual/                       可下载的 A4 图解操作手册
   schemas/                      公开可访问的 Facet 96 JSON Schema
 scripts/
@@ -259,7 +261,7 @@ OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA�
 
 ## English overview
 
-OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 57 validated presets, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
+OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 252 validated presets across 27 outline categories, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
 
 Version **v0.7.2** adds edge-ratio targets, dual Meet, custom primary facets, and second-point Jump for crown/pavilion cuts. Construction-order diagnostics preserve saved geometry while asking designers to repair changed references explicitly. A read-only construction assistant, preform intent labels and visible Edit buttons make the workflow easier to follow. The 22-page designer manual includes seven original practice files and comparable shape variants. Existing local recovery, material undo/redo and isolated dialog shortcuts are preserved. See [CHANGELOG.md](CHANGELOG.md) for details.
 

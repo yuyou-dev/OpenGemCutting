@@ -74,5 +74,5 @@ test("emits the files required by Sites packaging", async () => {
   assert.match(index, /正在校准 96 齿工作区/);
 
   const catalog = JSON.parse(await readFile(new URL("../dist/client/presets/catalog.json", import.meta.url), "utf8"));
-  assert.equal(catalog.count, 57);
+  assert.equal(catalog.count, 252);
 });

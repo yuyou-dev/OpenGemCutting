@@ -9,7 +9,9 @@ OpenGemCutting uses third-party packages listed in `package.json` and locked by 
 
 ## Built-in faceting presets
 
-`public/presets/` contains normalized parameter records and generated technical previews derived from 57 designs indexed by [FacetDiagrams.org](https://facetdiagrams.org/). Every catalog entry preserves the credited designer, source page, source download URL, source SHA-256 and the supplied `Open` declaration so users can review its provenance.
+`public/presets/` contains normalized parameter records and generated technical previews derived from 252 designs indexed by [FacetDiagrams.org](https://facetdiagrams.org/). Every catalog entry preserves the credited designer, source page, source download URL, source SHA-256 and the archive-supplied `Open` declaration and duplicate-source associations so users can review its provenance.
+
+The catalog covers 27 source-defined outline categories. Inclusion requires exact 96-index compatibility, valid final geometry, JSON round-trip stability and unique final cutting planes; these checks do not imply a guarantee of cutting results or aesthetic quality. The archive’s Open-design declaration is recorded as source provenance, not replaced with an independent licensing claim.
 
 The project MIT License covers OpenGemCutting's code and original documentation; it does not override authorship, attribution or any separate rights attached to a named third-party faceting design. Personal contact details present in source-file notes are intentionally omitted from the bundled normalized records.
 

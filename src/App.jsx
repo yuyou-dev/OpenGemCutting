@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight, IconHistory } from "@tabler/icons-react";
+import { RepositoryLink } from "./components/RepositoryLink.jsx";
 import { Header } from "./components/Header.jsx";
 import { GemViewport } from "./components/GemViewport.jsx";
 import { OpticsViewport } from "./components/OpticsViewport.jsx";
@@ -1177,9 +1178,9 @@ export function App() {
     : cutSession.active ? validationMessage : "";
 
   return (
-    <main className={opticsActive ? "app-shell is-optics-active" : "app-shell"}>
+    <main className={`app-shell${opticsActive ? " is-optics-active" : ""} has-repository`}>
       <section className={`${sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}${opticsActive ? " is-optics-focus" : ""}`}>
-        {!opticsActive ? <aside className="control-sidebar" aria-label="切磨参数侧栏">
+        {!opticsActive ? <aside className="control-sidebar" aria-label="切磨参数侧栏" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
           <div className="workspace-brand">
             <img className="brand-logo" src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="苏哇品牌标志" />
             <div className="brand-copy">
@@ -1196,6 +1197,7 @@ export function App() {
             >
               <IconChevronLeft size={18} stroke={1.8} />
             </button>
+            <div className="brand-community"><RepositoryLink /><small>源码与反馈</small></div>
           </div>
 
           <div className="sidebar-sections">
@@ -1281,10 +1283,11 @@ export function App() {
         </aside> : null}
 
         <div className="viewport-column">
-          {opticsActive ? (
+          {opticsActive || !sidebarOpen ? (
             <div className="optics-brand-rail" aria-label="切磨工作台品牌">
               <img className="brand-logo" src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="苏哇品牌标志" />
               <span><strong>切磨工作台</strong><small>Alpha</small><em>SUVA · FACET 96</em></span>
+              <RepositoryLink />
             </div>
           ) : null}
 
