@@ -5,6 +5,8 @@ import { OrthographicPreviews } from "./components/OrthographicPreviews.jsx";
 import { Header } from "./components/Header.jsx";
 import { GemViewport } from "./components/GemViewport.jsx";
 import { OpticsViewSwitch } from "./components/OpticsViewSwitch.jsx";
+import { ViewportModeSwitch } from "./components/ViewportModeSwitch.jsx";
+import { CuttingAssistantBar, CuttingAssistantPlayer } from "./components/CuttingAssistantBar.jsx";
 import { OpticsViewport } from "./components/OpticsViewport.jsx";
 import { OpticsInspector } from "./components/OpticsInspector.jsx";
 import { MastControl } from "./components/MastControl.jsx";
@@ -77,6 +79,7 @@ import { createPresetLibrary, createStaticPresetProvider } from "./domain/preset
 import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
 import { parseCustomIndices, planeEntry, resolveDraftGeometry, solveDraftConstruction, snapshotMeetTarget } from "./domain/cutConstruction.js";
 import { buildConstructionStages } from "./domain/constructionHistory.js";
+import { createCuttingReplay } from "./domain/cuttingAssistant.js";
 import { ConstructionAssistantDialog } from "./components/ConstructionAssistantDialog.jsx";
 import { downloadFacetReport } from "./report/pdfReport.js";
 
@@ -122,7 +125,10 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const [viewMode, setViewMode] = useState("perspective");
   const [opticsViewMode, setOpticsViewMode] = useState("perspective");
   const [renderMode, setRenderMode] = useState("solid");
-  const [opticsActive, setOpticsActive] = useState(false);
+  const [viewportMode, setViewportMode] = useState("edit");
+  const opticsActive = viewportMode === "optics";
+  const cuttingAssistantActive = viewportMode === "assistant";
+  const [assistantPosition, setAssistantPosition] = useState(0);
   const [opticsInspectorOpen, setOpticsInspectorOpen] = useState(true);
   const [opticsTab, setOpticsTab] = useState("material");
   const [opticsViewSettings, setOpticsViewSettings] = useState(DEFAULT_OPTICS_SETTINGS.view);
@@ -195,6 +201,44 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   ]), []);
 
   useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
+
+  const changeViewportMode = useCallback((nextMode) => {
+    if (nextMode === viewportMode) return;
+    if (nextMode === "optics") {
+      setOpticsViewMode(viewMode);
+      setOpticsInspectorOpen(true);
+    }
+    if (nextMode === "assistant") setAssistantPosition(0);
+    setViewportMode(nextMode);
+    if (nextMode === "assistant") notify("已进入切割助手；CUT 会话已原样挂起。");
+    else if (nextMode === "optics") notify("已进入纯光学仿真；CUT 会话已原样挂起。");
+    else notify(viewportMode === "assistant"
+      ? "已退出切割助手并恢复原编辑现场。"
+      : "已退出光学仿真并恢复原编辑现场。");
+  }, [notify, viewMode, viewportMode]);
+
+  // Cutting assistant replay is derived from the committed document plus the
+  // hidden-layer set; it stays read-only for the whole focused session.
+  const cuttingReplay = useMemo(
+    () => (cuttingAssistantActive
+      ? createCuttingReplay(document, { hiddenPatternIds: [...hiddenPatternIds] })
+      : null),
+    [cuttingAssistantActive, document, hiddenPatternIds],
+  );
+  const replayPosition = cuttingReplay
+    ? Math.max(0, Math.min(cuttingReplay.total, assistantPosition))
+    : 0;
+  const replayStep = cuttingReplay && replayPosition < cuttingReplay.total
+    ? cuttingReplay.steps[replayPosition]
+    : null;
+  const assistantSolid = useMemo(
+    () => (cuttingReplay ? cuttingReplay.solidAt(replayPosition) : null),
+    [cuttingReplay, replayPosition],
+  );
+  const assistantPreviewPlanes = useMemo(
+    () => (replayStep ? [{ ...replayStep.plane, index: replayStep.index, primary: true }] : []),
+    [replayStep],
+  );
 
   const draft = useMemo(() => resolveDraftGeometry(cutSession.draft, region, document.stock), [cutSession.draft, document.stock, region]);
   const deferredDraftFacets = useDeferredValue(draft.facets);
@@ -710,7 +754,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   }, [cutMode, cutSession.canCancel, cutSession.dirty, notify]);
 
   useEffect(() => {
-    if (!visible || interactionPaused || !cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
+    if (!visible || interactionPaused || !cutSession.canCancel || modal || ascTransfer || presetLibraryOpen || viewportMode !== "edit" || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
     const handleEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -723,19 +767,31 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [visible, interactionPaused, ascTransfer, cancelCutSession, cutSession.canCancel, cutSession.canCancelConstructionTool, ledgerOpen, modal, notify, opticsActive, presetLibraryOpen, recoveryOpen, assistantOpen]);
+  }, [visible, interactionPaused, ascTransfer, cancelCutSession, cutSession.canCancel, cutSession.canCancelConstructionTool, ledgerOpen, modal, notify, viewportMode, presetLibraryOpen, recoveryOpen, assistantOpen]);
 
   useEffect(() => {
     if (!visible || interactionPaused || !opticsActive || modal || ascTransfer || presetLibraryOpen) return undefined;
     const handleOpticsEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      setOpticsActive(false);
+      setViewportMode("edit");
       notify("已退出光学仿真并恢复原编辑现场。");
     };
     window.addEventListener("keydown", handleOpticsEscape);
     return () => window.removeEventListener("keydown", handleOpticsEscape);
   }, [visible, interactionPaused, ascTransfer, modal, notify, opticsActive, presetLibraryOpen]);
+
+  useEffect(() => {
+    if (!visible || interactionPaused || !cuttingAssistantActive || modal || ascTransfer || presetLibraryOpen) return undefined;
+    const handleAssistantEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setViewportMode("edit");
+      notify("已退出切割助手并恢复原编辑现场。");
+    };
+    window.addEventListener("keydown", handleAssistantEscape);
+    return () => window.removeEventListener("keydown", handleAssistantEscape);
+  }, [visible, interactionPaused, ascTransfer, modal, notify, cuttingAssistantActive, presetLibraryOpen]);
 
   useEffect(() => {
     if (!visible || interactionPaused || !presetLibraryOpen) return undefined;
@@ -964,7 +1020,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET, slot, ...(result ? { meet: { ...result.meet, sourceLabel: sourceLabelForTarget(remaining) }, patch: result.draft } : {}) });
   };
   useEffect(() => {
-    if (!visible || interactionPaused || !cutSession.canUseMeetJump || modal || ascTransfer || presetLibraryOpen || opticsActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
+    if (!visible || interactionPaused || !cutSession.canUseMeetJump || modal || ascTransfer || presetLibraryOpen || viewportMode !== "edit" || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
     const handleJumpKey = (event) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const key = event.key.toLowerCase();
@@ -982,7 +1038,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     };
     window.addEventListener("keydown", handleJumpKey);
     return () => window.removeEventListener("keydown", handleJumpKey);
-  }, [visible, interactionPaused, ascTransfer, cutSession, handleJump, ledgerOpen, lockMeet, modal, opticsActive, presetLibraryOpen, recoveryOpen, assistantOpen, startMeetPick]);
+  }, [visible, interactionPaused, ascTransfer, cutSession, handleJump, ledgerOpen, lockMeet, modal, viewportMode, presetLibraryOpen, recoveryOpen, assistantOpen, startMeetPick]);
 
   const handleDepthDrag = (rawDepth) => {
     if (!cutSession.depthEditable) return;
@@ -1182,6 +1238,9 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           </nav>
           <RepositoryLink />
         </div>
+          {cuttingAssistantActive && cuttingReplay ? (
+            <CuttingAssistantBar onExit={() => changeViewportMode("edit")} />
+          ) : (
           <Header
             projectName={document.name}
             onProjectNameChange={renameProject}
@@ -1217,21 +1276,14 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             onDisplayMode={setRenderMode}
             opticsActive={opticsActive}
             opticsInspectorOpen={opticsInspectorOpen}
-            onEnterOptics={() => {
-              setOpticsViewMode(viewMode);
-              setOpticsInspectorOpen(true);
-              setOpticsActive(true);
-              notify("已进入纯光学仿真；CUT 会话已原样挂起。");
-            }}
+            onEnterOptics={() => changeViewportMode("optics")}
             onOpenOpticsInspector={() => setOpticsInspectorOpen(true)}
-            onExitOptics={() => {
-              setOpticsActive(false);
-              notify("已退出光学仿真并恢复原编辑现场。");
-            }}
+            onExitOptics={() => changeViewportMode("edit")}
           />
+          )}
       </div>
-      <section className={`${sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}${opticsActive ? " is-optics-focus" : ""}`}>
-        {!opticsActive ? <aside className="control-sidebar" aria-label="切磨参数侧栏" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
+      <section className={`${sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}${opticsActive ? " is-optics-focus" : ""}${cuttingAssistantActive ? " is-assistant-focus" : ""}`}>
+        {viewportMode === "edit" ? <aside className="control-sidebar" aria-label="切磨参数侧栏" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
           <div className="parameter-rail-title">
             <span>CUT PARAMETERS</span>
             <button type="button" className="collapse-sidebar" onClick={() => setSidebarOpen(false)} aria-label="收起参数侧栏"><IconChevronLeft size={16} stroke={1.7} /></button>
@@ -1320,7 +1372,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
         </aside> : null}
 
         <div className="viewport-column">
-          {!opticsActive && !sidebarOpen ? (
+          {viewportMode === "edit" && !sidebarOpen ? (
             <button type="button" className="sidebar-reopen" onClick={() => setSidebarOpen(true)} aria-label="展开参数侧栏">
               <IconChevronRight size={18} stroke={1.8} />
             </button>
@@ -1339,37 +1391,37 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           /> : null}
 
 
-          {!cutSession.active && !opticsActive && constructionStages.some((stage) => stage.construction?.status === "stale") ? (
+          {!cutSession.active && viewportMode === "edit" && constructionStages.some((stage) => stage.construction?.status === "stale") ? (
             <button type="button" className="construction-stale-notice" onClick={() => {
               setAssistantStageIndex(constructionStages.findIndex((stage) => stage.construction?.status === "stale"));
               setAssistantOpen(true);
             }}>Meet 来源失效 · {constructionStages.filter((stage) => stage.construction?.status === "stale").length} 层 · 检查施工顺序</button>
           ) : null}
           <GemViewport
-            polyhedron={displaySolid}
-            meetPolyhedron={constructionBaseSolid}
-            previewPlanes={previewPlanes}
-            selectedIndex={baseIndex}
+            polyhedron={cuttingAssistantActive && assistantSolid ? assistantSolid : displaySolid}
+            meetPolyhedron={cuttingAssistantActive ? null : constructionBaseSolid}
+            previewPlanes={cuttingAssistantActive ? assistantPreviewPlanes : previewPlanes}
+            selectedIndex={cuttingAssistantActive ? (replayStep?.index ?? 0) : baseIndex}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             renderMode={renderMode}
             suspended={!visible || interactionPaused || opticsActive || assistantOpen}
             resetSignal={resetSignal}
-            highlightOperationId={hoveredPatternId}
-            activeOperationId={cutSession.activePatternId}
-            previewOperationId={cutMode === "create" ? `draft-${patternMode}` : null}
-            pickingEnabled
-            cutGizmo={cutSession.showGizmo && !constructionBlocksPreview ? cutGizmo : null}
-            groupGizmo={groupGizmo}
+            highlightOperationId={cuttingAssistantActive ? null : hoveredPatternId}
+            activeOperationId={cuttingAssistantActive ? null : cutSession.activePatternId}
+            previewOperationId={cuttingAssistantActive ? null : (cutMode === "create" ? `draft-${patternMode}` : null)}
+            pickingEnabled={!cuttingAssistantActive}
+            cutGizmo={!cuttingAssistantActive && cutSession.showGizmo && !constructionBlocksPreview ? cutGizmo : null}
+            groupGizmo={cuttingAssistantActive ? null : groupGizmo}
             onFacePick={handleFacePick}
-            meetTargets={cutSession.construction.tool === "pick-edge" ? meetEdges : meetTargets}
-            meetPickEnabled={["pick-vertex", "pick-edge"].includes(cutSession.construction.tool) && visible && !opticsActive && !assistantOpen}
-            constructionMarkers={[
+            meetTargets={cuttingAssistantActive ? [] : (cutSession.construction.tool === "pick-edge" ? meetEdges : meetTargets)}
+            meetPickEnabled={["pick-vertex", "pick-edge"].includes(cutSession.construction.tool) && visible && !cuttingAssistantActive && !opticsActive && !assistantOpen}
+            constructionMarkers={cuttingAssistantActive ? [] : [
               ...(cutSession.construction.meet ? [{ point: cutSession.construction.meet.target.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true, slot: "A" }] : []),
               ...(cutSession.construction.meet?.secondTarget ? [{ point: cutSession.construction.meet.secondTarget.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true, slot: "B" }] : []),
               ...(cutSession.construction.candidate ? [{ point: cutSession.construction.candidate.target.fallbackWorldPoint, status: cutSession.construction.candidate.status, locked: false, slot: cutSession.construction.meet ? "B" : "A" }] : []),
             ]}
-            nextJumpMarker={nextJumpCandidate
+            nextJumpMarker={!cuttingAssistantActive && nextJumpCandidate
               ? { point: nextJumpCandidate.target?.fallbackWorldPoint, position: nextJumpCandidate.position }
               : null}
             onVertexPick={handleVertexPick}
@@ -1398,7 +1450,19 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             />
           ) : null}
 
-          {opticsActive ? <OpticsViewSwitch viewMode={opticsViewMode} onViewMode={setOpticsViewMode} /> : null}
+          {opticsActive ? (
+            <OpticsViewSwitch viewMode={opticsViewMode} onViewMode={setOpticsViewMode} inspectorOpen={opticsInspectorOpen} />
+          ) : null}
+
+          <ViewportModeSwitch mode={viewportMode} onModeChange={changeViewportMode} />
+
+          {cuttingAssistantActive && cuttingReplay ? (
+            <CuttingAssistantPlayer
+              replay={cuttingReplay}
+              position={replayPosition}
+              onPositionChange={setAssistantPosition}
+            />
+          ) : null}
 
           {opticsActive && opticsInspectorOpen ? (
             <OpticsInspector
@@ -1410,7 +1474,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             />
           ) : null}
 
-          {!opticsActive && historyOpen ? (
+          {viewportMode === "edit" && historyOpen ? (
             <aside className="floating-inspector" aria-label="历史记录检查器">
               <div className="inspector-title">
                 <span><IconHistory size={17} stroke={1.7} />历史记录 HISTORY</span>
@@ -1425,7 +1489,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             </aside>
           ) : null}
         </div>
-        {!opticsActive ? <aside className="workbench-right-sidebar" aria-label="切割序列与正交预览">
+        {viewportMode === "edit" ? <aside className="workbench-right-sidebar" aria-label="切割序列与正交预览">
           <CutStack
             operations={operations}
             selectedId={editingPatternId}
@@ -1481,7 +1545,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
         </aside> : null}
       </section>
 
-      {!opticsActive && ledgerOpen ? (
+      {viewportMode === "edit" && ledgerOpen ? (
         <div className="ledger-overlay" role="presentation" onMouseDown={() => setLedgerOpen(false)}>
           <section
             className="ledger-floating-panel"

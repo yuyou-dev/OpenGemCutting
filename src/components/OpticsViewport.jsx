@@ -468,6 +468,26 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
     drawRef.current();
   }, [geometry, inspectorOpen, resolvedSettings, viewMode]);
 
+  // Match GemViewport's lock: the wheel listener must be non-passive so the
+  // canvas zoom never leaks into page scroll, and touchmove stays inside the canvas.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const onWheel = (event) => {
+      event.preventDefault();
+      cameraRef.current.zoom = clamp(cameraRef.current.zoom * Math.exp(-event.deltaY * 0.0012), 0.55, 2.4);
+      drawRef.current(0.8);
+      window.requestAnimationFrame(() => drawRef.current());
+    };
+    const onTouchMove = (event) => event.preventDefault();
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
+
   const resetCamera = () => {
     cameraRef.current = { yaw: -0.62, elevation: 0.42, zoom: 1, panX: 0, panY: 0 };
     viewModeRef.current = "perspective";
@@ -520,12 +540,6 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
         onPointerCancel={() => {
           dragRef.current = null;
           drawRef.current();
-        }}
-        onWheel={(event) => {
-          event.preventDefault();
-          cameraRef.current.zoom = clamp(cameraRef.current.zoom * Math.exp(-event.deltaY * 0.0012), 0.55, 2.4);
-          drawRef.current(0.8);
-          window.requestAnimationFrame(() => drawRef.current());
         }}
         onDoubleClick={resetCamera}
         onKeyDown={(event) => {

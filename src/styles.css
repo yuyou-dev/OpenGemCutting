@@ -2926,8 +2926,11 @@ input:disabled {
   right: 18px;
 }
 
+/* Segmented tab control: one shared style for all tab/segmented pickers in the
+   app (viewport mode switch, optics view switch). The mode switch is the
+   baseline; modifiers only position the group. */
 .optics-view-switch {
-  height: var(--control-h);
+  height: 34px;
   padding: 2px;
   display: flex;
   align-items: center;
@@ -2938,12 +2941,12 @@ input:disabled {
 }
 
 .optics-view-switch button {
-  height: 24px;
-  padding: 0 7px;
+  height: 28px;
+  padding: 0 9px;
   border-radius: 3px;
   color: #777a76;
   background: transparent;
-  font-size: 9px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -3503,6 +3506,10 @@ input:disabled {
   .optics-inspector {
     right: 12px;
   }
+
+  .optics-canvas-views.is-inspector-open {
+    right: 306px;
+  }
 }
 
 
@@ -3952,10 +3959,75 @@ input:disabled {
   .workspace-editor { height: 680px; }
 }
 
-/* Observation controls belong to the gem canvas, independent of page navigation. */
-.optics-canvas-views { position: absolute; z-index: 8; top: 18px; left: 18px; height: 34px; background: #f5f5f2f2; box-shadow: 0 3px 12px #0000000a; }
-.optics-canvas-views button { height: 28px; font-size: 11px; padding: 0 9px; }
+/* Floating segmented tab groups on the gem canvas share the same chrome; the
+   modifiers below only position each group. Mode switch: top-left. Optics view
+   switch: top-right, below the floating toolbar, clearing the inspector. */
+.viewport-mode-switch,
+.optics-canvas-views { position: absolute; z-index: 8; top: 18px; background: #f5f5f2f2; box-shadow: 0 3px 12px #0000000a; }
+.viewport-mode-switch { left: 18px; }
+.optics-canvas-views { right: 18px; transition: right 160ms ease; }
+.optics-canvas-views.is-inspector-open { right: 312px; }
 @media (max-width: 700px) {
-  .optics-canvas-views { top: 12px; left: 12px; }
+  .optics-canvas-views { top: 12px; right: 12px; }
   .workspace-editor .optics-inspector { top: 58px; max-height: calc(100% - 70px); }
+}
+
+
+.viewport-mode-beta { margin-left: 3px; color: #9aa09b; font-size: var(--font-min); font-weight: 400; }
+.workspace-editor .editor-workspace.is-sidebar-collapsed .viewport-mode-switch { left: 34px; }
+@media (max-width: 700px) {
+  .viewport-mode-switch { top: 12px; left: 12px; }
+}
+
+/* Cutting assistant focused view: single-column canvas, workbench viewport stays
+   mounted and visible (unlike the optics focus, which swaps renderers). */
+.editor-workspace.is-assistant-focus { grid-template-columns: minmax(0, 1fr); }
+.workspace-editor .editor-workspace.is-assistant-focus { grid-template-columns: minmax(0, 1fr); }
+
+.app-header.is-assistant-toolbar { gap: 8px; }
+
+.assistant-title { display: grid; gap: 1px; padding: 0 4px; }
+.assistant-title strong { color: #343735; font-size: 10px; font-weight: 600; white-space: nowrap; }
+
+/* Cutting assistant playback bar: floats bottom-center on the gem canvas, above
+   the viewport interaction hints, so stepping stays out of the system top bar. */
+.assistant-player {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: 54px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 40px);
+  min-height: 42px;
+  padding: 5px 10px;
+  border: 1px solid #dededb;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(24, 26, 27, 0.07);
+  backdrop-filter: blur(12px);
+}
+
+.assistant-player .assistant-step-info { max-width: 260px; }
+
+.assistant-counter { color: #777a76; font-family: var(--mono); font-size: var(--font-min); white-space: nowrap; }
+
+.assistant-step-info { max-width: 300px; overflow: hidden; color: #252927; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+
+.assistant-controls { display: flex; gap: 2px; }
+.assistant-controls button { height: var(--control-h); padding: 0 8px; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; color: #4b4f4d; background: #f1f1ef; font-size: 10px; white-space: nowrap; }
+.assistant-controls button:hover:not(:disabled) { color: #252927; background: #e7e7e3; }
+.assistant-controls button:disabled { opacity: 0.45; }
+
+.assistant-progress { position: relative; width: 180px; height: var(--control-h); display: flex; align-items: center; cursor: pointer; }
+.assistant-progress::before { content: ""; position: absolute; top: 50%; right: 0; left: 0; height: 4px; transform: translateY(-50%); border-radius: 2px; background: #e3e3df; }
+.assistant-progress i { position: relative; height: 4px; border-radius: 2px; background: var(--pink); }
+.assistant-progress:focus-visible { outline: 1px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+
+@media (max-width: 700px) {
+  .assistant-player { bottom: 44px; gap: 6px; padding: 4px 8px; }
+  .assistant-player .assistant-step-info { display: none; }
+  .assistant-progress { width: 110px; }
 }

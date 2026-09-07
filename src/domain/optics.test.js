@@ -23,6 +23,20 @@ test("optical presets and settings overrides remain normalized", () => {
   assert.equal(resolveOpticsSettings({ view: { environment: "hearts" } }).view.environment, "hearts");
 });
 
+test("gem material presets carry reference constants and body colors", () => {
+  const ruby = applyOpticalPreset(DEFAULT_OPTICS_SETTINGS, "ruby");
+  assert.equal(ruby.material.ior, 1.766);
+  assert.equal(ruby.material.dispersion, 0.018);
+  assert.equal(ruby.material.bodyColor, "#ff599e");
+  assert.ok(ruby.material.absorption > 0);
+  const emerald = applyOpticalPreset(DEFAULT_OPTICS_SETTINGS, "emerald");
+  assert.equal(emerald.material.ior, 1.577);
+  assert.match(emerald.material.bodyColor, /^#[0-9a-f]{6}$/);
+  const opal = applyOpticalPreset(DEFAULT_OPTICS_SETTINGS, "opal");
+  assert.equal(opal.material.ior, 1.45);
+  assert.equal(opal.material.dispersion, 0);
+});
+
 test("ASC legacy refractive index and material IOR resolve with current-field precedence", () => {
   assert.equal(resolveOpticsSettings({ refractiveIndex: 1.54 }).material.ior, 1.54);
   assert.equal(resolveOpticsSettings({ refractiveIndex: 1.54 }).material.preset, "custom");

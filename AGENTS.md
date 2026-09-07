@@ -39,6 +39,7 @@
 - 帮助入口固定在“更多工具”，不得增加常驻导航。帮助中心按“快速开始、切割工作流、文件与交换、光学仿真、视口与快捷键”组织，可按 `Escape` 退出且不改变文档或 CUT 会话；完整 A4 操作手册固定由 `public/manual/facet-96-operation-manual.pdf` 提供。
 - 操作手册由 `npm run manual:build` 从 `docs/manual/screenshots/` 的真实界面截图可重复生成；界面、产品规则或版本号变化时必须同步截图与手册，不允许以占位图或旧界面充数。版式、截图密度与光学图例细则见 `design-system.md`；结尾保留 MIT、商标权利边界与第三方致谢。
 - 聚焦光学仿真以 `docs/assets/design/optics-focus-simulation.png` 为视觉真值；进入后的隐藏清单、命令条与检查器布局以 `design-system.md` 的“聚焦光学仿真”一节为唯一真值。仿真不是 CUT 第五态，进入与退出不得提交、取消或写入历史；退出或按 `Escape` 必须恢复进入前的完整编辑现场。
+- 切割助手（beta）是已提交实体的只读聚焦模式，从画布左上的视口模式切换组进入（成品功能的模式入口归该切换组）；序列规则的唯一真值是 `src/domain/cuttingAssistant.js`：层序 = CUT STACK 序、层内索引升序、隐藏层不切、固定台面恒 1 步、preform 层照常参与。它与“更多工具”里的逐层试切助理并存：助手做逐步切割演示，助理做 Meet 来源与失效诊断；视图态归属与只读边界以 `state-contract.md` 为准。
 
 ## 几何与文档模型
 

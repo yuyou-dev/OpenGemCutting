@@ -56,6 +56,7 @@
 | CUT 会话（含 `draft` / `construction` / `group`） | `src/domain/cutSession.js` 状态机，`src/WorkbenchEditor.jsx` `useReducer` | `dispatchCutSession` 事件 | 否；仅提交后的 Meet metadata 入文档 | 否 |
 | 光学物理设置 | 持久化在 `document.metadata.optics`；归一化在 `src/domain/optics.js` | `document/optics` 命令更新；视图实时从文档派生 | 是（metadata） | 是 |
 | 光学会话内 UI 态（激活、检查器折叠、观察位、VIEW ONLY 参数） | `src/WorkbenchEditor.jsx` 本地 state | 显示模式菜单、仿真命令条与画布视角条 | 否 | 否 |
+| 视口模式 `viewportMode`（edit / assistant / optics）与切割助手步进位置 | `src/WorkbenchEditor.jsx` 本地 state | 画布左上视口模式切换组、助手命令条；显示模式菜单保留光学入口 | 否 | 否 |
 | 编辑器 UI chrome（对话框、预设层、历史/台账面板、抽屉与 `CUT STACK` 折叠、toast） | `src/WorkbenchEditor.jsx` 与各组件本地 state | 组件自身交互 | 否 | 否 |
 | 页面与当前项目身份 | `src/App.jsx` | 主页／编辑／实验室导航、新建与打开项目；切换前处理未保存预览 | 否；项目 id 在项目库中独立保存 | 否 |
 | 本地项目库与保存反馈 | `src/domain/projectLibrary.js`、`src/components/useProjects.js`；`src/App.jsx` 编排自动保存 | 当前编辑器单向传出已提交快照，按项目 id 保存 | 保存文档与物理材质／计算参数；不含会话、相机、VIEW ONLY 参数和历史 | 保存不入历史；打开项目建立新的编辑器历史 |
@@ -72,6 +73,7 @@
 
 - 会话状态永不写入 JSON 或 ASC：保存的是命令作用后的文档，不是编辑过程。唯一例外是提交后附着在显式 facet 上的 Meet 构造快照，它随文档写入 JSON，但不写 ASC，也不构成对来源图层的实时依赖。
 - 光学仿真进入/退出只操作会话内 UI 态，不提交、不取消 CUT 会话；退出后按会话对象原样恢复。
+- `viewportMode` 是 WorkbenchEditor 拥有的视图态（edit / assistant / optics），不是 CUT 会话第五态。切割助手（beta）套用光学仿真的挂起/恢复边界：序列在进入时从已提交 `CUT STACK` 与 `hiddenPatternIds` 派生（层序、层内索引升序、隐藏层跳过、台面恒 1 步等规则以 `src/domain/cuttingAssistant.js` 为唯一真值），未提交草稿不参与；模式内步进、逐组跳转与进度条只移动观察位置，只读、不写历史、不提交或取消草稿；`Escape` 只退出助手，退出后按会话对象原样恢复编辑现场。
 - UI chrome 状态可以短暂存在，但不得反向影响文档或会话；快捷键处理必须以这些状态做守卫（如对话框打开时屏蔽 `Escape` 取消 CUT）。
 - 新状态若无法归入上表任何一类，先在本文件登记新行并说明 owner 与持久化边界，再写实现。
 

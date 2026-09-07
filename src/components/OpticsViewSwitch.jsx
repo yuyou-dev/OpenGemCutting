@@ -3,10 +3,10 @@ const VIEWS = [
   ["front", "正视"], ["side", "侧视"],
 ];
 
-export function OpticsViewSwitch({ viewMode, onViewMode }) {
+export function OpticsViewSwitch({ viewMode, onViewMode, inspectorOpen = true }) {
   const activeLabel = VIEWS.find(([value]) => value === viewMode)?.[1] ?? "透视";
   return (
-    <div className="optics-view-switch optics-canvas-views" role="group" aria-label={`光学观察视角，当前${activeLabel}`}>
+    <div className={`optics-view-switch optics-canvas-views${inspectorOpen ? " is-inspector-open" : ""}`} role="group" aria-label={`光学观察视角，当前${activeLabel}`}>
       {VIEWS.map(([value, label]) => (
         <button type="button" key={value} className={viewMode === value ? "is-active" : ""}
           aria-pressed={viewMode === value} onClick={() => onViewMode(value)}>{label}</button>
