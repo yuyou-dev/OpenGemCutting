@@ -1,6 +1,6 @@
 import { exportFacetingJSON, importFacetingJSON } from "./faceting.js";
 
-const PREFIX = "opengemcutting:recovery:v1:";
+const PREFIX = "facet96:recovery:v1:";
 
 /** Each record contains only a validated committed document, never UI or CUT state. */
 export function createLocalRecoveryStore(storage) {

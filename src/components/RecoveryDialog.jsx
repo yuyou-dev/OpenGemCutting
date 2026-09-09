@@ -2,7 +2,7 @@ import { useState } from "react";
 import { IconRefresh, IconTrash } from "@tabler/icons-react";
 import { Modal } from "./Modal.jsx";
 
-export function RecoveryDialog({ records, unreadableCount, error, onClose, onRestore, onRefresh, onRemove, discardingDraft, startup }) {
+export function RecoveryDialog({ records, unreadableCount, error, onClose, onRestore, onRefresh, onRemove, discardingDraft }) {
   const [selectedId, setSelectedId] = useState(records[0]?.id);
   const [deletingId, setDeletingId] = useState(null);
   const selected = records.find((record) => record.id === selectedId) ?? records[0];
@@ -15,9 +15,9 @@ export function RecoveryDialog({ records, unreadableCount, error, onClose, onRes
       destructive={Boolean(deleting)}
       onConfirm={deleting ? () => { onRemove(deleting.id); setDeletingId(null); } : selected ? () => onRestore(selected) : undefined}
       onClose={close}
-      closeLabel={deleting ? "保留备份" : startup ? "开始新设计" : "返回工作台"}
+      closeLabel={deleting ? "保留备份" : "返回工作台"}
     >
-      <p>选择一份备份继续编辑。恢复会建立当前页面的独立副本，此次载入可一步撤销。</p>
+      <p>这里保留升级前的旧版备份。恢复会替换当前项目的设计并自动保存，此次载入可一步撤销，原备份不变。</p>
       <dl className="recovery-boundary">
         <div><dt>恢复内容</dt><dd>已提交文档与光学材质</dd></div>
         <div><dt>不含内容</dt><dd>未保存 CUT / 群组预览、相机、视图参数与旧撤销历史</dd></div>
@@ -26,7 +26,7 @@ export function RecoveryDialog({ records, unreadableCount, error, onClose, onRes
       {error ? <p className="recovery-warning" role="alert">{error}</p> : null}
       {unreadableCount > 0 ? <p className="recovery-warning" role="alert">有 {unreadableCount} 份备份无法读取，原记录已保留。</p> : null}
       <div className="recovery-list-heading">
-        <span>本地备份 · {records.length} 份 <small>最近更新优先</small></span>
+        <span>旧版备份 · {records.length} 份 <small>最近保存优先</small></span>
         <button type="button" className="recovery-tool" onClick={onRefresh} disabled={Boolean(deleting)}><IconRefresh size={14} />刷新列表</button>
       </div>
       <div className="recovery-list" role="group" aria-label="按更新时间排列的本地备份">
@@ -36,12 +36,12 @@ export function RecoveryDialog({ records, unreadableCount, error, onClose, onRes
             <span><strong>{record.document.name}</strong><small>{new Date(record.savedAt).toLocaleString("zh-CN")} · {new Set(record.document.facets.map((facet) => facet.patternId)).size} 层</small></span>
           </label>
         ))}
-        {records.length === 0 ? <div className="recovery-empty"><strong>暂无本地备份</strong><p>提交切割、修改材质或载入设计后会自动备份。</p></div> : null}
+        {records.length === 0 ? <div className="recovery-empty"><strong>暂无旧版备份</strong><p>新设计自动保存到当前项目，请从主页打开项目继续。</p></div> : null}
       </div>
       {deleting ? (
         <div className="recovery-delete-note" role="alert"><strong>删除「{deleting.document.name}」？</strong><p>仅删除这份本地备份，当前工作台文档不受影响。删除后无法从此列表找回。</p></div>
       ) : selected ? <div className="recovery-tools"><button type="button" className="recovery-tool recovery-delete" onClick={() => setDeletingId(selected.id)}><IconTrash size={14} />删除所选备份</button></div> : null}
-      <p className="recovery-scope">各标签页独立备份，互不覆盖。备份仅属于当前浏览器与站点地址；长期保存请导出 JSON。</p>
+      <p className="recovery-scope">当前版本不再新增或更新旧版备份。项目与备份仅属于当前浏览器与站点地址；长期保存请导出 JSON。</p>
     </Modal>
   );
 }

@@ -20,7 +20,7 @@ export function ConstructionAssistantDialog({
   const primary = stage?.facets.find((facet) => facet.index === primaryIndex) ?? stage?.facets[0];
   const savedConstruction = stage?.facets[0]?.metadata?.construction;
   const savedTargets = [savedConstruction?.target, savedConstruction?.secondTarget].filter(Boolean);
-  const sourceLabel = (target) => target.sourceOperationIds.map((id) => id === "rough-cube" ? "毛坯" : stages.find((item) => item.id === id)?.label ?? "已删除工序").join(" × ");
+  const sourceLabel = (target) => target.sourceOperationIds.map((id) => ["rough-cube", "rough-mesh"].includes(id) ? "毛坯" : stages.find((item) => item.id === id)?.label ?? "已删除工序").join(" × ");
   return (
     <Modal title="逐层试切助理" eyebrow="CONSTRUCTION REVIEW" className="construction-assistant-dialog" closeLabel="返回工作台" onClose={onClose}>
       <p className="construction-assistant-scope">按保存序列检查每道工序前后的真实实体。查看与切换阶段不会修改设计或当前 CUT。</p>

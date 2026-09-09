@@ -47,3 +47,7 @@ Follow the **Upgrade** section in [`plugins/opengemcutting-companion/LIFECYCLE.m
 ## Completion report
 
 Report the resulting commit, verification result, running URL, and whether the Companion was also upgraded. A dirty tree, diverged branch, failed check, or failed plugin refresh is not success.
+
+## Design plugin
+
+The Design plugin is `opengemcutting-design@opengemcutting`. Manage it independently of the optional Companion using the current `codex plugin --help` commands. Updating the app also updates the repository skill; keep the plugin and workbench on the same release. Uninstalling a plugin does not delete projects or exported JSON.

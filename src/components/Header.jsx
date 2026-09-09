@@ -60,6 +60,7 @@ export function Header({
   backupStatus,
   onImport,
   onImportAsc,
+  onImportCrystal,
   onExport,
   onExportAsc,
   onExportPdf,
@@ -129,7 +130,7 @@ export function Header({
 
   return (
     <header className="app-header floating-toolbar" aria-label="工作区工具栏">
-      <details className="toolbar-menu toolbar-view-menu" name="toolbar-menu">
+      <details data-floating-menu className="toolbar-menu toolbar-view-menu" name="toolbar-menu">
         <summary title={`切换视图 · ${activeView}`} aria-label={`切换视图，当前${activeView}`}>
           <IconCube size={16} stroke={1.7} />
           <IconChevronDown size={13} stroke={1.7} />
@@ -180,7 +181,7 @@ export function Header({
         <small title="已提交文档的最终有效刻面，不含毛坯面与未保存预览">{facetCount} 有效面</small>
       </div>
 
-      <details className="toolbar-menu toolbar-display-menu" name="toolbar-menu">
+      <details data-floating-menu className="toolbar-menu toolbar-display-menu" name="toolbar-menu">
         <summary className={isXray ? "is-xray" : ""} title="显示模式" aria-label="显示模式">
           {isXray ? <IconEye size={15} stroke={1.8} /> : <IconEyeOff size={15} stroke={1.8} />}
           <IconChevronDown size={12} stroke={1.7} />
@@ -199,14 +200,14 @@ export function Header({
         </div>
       </details>
 
-      <details className="toolbar-menu toolbar-file-menu" name="toolbar-menu">
+      <details data-floating-menu className="toolbar-menu toolbar-file-menu" name="toolbar-menu">
         <summary title="文件" aria-label="文件">
           <IconFolder size={16} stroke={1.7} />
           <IconChevronDown size={13} stroke={1.7} />
         </summary>
         <div className="toolbar-menu-popover is-right" role="menu" aria-label="文件">
           <span className="toolbar-menu-label">FILE 文件</span>
-          <p className="toolbar-backup-status" role="status">{backupStatus?.message || "提交文档后自动备份；未保存草稿不备份"}{backupStatus?.savedAt ? ` · ${new Date(backupStatus.savedAt).toLocaleTimeString("zh-CN")}` : ""}</p>
+          <p className="toolbar-backup-status" role="status">{backupStatus?.message || "已提交切割自动保存到当前项目；不含未保存预览"}{backupStatus?.savedAt ? ` · ${new Date(backupStatus.savedAt).toLocaleTimeString("zh-CN")}` : ""}</p>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenRecovery)}>
             <IconHistory size={15} /><span>恢复本地设计</span>
           </button>
@@ -221,6 +222,9 @@ export function Header({
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImport)}>
             <IconFileUpload size={15} />
             <span>导入 JSON</span>
+          </button>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportCrystal)}>
+            <IconCube size={15} /><span>导入初始晶体…</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportAsc)}>
             <IconFileUpload size={15} />
@@ -250,7 +254,7 @@ export function Header({
         </IconButton>
       </div>
 
-      <details className="toolbar-menu toolbar-more-menu" name="toolbar-menu">
+      <details data-floating-menu className="toolbar-menu toolbar-more-menu" name="toolbar-menu">
         <summary title="更多工具" aria-label="更多工具">
           <IconDots size={18} stroke={1.8} />
         </summary>

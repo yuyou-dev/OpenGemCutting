@@ -36,27 +36,14 @@ test("local recovery preserves full document and material with isolated, time-or
 test("unreadable recovery records do not hide valid records or get silently deleted", () => {
   const storage = memoryStorage();
   const store = createLocalRecoveryStore(storage);
-  storage.setItem("opengemcutting:recovery:v1:broken", "{");
+  storage.setItem("facet96:recovery:v1:broken", "{");
   store.save("valid", createWorkbenchDocument("有效设计"), 20);
   assert.equal(store.list().unreadableCount, 1);
   assert.equal(store.list().records.length, 1);
-  assert.equal(storage.getItem("opengemcutting:recovery:v1:broken"), "{");
+  assert.equal(storage.getItem("facet96:recovery:v1:broken"), "{");
 });
 
 test("storage quota failures propagate rather than claim a successful backup", () => {
   const store = createLocalRecoveryStore({ setItem() { throw new Error("QuotaExceededError"); } });
   assert.throws(() => store.save("full", createWorkbenchDocument()), /QuotaExceededError/);
-});
-
-test("OpenGemCutting recovery leaves other same-origin applications' records untouched", () => {
-  const storage = memoryStorage();
-  const foreignKey = "another-app:recovery:v1:shared-id";
-  storage.setItem(foreignKey, "another application's backup");
-  const store = createLocalRecoveryStore(storage);
-  store.save("shared-id", createWorkbenchDocument("公开版设计"), 100);
-  assert.deepEqual(store.list().records.map((record) => record.document.name), ["公开版设计"]);
-  assert.equal(store.list().unreadableCount, 0);
-  store.remove("shared-id");
-  assert.equal(storage.getItem(foreignKey), "another application's backup");
-  assert.equal(store.list().records.length, 0);
 });

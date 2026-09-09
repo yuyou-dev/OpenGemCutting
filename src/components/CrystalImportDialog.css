@@ -1,0 +1,31 @@
+.modal-panel.crystal-import-panel { width: min(900px, 100%); max-height: calc(100dvh - 48px); padding: 0; display: flex; flex-direction: column; overflow: hidden; border-color: #303232; border-radius: 7px; }
+.crystal-import-panel:focus { outline: none; }
+.crystal-import-panel .asc-transfer-heading h2 { margin: 3px 0 0; padding: 0; border: 0; font-size: 17px; }
+.crystal-import-layout.has-preview { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.crystal-import-options { display: grid; gap: 10px; }
+.crystal-import-preview .gem-viewport__interaction-hints { gap: 8px; }
+.crystal-import-preview .gem-viewport__interaction-hints span { font-size: 9px; }
+.crystal-import-body { min-height: 0; padding: 16px 18px; overflow-y: auto; display: grid; gap: 12px; }
+.crystal-import-panel .crystal-import-body p { margin: 0; padding: 0; font-size: 12px; line-height: 1.65; }
+.crystal-import-intro { color: #565853; }
+.crystal-file-row { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.crystal-file-row button { flex: 0 0 auto; display: inline-flex; gap: 7px; align-items: center; }
+.crystal-file-row > span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #666863; font-size: 12px; }
+.crystal-import-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.crystal-import-settings label { display: grid; gap: 7px; font-size: 12px; color: #555752; }
+.crystal-import-settings select { min-width: 0; width: 100%; height: 34px; padding: 0 9px; border: 1px solid #cecfca; border-radius: 3px; background: white; color: var(--ink); font: inherit; }
+.crystal-import-body .crystal-import-unit-note { color: #71736e; font-size: 11px; }
+.crystal-import-preview { position: relative; height: 340px; overflow: hidden; border: 1px solid #deded9; background: #fafaf8; }
+.crystal-import-preview .gem-viewport { width: 100%; height: 100%; min-height: 0; }
+.crystal-import-summary { margin: 0; display: grid; grid-template-columns: 1fr; border: 1px solid #deded9; }
+.crystal-import-summary > div { padding: 10px; min-width: 0; }
+.crystal-import-summary dt { color: #71736e; font-size: 11px; }
+.crystal-import-summary dd { margin: 6px 0 0; overflow-wrap: anywhere; font: 500 12px/1.4 var(--mono); }
+.crystal-import-valid { color: #3f725a; }
+.crystal-import-scope { padding: 11px; border: 1px solid #deded9; background: #fbfbfa; }
+.crystal-import-scope strong, .crystal-import-error strong { font-size: 12px; }
+.crystal-import-scope p { margin-top: 5px; color: #666863; }
+.crystal-import-error { padding: 12px; border: 1px solid #c68091; background: #fff5f7; color: #962e4c; }
+.crystal-import-error p { margin-top: 5px; }
+@media (max-width: 720px) { .crystal-import-layout.has-preview { grid-template-columns: 1fr; } }
+@media (max-width: 540px) { .crystal-import-panel { max-height: calc(100dvh - 24px); } .crystal-import-settings, .crystal-import-summary { grid-template-columns: 1fr; }  }

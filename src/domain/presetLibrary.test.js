@@ -27,6 +27,22 @@ test("static provider resolves catalog assets below an arbitrary public base", a
   assert.deepEqual(calls, ["/facet-96/presets/catalog.json", "/facet-96/presets/documents/astryx-star.json"]);
 });
 
+test("load forwards an abort signal so a closed dialog can cancel the request", async () => {
+  const calls = [];
+  const controller = new AbortController();
+  const fetcher = async (url, options) => {
+    calls.push({ url, signal: options?.signal });
+    if (url.endsWith("catalog.json")) return { ok: true, json: async () => ({ presets: [summary] }) };
+    if (options?.signal?.aborted) throw Object.assign(new Error("The operation was aborted."), { name: "AbortError" });
+    return { ok: true, json: async () => ({ name: "Astryx Star" }) };
+  };
+  const library = createPresetLibrary([createStaticPresetProvider({ fetcher })]);
+  const [preset] = await library.list();
+  controller.abort();
+  await assert.rejects(library.load(preset, { signal: controller.signal }), /aborted/);
+  assert.equal(calls.at(-1).signal, controller.signal);
+});
+
 test("catalog filtering is provider-agnostic and searches metadata", async () => {
   const library = createPresetLibrary([{ id: "personal", list: async () => [summary], load: async () => ({}) }]);
   const presets = await library.list();

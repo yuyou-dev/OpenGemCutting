@@ -1,7 +1,7 @@
 /**
- * Workbench document initialization: every document starts from the
- * default faceting document with a fixed 0° table facet and an editable
- * 32-fold girdle preform.
+ * Default cube initialization adds a fixed 0° table and editable 32-fold
+ * girdle. Imported mesh projects retain their original stock and zero CUTs;
+ * their initialization belongs to stockGeometry.js.
  */
 
 import { createFacetingDocument, resolveFacetPattern } from "./faceting.js";
@@ -28,6 +28,7 @@ function tableFacets(stock) {
 }
 
 export function ensureTableFacet(document) {
+  if (document.stock.kind === "mesh") return document;
   if (document.facets.some((facet) => facet.patternId === TABLE_PATTERN_ID || facet.metadata?.operationType === "table")) {
     return document;
   }

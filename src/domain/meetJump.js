@@ -1,5 +1,7 @@
+import { PolyhedronError } from "./mesh/index.js";
+import { getMeshBoundaryEdges } from "./meshDisplay.js";
 import { facetNormal, industryAngleToBetaDeg, rotationalStockSupportOffset } from "./faceting.js";
-import { clipPolyhedronByPlanes } from "./geometry.js";
+import { clipPolyhedronByPlanes, clipPolyhedronPreview } from "./geometry.js";
 
 export const MEET_STATUS = Object.freeze({
   VALID: "valid",
@@ -63,13 +65,6 @@ function stableFaceId(face, index) {
   return String(face.id ?? `face-${index}`);
 }
 
-function incidentFaceRecords(polyhedron, vertexIndex) {
-  return polyhedron.faces
-    .map((face, faceIndex) => ({ face, faceIndex, id: stableFaceId(face, faceIndex) }))
-    .filter(({ face }) => face.vertexIndices.includes(vertexIndex))
-    .sort((left, right) => compareText(left.id, right.id));
-}
-
 function geometrySignature(point, faces) {
   const parts = faces.map(({ face, id }) => {
     const normal = normalize(face.normal);
@@ -88,9 +83,21 @@ function geometrySignature(point, faces) {
 
 /** Enumerate deterministic topology-aware targets for every solid vertex. */
 export function enumerateTopologyVertices(polyhedron) {
+  const incidentFaces = new Map(polyhedron.vertices.map((_, index) => [index, []]));
+  // Sort face records once; each vertex receives the same stable ID order as
+  // an independent face scan, including coincident IDs and repeated indices.
+  const faceRecords = polyhedron.faces
+    .map((face, index) => ({ face, id: stableFaceId(face, index) }))
+    .sort((left, right) => compareText(left.id, right.id));
+  for (const record of faceRecords) {
+    for (const vertexIndex of new Set(record.face.vertexIndices)) {
+      incidentFaces.get(vertexIndex)?.push(record);
+    }
+  }
+
   return polyhedron.vertices.map((rawPoint, vertexIndex) => {
     const point = coordinates(rawPoint);
-    const faces = incidentFaceRecords(polyhedron, vertexIndex);
+    const faces = incidentFaces.get(vertexIndex);
     const sourceFaceIds = faces.map(({ id }) => id);
     const sourceOperationIds = [...new Set(
       faces
@@ -101,10 +108,12 @@ export function enumerateTopologyVertices(polyhedron) {
 
     return {
       vertexIndex,
-      topologyKey: `vertex:${sourceFaceIds.map(encodeURIComponent).join("|")}`,
+      topologyKey: `vertex:${polyhedron.kind === "mesh" ? `mesh:${vertexIndex}:` : ""}${sourceFaceIds.map(encodeURIComponent).join("|")}`,
       sourceFaceIds,
       sourceOperationIds,
-      sourceGeometrySignature: geometrySignature(point, faces),
+      sourceGeometrySignature: polyhedron.kind === "mesh"
+        ? `m1:${hash([point.x, point.y, point.z].map(quantize).join(":") + geometrySignature(point, faces))}`
+        : geometrySignature(point, faces),
       fallbackWorldPoint: [point.x, point.y, point.z],
     };
   }).sort((left, right) => compareText(left.topologyKey, right.topologyKey));
@@ -117,9 +126,11 @@ export function enumerateTopologyEdges(polyhedron, {
 } = {}) {
   const byVertex = new Map(targets.map((target) => [target.vertexIndex, target]));
   const edges = new Map();
+  const boundaries = polyhedron.kind === "mesh" ? new Set(getMeshBoundaryEdges(polyhedron).map(([a,b]) => a < b ? `${a}:${b}` : `${b}:${a}`)) : null;
   for (const face of polyhedron.faces) {
     face.vertexIndices.forEach((vertexIndex, index) => {
       const nextIndex = face.vertexIndices[(index + 1) % face.vertexIndices.length];
+      if (boundaries && !boundaries.has(vertexIndex < nextIndex ? `${vertexIndex}:${nextIndex}` : `${nextIndex}:${vertexIndex}`)) return;
       const endpoints = [byVertex.get(vertexIndex), byVertex.get(nextIndex)]
         .sort((left, right) => compareText(left.topologyKey, right.topologyKey));
       const [start, end] = endpoints.map((target) => target.fallbackWorldPoint);
@@ -221,9 +232,10 @@ export function solveDualMeet({
 /** Derive the explicit facet faces that remain effective in a final solid. */
 export function summarizeEffectiveFacets(solid) {
   const byOperation = new Map();
+  const seen = new Set();
 
   solid.faces.forEach((face, index) => {
-    if (face.sourceOperationId == null || face.sourceOperationId === "rough-cube") return;
+    if (face.sourceOperationId == null || face.sourceOperationId === "rough-cube" || face.sourceOperationId === "rough-mesh" || face.region === "rough") return;
     const operationId = String(face.sourceOperationId);
     const entry = byOperation.get(operationId) ?? {
       operationId,
@@ -233,7 +245,8 @@ export function summarizeEffectiveFacets(solid) {
     if (entry.operationType == null && face.operationType != null) {
       entry.operationType = face.operationType;
     }
-    entry.facetIds.push(stableFaceId(face, index));
+    const id = String(face.facetId ?? stableFaceId(face, index));
+    if (!seen.has(id)) { seen.add(id); entry.facetIds.push(id); }
     byOperation.set(operationId, entry);
   });
 
@@ -275,16 +288,24 @@ function threatRecords(baseSolid, resultSolid) {
 }
 
 /** Apply a draft to the committed solid and classify its visible/safety impact. */
-export function evaluateDraftImpact({ baseSolid, planes, tolerance = DEFAULT_TOLERANCE }) {
-  const beforeIds = new Set(baseSolid.faces.map((face, index) => stableFaceId(face, index)));
-  const resultSolid = clipPolyhedronByPlanes(baseSolid, planes, { tolerance });
+export function evaluateDraftImpact({ baseSolid, planes, tolerance, preview = false }) {
+  const beforeIds = new Set(baseSolid.faces.map((face, index) => face.facetId ?? stableFaceId(face, index)));
+  const clip = preview ? clipPolyhedronPreview : clipPolyhedronByPlanes;
+  let resultSolid;
+  try { resultSolid = clip(baseSolid, planes, { tolerance: tolerance ?? (baseSolid.kind === "mesh" ? undefined : DEFAULT_TOLERANCE) }); } catch (error) {
+    if (!(error instanceof PolyhedronError)) throw error;
+    return {
+      status: MEET_STATUS.UNREACHABLE, classification: JUMP_CLASSIFICATION.CONTACT_ONLY,
+      error: "当前切面经过无法封闭的交点，请微调角度或深度。", reason: error.code,
+      destructive: false, noOp: false, solidErased: false, faceRemoval: false,
+      impactKind: "invalid-section", threats: [], generatedFaceCount: 0, removedFaceCount: 0,
+      resultSolid: baseSolid,
+    };
+  }
   const threats = threatRecords(baseSolid, resultSolid);
   const solidErased = resultSolid.vertices.length === 0;
   const destructive = solidErased || threats.length > 0;
-  const generatedFaceCount = resultSolid.faces.reduce(
-    (count, face, index) => count + Number(!beforeIds.has(stableFaceId(face, index))),
-    0,
-  );
+  const generatedFaceCount = new Set(resultSolid.faces.map((face, index) => face.facetId ?? stableFaceId(face, index)).filter(id => !beforeIds.has(id))).size;
   const removedFaceCount = threats.reduce((count, threat) => count + threat.removedCount, 0);
   const noOp = !solidErased && generatedFaceCount === 0 && removedFaceCount === 0;
   const faceRemoval = !solidErased && threats.length > 0;
@@ -311,7 +332,7 @@ export function evaluateDraftImpact({ baseSolid, planes, tolerance = DEFAULT_TOL
 
 /** Resolve the single commit gate shared by ordinary CUT, Jump, and Meet. */
 export function resolveDraftCommitPolicy(impact) {
-  if (impact.solidErased || impact.noOp) return "block";
+  if (impact.error || impact.solidErased || impact.noOp) return "block";
 
   const fullyRemoved = impact.threats.filter((threat) => threat.fullyRemoved);
   if (fullyRemoved.some((threat) => (
@@ -414,7 +435,8 @@ export function classifyJumpCandidate({
   stock,
   planesForDepth,
   planesForCandidate,
-  tolerance = DEFAULT_TOLERANCE,
+  tolerance,
+  preview = false,
 }) {
   const normal = normalize(candidate.normal ?? rawNormal);
   const planes = planesForCandidate
@@ -427,8 +449,8 @@ export function classifyJumpCandidate({
       faceId: "meet-jump-primary",
       operationId: "meet-jump-preview",
     }];
-  const impact = evaluateDraftImpact({ baseSolid, planes, tolerance });
-  return { ...candidate, classification: impact.classification, threats: impact.threats };
+  const impact = evaluateDraftImpact({ baseSolid, planes, tolerance, preview });
+  return { ...candidate, classification: impact.classification, threats: impact.threats, ...(impact.error ? { status: impact.status, message: impact.error, reason: impact.reason } : {}) };
 }
 
 /** Resolve the previous or next stable Jump stop without mutating draft state. */

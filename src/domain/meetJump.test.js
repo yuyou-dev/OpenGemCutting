@@ -85,6 +85,42 @@ test("real edge targets survive vertex reindexing and polygon winding with stabl
   }
 });
 
+test("high-valence Meet targets preserve persisted identity and signatures across face traversal changes", () => {
+  const solid = {
+    vertices: [{ x: 0, y: 0, z: 1 }, ...Array.from({ length: 5 }, (_, index) => ({
+      x: Math.cos(index * Math.PI * 2 / 5),
+      y: Math.sin(index * Math.PI * 2 / 5),
+      z: 0,
+    }))],
+    faces: Array.from({ length: 5 }, (_, index) => ({
+      id: ["z", "a", "m", "b", "y"][index],
+      sourceOperationId: index % 2 ? "crown" : 7,
+      normal: {
+        x: Math.cos((index + 0.5) * Math.PI * 2 / 5),
+        y: Math.sin((index + 0.5) * Math.PI * 2 / 5),
+        z: Math.cos(Math.PI / 5),
+      },
+      vertexIndices: [0, index + 1, (index + 1) % 5 + 1],
+    })),
+  };
+  // Persisted before the adjacency optimization: stored Meet files must resolve
+  // to the same target, including non-trihedral vertices and mixed source IDs.
+  const target = {
+    vertexIndex: 0,
+    topologyKey: "vertex:a|b|m|y|z",
+    sourceFaceIds: ["a", "b", "m", "y", "z"],
+    sourceOperationIds: ["7", "crown"],
+    sourceGeometrySignature: "v1:c28aa4f3f1da08cf",
+    fallbackWorldPoint: [0, 0, 1],
+  };
+  assert.deepEqual(enumerateTopologyVertices(solid).find((entry) => entry.vertexIndex === 0), target);
+  const reordered = structuredClone(solid);
+  reordered.faces.reverse();
+  reordered.faces.forEach((face) => face.vertexIndices.push(face.vertexIndices[0]));
+  assert.deepEqual(enumerateTopologyVertices(reordered), enumerateTopologyVertices(solid));
+  assert.equal(resolvePersistedMeetTarget(target, reordered).status, MEET_STATUS.VALID);
+});
+
 test("edge ratio targets interpolate exact points, canonicalize endpoints, and reject invalid ratios", () => {
   const edge = enumerateTopologyEdges(cutCube())[0];
   assert.deepEqual(createEdgeMeetTarget(edge, 0), edge.endpoints[0]);

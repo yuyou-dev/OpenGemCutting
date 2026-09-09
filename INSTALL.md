@@ -1,7 +1,7 @@
 # INSTALL.md — OpenGemCutting install runbook for Codex
 
 This runbook gives Codex a safe, observable way to install the browser app and,
-when requested, the optional OpenGemCutting Companion.
+the OpenGemCutting Design plugin with facet-parametric-design. The Companion remains optional.
 
 ## Expected result
 
@@ -9,7 +9,7 @@ when requested, the optional OpenGemCutting Companion.
 - Dependencies match `package-lock.json` and `npm run check` passes.
 - The development server remains running on its printed `127.0.0.1` port.
 - The workbench is verified with HTTP 200 and opened in Codex's built-in browser when available.
-- When requested, `opengemcutting-companion` is installed and verified separately.
+- `opengemcutting-design` is installed and listed; its version-matched full skill is also available in the workspace. Companion is optional.
 
 An already-correct installation counts as success. Reuse a suitable existing clone rather than creating duplicates.
 
@@ -24,7 +24,7 @@ An already-correct installation counts as success. Reuse a suitable existing clo
 
 ## Install the app
 
-1. Confirm Node.js 20.19 or newer and npm are available:
+1. Confirm Node.js 20.19+ on 20.x, or 22.12+ and npm are available:
 
    ```bash
    node --version
@@ -56,21 +56,25 @@ An already-correct installation counts as success. Reuse a suitable existing clo
 
 5. Request that URL and confirm HTTP 200. Open it in Codex's built-in browser when available; otherwise return a clickable URL. Keep the server running for the user.
 
-## Install the Companion when requested
+## Install the Design plugin
 
-Skip this section when the user asks for the app only. For a Companion-only request, follow [`plugins/opengemcutting-companion/LIFECYCLE.md`](plugins/opengemcutting-companion/LIFECYCLE.md).
+The complete-install request authorizes installation of the Design plugin. For an explicit app-only request, skip this section; the repository skill still works in a project task.
 
 ```bash
 codex plugin marketplace list
 codex plugin marketplace add yuyou-dev/OpenGemCutting --ref main
-codex plugin add opengemcutting-companion@opengemcutting
+codex plugin add opengemcutting-design@opengemcutting
 codex plugin list
 ```
 
-If the `opengemcutting` marketplace already exists, run `codex plugin marketplace upgrade opengemcutting` instead of adding it again.
+If this marketplace already exists, upgrade it instead of adding a duplicate. For a local, unpublished RC, register the verified **local repository path** as the marketplace source instead of fetching main; do not claim the remote contains unpushed code. Do not replace an existing marketplace source without checking its purpose.
 
-Plugin skills and MCP tools become available after fully restarting Codex desktop, creating a new task, and selecting **OpenGemCutting Companion** from `Sources` → `Use plugins`. The app and Companion are independent; finish starting the app before explaining this reload boundary.
+Verify the installed plugin and that the workspace contains `.agents/skills/facet-parametric-design/SKILL.md`. A plugin catalog update may require a new Codex task or app reload; follow the app's current prompt and select OpenGemCutting Design in plugin sources when needed. Do not claim it is loaded in the current task merely because installation succeeded. If the CLI lacks plugin support, finish launching the app and explain that the workspace skill can be used directly in a project task.
+
+## Optional community Companion
+
+Only install when requested. Follow [Companion lifecycle](plugins/opengemcutting-companion/LIFECYCLE.md). It handles community feedback and contributions, separately from local gemstone design.
 
 ## Hand-off
 
-Report the installed commit, verification result, actual local URL, and whether the Companion was installed. Do not claim the Companion is active in the current task after a catalog change.
+Report the installed commit, checks, actual local URL, Design plugin installation state and reload requirements. Start a design task with `facet-parametric-design` and the user's reference image. Never claim an installation command or a browser you did not run was verified.

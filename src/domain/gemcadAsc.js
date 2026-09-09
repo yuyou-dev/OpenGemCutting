@@ -1,3 +1,4 @@
+import { createStockSolid } from "./stockGeometry.js";
 import {
   createFacetingDocument,
   displayIndex,
@@ -8,7 +9,7 @@ import {
   rotationalStockSupportOffset,
   validateFacetingDocument,
 } from "./faceting.js";
-import { clipPolyhedronByPlanes, createCenteredCube } from "./geometry.js";
+import { clipPolyhedronByPlanes } from "./geometry.js";
 import { summarizeEffectiveFacets } from "./meetJump.js";
 
 const TARGET_GEAR = 96;
@@ -286,10 +287,7 @@ function tierLabel(tier, region, count) {
 }
 
 function geometrySummary(document) {
-  const stock = createCenteredCube(document.stock.size, {
-    center: document.stock.center,
-    sourceOperationId: "rough-cube",
-  });
+  const stock = createStockSolid(document.stock);
   const solid = clipPolyhedronByPlanes(stock, document.facets.map((facet) => ({
     ...facet.plane,
     operationId: facet.patternId,
@@ -551,6 +549,10 @@ function operationRank(group) {
 
 export function serializeGemCadAsc(document) {
   const diagnostics = [];
+  if (document.stock?.kind === "mesh") {
+    diagnostics.push(diagnostic("error", "MESH_STOCK_UNSUPPORTED", "ASC 无法保存导入晶体的凹部、孔洞与原始表面；请使用 JSON 完整保存，或导出 PDF 查看切割指令。"));
+    return { status: "error", text: "", diagnostics, summary: null };
+  }
   const validation = validateFacetingDocument(document);
   if (!validation.valid) {
     validation.errors.slice(0, 8).forEach((error) => diagnostics.push(diagnostic("error", "INVALID_DOCUMENT", `${error.path} ${error.message}`)));

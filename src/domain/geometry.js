@@ -1,3 +1,5 @@
+import { clipMeshSolid, createMeshSolid, PolyhedronError } from "./mesh/index.js";
+
 /**
  * Convex-polyhedron geometry for the faceting workbench.
  *
@@ -253,6 +255,13 @@ function planeBasis(normal) {
 }
 
 function dedupePoints(points, tolerance) {
+  // Small sections avoid bucket overhead; large sections must not scan every
+  // previously accepted point. Preserve the original first-representative rule.
+  if (points.length > 128) {
+    const pool = new VertexPool(tolerance);
+    for (const point of points) pool.add(point, true);
+    return pool.vertices;
+  }
   const result = [];
   for (const point of points) {
     if (!result.some((candidate) => distance(point, candidate) <= tolerance)) {
@@ -315,35 +324,41 @@ class VertexPool {
     ];
   }
 
-  key(x, y, z) {
-    return `${x},${y},${z}`;
-  }
-
-  add(point) {
+  add(point, preserveFirst = false) {
+    let firstMatch = Infinity;
     const [cellX, cellY, cellZ] = this.cellCoordinates(point);
 
     for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
+      const column = this.cells.get(cellX + xOffset);
+      if (!column) continue;
       for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
+        const row = column.get(cellY + yOffset);
+        if (!row) continue;
         for (let zOffset = -1; zOffset <= 1; zOffset += 1) {
-          const candidates = this.cells.get(this.key(
-            cellX + xOffset,
-            cellY + yOffset,
-            cellZ + zOffset,
-          ));
+          const candidates = row.get(cellZ + zOffset);
           if (!candidates) continue;
           for (const index of candidates) {
-            if (distance(this.vertices[index], point) <= this.tolerance) return index;
+            if (distance(this.vertices[index], point) <= this.tolerance) {
+              if (!preserveFirst) return index;
+              firstMatch = Math.min(firstMatch, index);
+            }
           }
         }
       }
     }
 
+    if (firstMatch !== Infinity) return firstMatch;
     const index = this.vertices.length;
     this.vertices.push({ x: point.x, y: point.y, z: point.z });
-    const cellKey = this.key(cellX, cellY, cellZ);
-    const cell = this.cells.get(cellKey) ?? [];
+    // Numeric keys avoid allocating 27 coordinate strings for every weld.
+    // Neighbor and insertion order remain identical to the ordered kernel.
+    let column = this.cells.get(cellX);
+    if (!column) this.cells.set(cellX, column = new Map());
+    let row = column.get(cellY);
+    if (!row) column.set(cellY, row = new Map());
+    let cell = row.get(cellZ);
+    if (!cell) row.set(cellZ, cell = []);
     cell.push(index);
-    this.cells.set(cellKey, cell);
     return index;
   }
 }
@@ -508,6 +523,16 @@ export function clipPolyhedron(polyhedron, planeInput, options = {}) {
 
   const plane = normalizedPlane(planeInput);
   const tolerance = resolveTolerance(polyhedron, options.tolerance);
+  if (polyhedron.kind === "mesh") {
+    const { record, descriptor } = plane;
+    return clipMeshSolid(polyhedron, plane, {
+      tolerance,
+      facetId: options.faceId ?? record?.faceId ?? descriptor.faceId ?? uniqueFaceId(polyhedron.faces.map(face => ({ id: face.facetId ?? face.id }))),
+      sourceOperationId: options.sourceOperationId ?? options.operationId ?? record?.sourceOperationId ?? record?.operationId ?? record?.id ?? descriptor.sourceOperationId ?? descriptor.operationId,
+      region: options.region ?? record?.region ?? descriptor.region,
+      operationType: options.operationType ?? record?.operationType ?? descriptor.operationType,
+    });
+  }
   const signedDistances = polyhedron.vertices.map((point) => dot(plane.normal, point) - plane.d);
 
   if (!signedDistances.some((signedDistance) => signedDistance > tolerance)) {
@@ -577,7 +602,7 @@ export function clipPolyhedronByPlanes(polyhedron, planes, options = {}) {
       ? entry.options
       : {};
     return clipPolyhedron(result, entry, { ...options, ...perPlaneOptions });
-  }, clonePolyhedron(polyhedron));
+  }, polyhedron.kind === "mesh" ? polyhedron : clonePolyhedron(polyhedron));
 }
 
 /** Area of one face. */
@@ -672,4 +697,196 @@ export function measurePolyhedron(polyhedron) {
       centroid: faceCentroid(polyhedron, face),
     })),
   };
+}
+
+function clipPreviewPolygon(points, normal, d, tolerance) {
+  let outside = false;
+  let inside = false;
+  const distances = new Array(points.length);
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index];
+    const distance = dot(normal, point) - d;
+    distances[index] = distance;
+    if (distance > tolerance) outside = true;
+    else inside = true;
+  }
+  if (!outside) return points;
+  if (!inside) return [];
+
+  const output = [];
+  for (let index = 0; index < points.length; index += 1) {
+    const next = (index + 1) % points.length;
+    const a = distances[index];
+    const b = distances[next];
+    if ((a <= tolerance) !== (b <= tolerance)) {
+      output.push(segmentPlaneIntersection(points[index], points[next], a, b, normal, d));
+    }
+    if (b <= tolerance) output.push(points[next]);
+  }
+  return output;
+}
+
+/**
+ * Interactive intersection only: intersect boundary polygons independently and
+ * weld once. Saved geometry, construction identities and stepwise replay must
+ * keep using clipPolyhedronByPlanes: per-cut welding is part of their contract.
+ * Small batches and ambiguous face naming retain the ordered implementation.
+ */
+function clipPolyhedronBatchPreview(polyhedron, inputs, options = {}) {
+  if (!Array.isArray(inputs)) throw new TypeError("planes must be an array");
+  if (polyhedron.kind === "mesh" || inputs.length < 16 || polyhedron.vertices.length === 0
+    || inputs.some(input => input?.options?.tolerance !== undefined)) {
+    return clipPolyhedronByPlanes(polyhedron, inputs, options);
+  }
+  const tolerance = resolveTolerance(polyhedron, options.tolerance);
+  const planes = inputs.map(normalizedPlane);
+  // IDs allocated after an earlier face disappears have sequential semantics.
+  // Workbench facets already have globally unique explicit IDs.
+  const ids = new Set(polyhedron.faces.map(face => face.id));
+  for (let index = 0; index < planes.length; index += 1) {
+    const { record, descriptor } = planes[index];
+    const id = inputs[index]?.options?.faceId ?? options.faceId ?? record?.faceId ?? descriptor.faceId;
+    if (id === undefined || ids.has(id)) return clipPolyhedronByPlanes(polyhedron, inputs, options);
+    ids.add(id);
+  }
+  const sourcePlanes = polyhedron.faces.map(face => {
+    const normal = normalize(vector3(face.normal, "face normal"));
+    return { normal, d: dot(normal, polyhedron.vertices[face.vertexIndices[0]]) };
+  });
+  const polygons = [];
+  for (const face of polyhedron.faces) {
+    let points = facePoints(polyhedron, face);
+    for (const plane of planes) {
+      points = clipPreviewPolygon(points, plane.normal, plane.d, tolerance);
+      if (points.length < 3) break;
+    }
+    if (points.length >= 3) polygons.push({ ...face, points });
+  }
+  const previousPlanes = [...sourcePlanes];
+  for (let index = 0; index < planes.length; index++) {
+    const plane = planes[index];
+    const perOptions = { ...options, ...(inputs[index]?.options ?? {}) };
+    const coincident = previousPlanes.find(other => (
+      length(subtract(other.normal, plane.normal)) <= tolerance && Math.abs(other.d - plane.d) <= tolerance
+    ));
+    if (coincident) {
+      // A tiny tilt can cut a real sliver even within the angular tolerance.
+      // Preserve the ordered contact/coverage decision at this boundary.
+      if (coincident.d !== plane.d || coincident.normal.x !== plane.normal.x
+        || coincident.normal.y !== plane.normal.y || coincident.normal.z !== plane.normal.z) {
+        return clipPolyhedronByPlanes(polyhedron, inputs, options);
+      }
+      continue;
+    }
+    previousPlanes.push(plane);
+    if (!polyhedron.vertices.some(point => dot(plane.normal, point) - plane.d > tolerance)) continue;
+    const { u, v } = planeBasis(plane.normal);
+    let minU = Infinity, minV = Infinity, maxU = -Infinity, maxV = -Infinity;
+    for (const point of polyhedron.vertices) {
+      const a = dot(point, u), b = dot(point, v);
+      minU = Math.min(minU, a);
+      maxU = Math.max(maxU, a);
+      minV = Math.min(minV, b);
+      maxV = Math.max(maxV, b);
+    }
+    const at = (a, b) => add(scale(plane.normal, plane.d), add(scale(u, a), scale(v, b)));
+    let points = [at(minU, minV), at(maxU, minV), at(maxU, maxV), at(minU, maxV)];
+    for (const constraint of sourcePlanes) {
+      points = clipPreviewPolygon(points, constraint.normal, constraint.d, tolerance);
+      if (points.length < 3) break;
+    }
+    if (points.length < 3) continue;
+    for (let other = 0; other < planes.length; other += 1) {
+      if (other === index) continue;
+      const constraint = planes[other];
+      points = clipPreviewPolygon(points, constraint.normal, constraint.d, tolerance);
+      if (points.length < 3) break;
+    }
+    if (points.length < 3) continue;
+    const { descriptor, record } = plane;
+    const sourceOperationId = perOptions.sourceOperationId ?? perOptions.operationId
+      ?? record?.sourceOperationId ?? record?.operationId ?? record?.id
+      ?? descriptor.sourceOperationId ?? descriptor.operationId;
+    const region = perOptions.region ?? record?.region ?? descriptor.region;
+    const operationType = perOptions.operationType ?? record?.operationType ?? descriptor.operationType;
+    const requestedFaceId = perOptions.faceId ?? record?.faceId ?? descriptor.faceId;
+    const cap = { id: requestedFaceId, points, normal: plane.normal };
+    if (sourceOperationId !== undefined) cap.sourceOperationId = sourceOperationId;
+    if (region !== undefined) cap.region = region;
+    if (operationType !== undefined) cap.operationType = operationType;
+    polygons.push(cap);
+  }
+  const result = buildPolyhedron(polyhedron, polygons, tolerance * 2);
+  const extent = geometryExtent(result);
+  const degenerateVolume = tolerance * Math.max(extent ** 2, tolerance ** 2) * 8;
+  return result.faces.length < 4 || polyhedronVolume(result) <= degenerateVolume
+    ? emptyPolyhedron(polyhedron) : result;
+}
+
+const indexedConvexSources = new WeakMap();
+
+/**
+ * Shared-index preview for an embedded convex source. Canonical saved geometry
+ * remains untouched. Invalid legacy adjacency and singular sections retain the
+ * established preview path; importing a rough uses the strict mesh path above.
+ */
+export function clipPolyhedronIndexedPreview(polyhedron, inputs, options = {}) {
+  if (!Array.isArray(inputs)) throw new TypeError("planes must be an array");
+  if (polyhedron.kind === "mesh" || !polyhedron.vertices.length) return clipPolyhedronBatchPreview(polyhedron, inputs, options);
+  const ids = new Set(polyhedron.faces.map(face => face.id));
+  for (const input of inputs) {
+    const descriptor = input?.plane ?? input;
+    const id = input?.options?.faceId ?? options.faceId ?? input?.faceId ?? descriptor?.faceId;
+    if (id === undefined || ids.has(id) || input?.options?.tolerance !== undefined) return clipPolyhedronBatchPreview(polyhedron, inputs, options);
+    ids.add(id);
+  }
+  let source = indexedConvexSources.get(polyhedron);
+  if (source === undefined) {
+    try {
+      source = createMeshSolid(polyhedron, { convex: true });
+    } catch (error) {
+      if (!(error instanceof PolyhedronError)) throw error;
+      source = null;
+    }
+    indexedConvexSources.set(polyhedron, source);
+  }
+  if (!source) return clipPolyhedronBatchPreview(polyhedron, inputs, options);
+  // Near-coincident planes retain the legacy contact/coverage decision: moving
+  // a tolerance-band vertex can otherwise erase a tiny but effective facet.
+  const tolerance = resolveTolerance(polyhedron, options.tolerance);
+  const knownPlanes = source.faces.map(face => ({ normal: face.normal, d: dot(face.normal, source.vertices[face.vertexIndices[0]]) }));
+  for (const input of inputs) {
+    const plane = normalizedPlane(input);
+    if (knownPlanes.some(other => Math.hypot(other.normal.x - plane.normal.x, other.normal.y - plane.normal.y, other.normal.z - plane.normal.z) <= tolerance
+      && Math.abs(other.d - plane.d) <= tolerance
+      && (other.d !== plane.d || other.normal.x !== plane.normal.x || other.normal.y !== plane.normal.y || other.normal.z !== plane.normal.z))) {
+      return clipPolyhedronBatchPreview(polyhedron, inputs, options);
+    }
+    knownPlanes.push(plane);
+  }
+  let result = source;
+  try {
+    for (const input of inputs) {
+      if (!result.vertices.length) break;
+      const plane = normalizedPlane(input), { record, descriptor } = plane;
+      const merged = { ...options, ...input?.options };
+      result = clipMeshSolid(result, plane, {
+        tolerance: resolveTolerance(result, merged.tolerance),
+        convexCaps: true,
+        facetId: uniqueFaceId(result.faces, merged.faceId ?? record?.faceId ?? descriptor.faceId),
+        sourceOperationId: merged.sourceOperationId ?? merged.operationId ?? record?.sourceOperationId ?? record?.operationId ?? record?.id ?? descriptor.sourceOperationId ?? descriptor.operationId,
+        region: merged.region ?? record?.region ?? descriptor.region,
+        operationType: merged.operationType ?? record?.operationType ?? descriptor.operationType,
+      });
+    }
+  } catch (error) {
+    if (!(error instanceof PolyhedronError)) throw error;
+    return clipPolyhedronBatchPreview(polyhedron, inputs, options);
+  }
+  return { ...polyhedron, vertices: result.vertices, faces: result.faces };
+}
+
+/** Live preview uses indexed edges; canonical persistence stays ordered above. */
+export function clipPolyhedronPreview(polyhedron, inputs, options = {}) {
+  return clipPolyhedronIndexedPreview(polyhedron, inputs, options);
 }

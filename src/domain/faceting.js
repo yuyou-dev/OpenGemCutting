@@ -1,3 +1,5 @@
+import { clipPolyhedronByPlanes } from "./geometry.js";
+import { getMeshStockSolid, normalizeMeshStock } from "./meshStock.js";
 /**
  * Facet-96 domain model.
  *
@@ -70,6 +72,15 @@ function nextId(prefix) {
 }
 
 function clone(value) {
+  // Share only validated, immutable stock; commands still own their CUT data.
+  if (value?.kind === DOCUMENT_KIND && value.stock?.kind === "mesh") {
+    const { stock, ...rest } = value;
+    return { ...clone(rest), stock: normalizeMeshStock(stock) };
+  }
+  if (value?.document?.kind === DOCUMENT_KIND && value.document.stock?.kind === "mesh") {
+    const { document, ...rest } = value;
+    return { ...clone(rest), document: clone(document) };
+  }
   if (typeof structuredClone === "function") {
     return structuredClone(value);
   }
@@ -295,8 +306,9 @@ export function normalizeStock(stock = DEFAULT_STOCK) {
     throw new TypeError("stock must be an object.");
   }
   const kind = stock.kind ?? stock.type ?? "cube";
+  if (kind === "mesh") return normalizeMeshStock(stock);
   if (kind !== "cube") {
-    throw new RangeError('stock.kind must be "cube".');
+    throw new RangeError('stock.kind must be "cube" or "mesh".');
   }
   const size = assertFiniteNumber(stock.size ?? DEFAULT_STOCK.size, "stock.size");
   if (size <= 0) {
@@ -341,7 +353,9 @@ export function rotationalStockSupportOffset(normal, stock = DEFAULT_STOCK) {
     ny * resolvedStock.center[1] +
     nz * resolvedStock.center[2];
   return cleanNumber(
-    centerProjection + half * (Math.hypot(nx, ny) + Math.abs(nz)),
+    resolvedStock.kind === "mesh"
+      ? centerProjection + resolvedStock.envelope.radius * Math.hypot(nx, ny) + resolvedStock.envelope.halfHeight * Math.abs(nz)
+      : centerProjection + half * (Math.hypot(nx, ny) + Math.abs(nz)),
   );
 }
 
@@ -597,8 +611,8 @@ export function createFacetingDocument({
     resolveFacet(facet, { stock: resolvedStock }),
   );
   const document = {
-    $schema: DOCUMENT_SCHEMA_ID,
-    schemaVersion: DOCUMENT_SCHEMA_VERSION,
+    $schema: resolvedStock.kind === "mesh" ? DOCUMENT_SCHEMA_ID.replace("v1", "v2") : DOCUMENT_SCHEMA_ID,
+    schemaVersion: resolvedStock.kind === "mesh" ? 2 : DOCUMENT_SCHEMA_VERSION,
     kind: DOCUMENT_KIND,
     name: normalizeString(name, "Untitled Facet Design", "document.name"),
     indexGear: {
@@ -910,10 +924,10 @@ export function validateFacetingDocument(document) {
       errors: [{ path: "$", message: "document must be an object" }],
     };
   }
-  if (typeof document.$schema !== "string" || !document.$schema.endsWith(DOCUMENT_SCHEMA_ID_SUFFIX)) {
-    addValidationError(errors, "$.$schema", `must be a document-v1 schema id ending with ${DOCUMENT_SCHEMA_ID_SUFFIX}`);
+  if (typeof document.$schema !== "string" || !document.$schema.endsWith(document.stock?.kind === "mesh" ? "/document-v2.schema.json" : DOCUMENT_SCHEMA_ID_SUFFIX)) {
+    addValidationError(errors, "$.$schema", "schema id must match the stock format (cube v1 or mesh v2)");
   }
-  if (document.schemaVersion !== DOCUMENT_SCHEMA_VERSION) {
+  if (document.schemaVersion !== (document.stock?.kind === "mesh" ? 2 : DOCUMENT_SCHEMA_VERSION)) {
     addValidationError(errors, "$.schemaVersion", "unsupported schema version");
   }
   if (document.kind !== DOCUMENT_KIND) {
@@ -930,16 +944,19 @@ export function validateFacetingDocument(document) {
   ) {
     addValidationError(errors, "$.indexGear", "must describe the fixed 96-tooth gear");
   }
-  if (!isCanonicalStock(document.stock)) {
-    addValidationError(errors, "$.stock", "must be a positive, finite cube stock definition");
+  let validatedStock;
+  try { validatedStock = normalizeStock(document.stock); } catch { /* reported below */ }
+  if (!validatedStock || (document.stock?.kind !== "mesh" && !isCanonicalStock(document.stock))) {
+    addValidationError(errors, "$.stock", "must define a valid cube or closed oriented mesh stock");
+    validatedStock = null;
   }
   if (!Array.isArray(document.facets)) {
     addValidationError(errors, "$.facets", "must be an array");
-  } else if (isCanonicalStock(document.stock)) {
+  } else if (validatedStock) {
     const ids = new Set();
     const patternFacets = new Map();
     document.facets.forEach((facet, index) => {
-      validateResolvedFacet(facet, `$.facets[${index}]`, document.stock, errors);
+      validateResolvedFacet(facet, `$.facets[${index}]`, validatedStock, errors);
       if (isPlainObject(facet) && typeof facet.patternId === "string") {
         if (!patternFacets.has(facet.patternId)) patternFacets.set(facet.patternId, []);
         patternFacets.get(facet.patternId).push({ facet, index });
@@ -1049,10 +1066,28 @@ export function importFacetingJSON(json) {
       "Could not parse Facet-96 JSON.",
     );
   }
+  if (parsed?.stock?.kind === "mesh") {
+    try { parsed.stock = normalizeMeshStock(parsed.stock); } catch (error) {
+      throw new FacetingDocumentValidationError([{ path: "$.stock", message: error.message }]);
+    }
+  }
   const normalizedDocument = migrateLegacyFacetGeometry(parsed);
   assertValidFacetingDocument(normalizedDocument);
-  normalizedDocument.$schema = DOCUMENT_SCHEMA_ID;
-  return clone(normalizedDocument);
+  normalizedDocument.$schema = normalizedDocument.stock.kind === "mesh" ? DOCUMENT_SCHEMA_ID.replace("v1", "v2") : DOCUMENT_SCHEMA_ID;
+  const result = clone(normalizedDocument);
+  if (result.stock.kind === "mesh") {
+    result.stock = normalizeMeshStock(result.stock);
+    try {
+      const solid = clipPolyhedronByPlanes(getMeshStockSolid(result.stock), result.facets.map(facet => ({
+        ...facet.plane, faceId: facet.id, operationId: facet.patternId, region: facet.region,
+        operationType: facet.metadata?.operationType,
+      })));
+      if (!solid.vertices.length) throw new Error("切割序列移除了全部材料。");
+    } catch (error) {
+      throw new FacetingDocumentValidationError([{ path: "$.facets", message: `无法重放晶体切割：${error.message}` }]);
+    }
+  }
+  return result;
 }
 
 function createCommand(type, payload) {
@@ -1234,11 +1269,12 @@ export function replayFacetingCommands(
 export function createCommandHistory(initialDocument = createFacetingDocument()) {
   assertValidFacetingDocument(initialDocument);
   const initial = clone(initialDocument);
+  if (initial.stock.kind === "mesh") initial.stock = normalizeMeshStock(initial.stock);
   return {
     initial,
     commands: [],
     cursor: 0,
-    present: clone(initial),
+    present: initial.stock.kind === "mesh" ? { ...initial, facets: clone(initial.facets) } : clone(initial),
   };
 }
 

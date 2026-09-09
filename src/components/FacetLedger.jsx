@@ -10,6 +10,7 @@ const REGION_LABEL = {
 
 export function FacetLedger({
   operations,
+  stockKind = "cube",
   selectedId,
   hoveredId,
   onSelect,
@@ -23,8 +24,8 @@ export function FacetLedger({
   useDialogFocus(panelRef, onClose);
   const rows = [
     {
-      id: "rough-cube",
-      label: "S0 毛坯立方体",
+      id: stockKind === "mesh" ? "rough-mesh" : "rough-cube",
+      label: stockKind === "mesh" ? "S0 初始晶体" : "S0 毛坯立方体",
       region: "rough",
       industryAngleDeg: 90,
       signedBeta: 0,
@@ -74,8 +75,8 @@ export function FacetLedger({
                   onMouseLeave={() => onHover?.(null)}
                 >
                   <td>
-                    <button type="button" className="ledger-row-button" onClick={() => onSelect(row.id)} disabled={row.id === "rough-cube" || !canSelectLayers}>
-                      {row.id === "rough-cube" ? <IconCube size={16} stroke={1.6} /> : <IconChevronRight size={15} stroke={1.8} />}
+                    <button type="button" className="ledger-row-button" onClick={() => onSelect(row.id)} disabled={row.region === "rough" || !canSelectLayers}>
+                      {row.region === "rough" ? <IconCube size={16} stroke={1.6} /> : <IconChevronRight size={15} stroke={1.8} />}
                       <strong>{row.label}</strong>
                     </button>
                   </td>
@@ -90,7 +91,7 @@ export function FacetLedger({
                       className="row-icon-button"
                       aria-label={row.visible === false ? `显示 ${row.label}` : `隐藏 ${row.label}`}
                       onClick={() => onToggleVisibility(row.id)}
-                      disabled={row.id === "rough-cube" || !canMutateStack}
+                      disabled={row.region === "rough" || !canMutateStack}
                     >
                       {row.visible === false ? <IconEyeOff size={17} stroke={1.7} /> : <IconEye size={17} stroke={1.7} />}
                     </button>

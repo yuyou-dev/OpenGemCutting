@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconCube, IconHandMove, IconRotate3d, IconZoomIn } from "@tabler/icons-react";
 import { backgroundColor, resolveOpticsSettings } from "../domain/optics.js";
+import { normalizedOpticsPlanes, packOpticsPlaneTexture, normalizedOpticsMesh, packOpticsMeshTextures, opticsMeshFraming } from "../domain/opticsGeometry.js";
 import { crossVectors as cross, normalizeVector } from "../utils/vector3.js";
 import { clamp } from "../utils/format.js";
+import { createOpticsRendererLifecycle } from "./opticsRendererLifecycle.js";
+import { createOpticsRenderScheduler } from "./opticsRenderScheduler.js";
 import "./OpticsViewport.css";
-
-const MAX_PLANES = 192;
 
 const VERTEX_SHADER = `#version 300 es
 in vec2 aPosition;
@@ -30,6 +31,10 @@ uniform vec3 uCameraUp;
 uniform float uCameraScale;
 uniform sampler2D uPlanes;
 uniform int uPlaneCount;
+uniform bool uMeshMode;
+uniform sampler2D uBvhNodes;
+uniform sampler2D uTriangles;
+uniform int uBvhNodeCount;
 uniform float uIor;
 uniform float uDispersion;
 uniform vec3 uBodyColor;
@@ -43,20 +48,19 @@ uniform int uMaxBounces;
 uniform float uFocalOffset;
 uniform vec2 uPan;
 
-const int MAX_PLANES = ${MAX_PLANES};
 const int MAX_BOUNCES = 8;
 const float EPSILON = 0.0012;
 
 vec4 planeAt(int index) {
-  return texelFetch(uPlanes, ivec2(index, 0), 0);
+  int width = textureSize(uPlanes, 0).x;
+  return texelFetch(uPlanes, ivec2(index % width, index / width), 0);
 }
 
 bool intersectConvex(vec3 origin, vec3 direction, out float nearT, out float farT, out vec3 nearNormal) {
   nearT = -1e5;
   farT = 1e5;
   nearNormal = vec3(0.0, 0.0, 1.0);
-  for (int index = 0; index < MAX_PLANES; index += 1) {
-    if (index >= uPlaneCount) break;
+  for (int index = 0; index < uPlaneCount; index += 1) {
     vec4 plane = planeAt(index);
     float denominator = dot(plane.xyz, direction);
     float signedDistance = plane.w - dot(plane.xyz, origin);
@@ -79,8 +83,7 @@ bool intersectConvex(vec3 origin, vec3 direction, out float nearT, out float far
 bool nextBoundary(vec3 origin, vec3 direction, out float hitT, out vec3 hitNormal) {
   hitT = 1e5;
   hitNormal = vec3(0.0, 0.0, 1.0);
-  for (int index = 0; index < MAX_PLANES; index += 1) {
-    if (index >= uPlaneCount) break;
+  for (int index = 0; index < uPlaneCount; index += 1) {
     vec4 plane = planeAt(index);
     float denominator = dot(plane.xyz, direction);
     if (denominator <= 1e-6) continue;
@@ -189,6 +192,138 @@ vec3 traceGem(vec3 rayOrigin, vec3 rayDirection, float ior, vec3 absorptionColor
   return radiance;
 }
 
+vec4 meshTexel(sampler2D source, int index) {
+  int width = textureSize(source, 0).x;
+  return texelFetch(source, ivec2(index % width, index / width), 0);
+}
+
+bool meshBounds(vec3 origin, vec3 direction, vec3 minimum, vec3 maximum, float limit) {
+  float nearT = 0.0;
+  float farT = limit;
+  for (int axis = 0; axis < 3; axis += 1) {
+    if (abs(direction[axis]) < 1e-12) {
+      if (origin[axis] < minimum[axis] || origin[axis] > maximum[axis]) return false;
+    } else {
+      float a = (minimum[axis] - origin[axis]) / direction[axis];
+      float b = (maximum[axis] - origin[axis]) / direction[axis];
+      nearT = max(nearT, min(a, b));
+      farT = min(farT, max(a, b));
+      if (nearT > farT) return false;
+    }
+  }
+  return true;
+}
+
+bool intersectMesh(vec3 origin, vec3 direction, out float hitT, out vec3 hitNormal, out vec3 hitPoint) {
+  hitT = 1e20;
+  hitNormal = vec3(0.0);
+  hitPoint = vec3(0.0);
+  int node = 0;
+  while (node < uBvhNodeCount) {
+    vec4 minimum = meshTexel(uBvhNodes, node * 3);
+    vec4 maximum = meshTexel(uBvhNodes, node * 3 + 1);
+    if (!meshBounds(origin, direction, minimum.xyz, maximum.xyz, hitT)) {
+      node = int(minimum.w);
+      continue;
+    }
+    int start = int(maximum.w);
+    int count = int(meshTexel(uBvhNodes, node * 3 + 2).x);
+    for (int index = start; index < start + count; index += 1) {
+      vec3 a = meshTexel(uTriangles, index * 4).xyz;
+      vec3 ab = meshTexel(uTriangles, index * 4 + 1).xyz;
+      vec3 ac = meshTexel(uTriangles, index * 4 + 2).xyz;
+      vec3 p = cross(direction, ac);
+      float determinant = dot(ab, p);
+      if (abs(determinant) < 1e-12) continue;
+      vec3 relative = origin - a;
+      float u = dot(relative, p) / determinant;
+      if (u < -1e-6 || u > 1.000001) continue;
+      vec3 q = cross(relative, ab);
+      float v = dot(direction, q) / determinant;
+      if (v < -1e-6 || u + v > 1.000001) continue;
+      float distance = dot(ac, q) / determinant;
+      if (distance > 1e-7 && distance < hitT) {
+        hitT = distance;
+        // Stay on the triangle surface. Advancing origin + t * direction can
+        // magnify distance error at grazing angles and put the next ray back
+        // inside this boundary even after its normal offset.
+        hitPoint = a + (u * ab + v * ac);
+        hitNormal = meshTexel(uTriangles, index * 4 + 3).xyz;
+      }
+    }
+    node += 1;
+  }
+  return hitT < 1e19;
+}
+
+// Depth-first Fresnel splitting retains both reflection and transmission paths.
+// Air paths also query the mesh: a concavity or a second component may be hit.
+// Eight user-selected interactions need at most nine pending paths, independent
+// of triangle count; the existing bounce limit truncates energy, not geometry.
+vec3 traceMeshGem(vec3 origin, vec3 direction, float ior, vec3 absorptionColor) {
+  float firstT;
+  vec3 firstNormal;
+  vec3 firstPoint;
+  if (!intersectMesh(origin, direction, firstT, firstNormal, firstPoint)) return vec3(-1.0);
+  vec3 origins[9];
+  vec3 directions[9];
+  vec3 weights[9];
+  int depths[9];
+  bool interiors[9];
+  origins[0] = origin;
+  directions[0] = direction;
+  weights[0] = vec3(1.0);
+  depths[0] = 0;
+  interiors[0] = false;
+  int pending = 1;
+  vec3 radiance = vec3(0.0);
+  const float MESH_EPSILON = 0.000002;
+  // A complete binary tree of depth eight has 511 paths.
+  for (int path = 0; path < 511; path += 1) {
+    if (pending == 0) break;
+    pending -= 1;
+    vec3 rayOrigin = origins[pending];
+    vec3 rayDirection = directions[pending];
+    vec3 weight = weights[pending];
+    int depth = depths[pending];
+    bool inside = interiors[pending];
+    float distance;
+    vec3 normal;
+    vec3 point;
+    if (!intersectMesh(rayOrigin, rayDirection, distance, normal, point)) {
+      radiance += weight * environmentRadiance(rayDirection);
+      continue;
+    }
+    if (depth >= uMaxBounces) continue;
+    if (inside) weight *= exp(-absorptionColor * distance);
+    bool entering = dot(rayDirection, normal) < 0.0;
+    vec3 incidentNormal = entering ? normal : -normal;
+    float n1 = entering ? 1.0 : ior;
+    float n2 = entering ? ior : 1.0;
+    float fresnel = dielectricFresnel(dot(-rayDirection, incidentNormal), n1, n2);
+    vec3 reflectionWeight = weight * fresnel;
+    if (max(reflectionWeight.r, max(reflectionWeight.g, reflectionWeight.b)) >= 0.002) {
+      origins[pending] = point + incidentNormal * MESH_EPSILON;
+      directions[pending] = reflect(rayDirection, incidentNormal);
+      weights[pending] = reflectionWeight;
+      depths[pending] = depth + 1;
+      interiors[pending] = !entering;
+      pending += 1;
+    }
+    vec3 transmission = refract(rayDirection, incidentNormal, n1 / n2);
+    vec3 transmissionWeight = weight * (1.0 - fresnel);
+    if (dot(transmission, transmission) > 1e-7 && max(transmissionWeight.r, max(transmissionWeight.g, transmissionWeight.b)) >= 0.002) {
+      origins[pending] = point - incidentNormal * MESH_EPSILON;
+      directions[pending] = transmission;
+      weights[pending] = transmissionWeight;
+      depths[pending] = depth + 1;
+      interiors[pending] = entering;
+      pending += 1;
+    }
+  }
+  return radiance;
+}
+
 vec3 sceneBackground(vec3 rayOrigin, vec3 rayDirection) {
   float vertical = smoothstep(0.0, 1.0, vUv.y);
   vec3 color = uBackground * mix(0.94, 1.035, vertical);
@@ -220,13 +355,13 @@ void main() {
   float redIor = max(1.001, uIor - uDispersion * 0.48);
   float blueIor = uIor + uDispersion * 0.52;
   vec3 absorptionColor = vec3(uAbsorption) - log(max(uBodyColor, vec3(0.02))) * 0.9;
-  vec3 colorR = traceGem(rayOrigin, rayDirection, redIor, absorptionColor);
+  vec3 colorR = uMeshMode ? traceMeshGem(rayOrigin, rayDirection, redIor, absorptionColor) : traceGem(rayOrigin, rayDirection, redIor, absorptionColor);
   if (colorR.r < 0.0) {
     outColor = vec4(sceneBackground(rayOrigin, rayDirection), 1.0);
     return;
   }
-  vec3 colorG = traceGem(rayOrigin, rayDirection, uIor, absorptionColor);
-  vec3 colorB = traceGem(rayOrigin, rayDirection, blueIor, absorptionColor);
+  vec3 colorG = uMeshMode ? traceMeshGem(rayOrigin, rayDirection, uIor, absorptionColor) : traceGem(rayOrigin, rayDirection, uIor, absorptionColor);
+  vec3 colorB = uMeshMode ? traceMeshGem(rayOrigin, rayDirection, blueIor, absorptionColor) : traceGem(rayOrigin, rayDirection, blueIor, absorptionColor);
   vec3 color = vec3(colorR.r, colorG.g, colorB.b);
   color *= exp2(uExposure);
   color = clamp((color * (2.51 * color + 0.03)) / (color * (2.43 * color + 0.59) + 0.14), 0.0, 1.0);
@@ -248,50 +383,25 @@ function compileShader(gl, type, source) {
 
 function createProgram(gl) {
   const program = gl.createProgram();
-  gl.attachShader(program, compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER));
-  gl.attachShader(program, compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER));
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(program));
-  }
-  return program;
-}
-
-function vector(value) {
-  if (Array.isArray(value)) return value;
-  return [value?.x ?? 0, value?.y ?? 0, value?.z ?? 0];
-}
-
-function normalizedPlanes(polyhedron) {
-  const vertices = (polyhedron?.vertices ?? []).map(vector);
-  if (!vertices.length) return { planes: [], faceCount: 0 };
-  const minimum = [Infinity, Infinity, Infinity];
-  const maximum = [-Infinity, -Infinity, -Infinity];
-  for (const vertex of vertices) {
-    for (let axis = 0; axis < 3; axis += 1) {
-      minimum[axis] = Math.min(minimum[axis], vertex[axis]);
-      maximum[axis] = Math.max(maximum[axis], vertex[axis]);
+  const shaders = [];
+  try {
+    for (const [type, source] of [[gl.VERTEX_SHADER, VERTEX_SHADER], [gl.FRAGMENT_SHADER, FRAGMENT_SHADER]]) {
+      const shader = compileShader(gl, type, source);
+      shaders.push(shader);
+      gl.attachShader(program, shader);
     }
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program));
+    }
+    return program;
+  } catch (error) {
+    gl.deleteProgram(program);
+    throw error;
+  } finally {
+    // The linked program owns its executable; shader handles need no longer live.
+    shaders.forEach((shader) => gl.deleteShader(shader));
   }
-  const center = minimum.map((value, axis) => (value + maximum[axis]) / 2);
-  const scale = Math.max(...minimum.map((value, axis) => maximum[axis] - value), 1e-6) / 2;
-  const keys = new Set();
-  const planes = [];
-  for (const face of polyhedron?.faces ?? []) {
-    const rawNormal = vector(face.normal);
-    const length = Math.hypot(...rawNormal);
-    const firstVertex = vertices[face.vertexIndices?.[0]];
-    if (!firstVertex || length < 1e-8) continue;
-    const normal = rawNormal.map((value) => value / length);
-    const offset = normal.reduce((sum, value, axis) => sum + value * firstVertex[axis], 0);
-    const normalizedOffset = (offset - normal.reduce((sum, value, axis) => sum + value * center[axis], 0)) / scale;
-    const key = [...normal, normalizedOffset].map((value) => value.toFixed(6)).join(":");
-    if (keys.has(key)) continue;
-    keys.add(key);
-    planes.push([...normal, normalizedOffset]);
-    if (planes.length >= MAX_PLANES) break;
-  }
-  return { planes, faceCount: polyhedron?.faces?.length ?? 0 };
 }
 
 function hexToRgb(hex) {
@@ -307,13 +417,8 @@ function cameraOrbitForView(viewMode) {
   return null;
 }
 
-function syncCameraToView(camera, viewMode) {
-  const orbit = cameraOrbitForView(viewMode);
-  if (orbit) Object.assign(camera, orbit);
-}
-
-function cameraFrame(camera, viewMode) {
-  const orbit = cameraOrbitForView(viewMode) ?? camera;
+function cameraFrame(camera) {
+  const orbit = camera;
   const horizontal = Math.cos(orbit.elevation);
   const position = [
     Math.sin(orbit.yaw) * horizontal * 4.4,
@@ -349,57 +454,91 @@ function createRenderer(canvas, onError) {
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-    const planeTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, planeTexture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const textures = Array.from({ length: 3 }, (_, unit) => {
+      const texture = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      // All sampler uniforms need complete textures, including inactive branches.
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 1, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array(4));
+      return texture;
+    });
     const location = (name) => gl.getUniformLocation(program, name);
     const uniforms = Object.fromEntries([
       "uResolution", "uCameraPosition", "uCameraForward", "uCameraRight", "uCameraUp",
-      "uCameraScale", "uPlanes", "uPlaneCount", "uIor", "uDispersion",
+      "uCameraScale", "uPlanes", "uPlaneCount", "uMeshMode", "uBvhNodes", "uTriangles", "uBvhNodeCount", "uIor", "uDispersion",
       "uBodyColor", "uAbsorption", "uExposure", "uEnvironmentRotation", "uEnvironment", "uObserverDirection",
       "uBackground", "uMaxBounces", "uFocalOffset", "uPan",
     ].map((name) => [name, location(name)]));
     gl.useProgram(program);
     gl.uniform1i(uniforms.uPlanes, 0);
+    gl.uniform1i(uniforms.uBvhNodes, 1);
+    gl.uniform1i(uniforms.uTriangles, 2);
 
-    return {
-      gl,
-      draw({ planes, settings, camera, viewMode, focusOffset = 0, quality = 1 }) {
-        const ratio = Math.min(window.devicePixelRatio || 1, 1.5) * quality;
-        const width = Math.max(320, Math.round(canvas.clientWidth * ratio));
-        const height = Math.max(320, Math.round(canvas.clientHeight * ratio));
+    const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    let uploadedGeometry = null;
+    const scheduler = createOpticsRenderScheduler({
+      gl, onError,
+      render({ geometry, settings, camera, focusOffset = 0 }) {
+        const ratio = Math.min(window.devicePixelRatio || 1, 1.5, 1100 / Math.max(canvas.clientWidth, canvas.clientHeight));
+        const width = Math.max(2, Math.round(canvas.clientWidth * ratio));
+        const height = Math.max(2, Math.round(canvas.clientHeight * ratio));
         if (canvas.width !== width || canvas.height !== height) {
           canvas.width = width;
           canvas.height = height;
         }
         gl.viewport(0, 0, width, height);
         gl.useProgram(program);
-        const textureData = new Float32Array(Math.max(1, planes.length) * 4);
-        planes.forEach((plane, index) => textureData.set(plane, index * 4));
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, planeTexture);
-        gl.texImage2D(
-          gl.TEXTURE_2D,
-          0,
-          gl.RGBA32F,
-          Math.max(1, planes.length),
-          1,
-          0,
-          gl.RGBA,
-          gl.FLOAT,
-          textureData,
-        );
-        const frame = cameraFrame(camera, viewMode);
+        if (geometry !== uploadedGeometry) {
+          try {
+            const packed = geometry.mesh
+              ? packOpticsMeshTextures(geometry.mesh, maxTextureSize)
+              : { planes: packOpticsPlaneTexture(geometry.planes, maxTextureSize) };
+            for (const [unit, texture] of [[0, packed.planes], [1, packed.nodes], [2, packed.triangles]]) {
+              if (!texture) continue;
+              gl.activeTexture(gl.TEXTURE0 + unit);
+              gl.bindTexture(gl.TEXTURE_2D, textures[unit]);
+              gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, texture.width, texture.height, 0, gl.RGBA, gl.FLOAT, texture.data);
+            }
+            if (gl.getError() !== gl.NO_ERROR) {
+              throw new Error("当前显卡无法上传完整实体数据，无法显示光学仿真；未省略任何面片。");
+            }
+            uploadedGeometry = geometry;
+            onError("");
+          } catch (error) {
+            uploadedGeometry = null;
+            gl.clearColor(0.96, 0.96, 0.96, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            onError(error.message);
+            return;
+          }
+        }
+        textures.forEach((texture, unit) => {
+          gl.activeTexture(gl.TEXTURE0 + unit);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+        });
+        const frame = cameraFrame(camera);
+        let meshFraming;
+        if (geometry.mesh) {
+          const inspector = focusOffset ? canvas.parentElement?.parentElement?.querySelector(".optics-inspector") : null;
+          const canvasBounds = canvas.getBoundingClientRect();
+          const covered = inspector ? Math.max(0, canvasBounds.right - inspector.getBoundingClientRect().left + 24) : 0;
+          meshFraming = opticsMeshFraming(geometry.mesh, {
+            width: canvas.clientWidth, height: canvas.clientHeight, occludedRight: covered,
+          });
+        }
         gl.uniform2f(uniforms.uResolution, width, height);
         gl.uniform3fv(uniforms.uCameraPosition, frame.position);
         gl.uniform3fv(uniforms.uCameraForward, frame.forward);
         gl.uniform3fv(uniforms.uCameraRight, frame.right);
         gl.uniform3fv(uniforms.uCameraUp, frame.up);
-        gl.uniform1f(uniforms.uCameraScale, 0.34 / camera.zoom);
-        gl.uniform1i(uniforms.uPlaneCount, planes.length);
+        gl.uniform1f(uniforms.uCameraScale, (meshFraming?.cameraScale ?? 0.34) / camera.zoom);
+        gl.uniform1i(uniforms.uPlaneCount, geometry.planes?.length ?? 0);
+        gl.uniform1i(uniforms.uMeshMode, geometry.mesh ? 1 : 0);
+        gl.uniform1i(uniforms.uBvhNodeCount, geometry.mesh?.nodes.length ?? 0);
         gl.uniform1f(uniforms.uIor, settings.material.ior);
         gl.uniform1f(uniforms.uDispersion, settings.material.dispersion);
         gl.uniform3fv(uniforms.uBodyColor, hexToRgb(settings.material.bodyColor));
@@ -410,12 +549,18 @@ function createRenderer(canvas, onError) {
         gl.uniform3fv(uniforms.uObserverDirection, normalizeVector(frame.position));
         gl.uniform3fv(uniforms.uBackground, hexToRgb(backgroundColor(settings)));
         gl.uniform1i(uniforms.uMaxBounces, settings.advanced.maxBounces);
-        gl.uniform1f(uniforms.uFocalOffset, focusOffset);
+        gl.uniform1f(uniforms.uFocalOffset, meshFraming?.focusOffset ?? focusOffset);
         gl.uniform2f(uniforms.uPan, camera.panX, camera.panY);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
+        canvas.dataset.renderStage = "complete";
       },
+    });
+    return {
+      gl,
+      draw: scheduler.draw,
       destroy() {
-        gl.deleteTexture(planeTexture);
+        scheduler.destroy();
+        textures.forEach((texture) => gl.deleteTexture(texture));
         gl.deleteBuffer(buffer);
         gl.deleteProgram(program);
       },
@@ -430,20 +575,31 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const [error, setError] = useState("");
-  const cameraRef = useRef({ yaw: -0.62, elevation: 0.42, zoom: 1, panX: 0, panY: 0 });
-  const viewModeRef = useRef(viewMode);
+  const cameraRef = useRef({ yaw: -0.62, elevation: 0.42, ...cameraOrbitForView(viewMode), zoom: 1, panX: 0, panY: 0 });
   const dragRef = useRef(null);
+  const transitionRef = useRef(0);
+  const previousViewRef = useRef(viewMode);
+  const perspectiveRef = useRef({ yaw: -0.62, elevation: 0.42 });
   const resolvedSettings = useMemo(() => resolveOpticsSettings(settings), [settings]);
-  const geometry = useMemo(() => normalizedPlanes(polyhedron), [polyhedron]);
+  const geometry = useMemo(() => {
+    if (polyhedron.kind === "mesh") {
+      const mesh = normalizedOpticsMesh(polyhedron);
+      return { mesh, faceCount: mesh.faceCount };
+    }
+    return normalizedOpticsPlanes(polyhedron);
+  }, [polyhedron]);
   const drawRef = useRef(() => {});
-  viewModeRef.current = viewMode;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
-    const renderer = createRenderer(canvas, (message) => {
-      setError(message);
-      canvas.dataset.error = message;
+    const renderer = createOpticsRendererLifecycle(canvas, {
+      createRenderer,
+      onError(message) {
+        setError(message);
+        canvas.dataset.error = message;
+      },
+      onRestore: () => drawRef.current(),
     });
     rendererRef.current = renderer;
     const observer = new ResizeObserver(() => drawRef.current());
@@ -455,18 +611,39 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
     };
   }, []);
 
-  drawRef.current = (quality = 1) => rendererRef.current?.draw({
-    planes: geometry.planes,
+  drawRef.current = () => rendererRef.current?.draw({
+    geometry,
     settings: resolvedSettings,
     camera: cameraRef.current,
-    viewMode: viewModeRef.current,
     focusOffset: inspectorOpen ? 0.23 : 0,
-    quality,
   });
 
   useEffect(() => {
     drawRef.current();
   }, [geometry, inspectorOpen, resolvedSettings, viewMode]);
+
+  useEffect(() => {
+    if (previousViewRef.current === viewMode) return undefined;
+    const camera = cameraRef.current;
+    if (previousViewRef.current === "perspective") perspectiveRef.current = { yaw: camera.yaw, elevation: camera.elevation };
+    previousViewRef.current = viewMode;
+    if (dragRef.current) return undefined;
+    const target = cameraOrbitForView(viewMode) ?? perspectiveRef.current;
+    const start = { yaw: camera.yaw, elevation: camera.elevation };
+    const yawDelta = Math.atan2(Math.sin(target.yaw - start.yaw), Math.cos(target.yaw - start.yaw));
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 520;
+    const started = performance.now();
+    const frame = (now) => {
+      const t = duration ? Math.min(1, (now - started) / duration) : 1;
+      const eased = t * t * (3 - 2 * t);
+      camera.yaw = start.yaw + yawDelta * eased;
+      camera.elevation = start.elevation + (target.elevation - start.elevation) * eased;
+      drawRef.current();
+      transitionRef.current = t < 1 ? requestAnimationFrame(frame) : 0;
+    };
+    transitionRef.current = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(transitionRef.current); transitionRef.current = 0; };
+  }, [viewMode]);
 
   // Match GemViewport's lock: the wheel listener must be non-passive so the
   // canvas zoom never leaks into page scroll, and touchmove stays inside the canvas.
@@ -476,8 +653,7 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
     const onWheel = (event) => {
       event.preventDefault();
       cameraRef.current.zoom = clamp(cameraRef.current.zoom * Math.exp(-event.deltaY * 0.0012), 0.55, 2.4);
-      drawRef.current(0.8);
-      window.requestAnimationFrame(() => drawRef.current());
+      drawRef.current();
     };
     const onTouchMove = (event) => event.preventDefault();
     canvas.addEventListener("wheel", onWheel, { passive: false });
@@ -489,8 +665,10 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
   }, []);
 
   const resetCamera = () => {
+    cancelAnimationFrame(transitionRef.current);
+    transitionRef.current = 0;
+    previousViewRef.current = "perspective";
     cameraRef.current = { yaw: -0.62, elevation: 0.42, zoom: 1, panX: 0, panY: 0 };
-    viewModeRef.current = "perspective";
     onViewModeChange?.("perspective");
     drawRef.current();
   };
@@ -506,7 +684,12 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
         aria-label="物理宝石光学仿真。拖拽旋转，Shift 加拖拽平移，滚轮缩放，0 键复位。"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
-          syncCameraToView(cameraRef.current, viewModeRef.current);
+          if (transitionRef.current) {
+            cancelAnimationFrame(transitionRef.current);
+            transitionRef.current = 0;
+            previousViewRef.current = "perspective";
+            onViewModeChange?.("perspective");
+          }
           dragRef.current = {
             x: event.clientX,
             y: event.clientY,
@@ -528,10 +711,10 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
           } else {
             cameraRef.current.yaw = drag.yaw + dx * 0.008;
             cameraRef.current.elevation = drag.elevation + dy * 0.008;
-            viewModeRef.current = "perspective";
+            previousViewRef.current = "perspective";
             onViewModeChange?.("perspective");
           }
-          drawRef.current(0.72);
+          drawRef.current();
         }}
         onPointerUp={() => {
           dragRef.current = null;
@@ -548,12 +731,13 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
           if (event.key === "-") cameraRef.current.zoom = Math.max(0.55, cameraRef.current.zoom / 1.08);
           if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-"].includes(event.key)) {
             event.preventDefault();
-            syncCameraToView(cameraRef.current, viewModeRef.current);
+            cancelAnimationFrame(transitionRef.current);
+            transitionRef.current = 0;
             if (event.key === "ArrowLeft") cameraRef.current.yaw -= 0.08;
             if (event.key === "ArrowRight") cameraRef.current.yaw += 0.08;
             const elevationDelta = event.key === "ArrowUp" ? -0.06 : event.key === "ArrowDown" ? 0.06 : 0;
             cameraRef.current.elevation += elevationDelta;
-            viewModeRef.current = "perspective";
+            previousViewRef.current = "perspective";
             onViewModeChange?.("perspective");
             drawRef.current();
           }
@@ -569,7 +753,7 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
         <span><IconZoomIn size={15} stroke={1.7} />滚轮缩放</span>
         <span><IconHandMove size={15} stroke={1.7} />Shift + 拖拽平移</span>
       </div>
-      <span className="optics-viewport__geometry-status">视口实体 · {geometry.faceCount} 面{polyhedron.faces.some((face) => face.sourceOperationId === "rough-cube") ? "（含毛坯面）" : "（全部为刻面）"}</span>
+      <span className="optics-viewport__geometry-status">视口实体 · {geometry.faceCount} {polyhedron.kind === "mesh" ? "面片" : "面"}{(polyhedron.kind === "mesh" ? polyhedron.faces.some((face) => face.region === "rough" || face.sourceOperationId === "rough-mesh") : polyhedron.faces.some((face) => face.sourceOperationId === "rough-cube")) ? "（含毛坯面）" : "（全部为刻面）"}</span>
     </section>
   );
 }

@@ -41,6 +41,45 @@ function assertUniqueVertices(polyhedron, tolerance = 1e-8) {
   }
 }
 
+test("large cross-sections retain the exact convex cap and face provenance", () => {
+  // A 128-sided bipyramid exercises the spatial cap dedupe, including the
+  // same intersection arriving from both adjacent faces.
+  const n = 128;
+  const vertices = Array.from({ length: n }, (_, index) => ({
+    x: Math.cos(index * 2 * Math.PI / n),
+    y: Math.sin(index * 2 * Math.PI / n),
+    z: 0,
+  }));
+  vertices.push({ x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
+  const faces = [];
+  for (let index = 0; index < n; index += 1) {
+    const mid = (index + 0.5) * 2 * Math.PI / n;
+    for (const sign of [1, -1]) {
+      faces.push({
+        id: `face-${index}-${sign}`, sourceOperationId: `tier-${sign}`,
+        vertexIndices: sign === 1 ? [index, (index + 1) % n, n] : [(index + 1) % n, index, n + 1],
+        normal: { x: Math.cos(mid), y: Math.sin(mid), z: sign * Math.cos(Math.PI / n) },
+      });
+    }
+  }
+  const source = { vertices, faces };
+  const before = structuredClone(source);
+  const plane = { normal: [0, 0, 1], offset: 0.5, faceId: "cap", operationId: "cut" };
+  const result = clipPolyhedron(source, plane);
+  const baseArea = n * Math.sin(2 * Math.PI / n) / 2;
+  approximately(polyhedronVolume(result), baseArea * (2 - 0.5 ** 3) / 3);
+  approximately(faceArea(result, "cap"), baseArea / 4);
+  assert.equal(result.faces.find((face) => face.id === "cap").vertexIndices.length, n);
+  assert.equal(result.faces.length, 2 * n + 1);
+  assert.equal(result.vertices.length, 2 * n + 1);
+  assert.equal(result.faces.filter((face) => face.sourceOperationId === "tier-1").length, n);
+  assert.deepEqual(source, before);
+  assertUniqueVertices(result);
+  const reversed = clipPolyhedron({ vertices, faces: [...faces].reverse() }, plane);
+  approximately(polyhedronVolume(reversed), polyhedronVolume(result));
+  approximately(faceArea(reversed, "cap"), faceArea(result, "cap"));
+});
+
 test("centered cube has outward faces and exact base measurements", () => {
   const cube = createCenteredCube(2);
 

@@ -1,118 +1,62 @@
-<p align="right">
-  <a href="https://yuyou-dev.github.io/OpenGemCutting/"><strong>Live Demo ↗</strong></a> ·
-  <a href="https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf"><strong>操作手册 PDF</strong></a> ·
-  <a href="https://github.com/yuyou-dev/OpenGemCutting/discussions"><strong>Discussions</strong></a>
-</p>
-
 <div align="center">
-  <img src="public/brand/logo-header.webp" alt="SUVA 切磨工作台" width="260" />
-  <h1>OpenGemCutting · Facet 96</h1>
-  <p><strong>面向 96 分度切磨工艺的参数化宝石 3D 工作台</strong></p>
-  <p>A browser-based parametric gemstone faceting workbench for the 96-index system.</p>
-  <p>
-    <a href="https://yuyou-dev.github.io/OpenGemCutting/"><strong>Live Demo</strong></a> ·
-    <a href="https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf"><strong>操作手册</strong></a> ·
-    <a href="#快速开始--quick-start">快速开始</a> ·
-    <a href="#关键能力--features">关键能力</a> ·
-    <a href="#操作指南--workflow">操作指南</a> ·
-    <a href="https://github.com/yuyou-dev/OpenGemCutting/discussions">社区讨论</a> ·
-    <a href="#架构与代码地图--architecture">架构</a> ·
-    <a href="#english-overview">English</a>
-  </p>
+
+<img src="public/brand/logo-header.webp" width="72" alt="SUVA" />
+
+# OpenGemCutting
+
+**切磨工作台 · 让琢型设计，从一段对话开始。**
+
+96 齿参数化切割 · 真实几何 · 逐刀演示 · Codex 辅助设计
+
+[快速开始](#快速开始) · [用 Codex 设计](#用-codex-设计) · [操作手册](public/manual/facet-96-operation-manual.pdf) · [参与贡献](CONTRIBUTING.md)
+
+![Release candidate](https://img.shields.io/badge/version-1.0.0--rc.1-ed225d)
+![MIT](https://img.shields.io/badge/license-MIT-222222)
+![Local first](https://img.shields.io/badge/data-local_first-ffffff)
+
 </div>
 
----
+> **1.0 RC 候选版** · 设计与几何计算在浏览器本地完成。独立部署无需 Codex、登录或 API Key；搭配 Codex 可从参考图构建可编辑的琢型，再用真实三视图反复校准。
 
-![OpenGemCutting Facet 96 工作台](docs/assets/opengemcutting-workbench.jpg)
+![参数化切磨工作台，真实运行截图](docs/images/workbench.jpg)
 
-## 在线体验 · Live demo
+## 从形状，到每一刀
 
-品牌导航组始终保留 **“GitHub 仓库”** 入口，项目主页、普通编辑、收起侧栏、光学仿真和光学实验室均可使用；窄窗口也保持入口与导航同行。点击会在新标签页打开 [OpenGemCutting 仓库](https://github.com/yuyou-dev/OpenGemCutting)，当前设计留在原页面；本机、GitHub Pages 与其他部署均使用同一入口和地址。
+| 设计 | 观察 | 交付 |
+| --- | --- | --- |
+| 连续角度、96 齿分度、旋转与镜像 | 顶视、底视、侧视及三维观察 | 完整参数化 JSON |
+| Meet / Jump 与可回退的 CUT 序列 | 光学仿真与材质观察 | 可搜索中文的 PDF 切割报告 |
+| 原创预设或导入闭合 OBJ 晶体 | 保留凹槽、孔及分离组件 | 带预检与能力提示的 GemCad ASC |
 
-打开 **[OpenGemCutting Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)** 即可直接使用完整的 Facet 96 工作台，无需登录、后端或 API Key。设计数据仅在当前浏览器内处理；JSON、GemCad ASC 与 PDF 均在浏览器本地导入、导出或生成。
+### 切割助手：边看，边理解工序
 
-第一次使用可先阅读 **[《切磨工作台 Facet 96 操作手册》](https://yuyou-dev.github.io/OpenGemCutting/manual/facet-96-operation-manual.pdf)**。这是面向设计师的 26 页 A4 图解手册，配套 [7 份原创练习](docs/manual/README.md)，通过真实案例说明冠高、棱上比例、双点会合和四向节奏的设计用途，覆盖文件交换、切割助手演示、光学观察与交付；应用内“更多 → 帮助与操作手册”也提供同一下载入口。
+右侧仪表给出**下一刀**的分度、行业角、切入深度和本组刀序；底部播放器独立提供逐步、逐组、进度定位与自动播放。跟随当前面平滑转到 45° 斜向观察，可调整转场速度。手动操作与切到后台会暂停播放，退出后回到原编辑现场。
 
-当前版本为 **v0.8.2**：画布左上常驻「编辑 / 切割助手 β / 光学仿真」视口模式切换组；切割助手按已提交 CUT STACK 顺序从毛坯逐刀重放，支持逐步、逐组跳转与可点进度条；光学材质预设扩充至 25 项，光学视角条移至画布右上并修复滚轮／触摸抖动。从项目主页开始设计，按名称搜索并继续本机保存的项目；编辑页采用三栏布局，右侧集中显示 CUT STACK、冠部／亭部与侧视预览。现有 Meet / Jump、施工检查和文件交换能力继续保留。完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+![切割助手：独立仪表与播放器](docs/images/cutting-assistant.jpg)
 
-v0.6.1 引入的 Codex 一句话安装、升级与启动流程及 OpenGemCutting Companion 继续保留，可用于打开工作台、整理社区反馈、检查本地改动并准备 Pull Request。所有公开发布、push 和 PR 创建仍需最终预览与明确确认。
+### 琢型试作：把参考与真实模型放在一起
 
-建议使用启用 WebGL 与硬件加速的最新版 Chrome、Edge 或 Safari 桌面版，并使用不低于 `1280px` 的窗口宽度。在线演示与 `main` 分支保持同步，由 GitHub Pages 自动构建发布。
+同一份 JSON 驱动顶视、底视、侧视和轴测图。保留参考图片、比例说明与待确认项，下载后继续在工作台调整。截图中的教学参考由本项目原创几何生成，避免将漂亮的效果图当作工程实体。
 
-## 产品定位 · What it is
+![琢型试作：参考与模型对照](docs/images/design-review.jpg)
 
-OpenGemCutting 是 **SUVA 切磨工作台 · Facet 96** 的开源发行版：用参数化 `CUT STACK` 描述宝石切割，以 React 驱动编辑界面，以 p5.js WebGL 呈现实时几何，并提供 JSON 主文件、GemCad ASC 行业交换、PDF 技术报告与聚焦光学仿真。
+## 快速开始
 
-它关注切磨设计中的可解释性：保存的切层是几何唯一数据源，每个面都能追溯到区域、行业角、96 分度索引、深度和裁切平面。当前版本无需后端、账号或 API Key，数据留在浏览器与本地文件中。
-
-## 关键能力 · Features
-
-- **项目主页**：快速新建、按名称组合搜索、真实几何缩略图与本机项目自动保存；主页以少量粉色点缀延续工作台视觉。
-- **三栏编辑布局**：左侧参数、中央 3D、右侧可滚动 CUT STACK；同步显示冠部／亭部顶底视图和固定侧视图，直接观察当前真实或预览几何。
-- **真实参数化裁切**：凸多面体半空间裁切，旋转重复与镜像轨道都参与最终几何。
-- **96 分度工艺模型**：整数索引、行业角、切入深度、自定义索引和冠/腰/亭区域语义。
-- **252 个精选预设琢型、27 类外形**：按名称、设计者、来源、外形、有效面数与真实 L/W 组合筛选，每页 60 项；载入前核对真实几何的轴测、顶、底、正四视图。
-- **GemCad ASC 交换**：导入/导出前持久预检齿轮映射、统一比例、L/W、层面统计与不可逆信息；不精确映射、preform 或异常台面会明确阻断。
-- **CUT 四态工作流**：空闲、新建、编辑、群组变换由单一事件状态机管理，取消和 `Escape` 路径明确。
-- **Meet / Jump 定位**：冠部与亭部的对称及自定义索引支持顶点／棱点 A、双 Meet 和第二点 Jump。单 A 求解深度，双点在固定主分度下联合求解角度与深度；来源变化立即诊断，由设计师手动修复。
-- **施工回顾**：逐层试切助理只读比较切割前后及 A/B 来源，预形标记表达用途；已保存切面不会因来源变化自动级联改动。
-- **本机项目保存**：已提交文档与光学材质自动保存到当前项目，刷新后回到主页继续选择；同一站点的旧版有效备份会一次性迁入项目列表，原备份仍可从文件菜单管理。未保存 CUT 草稿、相机与旧撤销历史不跨刷新恢复。
-- **精密 3D 操作**：实体/X-ray、顶/正/侧/透视相机、角度桥架、深度杆和同心分度环。
-- **聚焦光学仿真**：当前真实几何直接进入折射、Fresnel、全反射、多次内反射、RGB 色散与 Beer-Lambert 体色观察；画布右缘提供独立视角切换。
-- **切割助手（beta）**：从画布左上视口模式切换组进入，按面逐步或按组跳转观看已提交设计的切割过程，进度条可直接跳转；序列只来自已提交 CUT STACK，只读不写历史，Escape 或“退出助手”返回原编辑现场。
-- **光学实验室入口**：主页和编辑页可进入保留当前项目上下文的空白实验室，也可返回编辑；实验工具仍待后续开发，与现有光学仿真分开。
-- **非破坏式文档历史**：图层显隐、重排、重命名、光学材质撤销/重做与 JSON 往返保持文档语义；被后续切割覆盖的参数化工序仍保留，可随撤销恢复。
-- **工艺输出**：A4 矢量优先 PDF 包含多视图、工程尺寸、分层参数与真实刻面高亮；面数、刻面台账、切割指令、PDF 与 ASC 统一读取已提交实体中的最终有效面。
-- **完整学习入口**：品牌加载页、任务式应用内帮助，以及 25 页设计师操作手册和 7 份可导入的原创案例。
-- **完整交付链路**：常规 Vite 客户端与 OpenAI Sites worker 产物由同一构建命令生成并测试。
-
-## 快速开始 · Quick start
-
-在线演示无需安装。如果希望在本机运行、保留代码或参与贡献，可以使用下面的 Codex 一句话流程，也可以继续使用传统 Git 方式。
-
-### 交给 Codex 的一句话 · One sentence for Codex
-
-普通用户不需要自己输入 Git、npm 或插件命令。把对应的一句话发给 Codex，它会阅读公开 runbook、保护现有本地改动、验证结果，并在可用时使用内置浏览器打开切磨工作台。
-
-**首次完整安装：工作台 + OpenGemCutting Companion**
+### 复制一句话给 Codex
 
 ```text
-请阅读并完整执行 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/INSTALL.md：安装、验证并运行 OpenGemCutting，同时安装 Companion，最后在 Codex 内置浏览器中打开切磨工作台。
+请按照 https://github.com/yuyou-dev/OpenGemCutting/blob/main/INSTALL.md 安装并启动完整 OpenGemCutting 切磨工作台，包含 OpenGemCutting Design 插件和 facet-parametric-design skill；在可用的 Codex 内置浏览器中打开工作台，验证后告诉我实际访问地址。
 ```
 
-**只安装工作台**
+安装流程会启动本地服务、检查页面并安装设计插件。**当前候选版尚未推送时，远程 main 仍是旧版本**；本地验收应对这个候选目录执行 INSTALL.md。发布后上面的一句话即可获取完整发行版本。
 
-```text
-请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/INSTALL.md，只安装、验证、运行并打开 OpenGemCutting 工作台，跳过 Companion。
-```
+插件是安装包，`facet-parametric-design` 是其中的设计流程。仓库同时携带与代码版本一致的完整 skill；即使没有插件管理能力，也可在此项目的新 Codex 任务中使用它。插件变更后按 Codex 界面提示重新加载插件或新建任务；不要把“已安装”误认为当前任务已加载。
 
-**升级或卸载工作台**
+已有安装可以让 Codex 按 [升级指南](https://github.com/yuyou-dev/OpenGemCutting/blob/main/UPGRADE.md) 更新；停止使用时按 [卸载指南](https://github.com/yuyou-dev/OpenGemCutting/blob/main/UNINSTALL.md) 保留设计并移除相应组件。
 
-```text
-请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/UPGRADE.md，安全升级我现有的 OpenGemCutting，保留本地改动，验证后重新运行并打开。
-```
+### 自己部署
 
-```text
-请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/UNINSTALL.md，准备卸载 OpenGemCutting 工作台；先展示准确目录和待处理文件、保护我的本地作品与改动，再向我确认是否移除。
-```
-
-**只安装 Companion：GitHub 引导、社区与贡献工具**
-
-```text
-请阅读 https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/plugins/opengemcutting-companion/LIFECYCLE.md，只安装并验证 OpenGemCutting Companion，然后告诉我如何在新的 Codex 任务中启用它。
-```
-
-English prompt for a complete first-time setup:
-
-```text
-Read and complete https://raw.githubusercontent.com/yuyou-dev/OpenGemCutting/main/INSTALL.md: install, verify, and run OpenGemCutting, install its Companion, and open the workbench in Codex's built-in browser.
-```
-
-应用和 Companion 相互独立，卸载任意一方都不会删除另一方。Companion 可浏览 GitHub Discussions，并把问题、想法和作品展示分别引导到 `Q&A`、`Ideas` 和 `Show and tell`；它也可检查本地改动并准备 PR。所有公开发布、push 或 PR 创建都会在最终预览后等待明确确认。
-
-### 开发者与 Fork 流程 · Developer and fork workflow
-
-需要 [Node.js](https://nodejs.org/) **20.19 或更高版本**。
+需要 Node.js **20.19+（20.x）或 22.12+**，以及 npm。
 
 ```bash
 git clone https://github.com/yuyou-dev/OpenGemCutting.git
@@ -121,171 +65,55 @@ npm ci
 npm run dev
 ```
 
-开发服务只监听 `127.0.0.1`，并让操作系统分配高位临时端口。打开终端打印的 `Local` 地址即可；无需环境变量。
+打开终端打印的 `http://127.0.0.1:<临时端口>/`。端口由操作系统分配，不占用固定端口。生产构建运行 `npm run build`，静态前端在 `dist/client/`，Sites 服务入口在 `dist/server/index.js`；普通静态服务器部署前端即可。GitHub Pages 使用 `npm run build:pages`。子路径部署需配置 Vite base。
 
-生产构建与本地预览：
+## 用 Codex 设计
 
-```bash
-npm run build
-npm run preview
-```
-
-## 操作指南 · Workflow
-
-1. 在项目主页“新建项目”或打开已有项目。进入编辑页后，可从“文件 → 浏览预设琢型”选择一个经过校验的起点，先核对四视图、面数、层数、分度与 L/W，再载入当前项目。
-2. 从 `CUT STACK` 底部的 `+` 开始一个新 CUT，设置行业角、切入深度、基础索引、重复数与镜像轴偏移；主切割面和 Gizmo 会同步预览。
-3. 冠部/亭部对称 CUT 可用 `J` / `Shift+J` 浏览交点，或显式选择顶点后锁定 Meet。新 CUT 从 `0.000` 深度开始，只有形成有效面后才能加入序列；候选会提示仅接触、有效切面或覆盖影响。
-4. 保存后，图层按堆栈顺序参与布尔裁切。右侧 CUT STACK 可独立滚动，点击“编辑”、参数或面数进入编辑，点击名称直接改名，拖动非台面层可重排；下方冠部／亭部切换与侧视图实时辅助观察，冠部/亭部整体变换可在一步历史中组合升降、比例与旋转。
-5. 使用顶部命令条切换相机与实体/X-ray；画布左上的视口模式切换组在「编辑 / 切割助手 β / 光学仿真」间互切。切割助手按已提交顺序逐步或逐组重放切割过程；光学仿真通过画布右缘视角条切换观察方向，检查材质、体色与观察环境，退出后完整恢复编辑现场。
-6. 在“文件”菜单保存完整 JSON、交换 GemCad ASC 或生成 PDF 技术报告；ASC 操作必须先通过预检。导出只使用已提交文档，不会自动保存当前预览。
-7. 已提交文档及材质变更会自动保存到当前项目，刷新后从主页再次打开。页面内往返主页或光学实验室会保留当前编辑现场；切换到其他项目时，未保存预览需要明确处理。同一站点的旧有效备份会一次性迁入主页，仍可从“文件 → 恢复本地设计”管理原备份。
-8. 遇到问题时从“更多 → 帮助与操作手册”打开任务式帮助，或下载完整 A4 图解手册。
-
-键盘约定：名称编辑按 `Enter` 或失焦保存、`Escape` 取消；`J` / `Shift+J` 在可用的 Meet / Jump 区域前后跳转，首尾不循环。`Escape` 优先关闭浮层或退出顶点拾取，再按才取消底层 CUT 会话。
-
-本机项目与旧备份属于当前浏览器与站点地址。清理站点数据、换浏览器或改变本地开发端口后，原项目不会自动迁移到新地址；请下载 JSON 作为长期归档，并在新地址导入。自动保存不包含未保存草稿、相机、观看参数或旧撤销历史。
-
-### 预设、编辑与光学 · Presets, editing and optics
-
-| 参数化工作区 | 预设琢型库 | 聚焦光学仿真 |
-| --- | --- | --- |
-| ![载入完成切型后的参数化工作区](docs/assets/opengemcutting-workbench.jpg) | ![包含四视图和来源信息的预设琢型库](docs/assets/opengemcutting-presets.jpg) | ![完成切型的聚焦光学仿真](docs/assets/opengemcutting-optics.jpg) |
-
-## 架构与代码地图 · Architecture
+1. 在 Codex 中打开安装好的 OpenGemCutting 项目，并启用 **OpenGemCutting Design** 插件，或直接使用仓库内 skill。
+2. 附上有权使用的参考三视图、照片或草图，说明保持的比例和希望调整的部分。
+3. 让 Codex 构建真实 CUT 分组、检查连接与对称、生成试作对照页。
+4. 在工作台调整一组角度或深度，比较顶视和侧视；认可后导出 JSON 留存。
 
 ```text
-src/
-  App.jsx                       项目主页、页面切换与项目保存编排
-  WorkbenchEditor.jsx           单项目文档、历史、CUT 会话与导出编排
-  components/
-    HomePage.jsx                项目搜索、新建与真实几何项目卡片
-    OpticalLabPage.jsx          保留项目上下文的空白实验室
-    OrthographicPreviews.jsx    冠部／亭部与侧视实时几何预览
-    TechnicalPreview.jsx        真实几何单视图线稿，卡片与正交预览共用
-    useProjects.js              浏览器项目存储与列表同步
-    GemViewport.jsx             p5.js WebGL、相机、Gizmo 与命中
-    OpticsViewport.jsx          当前实体的光学追迹与观察环境
-    OpticsViewSwitch.jsx        光学画布右缘的观察视角浮动切换条
-    ViewportModeSwitch.jsx      画布左上的「编辑 / 切割助手 β / 光学仿真」视口模式切换组，三个模式下常显互切
-    CuttingAssistantBar.jsx     切割助手顶部精简条与底部步进播放条（步信息、四向步进、进度条与计数）
-    CutStack.jsx                参数化图层与会话入口
-    CutComposer.jsx             分区切割指令
-    PresetLibraryDialog.jsx     预设检索、四视图与载入
-    AscTransferDialog.jsx       GemCad ASC 持久预检
-    HelpCenterDialog.jsx        任务式帮助与手册入口
-    RecoveryDialog.jsx          本地备份选择、恢复与删除
-    useLocalRecovery.js         旧本地备份的读取与删除 hook
-    ConstructionAssistantDialog.jsx 逐层试切与来源检查
-    Modal.jsx                   通用居中模态框与焦点管理
-    useDialogFocus.js           对话框焦点循环与 Escape 隔离 hook
-    RepositoryLink.jsx          常驻 GitHub 仓库入口，新标签页打开
-  domain/
-    cutSession.js               CUT 四态事件状态机与构造子状态
-    meetJump.js                 顶点／棱来源、候选、单／双 Meet 求解
-    cutConstruction.js          草稿主面与统一参数求解
-    constructionHistory.js      施工阶段实体与来源失效诊断
-    cuttingAssistant.js         切割助手（beta）的切割序列、分层步进器与半成品实体增量重放
-    projectLibrary.js           项目存储、校验与旧备份一次迁移
-    localRecovery.js            旧版独立备份读取与恢复校验
-    faceting.js                 96 分度、图层、序列化与命令
-    geometry.js                 凸多面体裁切与测量
-    gemcadAsc.js                ASC 解析、预检、比例换算与导出
-    presetLibrary.js            可扩展的预设 provider 边界
-    presetQuality.js            预设候选实体的拓扑与质量验收
-    optics.js                   光学材料、色散与吸收模型
-    document.js                 默认 T1 台面与 G1 腰部文档初始化
-  utils/
-    download.js                 统一浏览器文件下载
-    vector3.js                  视口共用三维向量工具
-  report/pdfReport.js           A4 矢量技术报告
-public/
-  presets/                      252 项内置规范化文档与 1,008 张四视图
-  manual/                       可下载的 A4 图解操作手册
-  schemas/                      公开可访问的 Facet 96 JSON Schema
-scripts/
-  build-preset-library.mjs      资料校验、策展与四视图批量生成
-  generate-user-manual.mjs      从真实截图生成操作手册
-  run-vite-local.mjs            127.0.0.1 + 临时端口启动器
-  prepare-sites-build.mjs       Sites 构建整理
-worker/index.js                 Sites 服务入口
-tests/sites-worker.test.mjs     Sites 产物契约测试
+使用 facet-parametric-design，根据这张图构建切角方形阶梯琢型。保持台面与腰厚比例；区分原图明确的信息和推断。交付可编辑 JSON、同尺度三视对照和待确认项，不把个人试作加入内置预设。
 ```
 
-设计与领域不变量见 [`design-system.md`](design-system.md) 和 [`AGENTS.md`](AGENTS.md)，全局状态与 CUT 交互契约见 [`state-contract.md`](state-contract.md)。GemCad ASC 的支持边界见 [`gemcad-asc.md`](gemcad-asc.md)，预设资料的质量门槛和扩展接口见 [`preset-library.md`](preset-library.md)。
-
-## 几何约定 · Geometry conventions
-
-- 凸体内部满足 `normal · point <= offset`。
-- 世界坐标 `+Z` 朝冠部；冠部几何 β 为正、腰部为 `0`、亭部为负。
-- 内部水平索引为 `0..95`，界面把 `0` 显示为行业常用的 `96`。
-- 保存的 `CUT STACK` 是几何唯一数据源；每个 `T/C/G/P` 图层是一份不可变参数快照，并按列表顺序应用一次。
-- 新文档以边长 `2.000`、轴心在原点的立方体为毛坯，包含固定 `T1 台面` 与可编辑 `G1 腰部` 预形。
-- N 折旋转重复生成 N 个明确裁切平面；非零镜像偏移可增加第二组 N 面轨道，重合面会去重。提交时至少形成一个有效面，后续覆盖可使实际贡献面数减少。
-- 普通冠部/亭部工序部分消面时显示提示，整层消失前需要确认；空实体和台面/腰部结构层整体失效会阻断。被覆盖的工序仍留在 CUT STACK 与 JSON，最终面数、工艺输出与 ASC 不计入被覆盖面。
-- Meet 是附在已提交切面上的构造快照，来源变化不会级联修改切面；JSON 保存并校验 Meet 元数据，PDF 标注有效来源或失效状态，ASC 只导出有效显式切面并提示构造意图丢失。
-- JSON 保留全精度；界面中的舍入仅用于显示。旧格式导入时会重新解析几何以维持兼容。
-
-修改几何前请先阅读 `src/domain/*.test.js` 与 `AGENTS.md` 中的领域约束。
-
-## 测试与质量 · Testing
+独立试作页的可复现入口：
 
 ```bash
-npm run check        # 公开内容扫描 + 领域/报告 + Companion + 构建 + Sites 测试
-npm test             # Node.js 领域与 PDF 测试
-npm run companion:test # Companion manifest、MCP Apps 与发布确认链路
-npm run test:sites   # Sites 产物契约
-npm run build        # dist/client + dist/server + hosting metadata
-npm run build:pages  # 生成 GitHub Pages 子路径产物
-npm run manual:build # 从已审核截图重建 A4 操作手册
-npm run report:sample
+npm run design:review -- docs/manual/examples/01-round-start.json --out output/my-study
 ```
 
-`npm run check` 是提交前的统一门禁。PDF 样本写入被忽略的 `output/pdf/`；构建产物写入被忽略的 `dist/`。
+命令打印应附加到工作台地址的 `?review=...` 参数。添加 `--reference image.png --views views.json --notes notes.txt` 可生成带裁切参考的对照；格式见 [设计 skill](.agents/skills/facet-parametric-design/SKILL.md)。试作输出保存在忽略的 `output/`，不自动上传。
 
-## 浏览器要求 · Browser support
+## 五分钟完成一次设计练习
 
-建议使用最新版 Chrome、Edge 或 Safari 桌面版，并启用硬件加速与 WebGL。界面为桌面精密工具设计，推荐宽度不低于 `1280px`；移动端可打开，但不属于当前主要编辑目标。Firefox/WebGL 环境可参与测试，但当前尚未列入正式支持矩阵。
+| 起点与意图 | 操作入口 | 判断结果 |
+| --- | --- | --- |
+| [圆形练习 01](docs/manual/examples/01-round-start.json)，观察清晰的八瓣冠部 | 新建项目 → 文件 → 导入 JSON | 顶视八瓣对称，侧视腰厚连续 |
+| 改变冠部层次 | CUT STACK 选择冠部 → 编辑 → 调角度/深度 → 保存 | 固定观察方向，比较面宽和冠高；不满意可撤销 |
+| 检查施工先后 | 画布左上 → 切割助手 → 下一组/播放 | “已完成”是已经切过的刀数，右栏始终提示下一刀 |
+| 留存完整设计 | 文件 → 导出 JSON；需要施工表则导出 PDF | JSON 可再次导入并编辑，PDF 用于阅读与沟通 |
 
-## Roadmap
+更多 Meet、双 Meet、凹晶体和可恢复操作见 [图解手册 PDF](public/manual/facet-96-operation-manual.pdf) 与 [教学案例](docs/manual/README.md)。
 
-- 增加个人预设 provider，让用户把当前 JSON 或已导入设计保存到自己的资料库。
-- 研究新的快捷构造与工艺诊断流程，并保持其服从统一 CUT 状态契约。
-- 增加 JSON schema、跨版本迁移夹具和浏览器回归覆盖。
-- 完善打印标注、手册版本追踪、报告可配置项与多语言界面。
-- 在 96 齿与凸体约束继续稳定后，评估更多分度轮和更广的交换格式。
+## 数据与支持范围
 
-Roadmap 表达方向，不构成时间承诺。建议先用 Issue 说明工艺场景与预期结果。
+- 项目自动保存在当前浏览器。清除浏览器数据、切换浏览器或本地端口不会自动迁移项目；重要设计请导出 JSON。
+- 新外部文件上限 20 MiB；JSON 最多 4096 个 CUT 平面，mesh stock 最多 20000 个顶点和 20000 个面片。OBJ 最多 4000 顶点、1000 源多边形且分解后不超过 1000 面片。超限会说明原因，当前设计保留。已有本机项目沿用原兼容规则。
+- RC 验证环境与实际结果见 [支持与验收](docs/rc-validation.md)。Safari、Firefox 待验证；移动端暂不列为完整创作环境。
+- 已有光学仿真可以使用；独立光学实验室仍为开发中入口。图形仿真与教学案例不保证实际切磨收益或某材料的光学等级。
 
-## 贡献 · Contributing
+## 开发与贡献
 
-欢迎提交错误复现、工艺案例、文档改进和小而聚焦的代码变更。开始前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)、[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) 与 [`SECURITY.md`](SECURITY.md)。
+```bash
+npm run check           # 公开扫描、领域回归、插件回归、构建与 Sites 验证
+npm audit               # 当前依赖审计
+npm run manual:build    # 从真实截图与教学案例重建 PDF
+```
 
-不熟悉 Git 也可以参与：安装 OpenGemCutting Companion 后，让 Codex 打开社区中心，它可以引导 GitHub 账号连接、浏览和整理 Discussions，或将已完成的本地改动准备为可审查的 Pull Request。
+[开发规范](AGENTS.md) · [状态契约](state-contract.md) · [设计系统](design-system.md) · [ASC 规则](gemcad-asc.md) · [版本记录](CHANGELOG.md)
 
-核心要求：保持 `CUT STACK` 的单一数据源语义、同步更新测试、避免无必要依赖，不要提交密钥、个人路径、私有主机或内部仓库信息。可见界面变更请附真实截图。
+**OpenGemCutting Companion** 是可选的社区反馈与贡献插件，与设计插件分工独立。见 [插件说明](plugins/opengemcutting-companion/LIFECYCLE.md)。提交反馈时请附可复现步骤与脱敏 JSON；请勿提交原始个人资料或密钥。
 
-维护者发布前请使用 [`docs/PUBLISHING.md`](docs/PUBLISHING.md) 完成品牌资产、提交身份、远程地址与安全渠道检查。
-
-## 许可证 · License
-
-OpenGemCutting 的代码和原创文档以 [MIT License](LICENSE) 发布。SUVA、切磨工作台、Facet 96 的名称与标识仍受各自品牌和商标权益约束；MIT 许可不授予商标使用权，详见 [`TRADEMARKS.md`](TRADEMARKS.md)。
-
-内置 Noto Serif SC 字体适用 SIL Open Font License 1.1，见 [`public/fonts/OFL.txt`](public/fonts/OFL.txt)。npm 依赖及内置第三方琢型保留各自来源、署名和权利边界；详情见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。品牌名称与标识不因软件许可证而自动获得商标授权。
-
-## 品牌与致谢 · Brand & acknowledgements
-
-**SUVA / 切磨工作台 / Facet 96** 是本项目保留的正确产品标识。项目名称 OpenGemCutting 用于开源工程；请勿将 SUVA 拼写为 “SUWA”。
-
-感谢 [React](https://react.dev/)、[p5.js](https://p5js.org/)、[Vite](https://vite.dev/)、[pdf-lib](https://pdf-lib.js.org/) 与 Tabler Icons 社区，以及宝石切磨实践者对 96 分度工艺知识的长期积累。
-
-## English overview
-
-OpenGemCutting is the open-source distribution of **SUVA Gem Cutting Workbench · Facet 96**. It models a gemstone as an ordered stack of parameterized half-space cuts, renders the result with p5.js WebGL, and includes 252 validated presets across 27 outline categories, GemCad ASC exchange, focused optical simulation, round-trippable JSON, vector-first PDF instructions, in-app help, and a downloadable illustrated manual.
-
-Version **v0.8.0** opens on a project home page with name search, real-geometry project cards and browser-local saving. The three-column editor places a scrollable CUT STACK and live crown/pavilion and side previews on the right. Optical simulation has a floating view selector inside its canvas; the new optical laboratory is an empty workspace for future tools. Navigating between pages preserves the active editing session. Valid legacy backups migrate once on the same site, while JSON remains the portable archive across browsers and addresses. Existing Meet / Jump, construction diagnostics and material undo/redo remain available. The updated 25-page designer manual includes seven original practice files. See [CHANGELOG.md](CHANGELOG.md) for details.
-
-Codex users can copy the setup sentence in [Quick start](#快速开始--quick-start) to install, verify, run, and open the workbench without manually entering Git or npm commands. The optional Companion adds guided GitHub onboarding, categorized Discussions and community drafts, plus reviewed Pull Request preparation; it never performs an external write without a final preview and explicit confirmation.
-
-For the traditional workflow, install Node.js 20.19+, run `npm ci`, then `npm run dev`. The server binds only to `127.0.0.1` on an OS-assigned high port. Run `npm run check` before contributing. The editor is desktop-first and works best in a current Chromium or Safari browser with WebGL enabled.
-
-The code and documentation are available under the [MIT License](LICENSE). SUVA, Gem Cutting Workbench, and Facet 96 names and marks are governed separately; see [`TRADEMARKS.md`](TRADEMARKS.md). Code, issue, and documentation contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md).
+[MIT License](LICENSE)。预设与第三方资源的来源、授权范围及品牌说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

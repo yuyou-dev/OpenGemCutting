@@ -1,3 +1,5 @@
+import { getMeshViewGeometry } from "../domain/meshDisplay.js";
+
 import { displayIndex, FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../domain/faceting.js";
 import { MEET_STATUS, summarizeEffectiveFacets } from "../domain/meetJump.js";
 import { buildConstructionStages } from "../domain/constructionHistory.js";
@@ -66,7 +68,7 @@ function attachConstructionSummaries(groups, document, hiddenPatternIds = []) {
   const stageById = new Map(stages.map((stage) => [stage.id, stage]));
   const labelById = new Map(stages.map((stage) => [stage.id, (stage.facets[0].label || stage.id).split(/\s+/)[0]]));
   const describeTarget = (target) => {
-    const sources = target.sourceOperationIds.filter((id) => id !== "rough-cube")
+    const sources = target.sourceOperationIds.filter((id) => id !== "rough-cube" && id !== "rough-mesh")
       .map((id) => labelById.get(id) ?? id).join(" × ") || "毛坯";
     const kind = target.kind === "edge-point" ? `棱点 ${(target.ratio * 100).toFixed(2)}%` : "顶点";
     return `${kind} · 来源 ${sources}`;
@@ -128,7 +130,8 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
     storedFacetCount: document.facets.length,
     effectiveFacetCount: reportFacets.length,
     omittedFacetCount,
-    operationCount: groups.length, faceCount: metrics.faces.length,
+    operationCount: groups.length, faceCount: solid.kind === "mesh" ? reportFacets.length : metrics.faces.length,
+    surfacePatchCount: solid.faces.length,
     exportedFacetCount: reportFacets.length - (includeGirdle ? 0 : girdleFacetCount),
     includeGirdle,
     girdleSummary: { groupCount: girdleGroups.length, facetCount: girdleFacetCount },
@@ -175,6 +178,11 @@ function viewAxis(axes) {
 // the original cube cap is gone, so match by elevation, not by missing source.
 export function findTableFace(solid) {
   const zOf = (face) => face.vertexIndices.reduce((sum, index) => sum + solid.vertices[index].z, 0) / face.vertexIndices.length;
+  if (solid.kind === "mesh") {
+    const faces = solid.faces.filter(face => face.sourceOperationId === "table-facet" && (face.normal?.z || 0) > 0.999);
+    if (!faces.length) return undefined;
+    return { ...faces[0], vertexIndices: [...new Set(faces.flatMap(face => face.vertexIndices))] };
+  }
   return solid.faces
     .filter((face) => (face.normal?.z || 0) > 0.999)
     .sort((a, b) => zOf(b) - zOf(a))[0];
@@ -218,8 +226,17 @@ function fitProjection(solid, axes, box, visibility, basis) {
       x: box.x + box.width / 2 + (horizontalValue(vertex) - (minX + maxX) / 2) * scale,
       y: box.y + box.height / 2 + (verticalValue(vertex) - (minY + maxY) / 2) * scale,
     });
+  const points = vertices.map(project);
+  let edges = vectorEdges(solid, visibility);
+  let visibleFaces = null;
+  if (solid.kind === "mesh") {
+    const direction = visibility.vector ?? { x: 0, y: 0, z: 0, [visibility.axis]: visibility.sign };
+    const visible = getMeshViewGeometry(solid, direction);
+    edges = visible.segments.map(segment => segment.map(vertex => { points.push(project(vertex)); return points.length - 1; }));
+    visibleFaces = visible.faces;
+  }
   return {
-    points: vertices.map(project), edges: vectorEdges(solid, visibility), project,
+    points, edges, project, visibleFaces,
     center: { x: box.x + box.width / 2, y: box.y + box.height / 2 },
     bounds: {
       minX: box.x + box.width / 2 + (minX - (minX + maxX) / 2) * scale,
@@ -289,12 +306,12 @@ function drawObjectDimension(page, start, end, objectStart, objectEnd, label, ve
 }
 
 function drawProjectionAnnotations(page, model, projection, axes, options, assets) {
-  const { latin, latinBold, rgb } = assets;
+  const { latin, bold, rgb } = assets;
   if (options.showFaceLabels) {
     const facesByOperation = new Map();
-    model.solid.faces.filter((face) => isFaceVisible(face, options.visibility)).forEach((face) => {
-      if (!face.sourceOperationId) return;
-      const vertices = face.vertexIndices.map((index) => model.solid.vertices[index]);
+    (projection.visibleFaces ?? model.solid.faces).filter((face) => isFaceVisible(face, options.visibility)).forEach((face) => {
+      if (!face.sourceOperationId || face.sourceOperationId === "rough-mesh") return;
+      const vertices = face.vertices ?? face.vertexIndices.map((index) => model.solid.vertices[index]);
       const centroid = vertices.reduce((sum, vertex) => ({
         x: sum.x + vertex.x / vertices.length,
         y: sum.y + vertex.y / vertices.length,
@@ -315,8 +332,8 @@ function drawProjectionAnnotations(page, model, projection, axes, options, asset
         y: projection.center.y + (point.y - projection.center.y) * 0.76,
       };
       page.drawText(label, {
-        x: annotationPoint.x + offsetX - latinBold.widthOfTextAtSize(label, size) / 2, y: annotationPoint.y - size / 2,
-        font: latinBold, size, color: rgbOf(rgb, COLOR.muted),
+        x: annotationPoint.x + offsetX - bold.widthOfTextAtSize(label, size) / 2, y: annotationPoint.y - size / 2,
+        font: bold, size, color: rgbOf(rgb, COLOR.muted),
       });
       labelIndex += 1;
     });
@@ -355,17 +372,17 @@ function drawProjection(page, model, config, assets) {
   const visibility = basis ? { vector: basis.view } : { axis: viewAxis(axes), sign: viewSign };
   const projection = fitProjection(model.solid, axes, box, visibility, basis);
   if (highlightOperationId) {
-    model.solid.faces
+    (projection.visibleFaces ?? model.solid.faces)
       .filter((face) => face.sourceOperationId === highlightOperationId && isFaceVisible(face, visibility))
       .forEach((face) => {
-        const points = face.vertexIndices.map((index) => projection.points[index]);
+        const points = face.vertices ? face.vertices.map(projection.project) : face.vertexIndices.map((index) => projection.points[index]);
         if (points.length < 3) return;
         const path = `${points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(2)} ${(A4.height - point.y).toFixed(2)}`).join(" ")} Z`;
         page.drawSvgPath(path, {
           y: A4.height,
           color: rgbOf(rgb, COLOR.accent),
           borderColor: rgbOf(rgb, COLOR.accent),
-          borderWidth: 0.7,
+          borderWidth: model.solid.kind === "mesh" ? 0 : 0.7,
           opacity: 0.24,
           borderOpacity: 0.95,
         });
@@ -602,8 +619,8 @@ export async function createFacetReportPdfBytes(input, resources) {
 
 export async function createFacetReportPdf(input) {
   const [regularBytes, boldBytes, logoBytes] = await Promise.all([
-    fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-Light.ttf`), fetchBytes(`${import.meta.env.BASE_URL}fonts/NotoSerifSC-SemiBold.ttf`),
-    fetchBytes(`${import.meta.env.BASE_URL}brand/logo-report.png`).catch(() => null),
+    fetchBytes("/fonts/NotoSerifSC-Light.ttf"), fetchBytes("/fonts/NotoSerifSC-SemiBold.ttf"),
+    fetchBytes("/brand/logo-report.png").catch(() => null),
   ]);
   const bytes = await createFacetReportPdfBytes(input, { regularBytes, boldBytes, logoBytes });
   return new Blob([bytes], { type: "application/pdf" });

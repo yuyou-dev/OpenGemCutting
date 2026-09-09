@@ -1,3 +1,4 @@
+import { createStockSolid } from "./stockGeometry.js";
 /**
  * Cutting Assistant: expands a faceting document into a linear per-facet
  * cutting sequence, a tier-aware stepper, and an incremental replay of the
@@ -25,7 +26,7 @@ import {
   FACET_REGION_PREFIXES,
   normalizeIndex,
 } from "./faceting.js";
-import { clipPolyhedronByPlanes, createCenteredCube } from "./geometry.js";
+import { clipPolyhedronByPlanes } from "./geometry.js";
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -274,7 +275,7 @@ export function makeCuttingStepper(sequence) {
  *
  * `solidAt(p)` returns the stock cube for p = 0 and the stock clipped by the
  * first p step planes for p > 0, using the same geometry path as the
- * workbench construction stages (createCenteredCube from the document stock
+ * workbench construction stages (createStockSolid from the document stock
  * + clipPolyhedronByPlanes with per-plane operation provenance). Positions
  * clamp into [0, total]. Computed solids are cached, so forward stepping
  * costs one clip per step and backward/jump access replays from the nearest
@@ -286,11 +287,7 @@ export function createCuttingReplay(document, { hiddenPatternIds = [] } = {}) {
   const cache = new Map([
     [
       0,
-      createCenteredCube(document.stock.size, {
-        center: document.stock.center,
-        sourceOperationId: "rough-cube",
-        region: "rough",
-      }),
+      createStockSolid(document.stock),
     ],
   ]);
 

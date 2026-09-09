@@ -78,6 +78,7 @@ export function CutComposer({
                   type="number"
                   min="0"
                   max="48"
+                  aria-label="镜像轴偏移"
                   value={mirrorOffset}
                   disabled={lockedPattern || controlsDisabled}
                   onChange={(event) => onMirrorChange(Number(event.target.value) || 0)}

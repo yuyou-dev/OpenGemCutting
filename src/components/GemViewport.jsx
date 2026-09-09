@@ -14,7 +14,10 @@ import {
   subtractVectors as subtract,
   vectorLength as length,
 } from "../utils/vector3.js";
+import { getMeshBoundaryEdges } from "../domain/meshDisplay.js";
+import { getMeshBvh, raycastMesh, intersectMeshSegment, isPointInsideMesh } from "../domain/meshRaycast.js";
 import { clamp } from "../utils/format.js";
+import { advanceViewportCamera, createViewportFrames, cuttingCameraPose, startCameraTransition } from "./viewportFrames.js";
 import "./GemViewport.css";
 
 const VIEW_POSES = {
@@ -83,11 +86,8 @@ function computeBounds(vertices) {
 
   const center = multiply(add(min, max), 0.5);
   const span = subtract(max, min).map((value) => Math.max(value, 1e-4));
-  const radius = Math.max(
-    ...vertices.map((point) => length(subtract(point, center))),
-    length(span) * 0.5,
-    0.5,
-  );
+  let radius = Math.max(length(span) * 0.5, 0.5);
+  for (const point of vertices) radius = Math.max(radius, length(subtract(point, center)));
 
   return { min, max, center, span, radius };
 }
@@ -108,7 +108,9 @@ function normalizeGeometry(polyhedron) {
 
       if (points.length < 3) return null;
 
-      const normal = normalize(cross(subtract(points[1], points[0]), subtract(points[2], points[0])));
+      const normal = source.kind === "mesh" && face.normal
+        ? normalize(toPoint(face.normal))
+        : normalize(cross(subtract(points[1], points[0]), subtract(points[2], points[0])));
       return {
         id: face?.id ?? faceIndex,
         operationId: Array.isArray(face) ? null : face?.sourceOperationId ?? null,
@@ -119,11 +121,43 @@ function normalizeGeometry(polyhedron) {
     })
     .filter(Boolean);
 
-  return {
-    vertices,
-    faces,
-    bounds: computeBounds(vertices),
-  };
+  // Mesh triangulation seams are not physical crystal or CUT boundaries.
+  // Keep the original immutable solid so visibility, picking and optics can
+  // share its world-space BVH instead of rebuilding one for each camera frame.
+  if (source.kind === "mesh") {
+    const edgeIndices = getMeshBoundaryEdges(source);
+    const edgeOwners = new Map();
+    source.faces.forEach((face) => {
+      face.vertexIndices.forEach((a, index) => {
+        const b = face.vertexIndices[(index + 1) % face.vertexIndices.length];
+        const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+        if (!edgeOwners.has(key)) edgeOwners.set(key, new Set());
+        edgeOwners.get(key).add(face.sourceOperationId);
+      });
+    });
+    const operationEdges = new Map();
+    const edges = edgeIndices.map(([a, b]) => {
+      const edge = [vertices[a], vertices[b]];
+      for (const id of edgeOwners.get(a < b ? `${a}:${b}` : `${b}:${a}`)) {
+        if (!operationEdges.has(id)) operationEdges.set(id, []);
+        operationEdges.get(id).push(edge);
+      }
+      return edge;
+    });
+    return {
+      kind: "mesh", source, vertices, faces, edges, operationEdges,
+      bounds: computeBounds(vertices),
+    };
+  }
+  // Geometry is immutable: weld display edges once per solid, not on every frame.
+  const uniqueEdges = new Map();
+  faces.forEach((face) => {
+    face.points.forEach((point, index) => {
+      const next = face.points[(index + 1) % face.points.length];
+      uniqueEdges.set(edgeKey(point, next), [point, next]);
+    });
+  });
+  return { vertices, faces, edges: [...uniqueEdges.values()], bounds: computeBounds(vertices) };
 }
 
 function normalizeIndex(value) {
@@ -204,11 +238,14 @@ function p5Line(p, start, end, sceneScale) {
 
 function drawDashedLine(p, start, end, sceneScale, dashCount = 13) {
   const delta = subtract(end, start);
+  p.beginShape(p.LINES);
   for (let part = 0; part < dashCount; part += 2) {
     const from = add(start, multiply(delta, part / dashCount));
     const to = add(start, multiply(delta, Math.min((part + 1) / dashCount, 1)));
-    p5Line(p, from, to, sceneScale);
+    p5Vertex(p, from, sceneScale);
+    p5Vertex(p, to, sceneScale);
   }
+  p.endShape();
 }
 
 function expandedBounds(bounds, amount = 1.14) {
@@ -487,15 +524,70 @@ function projectedTriangle(point, a, b, c) {
   };
 }
 
+function createViewToDomain(frame) {
+  const m = frame.mv;
+  const x = [m[0], m[1], m[2]], y = [m[4], m[5], m[6]], z = [m[8], m[9], m[10]];
+  const yz = cross(y, z), zx = cross(z, x), xy = cross(x, y);
+  const determinant = x[0] * yz[0] + x[1] * yz[1] + x[2] * yz[2];
+  return (view) => {
+    const relative = [view[0] - m[12], view[1] - m[13], view[2] - m[14]];
+    const local = [yz, zx, xy].map((row) => row.reduce((sum, value, axis) => sum + value * relative[axis], 0) / determinant / frame.scale);
+    return [local[0], local[2], -local[1]];
+  };
+}
+
+function meshScreenRay(x, y, frame) {
+  const ndcX = x / frame.width * 2 - 1;
+  const ndcY = 1 - y / frame.height * 2;
+  const z = -1;
+  const w = frame.pr[11] * z + frame.pr[15];
+  const viewX = (ndcX * w - frame.pr[8] * z - frame.pr[12]) / frame.pr[0];
+  const viewY = (ndcY * w - frame.pr[9] * z - frame.pr[13]) / frame.pr[5];
+  const fromView = createViewToDomain(frame);
+  const origin = fromView(frame.perspective ? [0, 0, 0] : [viewX, viewY, 0]);
+  return { origin, direction: subtract(fromView([viewX, viewY, z]), origin) };
+}
+
 function createSolidOccluder(geometry, frame, renderMode) {
   if (renderMode !== "solid" || !frame || !geometry?.faces?.length) return () => false;
+  if (geometry.kind === "mesh") {
+    const bvh = getMeshBvh(geometry.source);
+    const fromView = createViewToDomain(frame);
+    return (point) => {
+      if (!Number.isFinite(point?.viewZ)) return false;
+      const origin = fromView(frame.perspective ? [0, 0, 0] : [point.viewX, point.viewY, 0]);
+      const target = fromView([point.viewX, point.viewY, point.viewZ]);
+      return Boolean(intersectMeshSegment(bvh, origin, target));
+    };
+  }
+  const minimum = [Infinity, Infinity, Infinity];
+  const maximum = [-Infinity, -Infinity, -Infinity];
+  let bounded = true;
   const triangles = geometry.faces.flatMap((face) => {
     const points = face.points.map((point) => {
       const [x, y, z] = transformPoint(point, frame.scale);
-      return multiplyMat4Point(frame.mv, x, y, z).slice(0, 3);
+      const view = multiplyMat4Point(frame.mv, x, y, z).slice(0, 3);
+      view.forEach((value, axis) => {
+        if (!Number.isFinite(value)) bounded = false;
+        minimum[axis] = Math.min(minimum[axis], value);
+        maximum[axis] = Math.max(maximum[axis], value);
+      });
+      return view;
     });
-    return points.slice(1, -1).map((point, index) => [points[0], point, points[index + 2]]);
+    return points.slice(1, -1).map((point, index) => ({
+      origin: points[0],
+      edge1: subtract(point, points[0]),
+      edge2: subtract(points[index + 2], points[0]),
+    }));
   });
+  for (let axis = 0; axis < 3; axis += 1) {
+    // This is only a conservative rejection box, never a replacement for the
+    // triangle test. Expand beyond its numerical thresholds and coordinate ULPs.
+    const padding = Math.max(1, maximum[axis] - minimum[axis]) * 1e-5
+      + Math.max(Math.abs(minimum[axis]), Math.abs(maximum[axis])) * Number.EPSILON * 32;
+    minimum[axis] -= padding;
+    maximum[axis] += padding;
+  }
 
   return (point) => {
     if (!Number.isFinite(point?.viewX) || !Number.isFinite(point?.viewY) || !Number.isFinite(point?.viewZ)) return false;
@@ -504,20 +596,42 @@ function createSolidOccluder(geometry, frame, renderMode) {
     const direction = frame.perspective ? normalize(target) : [0, 0, -1];
     const pointDistance = frame.perspective ? length(target) : -point.viewZ;
 
-    return triangles.some(([a, b, c]) => {
-      const edge1 = subtract(b, a);
-      const edge2 = subtract(c, a);
-      const h = cross(direction, edge2);
-      const determinant = edge1[0] * h[0] + edge1[1] * h[1] + edge1[2] * h[2];
+    if (bounded) {
+      let near = 0;
+      let far = Infinity;
+      for (let axis = 0; axis < 3; axis += 1) {
+        if (direction[axis] === 0) {
+          if (origin[axis] < minimum[axis] || origin[axis] > maximum[axis]) return false;
+          continue;
+        }
+        const a = (minimum[axis] - origin[axis]) / direction[axis];
+        const b = (maximum[axis] - origin[axis]) / direction[axis];
+        near = Math.max(near, Math.min(a, b));
+        far = Math.min(far, Math.max(a, b));
+        if (far < near) return false;
+      }
+    }
+
+    return triangles.some(({ origin: a, edge1, edge2 }) => {
+      // Möller–Trumbore with the same arithmetic and tolerances; keep its
+      // temporary vectors scalar to avoid allocations for every helper query.
+      const hx = direction[1] * edge2[2] - direction[2] * edge2[1];
+      const hy = direction[2] * edge2[0] - direction[0] * edge2[2];
+      const hz = direction[0] * edge2[1] - direction[1] * edge2[0];
+      const determinant = edge1[0] * hx + edge1[1] * hy + edge1[2] * hz;
       if (Math.abs(determinant) < 1e-7) return false;
       const inverse = 1 / determinant;
-      const s = subtract(origin, a);
-      const u = inverse * (s[0] * h[0] + s[1] * h[1] + s[2] * h[2]);
+      const sx = origin[0] - a[0];
+      const sy = origin[1] - a[1];
+      const sz = origin[2] - a[2];
+      const u = inverse * (sx * hx + sy * hy + sz * hz);
       if (u < 0 || u > 1) return false;
-      const q = cross(s, edge1);
-      const v = inverse * (direction[0] * q[0] + direction[1] * q[1] + direction[2] * q[2]);
+      const qx = sy * edge1[2] - sz * edge1[1];
+      const qy = sz * edge1[0] - sx * edge1[2];
+      const qz = sx * edge1[1] - sy * edge1[0];
+      const v = inverse * (direction[0] * qx + direction[1] * qy + direction[2] * qz);
       if (v < 0 || u + v > 1) return false;
-      const distance = inverse * (edge2[0] * q[0] + edge2[1] * q[1] + edge2[2] * q[2]);
+      const distance = inverse * (edge2[0] * qx + edge2[1] * qy + edge2[2] * qz);
       return distance > 1e-5 && distance < pointDistance - 1e-4;
     });
   };
@@ -525,17 +639,37 @@ function createSolidOccluder(geometry, frame, renderMode) {
 
 function createSolidSilhouetteTest(geometry, frame, renderMode) {
   if (renderMode !== "solid" || !frame || !geometry?.faces?.length) return () => false;
+  let minX = Infinity; let minY = Infinity;
+  let maxX = -Infinity; let maxY = -Infinity;
+  let bounded = true;
   const triangles = geometry.faces.flatMap((face) => {
     const points = face.points.map((point) => projectDomainPoint(point, frame, false));
-    if (points.some((point) => !point)) return [];
+    if (points.some((point) => !point)) {
+      bounded = false;
+      return [];
+    }
+    for (const point of points) {
+      if (![point.x, point.y, point.viewX, point.viewY, point.viewZ, point.ndcZ, point.clipW].every(Number.isFinite)) bounded = false;
+      minX = Math.min(minX, point.x); maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y); maxY = Math.max(maxY, point.y);
+    }
     return points.slice(1, -1).map((point, index) => [points[0], point, points[index + 2]]);
   });
-  return (point) => triangles.some(([a, b, c]) => projectedTriangle(point, a, b, c) !== null);
+  // Two barycentric weights may be as low as -1e-4. Twice that span is
+  // therefore inside the old acceptance envelope; leave additional roundoff room.
+  const paddingX = (maxX - minX) * 4e-4 + 1e-5 + Math.max(Math.abs(minX), Math.abs(maxX)) * Number.EPSILON * 32;
+  const paddingY = (maxY - minY) * 4e-4 + 1e-5 + Math.max(Math.abs(minY), Math.abs(maxY)) * Number.EPSILON * 32;
+  return (point) => {
+    if (bounded && Number.isFinite(point?.x) && Number.isFinite(point?.y)
+      && (point.x < minX - paddingX || point.x > maxX + paddingX
+        || point.y < minY - paddingY || point.y > maxY + paddingY)) return false;
+    return triangles.some(([a, b, c]) => projectedTriangle(point, a, b, c) !== null);
+  };
 }
 
-function createHelperOcclusionTest(geometry, frame, renderMode) {
+function createHelperOcclusionTest(geometry, frame, renderMode, isInsideSilhouette) {
   const isOccluded = createSolidOccluder(geometry, frame, renderMode);
-  const isInsideSilhouette = createSolidSilhouetteTest(geometry, frame, renderMode);
+  if (geometry?.kind === "mesh") return isOccluded;
   const center = projectDomainPoint(geometry?.bounds?.center, frame, false);
   return (point) => (
     isOccluded(point)
@@ -545,6 +679,10 @@ function createHelperOcclusionTest(geometry, frame, renderMode) {
 
 function createSolidInteriorTest(geometry, renderMode) {
   if (renderMode !== "solid" || !geometry?.faces?.length) return () => false;
+  if (geometry.kind === "mesh") {
+    const bvh = getMeshBvh(geometry.source);
+    return (point) => isPointInsideMesh(bvh, point);
+  }
   const [centerX, centerY] = geometry.bounds.center;
   const radialEnvelope = Math.max(...geometry.vertices.map((point) => (
     Math.hypot(point[0] - centerX, point[1] - centerY)
@@ -556,12 +694,21 @@ function createSolidInteriorTest(geometry, renderMode) {
   );
 }
 
+const helperVisibilityContexts = new WeakMap();
+
 function createHelperVisibilityContext(scene) {
   const { geometry, frame, renderMode } = scene;
-  const isOccluded = createHelperOcclusionTest(geometry, frame, renderMode);
+  const frameContexts = frame ? helperVisibilityContexts.get(frame) ?? new Map() : null;
+  const cached = frameContexts?.get(geometry);
+  if (cached?.renderMode === renderMode) return cached.context;
+
+  // The legacy silhouette checks below are conservative convex-only helper
+  // rules. Mesh helpers use actual depth and material occupancy, preserving
+  // visible handles in cavities and in front of recessed faces.
+  const isInsideSilhouette = geometry?.kind === "mesh" ? () => false : createSolidSilhouetteTest(geometry, frame, renderMode);
+  const isOccluded = createHelperOcclusionTest(geometry, frame, renderMode, isInsideSilhouette);
   const isInsideSolid = createSolidInteriorTest(geometry, renderMode);
-  const isInsideSilhouette = createSolidSilhouetteTest(geometry, frame, renderMode);
-  return {
+  const context = {
     isOccluded,
     isInsideSolid,
     isInsideSilhouette,
@@ -574,6 +721,13 @@ function createHelperVisibilityContext(scene) {
       return Boolean(projected && !isInsideSolid(point) && !isOccluded(projected));
     },
   };
+  // Overlay, labels and picking share identical matrices for a rendered frame.
+  // New geometry or a new frame gets fresh queries; old frames are collectable.
+  if (frameContexts) {
+    frameContexts.set(geometry, { renderMode, context });
+    helperVisibilityContexts.set(frame, frameContexts);
+  }
+  return context;
 }
 
 function overlayDepth(point) {
@@ -589,6 +743,27 @@ function drawProjectedScreenSegment(p, start, end) {
     end.y - p.height / 2,
     overlayDepth(end),
   );
+}
+
+function drawScreenSegmentBatch(p, segments) {
+  let weight = null;
+  let color = null;
+  for (const segment of segments) {
+    if (segment.weight !== weight) {
+      if (weight !== null) p.endShape();
+      weight = segment.weight;
+      p.strokeWeight(weight);
+      p.beginShape(p.LINES);
+    }
+    if (!color || segment.color.some((value, index) => value !== color[index])) {
+      color = segment.color;
+      p.stroke(...color);
+    }
+    for (const point of [segment.start, segment.end]) {
+      p.vertex(point.x - p.width / 2, point.y - p.height / 2, overlayDepth(point));
+    }
+  }
+  if (weight !== null) p.endShape();
 }
 
 function drawClippedWorldSegment(p, start, end, projectPoint, isHidden, isInsideSolid, subdivisions = 24) {
@@ -779,6 +954,14 @@ function pickSceneTarget(x, y, scene) {
       }
     });
     return bestVertex;
+  }
+
+  if (scene.geometry?.kind === "mesh") {
+    const ray = meshScreenRay(x, y, frame);
+    const hit = raycastMesh(scene.geometry.source, ray.origin, ray.direction);
+    const operationId = hit?.face.sourceOperationId;
+    // An uncut rough surface blocks selection of a CUT behind it.
+    return operationId && operationId !== "rough-mesh" ? { kind: "face", operationId } : null;
   }
 
   const hitFaces = faces
@@ -1015,6 +1198,24 @@ function mirrorAtScreenPoint(x, y, ring) {
   return best?.value ?? null;
 }
 
+const indexMarkerPalettes = new WeakMap();
+
+function indexMarkerPalette(p) {
+  let palette = indexMarkerPalettes.get(p);
+  if (!palette) {
+    palette = {
+      rotationFill: p.color(255, 255, 255, 245),
+      mirrorFill: p.color(255, 255, 255, 242),
+      rotationFront: p.color(31, 38, 42, 235),
+      rotationBack: p.color(31, 38, 42, 82),
+      mirrorFront: p.color(166, 119, 18, 235),
+      mirrorBack: p.color(166, 119, 18, 82),
+    };
+    indexMarkerPalettes.set(p, palette);
+  }
+  return palette;
+}
+
 function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   if (!ring) return;
   const graphite = [31, 38, 42];
@@ -1024,6 +1225,7 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   const toLocal = (screen) => [screen.x - p.width / 2, screen.y - p.height / 2, overlayDepth(screen)];
 
   const drawTrack = (samples, radius, color, active) => {
+    const segments = [];
     samples.slice(0, INDEX_TEETH).forEach((point, index) => {
       const next = samples[index + 1];
       const front = (point.viewZ + next.viewZ) / 2 >= ring.center.viewZ;
@@ -1036,15 +1238,15 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
         || isOccluded(projectedMidpoint)
         || (!front && isInsideSilhouette(projectedMidpoint))
       ) return;
-      p.stroke(color[0], color[1], color[2], front ? (active ? 245 : 185) : 46);
-      p.strokeWeight(active ? 1.7 : 1.05);
-      drawProjectedScreenSegment(p, point, next);
+      segments.push({ start: point, end: next, color: [...color, front ? (active ? 245 : 185) : 46], weight: active ? 1.7 : 1.05 });
     });
+    drawScreenSegmentBatch(p, segments);
   };
 
   drawTrack(ring.outer, ring.outerRadius, graphite, activeIndex);
   drawTrack(ring.inner, ring.innerRadius, warm, activeMirror);
 
+  const ticks = [];
   for (let tooth = 0; tooth < INDEX_TEETH; tooth += 1) {
     const major = tooth % 12 === 0;
     const mid = tooth % 6 === 0;
@@ -1056,11 +1258,11 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
       isOccluded(outerMidpoint)
       || (outerMidpoint.viewZ < ring.center.viewZ && isInsideSilhouette(outerMidpoint))
     ) continue;
-    p.stroke(graphite[0], graphite[1], graphite[2], front ? (major ? 205 : 115) : 36);
-    p.strokeWeight(major ? 1.45 : 0.85);
-    drawProjectedScreenSegment(p, outerFrom, outerTo);
+    ticks.push({ start: outerFrom, end: outerTo, color: [...graphite, front ? (major ? 205 : 115) : 36], weight: major ? 1.45 : 0.85 });
   }
+  drawScreenSegmentBatch(p, ticks);
 
+  const axisTicks = [];
   ring.axes.forEach((axis) => {
     [axis, axis + INDEX_TEETH / 2].forEach((tooth) => {
       const from = ring.projectRingPoint(ring.innerRadius - 0.028, tooth);
@@ -1070,11 +1272,10 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
         isOccluded(midpoint)
         || (midpoint.viewZ < ring.center.viewZ && isInsideSilhouette(midpoint))
       ) return;
-      p.stroke(warm[0], warm[1], warm[2], from.viewZ >= ring.center.viewZ ? 205 : 62);
-      p.strokeWeight(1.25);
-      drawProjectedScreenSegment(p, from, to);
+      axisTicks.push({ start: from, end: to, color: [...warm, from.viewZ >= ring.center.viewZ ? 205 : 62], weight: 1.25 });
     });
   });
+  drawScreenSegmentBatch(p, axisTicks);
 
   const axisWorldA = ringPoint(ring.worldCenter, ring.innerRadius, ring.baseIndex + ring.mirror);
   const axisWorldB = ringPoint(ring.worldCenter, ring.innerRadius, ring.baseIndex + ring.mirror + INDEX_TEETH / 2);
@@ -1096,33 +1297,42 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
     );
   }
 
+  const palette = indexMarkerPalette(p);
+  p.push();
+  p.fill(palette.rotationFill);
+  p.strokeWeight(1.4);
+  let previousFront = null;
   ring.rotationIndices.forEach((tooth) => {
     const point = ring.projectRingPoint(ring.outerRadius, tooth);
     if (isOccluded(point)) return;
     const [x, y, z] = toLocal(point);
-    p.push();
+    const front = point.viewZ >= ring.center.viewZ;
+    if (front !== previousFront) p.stroke(front ? palette.rotationFront : palette.rotationBack);
+    previousFront = front;
     p.translate(x, y, z);
-    p.fill(255, 255, 255, 245);
-    p.stroke(graphite[0], graphite[1], graphite[2], point.viewZ >= ring.center.viewZ ? 235 : 82);
-    p.strokeWeight(1.4);
     p.circle(0, 0, 8);
-    p.pop();
+    p.translate(-x, -y, -z);
   });
+  p.pop();
 
   if (ring.mirror !== 0) {
+    p.push();
+    p.fill(palette.mirrorFill);
+    p.strokeWeight(1.35);
+    previousFront = null;
     ring.mirroredIndices.forEach((tooth) => {
       const point = ring.projectRingPoint(ring.innerRadius, tooth);
       if (isOccluded(point)) return;
       const [x, y, z] = toLocal(point);
       const size = 5.5;
-      p.push();
+      const front = point.viewZ >= ring.center.viewZ;
+      if (front !== previousFront) p.stroke(front ? palette.mirrorFront : palette.mirrorBack);
+      previousFront = front;
       p.translate(x, y, z);
-      p.fill(255, 255, 255, 242);
-      p.stroke(warm[0], warm[1], warm[2], point.viewZ >= ring.center.viewZ ? 235 : 82);
-      p.strokeWeight(1.35);
       p.quad(0, -size, size, 0, 0, size, -size, 0);
-      p.pop();
+      p.translate(-x, -y, -z);
     });
+    p.pop();
   }
 
   const drawHandle = (point, color, active) => {
@@ -1660,44 +1870,96 @@ function drawGizmoLabels(canvas, scene) {
   }
 }
 
+const polyhedronRenderCaches = new WeakMap();
+
+function releasePolyhedronMeshes(p, cache = polyhedronRenderCaches.get(p)) {
+  if (!cache) return;
+  for (const mesh of [cache.fillMesh, cache.edgeMesh, cache.activeMesh]) {
+    if (mesh) p.freeGeometry(mesh);
+  }
+  polyhedronRenderCaches.delete(p);
+}
+
+function lineMesh(p, edges, sceneScale) {
+  const mesh = new p.constructor.Geometry();
+  edges.forEach(([start, end]) => {
+    const index = mesh.vertices.length;
+    mesh.vertices.push(
+      p.createVector(...transformPoint(start, sceneScale)),
+      p.createVector(...transformPoint(end, sceneScale)),
+    );
+    // Separate indices keep the same independent caps as p.line / LINES.
+    mesh.edges.push([index, index + 1]);
+  });
+  return mesh;
+}
+
 function drawPolyhedron(p, geometry, sceneScale, lineWeight, yaw, pitch, renderMode, highlightOperationId, activeOperationId, previewOperationId) {
   const gl = p.drawingContext;
+  const orderedFaces = geometry.faces
+    .map(face => ({ face, depth: viewDepth(face.center, yaw, pitch) }))
+    .sort((a, b) => a.depth - b.depth)
+    .map(entry => entry.face);
+  let cache = polyhedronRenderCaches.get(p);
+  if (!cache || cache.geometry !== geometry || cache.sceneScale !== sceneScale) {
+    releasePolyhedronMeshes(p, cache);
+    cache = { geometry, sceneScale, edgeMesh: lineMesh(p, geometry.edges, sceneScale), faceVertices: new Map() };
+    polyhedronRenderCaches.set(p, cache);
+  }
+  const colors = [renderMode, highlightOperationId, activeOperationId, previewOperationId];
+  if (!cache.fillMesh || colors.some((value, index) => value !== cache.colors[index])
+    || orderedFaces.some((face, index) => face !== cache.orderedFaces[index])) {
+    if (cache.fillMesh) p.freeGeometry(cache.fillMesh);
+    const mesh = new p.constructor.Geometry();
+    orderedFaces.forEach((face) => {
+      const color = faceColor(face, geometry.bounds, renderMode, highlightOperationId, activeOperationId, previewOperationId)
+        .map((value) => value / 255);
+      let vectors = cache.faceVertices.get(face);
+      if (!vectors) {
+        vectors = { normal: p.createVector(...transformPoint(face.normal, 1)), vertices: face.points.map(point => p.createVector(...transformPoint(point, sceneScale))) };
+        cache.faceVertices.set(face, vectors);
+      }
+      const start = mesh.vertices.length;
+      vectors.vertices.forEach((point) => {
+        mesh.vertices.push(point);
+        mesh.vertexNormals.push(vectors.normal);
+        mesh.vertexColors.push(...color);
+      });
+      for (let index = 1; index < face.points.length - 1; index += 1) {
+        mesh.faces.push([start, start + index, start + index + 1]);
+      }
+    });
+    cache.fillMesh = mesh;
+    cache.colors = colors;
+    cache.orderedFaces = orderedFaces;
+  }
+  if (cache.activeOperationId !== activeOperationId) {
+    if (cache.activeMesh) p.freeGeometry(cache.activeMesh);
+    const edges = geometry.kind === "mesh"
+      ? geometry.operationEdges.get(activeOperationId) ?? []
+      : geometry.faces.filter((face) => face.operationId === activeOperationId)
+        .flatMap((face) => face.points.map((point, index) => [point, face.points[(index + 1) % face.points.length]]));
+    cache.activeMesh = activeOperationId && edges.length ? lineMesh(p, edges, sceneScale) : null;
+    cache.activeOperationId = activeOperationId;
+  }
+
   gl.depthMask(renderMode !== "xray");
-  [...geometry.faces]
-    .sort((a, b) => viewDepth(a.center, yaw, pitch) - viewDepth(b.center, yaw, pitch))
-    .forEach((face) => {
-      const [red, green, blue, alpha] = faceColor(face, geometry.bounds, renderMode, highlightOperationId, activeOperationId, previewOperationId);
-      p.noStroke();
-      p.fill(red, green, blue, alpha);
-      p.beginShape(p.TRIANGLE_FAN);
-      const normal = transformPoint(face.normal, 1);
-      p.normal(normal[0], normal[1], normal[2]);
-      face.points.forEach((point) => p5Vertex(p, point, sceneScale));
-      p.endShape(p.CLOSE);
-    });
+  if (orderedFaces.length) {
+    p.noStroke();
+    p.fill(255);
+    p.model(cache.fillMesh);
+    p.normal(...transformPoint(orderedFaces.at(-1).normal, 1));
+  }
   gl.depthMask(true);
-
-  const uniqueEdges = new Map();
-  geometry.faces.forEach((face) => {
-    face.points.forEach((point, index) => {
-      const next = face.points[(index + 1) % face.points.length];
-      uniqueEdges.set(edgeKey(point, next), [point, next]);
-    });
-  });
-
   p.noFill();
   p.stroke(31, 38, 42, renderMode === "xray" ? 112 : 210);
   p.strokeWeight(lineWeight * (renderMode === "xray" ? 0.85 : 1.1));
-  uniqueEdges.forEach(([start, end]) => p5Line(p, start, end, sceneScale));
+  if (geometry.edges.length) p.model(cache.edgeMesh);
 
   if (activeOperationId) {
     p.stroke(238, 36, 96, renderMode === "xray" ? 155 : 235);
     p.strokeWeight(lineWeight * 1.65);
-    geometry.faces
-      .filter((face) => face.operationId === activeOperationId)
-      .forEach((face) => face.points.forEach((point, index) => {
-        p5Line(p, point, face.points[(index + 1) % face.points.length], sceneScale);
-      }));
+    if (cache.activeMesh) p.model(cache.activeMesh);
   }
 }
 
@@ -1752,6 +2014,7 @@ function calculateSceneScale(width, height, bounds) {
 }
 
 function isStockGeometry(polyhedron, geometry) {
+  if (polyhedron?.kind === "mesh") return false;
   if (geometry.vertices.length !== 8 || geometry.faces.length !== 6) return false;
   if (polyhedron?.faces?.every((face) => String(face?.id ?? "").startsWith("cube:"))) {
     return true;
@@ -1761,7 +2024,7 @@ function isStockGeometry(polyhedron, geometry) {
   return Math.abs(x - y) <= tolerance && Math.abs(y - z) <= tolerance;
 }
 
-function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewModeRef, interactionRef) {
+function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewModeRef, interactionRef, invalidate) {
   let activePointer = null;
   let gizmoDrag = null;
 
@@ -1794,9 +2057,12 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       }
     }
     activePointer = null;
+    invalidate();
   };
 
   const onPointerDown = (event) => {
+    cameraRef.current.transition = null;
+    interactionRef.current?.onCameraInteraction?.();
     if (event.button !== 0) return;
     canvas.focus({ preventScroll: true });
     activePointer = { id: event.pointerId, x: event.clientX, y: event.clientY, downX: event.clientX, downY: event.clientY };
@@ -1860,6 +2126,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
 
     canvas.setPointerCapture?.(event.pointerId);
     canvas.classList.add("is-dragging");
+    invalidate();
   };
 
   const onPointerMove = (event) => {
@@ -1942,6 +2209,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
           requestViewModeRef.current?.("perspective", true);
         }
       }
+      invalidate();
       event.preventDefault();
       return;
     }
@@ -1996,21 +2264,26 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
   };
 
   const onWheel = (event) => {
+    cameraRef.current.transition = null;
+    interactionRef.current?.onCameraInteraction?.();
     const camera = cameraRef.current;
     camera.targetZoom = clamp(
       camera.targetZoom * Math.exp(-Number(event.deltaY || 0) * 0.0012),
       0.48,
       2.8,
     );
+    invalidate();
     event.preventDefault();
   };
 
   const onDoubleClick = (event) => {
     resetCamera(cameraRef.current, sceneRef.current.viewMode);
+    invalidate();
     event.preventDefault();
   };
 
   const onKeyDown = (event) => {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "-", "0"].includes(event.key)) { cameraRef.current.transition = null; interactionRef.current?.onCameraInteraction?.(); }
     const camera = cameraRef.current;
     const isPan = event.shiftKey;
     let handled = true;
@@ -2052,7 +2325,10 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
     if (changesOrbit && sceneRef.current.viewMode !== "perspective") {
       requestViewModeRef.current?.("perspective", true);
     }
-    if (handled) event.preventDefault();
+    if (handled) {
+      invalidate();
+      event.preventDefault();
+    }
   };
 
   canvas.addEventListener("pointerdown", onPointerDown);
@@ -2103,25 +2379,30 @@ export function GemViewport({
   onGroupScaleDrag,
   onGroupRotationDrag,
   suspended = false,
+  assistantView = null,
+  onCameraInteraction,
 }) {
   const hostRef = useRef(null);
   const cameraRef = useRef(createCamera());
+  const editCameraRef = useRef(null);
   const sceneRef = useRef({});
   const requestViewModeRef = useRef(null);
   const interactionRef = useRef(null);
   const gizmoLabelCanvasRef = useRef(null);
-  const instanceRef = useRef(null);
+  const framesRef = useRef(null);
   const normalizedGeometry = useMemo(() => normalizeGeometry(polyhedron), [polyhedron]);
-  const normalizedMeetGeometry = useMemo(
-    () => normalizeGeometry(meetPolyhedron ?? polyhedron),
-    [meetPolyhedron, polyhedron],
+  const normalizedMeetSource = useMemo(
+    () => meetPolyhedron ? normalizeGeometry(meetPolyhedron) : null,
+    [meetPolyhedron],
   );
+  const normalizedMeetGeometry = normalizedMeetSource ?? normalizedGeometry;
   const hasExplicitGeometry = Array.isArray(polyhedron?.vertices) && Array.isArray(polyhedron?.faces);
   const ghostBoundsRef = useRef(null);
   const initialMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
   const [activeViewMode, setActiveViewMode] = useState(initialMode);
 
   interactionRef.current = {
+    onCameraInteraction,
     onFacePick,
     onVertexPick,
     onDepthDrag,
@@ -2134,7 +2415,7 @@ export function GemViewport({
   };
 
   const requestViewMode = useCallback((nextMode, fromCanvas = false) => {
-    if (!VIEW_POSES[nextMode]) return;
+    if (!VIEW_POSES[nextMode] || editCameraRef.current) return;
     if (fromCanvas) cameraRef.current.suppressNextPose = true;
     setActiveViewMode(nextMode);
     onViewModeChange?.(nextMode);
@@ -2153,7 +2434,7 @@ export function GemViewport({
       faces: normalizedGeometry.faces,
       previewPlanes: Array.isArray(previewPlanes) ? previewPlanes : [],
       selectedIndex,
-      viewMode: activeViewMode,
+      viewMode: assistantView ? "perspective" : activeViewMode,
       renderMode,
       highlightOperationId,
       activeOperationId,
@@ -2170,14 +2451,9 @@ export function GemViewport({
     if (hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
       ghostBoundsRef.current = copyBounds(normalizedGeometry.bounds);
     }
-  }, [activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
-
-  useEffect(() => {
-    const instance = instanceRef.current;
-    if (!instance) return;
-    if (suspended) instance.noLoop();
-    else instance.loop();
-  }, [suspended]);
+    framesRef.current?.setSuspended(suspended);
+    framesRef.current?.invalidate();
+  }, [assistantView, activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
 
   useEffect(() => {
     const nextMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
@@ -2186,16 +2462,35 @@ export function GemViewport({
 
   useEffect(() => {
     const camera = cameraRef.current;
+    if (editCameraRef.current) return;
     if (camera.suppressNextPose) {
       camera.suppressNextPose = false;
       return;
     }
     setCameraPose(camera, activeViewMode);
+    framesRef.current?.invalidate();
   }, [activeViewMode]);
 
   useEffect(() => {
     resetCamera(cameraRef.current, activeViewMode);
+    framesRef.current?.invalidate();
   }, [resetSignal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useLayoutEffect(() => {
+    const camera = cameraRef.current;
+    if (assistantView && !editCameraRef.current) {
+      editCameraRef.current = { ...camera };
+      Object.assign(camera, { targetZoom: 1.8, targetPanX: 0, targetPanY: 0 });
+    } else if (!assistantView && editCameraRef.current) {
+      Object.assign(camera, editCameraRef.current, { transition: null });
+      editCameraRef.current = null;
+    }
+    if (assistantView?.follow && assistantView.step) {
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      startCameraTransition(camera, cuttingCameraPose(assistantView.step, camera.yaw), reduced ? 0 : assistantView.duration, performance.now());
+    } else camera.transition = null;
+    framesRef.current?.invalidate();
+  }, [assistantView]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -2204,6 +2499,15 @@ export function GemViewport({
     let cancelled = false;
     let instance = null;
     let resizeObserver = null;
+    let cameraMoving = false;
+    const frames = createViewportFrames({
+      draw: async () => {
+        await instance?.redraw();
+        return cameraMoving;
+      },
+    });
+    framesRef.current = frames;
+    frames.setSuspended(sceneRef.current.suspended);
 
     const sketch = (p) => {
       let renderer;
@@ -2227,20 +2531,18 @@ export function GemViewport({
           sceneRef,
           requestViewModeRef,
           interactionRef,
+          frames.invalidate,
         );
         p.colorMode(p.RGB, 255, 255, 255, 255);
         p.frameRate(60);
+        p.noLoop();
       };
 
       p.draw = () => {
         const { geometry, previewPlanes: planes, selectedIndex: index, viewMode: mode, renderMode: displayMode } = sceneRef.current;
         const camera = cameraRef.current;
         const ghostBounds = ghostBoundsRef.current ?? geometry.bounds;
-        camera.yaw += (camera.targetYaw - camera.yaw) * 0.16;
-        camera.pitch += (camera.targetPitch - camera.pitch) * 0.16;
-        camera.zoom += (camera.targetZoom - camera.zoom) * 0.16;
-        camera.panX += (camera.targetPanX - camera.panX) * 0.18;
-        camera.panY += (camera.targetPanY - camera.panY) * 0.18;
+        cameraMoving = advanceViewportCamera(camera);
 
         p.background(255);
         const fieldOfView = p.radians(38);
@@ -2293,6 +2595,9 @@ export function GemViewport({
         if (sceneRef.current.pickingEnabled) drawPickOverlay(p, sceneRef.current);
         drawOrientationGizmo(p, camera);
         drawGizmoLabels(gizmoLabelCanvasRef.current, sceneRef.current);
+        // p5 also draws once after async setup, outside our frame queue. Keep
+        // a pending camera transition moving even if it starts on that frame.
+        if (cameraMoving) frames.invalidate();
       };
     };
 
@@ -2305,16 +2610,20 @@ export function GemViewport({
         return;
       }
       if (cancelled) return;
+      // The workbench supplies validated numeric geometry; avoid p5 running
+      // its teaching-oriented argument schemas for every vertex and helper.
+      p5.disableFriendlyErrors = true;
       instance = new p5(sketch);
-      instanceRef.current = instance;
-      if (sceneRef.current.suspended) instance.noLoop();
       resizeObserver = new ResizeObserver((entries) => {
         const entry = entries[0];
         if (!entry || !instance.canvas) return;
         const width = Math.max(320, Math.round(entry.contentRect.width));
         const height = Math.max(320, Math.round(entry.contentRect.height));
         if (width !== instance.width || height !== instance.height) {
-          instance.resizeCanvas(width, height, false);
+          // Resizing clears the canvas; redraw through the same serialized
+          // queue as React and pointer updates instead of p5's immediate path.
+          instance.resizeCanvas(width, height, true);
+          frames.invalidate();
         }
       });
       resizeObserver.observe(host);
@@ -2322,9 +2631,11 @@ export function GemViewport({
 
     return () => {
       cancelled = true;
+      frames.dispose();
+      framesRef.current = null;
       resizeObserver?.disconnect();
       detachInteractions();
-      instanceRef.current = null;
+      if (instance) releasePolyhedronMeshes(instance);
       instance?.remove();
     };
   }, []);

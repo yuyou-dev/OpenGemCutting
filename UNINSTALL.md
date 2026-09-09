@@ -30,3 +30,7 @@ Follow the **Uninstall** section in [`plugins/opengemcutting-companion/LIFECYCLE
 ## Completion report
 
 Report exactly which component was removed, which files or browser data were preserved, and whether the app directory can be recovered from Trash.
+
+## Design plugin
+
+The Design plugin is `opengemcutting-design@opengemcutting`. Manage it independently of the optional Companion using the current `codex plugin --help` commands. Updating the app also updates the repository skill; keep the plugin and workbench on the same release. Uninstalling a plugin does not delete projects or exported JSON.

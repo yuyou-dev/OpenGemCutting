@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v2.schema.json",
+  "title": "OpenGemCutting Facet 96 Document · Mesh stock",
+  "description": "Public interchange contract for an OpenGemCutting parameterized faceting document.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "kind",
+    "name",
+    "stock",
+    "operations",
+    "facets"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v2.schema.json"
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "kind": {
+      "const": "facet-96-document"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stock": {
+      "type": "object",
+      "required": [
+        "kind",
+        "size",
+        "center",
+        "mesh"
+      ],
+      "properties": {
+        "kind": {
+          "const": "mesh"
+        },
+        "size": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "center": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        },
+        "mesh": {
+          "type": "object",
+          "required": [
+            "vertices",
+            "faces"
+          ],
+          "properties": {
+            "vertices": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "z": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "faces": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "source": {
+          "type": "object"
+        },
+        "envelope": {
+          "type": "object"
+        }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "facets": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

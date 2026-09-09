@@ -1,4 +1,5 @@
-import { clipPolyhedronByPlanes, createCenteredCube } from "./geometry.js";
+import { createStockSolid } from "./stockGeometry.js";
+import { clipPolyhedronByPlanes } from "./geometry.js";
 import { MEET_STATUS, resolvePersistedMeetTarget, solveDualMeet } from "./meetJump.js";
 
 const REASONS = {
@@ -28,7 +29,7 @@ export function diagnoseSavedConstruction({ facets, beforeSolid, precedingPatter
   const failure = (reason, targets = []) => ({ status: MEET_STATUS.STALE, reason, message: REASONS[reason] ?? "构造来源已失效", targets, primaryIndex });
   for (const target of persistedTargets) {
     for (const source of target.sourceOperationIds) {
-      if (source === "rough-cube") continue;
+      if (source === "rough-cube" || source === "rough-mesh") continue;
       if (hidden.has(source)) return failure("source-hidden");
       if (!all.has(source)) return failure("source-missing");
       if (!preceding.has(source)) return failure("source-order");
@@ -63,9 +64,7 @@ export function buildConstructionStages(document, { hiddenPatternIds = [] } = {}
   const allPatternIds = [...groups.keys()];
   const precedingPatternIds = [];
   const hidden = new Set(hiddenPatternIds);
-  let solid = createCenteredCube(document.stock.size, {
-    center: document.stock.center, sourceOperationId: "rough-cube", region: "rough",
-  });
+  let solid = createStockSolid(document.stock);
   return [...groups].map(([id, facets], index) => {
     const beforeSolid = solid;
     const construction = diagnoseSavedConstruction({ facets, beforeSolid, precedingPatternIds, allPatternIds, hiddenPatternIds, stock: document.stock });

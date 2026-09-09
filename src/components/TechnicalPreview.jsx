@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { renderTechnicalMesh } from "./meshTechnicalRenderer.js";
 import { projectTechnicalPreview } from "../domain/technicalPreview.js";
 
 function faceFill(face, activeOperationId, previewOperationId, highlightOperationId) {
@@ -8,7 +9,7 @@ function faceFill(face, activeOperationId, previewOperationId, highlightOperatio
   return "#f3f4f2";
 }
 
-export function TechnicalPreview({
+function VectorTechnicalPreview({
   solid,
   view = "isometric",
   label,
@@ -35,18 +36,52 @@ export function TechnicalPreview({
           fill={faceFill(face, activeOperationId, previewOperationId, highlightOperationId)}
         />
       ))}
-      <g stroke="#343936" strokeWidth="0.85" fill="none" strokeLinejoin="round">
-        {projection.edges.map(([start, end]) => (
-          <line
-            key={`${start}:${end}`}
-            x1={projection.points[start].x}
-            y1={projection.points[start].y}
-            x2={projection.points[end].x}
-            y2={projection.points[end].y}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-      </g>
+      <path
+        d={projection.edges.map(([start, end]) => {
+          const a = projection.points[start];
+          const b = projection.points[end];
+          return `M${a.x},${a.y}L${b.x},${b.y}`;
+        }).join(" ")}
+        stroke="#343936"
+        strokeWidth="0.85"
+        fill="none"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
+}
+
+function MeshTechnicalPreview(props) {
+  const { solid, view = "isometric", label, className = "", activeOperationId, previewOperationId, highlightOperationId } = props;
+  const canvasRef = useRef(null);
+  const drawRef = useRef(null);
+  const [fallback, setFallback] = useState(false);
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const box = canvas.getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    const density = window.devicePixelRatio || 1;
+    const width = Math.max(1, Math.round(box.width * density));
+    const height = Math.max(1, Math.round(box.height * density));
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    try {
+      if (!renderTechnicalMesh(canvas, solid, view, { activeOperationId, previewOperationId, highlightOperationId })) setFallback(true);
+    } catch { setFallback(true); }
+  }, [solid, view, activeOperationId, previewOperationId, highlightOperationId]);
+  drawRef.current = draw;
+  useLayoutEffect(() => { draw(); }, [draw]);
+  useLayoutEffect(() => {
+    if (fallback) return;
+    const observer = new ResizeObserver(() => drawRef.current());
+    observer.observe(canvasRef.current);
+    return () => observer.disconnect();
+  }, [fallback]);
+  if (fallback) return <VectorTechnicalPreview {...props} />;
+  return <canvas ref={canvasRef} className={`technical-preview ${className}`.trim()} role="img" aria-label={label || `${view} · 宝石正交预览`} style={{ display: "block", width: "100%", height: "100%" }} />;
+}
+
+export function TechnicalPreview(props) {
+  return props.solid?.kind === "mesh" ? <MeshTechnicalPreview {...props} /> : <VectorTechnicalPreview {...props} />;
 }

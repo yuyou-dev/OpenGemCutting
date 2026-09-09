@@ -1,6 +1,6 @@
 const MODES = [
   ["edit", "编辑", null],
-  ["assistant", "切割助手", "β"],
+  ["assistant", "切割助手", ""],
   ["optics", "光学仿真", null],
 ];
 

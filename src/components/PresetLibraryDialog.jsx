@@ -13,9 +13,21 @@ export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft 
   const [filters, setFilters] = useState({ query: "", shape: "all", facets: "all", ratio: "all" });
   const [page, setPage] = useState(1);
   const listRef = useRef(null);
+  const aliveRef = useRef(true);
+  const loadSeqRef = useRef(0);
+  const loadAbortRef = useRef(null);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
   const deferredQuery = useDeferredValue(filters.query);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      loadSeqRef.current += 1;
+      loadAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -67,11 +79,19 @@ export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft 
 
   const loadSelected = async () => {
     if (!selected || status === "loading-preset") return;
+    const seq = (loadSeqRef.current += 1);
+    const controller = new AbortController();
+    loadAbortRef.current?.abort();
+    loadAbortRef.current = controller;
     setStatus("loading-preset");
     setError("");
     try {
-      await onLoad(await library.load(selected), selected);
+      const loaded = await library.load(selected, { signal: controller.signal });
+      // A closed dialog or a superseded request must never reach onLoad.
+      if (!aliveRef.current || seq !== loadSeqRef.current) return;
+      await onLoad(loaded, selected);
     } catch (reason) {
+      if (!aliveRef.current || seq !== loadSeqRef.current) return;
       setError(reason.message);
       setStatus("ready");
     }

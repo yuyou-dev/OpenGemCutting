@@ -40,9 +40,12 @@
 .home-resume { color: var(--pink); border-color: #ebbdcb; }
 .home-resume:hover { border-color: var(--pink); background: var(--pink-soft); }
 .home-project-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; margin-top: 24px; }
-.project-card { display: block; min-width: 0; padding: 0; text-align: left; background: #fff; border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
+.project-card { position: relative; display: block; min-width: 0; padding: 0; text-align: left; background: #fff; border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
 .project-card:hover { border-color: #5c665e; }
 .project-card.is-current { border-color: #929b93; }
+.project-card-open { display: block; width: 100%; padding: 0; text-align: left; background: none; border: 0; cursor: pointer; }
+.project-card-delete { position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; color: #a8aea4; background: rgba(255, 255, 255, .92); border: 1px solid #e4e6e2; border-radius: 3px; cursor: pointer; }
+.project-card-delete:hover { color: #a64646; border-color: #d9b4b4; background: #fdf6f6; }
 .project-card-drawing { position: relative; display: grid; place-items: center; height: 184px; padding: 14px 22px 22px; background: #fff; border-bottom: 1px solid #e4e6e2; }
 .project-card-preview { display: block; width: 100%; height: 100%; }
 .project-card-preview svg, .project-card-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }

@@ -5,7 +5,7 @@ export function useProjects() {
   const storeRef = useRef(null);
   const [listing, setListing] = useState({ records: [], unreadableCount: 0, error: "" });
   const getStore = useCallback(() => {
-    storeRef.current ??= createProjectStore(window.localStorage);
+    storeRef.current ??= createProjectStore(window.localStorage, { locks: navigator.locks });
     return storeRef.current;
   }, []);
 
@@ -50,20 +50,22 @@ export function useProjects() {
       return null;
     }
   }, [getStore]);
-  const save = useCallback((id, document) => {
+  const save = useCallback(async (id, document, { expectedRevision } = {}) => {
     try {
-      const record = getStore().save(id, document);
+      const record = await getStore().save(id, document, { expectedRevision });
       acceptRecord(record);
-      return true;
+      return { ok: true, record };
     } catch (error) {
-      setListing((current) => ({ ...current, error: error.message.includes("已被删除")
+      const known = error.code === "PROJECT_CONFLICT" || error.code === "PROJECT_DELETED";
+      setListing((current) => ({ ...current, error: known
         ? error.message : "项目保存失败：空间不足或存储不可用，请重试或导出 JSON。" }));
-      return false;
+      return { ok: false, code: error.code ?? "PROJECT_SAVE_FAILED", message: error.message };
     }
   }, [getStore]);
-  const remove = useCallback((id) => {
+  const read = useCallback((id) => getStore().read(id), [getStore]);
+  const remove = useCallback(async (id) => {
     try {
-      getStore().remove(id);
+      await getStore().remove(id);
       setListing((current) => ({ ...current, records: current.records.filter((record) => record.id !== id), error: "" }));
       return true;
     } catch {
@@ -71,5 +73,5 @@ export function useProjects() {
       return false;
     }
   }, [getStore]);
-  return { ...listing, create, save, refresh, remove };
+  return { ...listing, create, save, read, refresh, remove };
 }

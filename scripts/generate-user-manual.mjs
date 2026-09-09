@@ -57,14 +57,15 @@ const renderPage = (page, index) => {
     index === 0 ? "cover" : "",
     !page.image && !page.pair && !page.hero ? "no-image text-only" : "",
     page.image?.includes("controls") ? "controls" : "",
+    page.compactImage ? "compact-image" : "",
   ]
     .filter(Boolean)
     .join(" ");
-  const brand = `<img src="${asset("public/brand/logo-header.webp")}"><span><b>切磨工作台</b><small>Alpha · SUVA / FACET 96</small></span>`;
+  const brand = `<img src="${asset("public/brand/logo-header.webp")}"><span><b>切磨工作台</b><small>1.0 RC · SUVA / FACET 96</small></span>`;
   const heading =
     index === 0
       ? `<div class="cover-brand">${brand}</div>`
-      : `<header class="chrome head"><span><img src="${asset("public/brand/logo-header.webp")}"><b>切磨工作台</b><em>Alpha · SUVA / FACET 96</em></span><span>设计师操作手册</span></header>`;
+      : `<header class="chrome head"><span><img src="${asset("public/brand/logo-header.webp")}"><b>切磨工作台</b><em>1.0 RC · SUVA / FACET 96</em></span><span>设计师操作手册</span></header>`;
   const illustration =
     page.hero || page.image
       ? image(page.hero || page.image, page.caption)
@@ -104,9 +105,9 @@ const renderPage = (page, index) => {
         ${blocks ? `<div class="blocks">${blocks}</div>` : ""}
         ${steps ? `<div class="steps">${steps}</div>` : ""}
         ${page.question ? `<aside class="question"><b>停下来，作一个设计判断</b>${page.question}</aside>` : ""}
-        ${page.note ? `<aside class="note"><b>${page.noteTitle ?? "继续操作前请知道"}</b>${page.note}</aside>` : ""}
+        ${page.note ? `<aside class="note"><b>继续操作前请知道</b>${page.note}</aside>` : ""}
       </main>
-      <footer class="chrome foot"><span>v${version} · OpenGemCutting · 配套 7 份原创练习 JSON</span><span><b>${String(index + 1).padStart(2, "0")}</b> / ${manualPages.length}</span></footer>
+      <footer class="chrome foot"><span>v${version} · 教学版 · 配套 7 份 JSON + 1 份原晶 OBJ</span><span><b>${String(index + 1).padStart(2, "0")}</b> / ${manualPages.length}</span></footer>
     </section>
   `;
 };

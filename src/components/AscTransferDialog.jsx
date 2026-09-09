@@ -16,7 +16,7 @@ function formatRatio(value) {
   return Number.isFinite(value) ? value.toFixed(3) : "—";
 }
 
-export function AscTransferDialog({ mode, fileName, result, onClose, onConfirm, onReselect }) {
+export function AscTransferDialog({ mode, fileName, result, onClose, onConfirm, onReselect, discardingDraft = false }) {
   const panelRef = useRef(null);
   const safeButtonRef = useRef(null);
   const titleId = useId();
@@ -99,7 +99,9 @@ export function AscTransferDialog({ mode, fileName, result, onClose, onConfirm, 
           <div className="asc-scope-note">
             <strong>{isImport ? "确认后的影响" : "本次导出范围"}</strong>
             <p>{isImport
-              ? "当前文档与未保存 CUT 预览会被替换；导入作为一次文档命令写入，可使用撤销恢复。"
+              ? discardingDraft
+                ? "当前文档与未保存 CUT 预览会被替换；导入作为一次文档命令写入，可使用撤销恢复。"
+                : "当前文档会被替换；导入作为一次文档命令写入，可使用撤销恢复。"
               : "只写出已提交文档的最终有效 96 齿刻面与当前文档折射率；未保存 CUT / 整体变换预览、被覆盖面及毛坯面不会进入 ASC。JSON 仍是完整主文件。"}</p>
           </div>
 

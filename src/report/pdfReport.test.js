@@ -194,3 +194,34 @@ test("reports edge ratios, both Meet sources and preform intent with space for w
   assert.equal(pages.flatMap((page) => page.rows).length, 40);
   assert.ok(pages.every((page) => page.rows.length < 18));
 });
+
+test("mesh reports count one CUT with multiple surface patches once and span every table patch", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { inspectCrystalOBJ } = await import("../domain/stockGeometry.js");
+  const { document: imported, solid: rough } = inspectCrystalOBJ(await readFile(new URL("../../docs/manual/examples/08-concave-crystal.obj", import.meta.url),"utf8"),{fileName:"L.obj"});
+  assert.equal(findTableFace(rough),undefined,"natural horizontal patches are not a saved table");
+  const table = resolveFacetPattern({patternId:"table-facet",label:"T1 台面",region:"crown",repeat:1,industryAngleDeg:0,depth:1,stock:imported.stock});
+  const document = createFacetingDocument({...imported,facets:table});
+  const solid = clipPolyhedronByPlanes(rough,table.map(facet=>({...facet.plane,operationId:facet.patternId,faceId:facet.id,region:facet.region})));
+  const patches=solid.faces.filter(face=>face.facetId===table[0].id);
+  assert.ok(patches.length>1);
+  const model=createFacetReportModel({document,solid,metrics:measurePolyhedron(solid)});
+  assert.equal(model.effectiveFacetCount,1);
+  assert.equal(model.regions.find(region=>region.id==="crown").rows.length,1);
+  const tableFace=findTableFace(solid);
+  assert.deepEqual(new Set(tableFace.vertexIndices),new Set(patches.flatMap(face=>face.vertexIndices)));
+  assert.equal(Math.max(...tableFace.vertexIndices.map(index=>solid.vertices[index].x))-Math.min(...tableFace.vertexIndices.map(index=>solid.vertices[index].x)),2);
+});
+
+test('PDF renders Chinese-only operation labels with embedded CJK fonts', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { createFacetReportPdfBytes } = await import('./pdfReport.js');
+  const input = makeInput();
+  input.document = createFacetingDocument({ ...input.document, facets: input.document.facets.map(f => ({ ...f, label: '台面与亭部' })) });
+  const [regularBytes, boldBytes] = await Promise.all([
+    readFile(new URL('../../public/fonts/NotoSerifSC-Light.ttf', import.meta.url)),
+    readFile(new URL('../../public/fonts/NotoSerifSC-SemiBold.ttf', import.meta.url)),
+  ]);
+  const bytes = await createFacetReportPdfBytes(input, { regularBytes, boldBytes });
+  assert.equal(new TextDecoder().decode(bytes.slice(0, 5)), '%PDF-');
+});

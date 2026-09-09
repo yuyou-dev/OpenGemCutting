@@ -1,3 +1,5 @@
+import { getMeshViewGeometry } from "./meshDisplay.js";
+
 const VIEW_CONFIG = Object.freeze({
   isometric: Object.freeze({
     label: "45°",
@@ -12,6 +14,18 @@ const VIEW_CONFIG = Object.freeze({
   front: Object.freeze({ label: "FRONT", axes: Object.freeze(["x", "z"]), viewAxis: "y", viewSign: 1 }),
   side: Object.freeze({ label: "SIDE", axes: Object.freeze(["y", "z"]), viewAxis: "x", viewSign: 1 }),
 });
+
+// Orthonormal model-space projection; +view points toward the observer.
+export function getTechnicalViewBasis(view) {
+  const config = VIEW_CONFIG[view];
+  if (!config) throw new RangeError(`unknown technical preview view: ${view}`);
+  if (config.basis) return config.basis;
+  return {
+    horizontal: { x: 0, y: 0, z: 0, [config.axes[0]]: 1 },
+    vertical: { x: 0, y: 0, z: 0, [config.axes[1]]: 1 },
+    view: { x: 0, y: 0, z: 0, [config.viewAxis]: config.viewSign },
+  };
+}
 
 // The preset catalog keeps its original four assets; side is a live workspace view.
 export const TECHNICAL_PREVIEW_VIEWS = Object.freeze(["isometric", "top", "bottom", "front"]);
@@ -67,10 +81,19 @@ export function projectTechnicalPreview(solid, view, { width = 320, height = 240
   );
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
-  const points = solid.vertices.map((vertex) => ({
+  const project = (vertex) => ({
     x: width / 2 + (horizontal(vertex) - centerX) * scale,
     y: height / 2 - (vertical(vertex) - centerY) * scale,
-  }));
+  });
+  const points = solid.vertices.map(project);
+  if (solid.kind === "mesh") {
+    const direction = config.basis?.view ?? { x: 0, y: 0, z: 0, [config.viewAxis]: config.viewSign };
+    const visible = getMeshViewGeometry(solid, direction);
+    const append = vertex => { points.push(project(vertex)); return points.length - 1; };
+    const edges = visible.segments.map(segment => segment.map(append)).filter(([a,b]) => Math.hypot(points[a].x-points[b].x,points[a].y-points[b].y) >= 0.08);
+    const faces = visible.faces.map((face,index) => ({ ...face, id: `${face.id}:visible:${index}`, vertexIndices: face.vertices.map(append) }));
+    return {view,label:config.label,width,height,points,edges,faces};
+  }
 
   const projectedEdges = [];
   const seenEdges = new Set();

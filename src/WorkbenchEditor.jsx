@@ -1,4 +1,6 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { assertFileBudget, assertDocumentImportBudget } from "./domain/importBudget.js";
+import { createStockSolid } from "./domain/stockGeometry.js";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight, IconHistory, IconHome, IconFlask } from "@tabler/icons-react";
 import { RepositoryLink } from "./components/RepositoryLink.jsx";
 import { OrthographicPreviews } from "./components/OrthographicPreviews.jsx";
@@ -6,7 +8,7 @@ import { Header } from "./components/Header.jsx";
 import { GemViewport } from "./components/GemViewport.jsx";
 import { OpticsViewSwitch } from "./components/OpticsViewSwitch.jsx";
 import { ViewportModeSwitch } from "./components/ViewportModeSwitch.jsx";
-import { CuttingAssistantBar, CuttingAssistantPlayer } from "./components/CuttingAssistantBar.jsx";
+import { CuttingAssistantBar, CuttingAssistantPlayer, CuttingAssistantInspector } from "./components/CuttingAssistantBar.jsx";
 import { OpticsViewport } from "./components/OpticsViewport.jsx";
 import { OpticsInspector } from "./components/OpticsInspector.jsx";
 import { MastControl } from "./components/MastControl.jsx";
@@ -56,7 +58,7 @@ import {
 } from "./domain/faceting.js";
 import {
   clipPolyhedronByPlanes,
-  createCenteredCube,
+  clipPolyhedronPreview,
   measurePolyhedron,
 } from "./domain/geometry.js";
 import {
@@ -79,6 +81,7 @@ import { createPresetLibrary, createStaticPresetProvider } from "./domain/preset
 import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
 import { parseCustomIndices, planeEntry, resolveDraftGeometry, solveDraftConstruction, snapshotMeetTarget } from "./domain/cutConstruction.js";
 import { buildConstructionStages } from "./domain/constructionHistory.js";
+import { useCuttingPlayback } from "./components/useCuttingPlayback.js";
 import { createCuttingReplay } from "./domain/cuttingAssistant.js";
 import { ConstructionAssistantDialog } from "./components/ConstructionAssistantDialog.jsx";
 import { downloadFacetReport } from "./report/pdfReport.js";
@@ -115,7 +118,7 @@ function describeCommand(command) {
   return "更新切磨参数";
 }
 
-export function WorkbenchEditor({ initialDocument, startWithDraft = false, visible = true, interactionPaused = false, onDocumentChange, onPreviewChange, onHome, onLab, onNewProject, projectStatus }) {
+export function WorkbenchEditor({ initialDocument, startWithDraft = false, visible = true, interactionPaused = false, onDocumentChange, onPreviewChange, onHome, onLab, onNewProject, onImportCrystal, projectStatus }) {
   const [history, setHistory] = useState(() => createCommandHistory(initialDocument));
   const [sessionState, dispatchCutSession] = useReducer(
     cutSessionReducer,
@@ -129,6 +132,8 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const opticsActive = viewportMode === "optics";
   const cuttingAssistantActive = viewportMode === "assistant";
   const [assistantPosition, setAssistantPosition] = useState(0);
+  const [assistantFollow, setAssistantFollow] = useState(true);
+  const [assistantDuration, setAssistantDuration] = useState(600);
   const [opticsInspectorOpen, setOpticsInspectorOpen] = useState(true);
   const [opticsTab, setOpticsTab] = useState("material");
   const [opticsViewSettings, setOpticsViewSettings] = useState(DEFAULT_OPTICS_SETTINGS.view);
@@ -147,7 +152,10 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const [toast, setToast] = useState("");
   const [reportIncludeGirdle, setReportIncludeGirdle] = useState(false);
   const [ascTransfer, setAscTransfer] = useState(null);
+  const [pendingImport, setPendingImport] = useState(null);
   const [presetLibraryOpen, setPresetLibraryOpen] = useState(false);
+  const presetLibraryOpenRef = useRef(false);
+  useEffect(() => { presetLibraryOpenRef.current = presetLibraryOpen; }, [presetLibraryOpen]);
   const importRef = useRef(null);
   const ascImportRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -170,7 +178,14 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const cutSession = resolveCutSession(sessionState);
   const cutMode = cutSession.mode;
   const hasUnsavedPreview = cutSession.previewEnabled || Boolean(cutSession.group && cutSession.dirty);
-  useEffect(() => { onDocumentChange(document); }, [document, onDocumentChange]);
+  // The mount-time document is the same snapshot App already saved as baseline;
+  // re-emitting the cloned history head would schedule a write that bumps the
+  // project revision without any user edit.
+  const didEmitDocument = useRef(false);
+  useEffect(() => {
+    if (!didEmitDocument.current) { didEmitDocument.current = true; return; }
+    onDocumentChange(document);
+  }, [document, onDocumentChange]);
   useEffect(() => { onPreviewChange(hasUnsavedPreview); }, [hasUnsavedPreview, onPreviewChange]);
   const region = cutSession.region;
   const {
@@ -208,7 +223,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       setOpticsViewMode(viewMode);
       setOpticsInspectorOpen(true);
     }
-    if (nextMode === "assistant") setAssistantPosition(0);
+    if (nextMode === "assistant") { setAssistantPosition(0); setAssistantFollow(true); }
     setViewportMode(nextMode);
     if (nextMode === "assistant") notify("已进入切割助手；CUT 会话已原样挂起。");
     else if (nextMode === "optics") notify("已进入纯光学仿真；CUT 会话已原样挂起。");
@@ -231,6 +246,9 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const replayStep = cuttingReplay && replayPosition < cuttingReplay.total
     ? cuttingReplay.steps[replayPosition]
     : null;
+  const playback = useCuttingPlayback({ active: cuttingAssistantActive && visible && !interactionPaused, position: replayPosition, total: cuttingReplay?.total ?? 0, onPositionChange: setAssistantPosition });
+  const assistantView = useMemo(() => cuttingAssistantActive ? { step: replayStep, follow: assistantFollow, duration: assistantDuration } : null, [cuttingAssistantActive, replayStep, assistantFollow, assistantDuration]);
+  const interruptAssistantView = () => { playback.setPlaying(false); setAssistantFollow(false); };
   const assistantSolid = useMemo(
     () => (cuttingReplay ? cuttingReplay.solidAt(replayPosition) : null),
     [cuttingReplay, replayPosition],
@@ -241,13 +259,9 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   );
 
   const draft = useMemo(() => resolveDraftGeometry(cutSession.draft, region, document.stock), [cutSession.draft, document.stock, region]);
-  const deferredDraftFacets = useDeferredValue(draft.facets);
+  const draftFacets = draft.facets;
 
-  const stockSolid = useMemo(() => createCenteredCube(document.stock.size, {
-    center: document.stock.center,
-    sourceOperationId: "rough-cube",
-    region: "rough",
-  }), [document.stock]);
+  const stockSolid = useMemo(() => createStockSolid(document.stock), [document.stock]);
 
   const savedSolid = useMemo(
     () => clipPolyhedronByPlanes(stockSolid, document.facets.map(planeEntry)),
@@ -269,19 +283,21 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
         return Array.isArray(point) ? point[2] : point?.z;
       }))
       .filter(Number.isFinite);
-    const halfSize = Number(document.stock.size) / 2;
+    const halfSize = document.stock.kind === "mesh" ? 0 : Number(document.stock.size) / 2;
     const centerZ = Number(document.stock.center?.[2]) || 0;
     return {
+      hasGirdle: zValues.length > 0,
       top: zValues.length ? Math.max(...zValues) : centerZ + halfSize,
       bottom: zValues.length ? Math.min(...zValues) : centerZ - halfSize,
     };
   }, [document.facets, document.stock, savedSolid]);
   const groupSafeRange = useMemo(() => {
+    if (document.stock.kind === "mesh" && !girdleBoundary.hasGirdle) return { min: -Infinity, max: Infinity };
     const minimumWaist = Math.max(Number(document.stock.size) * 0.01, 0.01);
     return groupEditRegion === "crown"
       ? { min: girdleBoundary.bottom + minimumWaist - girdleBoundary.top, max: Infinity }
       : { min: -Infinity, max: girdleBoundary.top - minimumWaist - girdleBoundary.bottom };
-  }, [document.stock.size, girdleBoundary, groupEditRegion]);
+  }, [document.stock, girdleBoundary, groupEditRegion]);
 
   const groupBaseHeight = useMemo(() => {
     if (!groupEditRegion || savedSolid.vertices.length === 0) return 0;
@@ -289,10 +305,13 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       .map((point) => (Array.isArray(point) ? point[2] : point?.z))
       .filter(Number.isFinite);
     if (values.length === 0) return 0;
+    if (document.stock.kind === "mesh" && !girdleBoundary.hasGirdle) {
+      return Math.max(...values.map(z => Math.abs(z - document.stock.center[2])));
+    }
     return groupEditRegion === "crown"
       ? Math.max(0, Math.max(...values) - girdleBoundary.top)
       : Math.max(0, girdleBoundary.bottom - Math.min(...values));
-  }, [girdleBoundary, groupEditRegion, savedSolid.vertices]);
+  }, [document.stock, girdleBoundary, groupEditRegion, savedSolid.vertices]);
 
   const groupPreview = useMemo(() => {
     if (!groupEditRegion) return { facets: document.facets, error: "" };
@@ -342,18 +361,25 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   }, [document.facets, document.stock, girdleBoundary, groupBaseHeight, groupDeltaZ, groupEditRegion, groupRotationTeeth, groupSafeRange, groupScale]);
 
   const visibleFacets = useMemo(() => groupPreview.facets.filter((facet) => !hiddenPatternIds.has(facet.patternId)), [groupPreview.facets, hiddenPatternIds]);
-  const committedSolid = useMemo(() => clipPolyhedronByPlanes(stockSolid, visibleFacets.map(planeEntry)), [stockSolid, visibleFacets]);
+  const committedResult = useMemo(() => {
+    try { return { solid: !groupEditRegion && hiddenPatternIds.size === 0
+      ? savedSolid
+      : (groupEditRegion ? clipPolyhedronPreview : clipPolyhedronByPlanes)(stockSolid, visibleFacets.map(planeEntry)), error: "" }; }
+    catch (error) { return { solid: savedSolid, error: `当前变换无法生成封闭晶体，请调整参数。${error.message}` }; }
+  }, [groupEditRegion, hiddenPatternIds, savedSolid, stockSolid, visibleFacets]);
+  const committedSolid = committedResult.solid;
   const constructionStages = useMemo(() => buildConstructionStages(document, { hiddenPatternIds }), [document, hiddenPatternIds]);
   const diagnosticsById = useMemo(() => Object.fromEntries(constructionStages.filter((stage) => stage.construction).map((stage) => [stage.id, stage.construction])), [constructionStages]);
   const constructionBaseSolid = editingPatternId
     ? constructionStages.find((stage) => stage.id === editingPatternId)?.beforeSolid ?? stockSolid
     : committedSolid;
-  const impactBaseSolid = useMemo(() => {
-    const facets = editingPatternId
-      ? document.facets.filter((facet) => facet.patternId !== editingPatternId)
-      : document.facets;
-    return clipPolyhedronByPlanes(stockSolid, facets.map(planeEntry));
-  }, [document.facets, editingPatternId, stockSolid]);
+  const impactBaseResult = useMemo(() => {
+    if (!editingPatternId) return { solid: savedSolid, error: "" };
+    try { return { solid: clipPolyhedronByPlanes(stockSolid,
+      document.facets.filter(facet => facet.patternId !== editingPatternId).map(planeEntry)), error: "" }; }
+    catch { return { solid: savedSolid, error: "暂时移除此层后，后续切面经过无法封闭的交点；请先调整后续图层。" }; }
+  }, [document.facets, editingPatternId, savedSolid, stockSolid]);
+  const impactBaseSolid = impactBaseResult.solid;
   const meetTargets = useMemo(() => enumerateTopologyVertices(constructionBaseSolid), [constructionBaseSolid]);
   const meetEdges = useMemo(() => enumerateTopologyEdges(constructionBaseSolid, { targets: meetTargets }), [constructionBaseSolid, meetTargets]);
   const reportSolid = savedSolid;
@@ -362,22 +388,31 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const constructionBlocksPreview = [cutSession.construction.meet, cutSession.construction.candidate]
     .some((entry) => [MEET_STATUS.UNREACHABLE, MEET_STATUS.STALE].includes(entry?.status));
   const draftImpact = useMemo(() => {
-    if (!previewEnabled || constructionBlocksPreview || deferredDraftFacets.length === 0) return null;
+    if (!previewEnabled || constructionBlocksPreview || draftFacets.length === 0) return null;
     return evaluateDraftImpact({
       baseSolid: impactBaseSolid,
-      planes: deferredDraftFacets.map(planeEntry),
+      preview: true,
+      planes: draftFacets.map(planeEntry),
     });
-  }, [constructionBlocksPreview, deferredDraftFacets, impactBaseSolid, previewEnabled]);
-  const previewSolid = useMemo(() => {
-    if (!previewEnabled || constructionBlocksPreview || deferredDraftFacets.length === 0 || (editingPatternId && hiddenPatternIds.has(editingPatternId))) return committedSolid;
-    if (!editingPatternId) return clipPolyhedronByPlanes(committedSolid, deferredDraftFacets.map(planeEntry));
-    const draftFacets = deferredDraftFacets.map((facet) => ({ ...facet, patternId: editingPatternId }));
-    const sequence = replacePatternFacets(visibleFacets, editingPatternId, draftFacets);
-    return clipPolyhedronByPlanes(stockSolid, sequence.map(planeEntry));
-  }, [committedSolid, constructionBlocksPreview, deferredDraftFacets, editingPatternId, hiddenPatternIds, previewEnabled, stockSolid, visibleFacets]);
+  }, [constructionBlocksPreview, draftFacets, impactBaseSolid, previewEnabled]);
+  const previewResult = useMemo(() => {
+    if (!previewEnabled || constructionBlocksPreview || draftFacets.length === 0 || (editingPatternId && hiddenPatternIds.has(editingPatternId))) return { solid: committedSolid, error: "" };
+    try {
+      // Mesh impact and preview use the same scale-aware solver tolerance.
+      // Reuse only an identical source/plane sequence; cube keeps its old gate.
+      if (!editingPatternId && committedSolid.kind === "mesh" && committedSolid === impactBaseSolid && draftImpact) {
+        return { solid: draftImpact.resultSolid, error: draftImpact.error ?? "" };
+      }
+      if (!editingPatternId) return { solid: clipPolyhedronPreview(committedSolid, draftFacets.map(planeEntry)), error: "" };
+      const editedFacets = draftFacets.map((facet) => ({ ...facet, patternId: editingPatternId }));
+      const sequence = replacePatternFacets(visibleFacets, editingPatternId, editedFacets);
+      return { solid: clipPolyhedronPreview(stockSolid, sequence.map(planeEntry)), error: "" };
+    } catch { return { solid: committedSolid, error: "当前切面经过无法封闭的交点，请微调角度或深度。" }; }
+  }, [committedSolid, constructionBlocksPreview, draftFacets, draftImpact, editingPatternId, hiddenPatternIds, impactBaseSolid, previewEnabled, stockSolid, visibleFacets]);
+  const previewSolid = previewResult.solid;
 
   const previewWouldEraseStock = Boolean(draftImpact?.solidErased)
-    || (previewEnabled && deferredDraftFacets.length > 0 && previewSolid.vertices.length === 0);
+    || (previewEnabled && draftFacets.length > 0 && previewSolid.vertices.length === 0);
   const displaySolid = previewWouldEraseStock ? committedSolid : previewSolid;
   const metrics = useMemo(() => measurePolyhedron(displaySolid), [displaySolid]);
   const groupGizmo = useMemo(() => {
@@ -418,7 +453,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const impactWarningMessage = ["warn", "confirm"].includes(draftCommitPolicy)
     ? `当前切割将覆盖 ${draftImpact.removedFaceCount} 个已有有效面；普通 C/P 消面允许，整层消失时保存前会再次确认。`
     : "";
-  const validationMessage = draft.error || constructionDiagnostic || impactValidationMessage;
+  const validationMessage = draft.error || previewResult.error || draftImpact?.error || impactBaseResult.error || committedResult.error || constructionDiagnostic || impactValidationMessage;
   const primaryDraftFacet = useMemo(() => {
     if (!draft.facets.length) return null;
     const activeIndex = normalizeIndex(baseIndex);
@@ -468,7 +503,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const editingOperation = operations.find((operation) => operation.id === editingPatternId) ?? null;
   const sourceLabelForTarget = useCallback((target) => {
     const labels = (target?.sourceOperationIds ?? [])
-      .filter((id) => id !== "rough-cube")
+      .filter((id) => !["rough-cube", "rough-mesh"].includes(id))
       .map((id) => operations.find((operation) => operation.id === id)?.label?.split(/\s+/)[0] ?? id);
     return labels.length ? labels.join(" × ") : "毛坯";
   }, [operations]);
@@ -508,13 +543,14 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       stock: document.stock,
       targets: meetTargets,
     });
-  }, [baseIndex, constructionBaseSolid, customIndices, cutSession.canUseMeetJump, cutSession.construction.meet, document.stock, industryAngle, meetTargets, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount]);
+  }, [baseIndex, constructionBaseSolid, customIndices, cutSession.canUseMeetJump, cutSession.construction.meet, document.stock, industryAngle, interactionPaused, meetTargets, mirrorOffset, patternMode, primaryFacetForDraft, region, repeatCount, visible]);
 
   const evaluateJumpCandidate = useCallback((candidate) => {
     const jumpDraft = { industryAngle: candidate.industryAngleDeg ?? industryAngle, baseIndex, repeat: repeatCount, mirrorOffset, patternMode, customIndices, depth: 0 };
     const { facet } = primaryFacetForDraft(jumpDraft);
     return classifyJumpCandidate({
       candidate,
+      preview: true,
       baseSolid: impactBaseSolid,
       normal: facet.plane.normal,
       stock: document.stock,
@@ -524,21 +560,25 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
 
   const jumpSession = resolveCutSession(sessionState, { jumpCandidates });
 
-  const nextJumpCandidate = useMemo(() => {
+  const nextJumpTarget = useMemo(() => {
     const index = adjacentJumpCandidateIndex({
       candidates: jumpCandidates,
       currentDepth: Number(cutSession.draft.depth),
       currentAngle: cutSession.construction.meet ? cutSession.draft.industryAngle : undefined,
       currentKey: cutSession.construction.candidate?.key,
     });
-    if (index < 0) return null;
-    const candidate = evaluateJumpCandidate(jumpCandidates[index]);
+    return jumpCandidates[index] ?? null;
+  }, [cutSession.construction.candidate?.key, cutSession.construction.meet, cutSession.draft.depth, cutSession.draft.industryAngle, jumpCandidates]);
+
+  const nextJumpCandidate = useMemo(() => {
+    if (!nextJumpTarget) return null;
+    const candidate = evaluateJumpCandidate(nextJumpTarget);
     return {
       ...candidate,
-      position: `${index + 1}/${jumpCandidates.length}`,
+      position: `${jumpCandidates.indexOf(nextJumpTarget) + 1}/${jumpCandidates.length}`,
       sourceLabel: sourceLabelForTarget(candidate.target),
     };
-  }, [cutSession.construction.candidate?.key, cutSession.construction.meet, cutSession.draft.depth, cutSession.draft.industryAngle, evaluateJumpCandidate, jumpCandidates, sourceLabelForTarget]);
+  }, [evaluateJumpCandidate, jumpCandidates, nextJumpTarget, sourceLabelForTarget]);
 
   const candidateFromTarget = useCallback((target, source = "manual") => {
     const meet = cutSession.construction.meet
@@ -554,7 +594,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       industryAngleDeg: cutSession.construction.meet && valid ? result.draft.industryAngle : undefined,
       requiredDepth: result.meet.requiredDepth, residual: result.meet.residual,
       status: valid ? impact.status : result.meet.status,
-      message: result.meet.message, reason: result.meet.reason,
+      message: impact?.error ?? result.meet.message, reason: impact?.reason ?? result.meet.reason,
       classification: impact?.classification ?? "contact-only", threats: impact?.threats ?? [],
       sourceLabel: sourceLabelForTarget(target),
     };
@@ -587,18 +627,18 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     : [];
 
   const draftEffectiveIds = useMemo(
-    () => new Set(draftImpact?.resultSolid.faces.map((face) => face.id) ?? []),
+    () => new Set(draftImpact?.resultSolid.faces.map((face) => face.facetId ?? face.id) ?? []),
     [draftImpact],
   );
   const activeEffectiveIndices = useMemo(() => previewEnabled
-    ? deferredDraftFacets.filter((facet) => draftEffectiveIds.has(facet.id)).map((facet) => facet.index)
+    ? draftFacets.filter((facet) => draftEffectiveIds.has(facet.id)).map((facet) => facet.index)
     : editingOperation?.effectiveIndices ?? [],
-  [deferredDraftFacets, draftEffectiveIds, editingOperation?.effectiveIndices, previewEnabled]);
+  [draftFacets, draftEffectiveIds, editingOperation?.effectiveIndices, previewEnabled]);
 
   const instructionGroups = useMemo(() => {
     const rows = operations.map((operation) => {
       const isActive = operation.id === editingPatternId;
-      const livePreview = isActive && deferredDraftFacets.length > 0;
+      const livePreview = isActive && draftFacets.length > 0;
       return {
         id: operation.id,
         prefix: operation.label.split(/\s+/)[0],
@@ -611,7 +651,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       };
     });
 
-    if (!editingPatternId && !groupEditRegion && previewEnabled && deferredDraftFacets.length > 0) {
+    if (!editingPatternId && !groupEditRegion && previewEnabled && draftFacets.length > 0) {
       const number = operations.filter((operation) => operation.region === region && !operation.locked).length + 1;
       rows.push({
         id: "draft-instruction",
@@ -635,7 +675,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
         .filter((row) => row.region === "crown")
         .sort((left, right) => Number(left.locked) - Number(right.locked)),
     };
-  }, [activeEffectiveIndices, deferredDraftFacets.length, editingPatternId, groupEditRegion, industryAngle, operations, previewEnabled, region]);
+  }, [activeEffectiveIndices, draftFacets.length, editingPatternId, groupEditRegion, industryAngle, operations, previewEnabled, region]);
 
   const historyEntries = useMemo(() => history.commands.slice(0, history.cursor).map((command) => {
     const createdAt = command.payload?.facets?.[0]?.metadata?.createdAt;
@@ -663,8 +703,12 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     const baseFacets = current
       ? document.facets.filter((facet) => facet.patternId !== current.id)
       : document.facets;
-    const baseSolid = clipPolyhedronByPlanes(stockSolid, baseFacets.map(planeEntry));
-    const impact = evaluateDraftImpact({ baseSolid, planes: draft.facets.map(planeEntry) });
+    let impact;
+    try {
+      const baseSolid = clipPolyhedronByPlanes(stockSolid, baseFacets.map(planeEntry));
+      impact = evaluateDraftImpact({ baseSolid, planes: draft.facets.map(planeEntry) });
+    } catch (error) { notify(`无法保存当前切割：${error.message}`); return; }
+    if (impact.error) { notify(impact.error); return; }
     const policy = resolveDraftCommitPolicy(impact);
     if (policy === "block") {
       notify(impact.solidErased
@@ -719,6 +763,10 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           label,
           metadata,
         }));
+      if (document.stock.kind === "mesh") {
+        const sequence = current ? replacePatternFacets(document.facets, current.id, facets) : [...document.facets, ...facets];
+        clipPolyhedronByPlanes(stockSolid, sequence.map(planeEntry));
+      }
       const command = current
         ? createReplacePatternCommand(patternId, facets)
         : createAddFacetsCommand(facets);
@@ -805,7 +853,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   }, [visible, interactionPaused, presetLibraryOpen]);
 
   const selectCut = (id) => {
-    if (id === "rough-cube") return;
+    if (["rough-cube", "rough-mesh"].includes(id)) return;
     if (!cutSession.canPickLayer) return;
     const operation = operations.find((item) => item.id === id);
     if (!operation) return;
@@ -842,6 +890,16 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     });
   };
 
+  const validateMeshSequence = (facets, hidden = hiddenPatternIds, stock = document.stock) => {
+    if (stock.kind !== "mesh") return true;
+    const source = stock === document.stock ? stockSolid : createStockSolid(stock);
+    try {
+      clipPolyhedronByPlanes(source, facets.map(planeEntry));
+      if (hidden.size) clipPolyhedronByPlanes(source, facets.filter(f => !hidden.has(f.patternId)).map(planeEntry));
+      return true;
+    } catch { notify("此次调整会使后续切面经过无法封闭的交点；请先微调关联层的角度或深度。"); return false; }
+  };
+
   const removeCut = (id) => {
     if (!cutSession.canMutateStack) return;
     const operation = operations.find((item) => item.id === id);
@@ -850,6 +908,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       notify("台面是固定结构层，只能调整深度，不能删除。");
       return;
     }
+    if (!validateMeshSequence(document.facets.filter(f => f.patternId !== id))) return;
     const command = createRemoveFacetsCommand(operation.facets.map((facet) => facet.id));
     setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     setHiddenPatternIds((current) => {
@@ -882,6 +941,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     const facets = [...document.facets].sort(
       (a, b) => (positionById.get(a.patternId) ?? 0) - (positionById.get(b.patternId) ?? 0),
     );
+    if (!validateMeshSequence(facets)) return;
     const command = createReplaceDocumentCommand({ ...document, facets });
     setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     notify(`已调整布尔顺序：“${moved.label}”移至第 ${toIndex + 1} 位。`);
@@ -928,13 +988,16 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     const shift = Number(groupDeltaZ);
     const scale = Number(groupScale);
     const rotation = Math.round(Number(groupRotationTeeth) || 0);
-    if (!groupEditRegion || !cutSession.canCommit || groupPreview.error) return;
+    if (!groupEditRegion || !cutSession.canCommit || groupPreview.error || committedResult.error) return;
 
     const beforeSolid = savedSolid;
-    const afterSolid = clipPolyhedronByPlanes(stockSolid, groupPreview.facets.map(planeEntry));
-    const survivingIds = new Set(afterSolid.faces.map((face) => face.id));
+    let afterSolid;
+    try { afterSolid = clipPolyhedronByPlanes(stockSolid, groupPreview.facets.map(planeEntry)); }
+    catch (error) { notify(`无法应用整体变换：${error.message}`); return; }
+    if (!afterSolid.vertices.length) { notify("该变换会移除全部材料，请调整参数。"); return; }
+    const survivingIds = new Set(afterSolid.faces.map((face) => face.facetId ?? face.id));
     const destroyed = beforeSolid.faces.filter(
-      (face) => face.sourceOperationId && face.sourceOperationId !== "rough-cube" && !survivingIds.has(face.id),
+      (face) => face.sourceOperationId && face.region !== "rough" && !survivingIds.has(face.facetId ?? face.id),
     );
     if (destroyed.length > 0) {
       const labels = [...new Set(destroyed.map((face) => (
@@ -978,7 +1041,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       : evaluateJumpCandidate(jumpCandidates[nextIndex]);
     const candidate = {
       ...raw,
-      status: raw.classification === "destructive" ? MEET_STATUS.DESTRUCTIVE : MEET_STATUS.VALID,
+      status: raw.status ?? (raw.classification === "destructive" ? MEET_STATUS.DESTRUCTIVE : MEET_STATUS.VALID),
       requiredDepth: raw.depth,
       residual: 0,
       position: `${nextIndex + 1}/${jumpCandidates.length}`,
@@ -1085,6 +1148,14 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const depthControlMax = Math.max(document.stock.size * 1.5, depth * 1.25, 1);
 
   const resetDocument = (name) => {
+    if (document.stock.kind === "mesh") {
+      const command = createReplaceDocumentCommand({ ...document, facets: [] }, { description: "清除切割 · 恢复导入晶体" });
+      setHistory(current => executeFacetingCommand(current, command));
+      setHiddenPatternIds(new Set());
+      dispatchCutSession({ type: CUT_SESSION_EVENT.DOCUMENT_IMPORT });
+      setResetSignal(value => value + 1);
+      return;
+    }
     setHistory(createCommandHistory(createWorkbenchDocument(name)));
     setOpticsViewSettings(DEFAULT_OPTICS_SETTINGS.view);
     setHiddenPatternIds(new Set());
@@ -1140,22 +1211,37 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    let imported;
     try {
-      const imported = ensureTableFacet(importFacetingJSON(await file.text()));
-      applyImportedDocument(imported);
-      notify(`已导入“${imported.name}”，共 ${imported.facets.length} 个面。`);
+      assertFileBudget(file);
+      const text = await file.text();
+      assertDocumentImportBudget(JSON.parse(text));
+      imported = ensureTableFacet(importFacetingJSON(text));
     } catch (error) {
       const detail = error.errors?.[0];
       notify(detail ? `导入失败：${detail.path} ${detail.message}` : `导入失败：${error.message}`);
+      return;
     }
+    // Replacing the document must not silently discard an uncommitted CUT preview.
+    if (hasUnsavedPreview) {
+      setPendingImport(imported);
+      setModal("import-confirm");
+      return;
+    }
+    applyImportedDocument(imported);
+    notify(`已导入“${imported.name}”，共 ${imported.facets.length} 个面。`);
   };
 
   const inspectAscFile = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    const result = inspectGemCadAsc(await file.text(), { fileName: file.name });
-    setAscTransfer({ mode: "import", fileName: file.name, result });
+    try {
+      assertFileBudget(file);
+      const result = inspectGemCadAsc(await file.text(), { fileName: file.name });
+      if (result.document) assertDocumentImportBudget(result.document);
+      setAscTransfer({ mode: "import", fileName: file.name, result });
+    } catch (error) { notify(`ASC 导入失败：${error.message}`); }
   };
 
   const openAscExport = () => {
@@ -1186,6 +1272,8 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   };
 
   const loadPreset = async (rawDocument, preset) => {
+    // Late responses from an already closed preset session must not replace the document.
+    if (!presetLibraryOpenRef.current) return;
     const imported = ensureTableFacet(importFacetingJSON(JSON.stringify(rawDocument)));
     applyImportedDocument(imported, {
       description: `载入预设琢型 · ${preset.name}`,
@@ -1197,18 +1285,16 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
 
   const toggleVisibility = (id) => {
     if (!cutSession.canMutateStack) return;
-    if (id === "rough-cube") return;
+    if (["rough-cube", "rough-mesh"].includes(id)) return;
     const operation = operations.find((item) => item.id === id);
     if (operation?.locked) {
       notify("台面是固定结构层，始终参与布尔序列。");
       return;
     }
-    setHiddenPatternIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const next = new Set(hiddenPatternIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    if (!validateMeshSequence(document.facets, next)) return;
+    setHiddenPatternIds(next);
   };
 
   const inspectHistoryEntry = (commandId) => {
@@ -1219,7 +1305,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   };
 
   const visibleEffectiveCount = useMemo(() => summarizeEffectiveFacets(displaySolid).effectiveFacetIds.length, [displaySolid]);
-  const composerStatus = `有效刻面 ${visibleEffectiveCount} · 毛坯面 ${metrics.faces.length - visibleEffectiveCount} · 体积 ${metrics.volume.toFixed(3)}`;
+  const composerStatus = `有效刻面 ${visibleEffectiveCount} · ${document.stock.kind === "mesh" ? "原石面片" : "毛坯面"} ${displaySolid.faces.filter(face => face.region === "rough").length} · 体积 ${metrics.volume.toFixed(3)}`;
   const composerValidationMessage = groupEditRegion
     ? `正在整体变换${groupEditRegion === "crown" ? "冠部与台面" : "亭部"}；请先应用或取消。`
     : cutSession.active ? validationMessage : "";
@@ -1229,7 +1315,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       <div className="workbench-topbar">
         <button className="workbench-brand" onClick={onHome} aria-label="切磨工作台 · 返回项目主页">
           <img src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="" />
-          <span><strong>切磨工作台 <em>Alpha</em></strong><small>SUVA · FACET 96</small></span>
+          <span><strong>切磨工作台 <em>1.0 RC</em></strong><small>SUVA · FACET 96</small></span>
         </button>
         <div className="workbench-links">
           <nav className="workbench-navigation" aria-label="工作台页面">
@@ -1239,7 +1325,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           <RepositoryLink />
         </div>
           {cuttingAssistantActive && cuttingReplay ? (
-            <CuttingAssistantBar onExit={() => changeViewportMode("edit")} />
+            <CuttingAssistantBar name={document.name} onExit={() => changeViewportMode("edit")} />
           ) : (
           <Header
             projectName={document.name}
@@ -1248,6 +1334,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             onNew={onNewProject}
             onOpenPresets={() => setPresetLibraryOpen(true)}
             onImport={() => importRef.current?.click()}
+            onImportCrystal={onImportCrystal}
             onImportAsc={() => ascImportRef.current?.click()}
             onExport={() => hasUnsavedPreview ? setModal("json-export") : exportDocument()}
             backupStatus={projectStatus}
@@ -1258,10 +1345,12 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             onExportAsc={openAscExport}
             onExportPdf={() => setModal("pdf")}
             onUndo={() => {
-              setHistory((current) => undoFacetingCommand(current));
+              const next = undoFacetingCommand(history);
+              if (validateMeshSequence(next.present.facets, hiddenPatternIds, next.present.stock)) setHistory(next);
             }}
             onRedo={() => {
-              setHistory((current) => redoFacetingCommand(current));
+              const next = redoFacetingCommand(history);
+              if (validateMeshSequence(next.present.facets, hiddenPatternIds, next.present.stock)) setHistory(next);
             }}
             canUndo={cutMode === CUT_SESSION_MODE.IDLE && canUndo(history)}
             canRedo={cutMode === CUT_SESSION_MODE.IDLE && canRedo(history)}
@@ -1401,6 +1490,8 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             polyhedron={cuttingAssistantActive && assistantSolid ? assistantSolid : displaySolid}
             meetPolyhedron={cuttingAssistantActive ? null : constructionBaseSolid}
             previewPlanes={cuttingAssistantActive ? assistantPreviewPlanes : previewPlanes}
+            assistantView={assistantView}
+            onCameraInteraction={cuttingAssistantActive ? interruptAssistantView : undefined}
             selectedIndex={cuttingAssistantActive ? (replayStep?.index ?? 0) : baseIndex}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -1457,11 +1548,15 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           <ViewportModeSwitch mode={viewportMode} onModeChange={changeViewportMode} />
 
           {cuttingAssistantActive && cuttingReplay ? (
+            <>
+            <CuttingAssistantInspector replay={cuttingReplay} position={replayPosition} solid={assistantSolid} follow={assistantFollow} onFollow={setAssistantFollow} duration={assistantDuration} onDuration={setAssistantDuration} />
             <CuttingAssistantPlayer
               replay={cuttingReplay}
               position={replayPosition}
               onPositionChange={setAssistantPosition}
+              playing={playback.playing} onPlaying={playback.setPlaying} speed={playback.speed} onSpeed={playback.setSpeed}
             />
+            </>
           ) : null}
 
           {opticsActive && opticsInspectorOpen ? (
@@ -1481,6 +1576,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
                 <button type="button" onClick={() => setHistoryOpen(false)} aria-label="关闭历史记录">×</button>
               </div>
               <HistoryPanel
+                stockKind={document.stock.kind}
                 entries={historyEntries}
                 onInspect={inspectHistoryEntry}
                 onClear={() => setModal("clear")}
@@ -1519,7 +1615,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             groupScale={groupScale}
             groupRotationTeeth={groupRotationTeeth}
             groupBaseHeight={groupBaseHeight}
-            groupError={groupPreview.error}
+            groupError={groupPreview.error || committedResult.error}
             canApplyGroupEdit={cutSession.canCommit}
             groupExitLabel={cutSession.exitLabel}
             onStartGroupEdit={startGroupEdit}
@@ -1556,7 +1652,8 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           >
             <FacetLedger
               operations={operations}
-              selectedId={editingPatternId ?? "rough-cube"}
+              stockKind={document.stock.kind}
+              selectedId={editingPatternId ?? (document.stock.kind === "mesh" ? "rough-mesh" : "rough-cube")}
               hoveredId={hoveredPatternId}
               onSelect={selectCut}
               onHover={setHoveredPatternId}
@@ -1577,6 +1674,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
         <AscTransferDialog
           mode={ascTransfer.mode}
           fileName={ascTransfer.fileName}
+          discardingDraft={hasUnsavedPreview}
           result={ascTransfer.result}
           onClose={closeAscTransfer}
           onReselect={() => ascImportRef.current?.click()}
@@ -1598,7 +1696,6 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
           records={localRecovery.records}
           unreadableCount={localRecovery.unreadableCount}
           error={localRecovery.error}
-          startup={false}
           discardingDraft={hasUnsavedPreview}
           onClose={() => setRecoveryOpen(false)}
           onRefresh={localRecovery.refresh}
@@ -1610,6 +1707,27 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
             notify("已恢复文档与材质；未保存草稿、相机和旧撤销历史不包含在备份中。");
           }}
         />
+      ) : null}
+
+      {modal === "import-confirm" && pendingImport ? (
+        <Modal
+          title="导入前保留切割预览"
+          eyebrow="JSON · IMPORT"
+          confirmLabel="放弃预览并导入"
+          closeLabel="保留当前预览"
+          destructive
+          onClose={() => { setPendingImport(null); setModal(null); }}
+          onConfirm={() => {
+            const imported = pendingImport;
+            setPendingImport(null);
+            setModal(null);
+            applyImportedDocument(imported);
+            notify(`已导入“${imported.name}”，共 ${imported.facets.length} 个面，可撤销。`);
+          }}
+        >
+          <p>当前还有未保存的 CUT / Meet / 整体变换预览。导入“{pendingImport.name}”会放弃这部分预览；已经提交的文档仍可用一次撤销恢复。</p>
+          <p>如需继续调整，可保留预览并取消本次导入。</p>
+        </Modal>
       ) : null}
 
       {modal === "json-export" ? (
@@ -1658,21 +1776,21 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       ) : null}
 
       {modal === "clear" ? (
-        <Modal title="清除用户切割" confirmLabel="恢复默认预形" destructive onClose={() => setModal(null)} onConfirm={() => {
+        <Modal title="清除用户切割" confirmLabel={document.stock.kind === "mesh" ? "恢复初始晶体" : "恢复默认预形"} destructive onClose={() => setModal(null)} onConfirm={() => {
           resetDocument(document.name);
           setModal(null);
-          notify("已清除用户切割并恢复固定台面 T1 与默认腰部 G1。");
+          notify(document.stock.kind === "mesh" ? "已恢复导入时的晶体，可撤销恢复切割。" : "已清除用户切割并恢复固定台面 T1 与默认腰部 G1。");
         }}>
-          <p>这会清除 C1、P1 等用户图层及撤销历史；固定台面 T1 与默认 32 面腰部 G1 会保留。</p>
+          <p>{document.stock.kind === "mesh" ? "清除全部切割层，恢复导入时的初始晶体；此操作可撤销。" : "这会清除 C1、P1 等用户图层及撤销历史；固定台面 T1 与默认 32 面腰部 G1 会保留。"}</p>
         </Modal>
       ) : null}
 
       {modal === "settings" ? (
         <Modal title="系统设置" onClose={() => setModal(null)}>
           <ul>
-            <li>毛坯：中心立方体，边长 2.000</li>
+            <li>{document.stock.kind === "mesh" ? "初始晶体：导入多面体，最长边归一为 2.000，中心位于机台原点" : "毛坯：中心立方体，边长 2.000"}</li>
             <li>分度轮：固定 96 齿，每齿 3.75°</li>
-            <li>半空间：保留 n · p ≤ d 的凸体</li>
+            <li>切割保留平面内侧的材料，凹部与孔洞保持真实形状</li>
             <li>几何轴：+Z 指向冠部；几何 β 冠部为正、腰部为 0、亭部为负</li>
           </ul>
         </Modal>

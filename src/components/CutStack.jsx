@@ -134,7 +134,6 @@ export function CutStack({
   commitDisabledReason = "",
   onCommitSession,
   onCancelSession,
-  floating = false,
   collapsed = false,
   onToggle,
 }) {
@@ -164,7 +163,7 @@ export function CutStack({
   };
 
   return (
-    <section className={`cut-stack${floating ? " is-floating" : ""}${collapsed ? " is-collapsed" : ""}`} aria-labelledby="cut-stack-title">
+    <section className={`cut-stack${collapsed ? " is-collapsed" : ""}`} aria-labelledby="cut-stack-title">
       <div className="cut-stack-heading">
         <div>
           <span id="cut-stack-title">解析序列 CUT STACK</span>

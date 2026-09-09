@@ -32,7 +32,7 @@ function normalizeSummary(item, providerId) {
   };
 }
 
-/** Providers only need `id`, `list()` and `load(summary)`, so future local JSON presets share the same UI. */
+/** Providers only need `id`, `list()` and `load(summary, { signal })`, so future local JSON presets share the same UI. */
 export function createPresetLibrary(providers) {
   const providerMap = new Map(providers.map((provider) => [provider.id, provider]));
   return Object.freeze({
@@ -47,10 +47,10 @@ export function createPresetLibrary(providers) {
       )));
       return groups.flat();
     },
-    async load(summary) {
+    async load(summary, { signal } = {}) {
       const provider = providerMap.get(summary.providerId);
       if (!provider) throw new Error(`预设来源“${summary.providerId}”不可用。`);
-      return provider.load(summary);
+      return provider.load(summary, { signal });
     },
     async save(providerId, document, metadata = {}) {
       const provider = providerMap.get(providerId);
@@ -63,8 +63,8 @@ export function createPresetLibrary(providers) {
 export function createStaticPresetProvider({ fetcher = fetch, publicBase = "/" } = {}) {
   const root = `${basePath(publicBase)}presets/`;
   let catalogPromise;
-  async function readJson(url) {
-    const response = await fetcher(url);
+  async function readJson(url, { signal } = {}) {
+    const response = await fetcher(url, { signal });
     if (!response.ok) throw new Error(`无法读取预设资源：${response.status}`);
     return response.json();
   }
@@ -85,8 +85,8 @@ export function createStaticPresetProvider({ fetcher = fetch, publicBase = "/" }
         ),
       }));
     },
-    load(summary) {
-      return readJson(summary.document);
+    load(summary, { signal } = {}) {
+      return readJson(summary.document, { signal });
     },
   });
 }

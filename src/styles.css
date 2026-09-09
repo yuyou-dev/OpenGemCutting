@@ -469,7 +469,7 @@ input:disabled {
   min-height: 46px;
   padding: 8px 12px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 7px;
   font-size: 11px;
@@ -1669,7 +1669,7 @@ input:disabled {
   }
 }
 
-/* Refined studio layout: compact parameter drawer, dominant canvas, floating tools. */
+/* Workbench shell, parameter drawer and canvas tools. */
 .app-shell {
   height: 100vh;
   min-height: 680px;
@@ -1681,29 +1681,20 @@ input:disabled {
 
 .editor-workspace {
   width: 100%;
-  height: 100%;
   display: grid;
-  grid-template-columns: 322px minmax(0, 1fr);
   background: #f2f2f1;
-  transition: grid-template-columns 180ms ease;
-}
-
-.editor-workspace.is-sidebar-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .control-sidebar {
   position: relative;
   z-index: 8;
   min-width: 0;
-  height: 100vh;
   max-height: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border-right: 1px solid #d9d9d6;
   background: rgba(255, 255, 255, 0.98);
-  box-shadow: 6px 0 24px rgba(29, 31, 32, 0.035);
   transition: opacity 120ms ease, transform 180ms ease;
 }
 
@@ -2208,28 +2199,6 @@ input:disabled {
   cursor: not-allowed;
 }
 
-.cut-stack.is-floating {
-  position: absolute;
-  top: 12px;
-  left: 18px;
-  z-index: 9;
-  width: 274px;
-  overflow: hidden;
-  border: 1px solid #d8d8d4;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 12px 34px rgba(24, 26, 27, 0.09);
-  backdrop-filter: blur(12px);
-}
-
-.cut-stack.is-floating.is-collapsed {
-  width: 252px;
-}
-
-.is-sidebar-collapsed .cut-stack.is-floating {
-  left: 50px;
-}
-
 .cut-stack-heading-actions {
   flex: 0 0 auto;
   display: flex;
@@ -2292,10 +2261,6 @@ input:disabled {
 .cut-stack-region-tabs button.is-active.region-pavilion {
   border-color: #5d87c5;
   background: #5d87c5;
-}
-
-.cut-stack.is-floating .cut-stack-list {
-  max-height: 176px;
 }
 
 .cut-stack-group {
@@ -2604,8 +2569,6 @@ input:disabled {
 .viewport-column {
   position: relative;
   min-width: 0;
-  min-height: 0;
-  height: 100vh;
   overflow: hidden;
   border: 0;
   background: #efefee;
@@ -3483,10 +3446,6 @@ input:disabled {
     min-width: 900px;
   }
 
-  .editor-workspace {
-    grid-template-columns: 300px minmax(0, 1fr);
-  }
-
   .app-header {
     right: 12px;
     left: auto;
@@ -3727,7 +3686,7 @@ input:disabled {
   .standard-modal .modal-actions { padding: 12px 16px; }
 }
 
-/* Meet / Jump v0.7.2 extends the existing instrument drawer and shared modal. */
+/* Meet / Jump controls in the parameter drawer and shared modal. */
 .construction-heading { align-items: flex-start; }
 .construction-heading span { max-width: 58%; line-height: 1.45; text-align: right; }
 .construction-pick-actions { flex-wrap: wrap; }
@@ -3834,7 +3793,7 @@ input:disabled {
 }
 .repository-link:hover { color: #183e2c; border-color: #6b8d7a; background: #f1f7f3; }
 .repository-link:focus-visible { outline: 2px solid #37684e; outline-offset: 3px; }
-/* v0.8.0: project workspace, persistent top rail and right inspection column. */
+/* Three-column project workspace with persistent top rail and inspection column. */
 .workspace-editor {
   --left-panel-width: 292px;
   --right-panel-width: 304px;
@@ -3979,55 +3938,62 @@ input:disabled {
   .viewport-mode-switch { top: 12px; left: 12px; }
 }
 
-/* Cutting assistant focused view: single-column canvas, workbench viewport stays
-   mounted and visible (unlike the optics focus, which swaps renderers). */
-.editor-workspace.is-assistant-focus { grid-template-columns: minmax(0, 1fr); }
+/* Cutting assistant: option 3, fixed instrument rail and separate transport. */
 .workspace-editor .editor-workspace.is-assistant-focus { grid-template-columns: minmax(0, 1fr); }
-
-.app-header.is-assistant-toolbar { gap: 8px; }
-
-.assistant-title { display: grid; gap: 1px; padding: 0 4px; }
-.assistant-title strong { color: #343735; font-size: 10px; font-weight: 600; white-space: nowrap; }
-
-/* Cutting assistant playback bar: floats bottom-center on the gem canvas, above
-   the viewport interaction hints, so stepping stays out of the system top bar. */
-.assistant-player {
-  position: absolute;
-  z-index: 8;
-  left: 50%;
-  bottom: 54px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: calc(100% - 40px);
-  min-height: 42px;
-  padding: 5px 10px;
-  border: 1px solid #dededb;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 24px rgba(24, 26, 27, 0.07);
-  backdrop-filter: blur(12px);
-}
-
-.assistant-player .assistant-step-info { max-width: 260px; }
-
-.assistant-counter { color: #777a76; font-family: var(--mono); font-size: var(--font-min); white-space: nowrap; }
-
-.assistant-step-info { max-width: 300px; overflow: hidden; color: #252927; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-
-.assistant-controls { display: flex; gap: 2px; }
-.assistant-controls button { height: var(--control-h); padding: 0 8px; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; color: #4b4f4d; background: #f1f1ef; font-size: 10px; white-space: nowrap; }
-.assistant-controls button:hover:not(:disabled) { color: #252927; background: #e7e7e3; }
-.assistant-controls button:disabled { opacity: 0.45; }
-
-.assistant-progress { position: relative; width: 180px; height: var(--control-h); display: flex; align-items: center; cursor: pointer; }
-.assistant-progress::before { content: ""; position: absolute; top: 50%; right: 0; left: 0; height: 4px; transform: translateY(-50%); border-radius: 2px; background: #e3e3df; }
-.assistant-progress i { position: relative; height: 4px; border-radius: 2px; background: var(--pink); }
-.assistant-progress:focus-visible { outline: 1px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
-
-@media (max-width: 700px) {
-  .assistant-player { bottom: 44px; gap: 6px; padding: 4px 8px; }
-  .assistant-player .assistant-step-info { display: none; }
-  .assistant-progress { width: 110px; }
-}
+.is-assistant-focus { --assistant-rail: clamp(290px, 29vw, 380px); }
+.is-assistant-focus .viewport-column { background: #fff; }
+.is-assistant-focus .gem-viewport { position:absolute; inset:0 var(--assistant-rail) 150px 0; width:auto; height:auto; }
+.is-assistant-focus .gem-viewport__interaction-hints { display:none; }
+.app-header.is-assistant-toolbar { gap:24px; }
+.assistant-project-name { font-size:14px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.assistant-inspector { position:absolute; right:0; top:0; bottom:0; width:var(--assistant-rail); padding:24px 28px; overflow-y:auto; border-left:1px solid var(--hairline); background:#fff; display:flex; flex-direction:column; gap:18px; }
+.assistant-operation > span { color:var(--muted); font-size:14px; }
+.assistant-operation h2 { margin:10px 0 0; font-size:22px; line-height:1.5; }
+.assistant-dial { display:block; width:min(100%,280px); flex:none; margin:0 auto; }
+.assistant-dial text { font:14px var(--mono); fill:var(--ink); }
+.assistant-dial .dial-label { font:14px var(--sans); fill:var(--muted); }
+.assistant-dial .dial-value { font:500 78px var(--mono); }
+.assistant-readouts { display:grid; grid-template-columns:1fr 1fr; margin:0; padding:18px 0; border-block:1px solid var(--hairline); }
+.assistant-readouts > div + div { padding-left:18px; border-left:1px solid var(--hairline); }
+.assistant-readouts dt { font-size:14px; color:var(--muted); }
+.assistant-readouts dd { margin:10px 0 4px; font:500 clamp(23px,2.4vw,34px) var(--mono); }
+.assistant-readouts small { display:block; font-size:11px; color:var(--muted); }
+.assistant-tier h3 { font-size:14px; font-weight:400; margin:0 0 12px; color:var(--muted); }
+.assistant-tier-indices { display:flex; flex-wrap:wrap; gap:10px; max-height:112px; overflow:auto; }
+.assistant-tier-indices span { display:grid; place-items:center; min-width:36px; height:36px; border:1px solid var(--hairline); border-radius:50%; font:14px var(--mono); }
+.assistant-tier-indices .is-current { background:var(--pink); border-color:var(--pink); color:#fff; }
+.assistant-tier-indices .is-complete { background:#f4f4f2; }
+.assistant-tier p { text-align:right; font-size:11px; color:var(--muted); margin:10px 0 0; }
+.assistant-side-view { margin-top:auto; text-align:center; }
+.assistant-side-view .technical-preview { width:100%; height:130px; display:block; }
+.assistant-side-view > span { font-size:10px; color:var(--muted); }
+.assistant-view-settings { border-top:1px solid var(--hairline); }
+.assistant-view-settings label { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 0; font-size:13px; }
+.assistant-view-settings input { appearance:none; width:38px; height:22px; border-radius:12px; background:#aaa; position:relative; cursor:pointer; }
+.assistant-view-settings input:after { content:""; width:16px; height:16px; border-radius:50%; background:#fff; position:absolute; left:3px; top:3px; }
+.assistant-view-settings input:checked { background:var(--pink); }
+.assistant-view-settings input:checked:after { left:19px; }
+.assistant-view-settings small { color:var(--muted); font-size:10px; }
+.assistant-view-settings select,.assistant-speed select { border:1px solid var(--hairline); background:#fff; padding:7px; border-radius:3px; font-size:12px; }
+.assistant-player { position:absolute; z-index:8; left:22px; right:calc(var(--assistant-rail) + 22px); bottom:16px; padding:14px 18px 8px; background:#fff; border:1px solid var(--hairline); border-radius:7px; }
+.assistant-timeline { display:flex; align-items:center; gap:16px; }
+.assistant-seek-track { position:relative; flex:1; min-width:40px; }
+.assistant-seek-track input { width:100%; margin:0; accent-color:var(--pink); cursor:pointer; display:block; height:24px; }
+.assistant-chapters { position:absolute; inset:9px 7px; pointer-events:none; }
+.assistant-chapters i { position:absolute; width:1px; height:6px; background:#555; opacity:.4; }
+.assistant-counter { font:11px var(--mono); white-space:nowrap; color:var(--muted); }
+.assistant-transport { display:flex; align-items:center; justify-content:center; gap:24px; padding-top:12px; }
+.assistant-controls { display:flex; align-items:center; gap:12px; }
+.assistant-controls button { height:38px; padding:0 12px; display:flex; align-items:center; justify-content:center; gap:5px; background:#f5f5f3; border-radius:4px; color:var(--ink); font-size:12px; white-space:nowrap; }
+.assistant-controls button:disabled { opacity:.35; }
+.assistant-controls .assistant-play { height:48px; width:48px; padding:0; margin:0 8px; background:var(--pink); color:#fff; border-radius:50%; }
+.assistant-controls button:hover:not(:disabled) { filter:brightness(.96); }
+.assistant-speed { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:10px; }
+.assistant-playback-status { margin:8px 0 0; text-align:center; font-size:10px; color:var(--muted); }
+@media(max-height:800px) { .assistant-inspector{gap:12px;padding:18px 24px}.assistant-dial{width:210px}.assistant-side-view .technical-preview{height:90px}.assistant-operation h2{font-size:18px}.assistant-readouts{padding:12px 0} }
+@media(max-width:1100px) { .assistant-controls{gap:4px}.assistant-controls button{padding:0 8px;font-size:11px}.assistant-transport{gap:10px}.assistant-speed > span{display:none}.assistant-project-name{max-width:180px}.assistant-player{left:12px;right:calc(var(--assistant-rail) + 12px);padding:10px}.assistant-counter{font-size:10px} }
+@media(max-width:760px) { .is-assistant-focus{--assistant-rail:220px}.assistant-inspector{padding:16px}.assistant-dial{width:180px}.assistant-readouts dd{font-size:20px}.assistant-controls button span{display:none}.assistant-controls .assistant-play{margin:0}.assistant-timeline{flex-wrap:wrap;gap:3px}.assistant-player{bottom:8px}.assistant-operation h2{font-size:15px}.assistant-project-name{display:none} }
+@media(max-height:950px) and (min-width:761px) { .assistant-inspector{gap:12px;padding:20px 28px}.assistant-dial{width:220px}.assistant-side-view .technical-preview{height:88px}.assistant-readouts{padding:12px 0}.assistant-view-settings label{padding:10px 0} }
+.render-recovery { padding:28px; background:#fff8fa; color:#532f3a; }.render-recovery h2{font-size:18px}.render-recovery p{font-size:13px;line-height:1.7}.render-recovery button{background:#fff;border:1px solid #d8bdc6;border-radius:4px;padding:10px 15px;margin:8px 10px 0 0}
+.assistant-tier-indices { max-height:96px; overflow-y:auto; }
+@media(max-height:800px) and (min-width:761px){.assistant-inspector{gap:8px;padding:16px 24px}.assistant-dial{width:180px}.assistant-side-view{display:none}.assistant-readouts dd{font-size:30px}.assistant-view-settings label{padding:8px 0}}
