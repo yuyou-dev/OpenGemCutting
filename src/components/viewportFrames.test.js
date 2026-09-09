@@ -100,14 +100,17 @@ test("viewport camera keeps the existing easing then settles exactly and wakes f
   queue.frames.dispose();
 });
 
-test("cutting camera brings each crown/pavilion normal to the visible hemisphere with shortest rotation", async () => {
+test("cutting camera keeps each cut oblique and the gem upright with shortest rotation", async () => {
   const { cuttingCameraPose } = await import("./viewportFrames.js");
   for (const region of ["crown", "pavilion", "girdle"]) for (let i = 0; i < 96; i++) {
     const a = i * Math.PI / 48;
     const n = {x: Math.cos(a) * .7, y: Math.sin(a) * .7, z: region === "pavilion" ? -.7 : region === "crown" ? .7 : 0};
     const pose = cuttingCameraPose({region, plane:{normal:n}}, 12);
     const depth = Math.sin(pose.pitch) * -n.z + Math.cos(pose.pitch) * (-Math.sin(pose.yaw)*n.x + Math.cos(pose.yaw)*n.y);
-    assert.ok(depth > .45);
+    assert.ok(depth > 0);
+    const lateral = Math.cos(pose.yaw) * n.x + Math.sin(pose.yaw) * n.y;
+    assert.ok(Math.abs(lateral) > .49, "cut must remain visibly oblique");
+    assert.equal(pose.pitch, region === "pavilion" ? -Math.PI / 36 : -Math.PI / 12);
     assert.ok(Math.abs(pose.yaw - 12) <= Math.PI);
   }
 });
@@ -115,11 +118,15 @@ test("cutting camera brings each crown/pavilion normal to the visible hemisphere
 test("cutting transition honors elapsed time, reaches its exact target and supports reduced motion", async () => {
   const { startCameraTransition } = await import("./viewportFrames.js");
   const camera = {yaw:0,pitch:0,zoom:1,targetZoom:1,panX:0,targetPanX:0,panY:0,targetPanY:0};
-  startCameraTransition(camera,{yaw:1,pitch:-1},600,100);
+  let completions = 0;
+  startCameraTransition(camera,{yaw:1,pitch:-1},600,100, () => completions++);
   assert.equal(advanceViewportCamera(camera,400),true);
   assert.equal(camera.yaw,.5);
+  assert.equal(completions, 0);
   assert.equal(advanceViewportCamera(camera,700),false);
   assert.equal(camera.yaw,1); assert.equal(camera.pitch,-1);
+  advanceViewportCamera(camera,750);
+  assert.equal(completions, 1);
   startCameraTransition(camera,{yaw:2,pitch:1},0,800);
   assert.equal(advanceViewportCamera(camera,800),false);
   assert.equal(camera.yaw,2);

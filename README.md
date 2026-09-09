@@ -20,6 +20,8 @@
 
 ![参数化切磨工作台，真实运行截图](docs/images/workbench.jpg)
 
+展示琢型：**PC 01.338 Eight Main Highlight** · Long, R H & Steele, N W；源记录 *Facet Design v5 (1984) pC12*。可在预设库按名称载入，配图对应仓库内的真实可编辑文档。
+
 ## 从形状，到每一刀
 
 | 设计 | 观察 | 交付 |
@@ -30,13 +32,13 @@
 
 ### 切割助手：边看，边理解工序
 
-右侧仪表给出**下一刀**的分度、行业角、切入深度和本组刀序；底部播放器独立提供逐步、逐组、进度定位与自动播放。跟随当前面平滑转到 45° 斜向观察，可调整转场速度。手动操作与切到后台会暂停播放，退出后回到原编辑现场。
+右侧仪表给出**下一刀**的分度、行业角、切入深度和本组刀序；底部播放器独立提供逐步、逐组、进度定位与自动播放。每刀完成后停留 0.5 秒，再平滑转到侧偏 45° 的观察角度；停稳后才显示下一刀平面。可调整转场速度。手动操作与切到后台会暂停播放，退出后回到原编辑现场。
 
 ![切割助手：独立仪表与播放器](docs/images/cutting-assistant.jpg)
 
 ### 琢型试作：把参考与真实模型放在一起
 
-同一份 JSON 驱动顶视、底视、侧视和轴测图。保留参考图片、比例说明与待确认项，下载后继续在工作台调整。截图中的教学参考由本项目原创几何生成，避免将漂亮的效果图当作工程实体。
+同一份 JSON 驱动顶视、底视、侧视和轴测图。保留参考图片、比例说明与待确认项，下载后继续在工作台调整。截图使用完整预设 Eight Main Highlight，参考技术图与模型来自同一预设，仅演示对照流程。
 
 ![琢型试作：参考与模型对照](docs/images/design-review.jpg)
 
@@ -81,7 +83,7 @@ npm run dev
 独立试作页的可复现入口：
 
 ```bash
-npm run design:review -- docs/manual/examples/01-round-start.json --out output/my-study
+npm run design:review -- public/presets/documents/94504-pc-01-338-eight-main-highlight.json --out output/my-study
 ```
 
 命令打印应附加到工作台地址的 `?review=...` 参数。添加 `--reference image.png --views views.json --notes notes.txt` 可生成带裁切参考的对照；格式见 [设计 skill](.agents/skills/facet-parametric-design/SKILL.md)。试作输出保存在忽略的 `output/`，不自动上传。

@@ -54,7 +54,10 @@ export function advanceViewportCamera(camera, now = performance.now()) {
     camera.yaw = transition.yaw + (camera.targetYaw - transition.yaw) * eased;
     camera.pitch = transition.pitch + (camera.targetPitch - transition.pitch) * eased;
     moving = t < 1;
-    if (!moving) camera.transition = null;
+    if (!moving) {
+      camera.transition = null;
+      transition.onComplete?.();
+    }
   }
   for (const [key, target, rate, tolerance] of [
     ["yaw", "targetYaw", 0.16, 1e-6],
@@ -74,18 +77,18 @@ export function advanceViewportCamera(camera, now = performance.now()) {
   return moving;
 }
 
-// Orient the actual cutting normal toward the observer, from the appropriate
-// hemisphere. The p5 viewport maps domain (x,y,z) to (x,-z,y).
+// Keep the gem upright, with the current cut seen obliquely from 45° to its side.
+// A shallow view from above preserves both crown and pavilion proportions.
 export function cuttingCameraPose(step, currentYaw = 0) {
   const n = step.plane.normal;
   const azimuth = Math.hypot(n.x, n.y) < 1e-8 ? currentYaw + Math.PI / 2 : Math.atan2(n.y, n.x);
-  const target = azimuth - Math.PI / 2;
+  const target = azimuth - Math.PI / 2 - (Math.hypot(n.x, n.y) < 1e-8 ? 0 : Math.PI / 4);
   const delta = Math.atan2(Math.sin(target - currentYaw), Math.cos(target - currentYaw));
-  return { yaw: currentYaw + delta, pitch: step.region === "pavilion" ? Math.PI / 4 : -Math.PI / 4 };
+  return { yaw: currentYaw + delta, pitch: step.region === "pavilion" ? -Math.PI / 36 : -Math.PI / 12 };
 }
 
-export function startCameraTransition(camera, pose, duration, now) {
+export function startCameraTransition(camera, pose, duration, now, onComplete) {
   camera.targetYaw = pose.yaw;
   camera.targetPitch = pose.pitch;
-  camera.transition = { start: now, duration, yaw: camera.yaw, pitch: camera.pitch };
+  camera.transition = { start: now, duration, yaw: camera.yaw, pitch: camera.pitch, onComplete };
 }

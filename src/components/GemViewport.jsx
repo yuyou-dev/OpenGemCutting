@@ -2487,8 +2487,14 @@ export function GemViewport({
     }
     if (assistantView?.follow && assistantView.step) {
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      startCameraTransition(camera, cuttingCameraPose(assistantView.step, camera.yaw), reduced ? 0 : assistantView.duration, performance.now());
-    } else camera.transition = null;
+      startCameraTransition(camera, cuttingCameraPose(assistantView.step, camera.yaw), reduced ? 0 : assistantView.duration, performance.now(), assistantView.onSettled);
+    } else {
+      camera.transition = null;
+      if (assistantView?.follow && !assistantView.step) {
+        camera.targetYaw = camera.yaw;
+        camera.targetPitch = camera.pitch;
+      }
+    }
     framesRef.current?.invalidate();
   }, [assistantView]);
 

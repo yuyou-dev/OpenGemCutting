@@ -246,16 +246,17 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
   const replayStep = cuttingReplay && replayPosition < cuttingReplay.total
     ? cuttingReplay.steps[replayPosition]
     : null;
-  const playback = useCuttingPlayback({ active: cuttingAssistantActive && visible && !interactionPaused, position: replayPosition, total: cuttingReplay?.total ?? 0, onPositionChange: setAssistantPosition });
-  const assistantView = useMemo(() => cuttingAssistantActive ? { step: replayStep, follow: assistantFollow, duration: assistantDuration } : null, [cuttingAssistantActive, replayStep, assistantFollow, assistantDuration]);
+  const playback = useCuttingPlayback({ active: cuttingAssistantActive && visible && !interactionPaused, position: replayPosition, total: cuttingReplay?.total ?? 0, follow: assistantFollow, duration: assistantDuration, onPositionChange: setAssistantPosition });
+  const cameraStep = playback.phase === "hold" ? null : replayStep;
+  const assistantView = useMemo(() => cuttingAssistantActive ? { step: cameraStep, follow: assistantFollow, duration: assistantDuration, onSettled: playback.onSettled } : null, [cuttingAssistantActive, cameraStep, assistantFollow, assistantDuration, playback.onSettled]);
   const interruptAssistantView = () => { playback.setPlaying(false); setAssistantFollow(false); };
   const assistantSolid = useMemo(
     () => (cuttingReplay ? cuttingReplay.solidAt(replayPosition) : null),
     [cuttingReplay, replayPosition],
   );
   const assistantPreviewPlanes = useMemo(
-    () => (replayStep ? [{ ...replayStep.plane, index: replayStep.index, primary: true }] : []),
-    [replayStep],
+    () => (replayStep && playback.phase === "ready" ? [{ ...replayStep.plane, index: replayStep.index, primary: true }] : []),
+    [replayStep, playback.phase],
   );
 
   const draft = useMemo(() => resolveDraftGeometry(cutSession.draft, region, document.stock), [cutSession.draft, document.stock, region]);
@@ -1554,7 +1555,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
               replay={cuttingReplay}
               position={replayPosition}
               onPositionChange={setAssistantPosition}
-              playing={playback.playing} onPlaying={playback.setPlaying} speed={playback.speed} onSpeed={playback.setSpeed}
+              phase={playback.phase} playing={playback.playing} onPlaying={playback.setPlaying} speed={playback.speed} onSpeed={playback.setSpeed}
             />
             </>
           ) : null}

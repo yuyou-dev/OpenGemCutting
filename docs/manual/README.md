@@ -44,9 +44,9 @@ npm run manual:build
 
 ## 当前截图基准
 
-`round-optics` 与 `round-optics-top` 使用练习 01（49 个有效面），分别为透视与台面观察位；材质为无色钻石、折射率 2.417、色散 0.044、中性吸收 0，观察环境为柔光摄影棚／雾白、曝光 0。两图只改变观察位。
+`round-optics` 与 `round-optics-top` 使用预设 PC 01.338 Eight Main Highlight（97 个有效面），分别为透视与台面观察位；材质为石英（水晶）、折射率 1.544、色散 0.013、中性吸收 0，观察环境为柔光摄影棚／雾白、曝光 0。两图只改变观察位。
 
-`assistant-stepping` 与 `assistant-finished` 同样使用练习 01，分别完成 38／49 刀与 49／49 刀，保持相同编辑相机。中间步骤的粉色平面提示下一刀；完成图无切割平面。这四张图在 v0.8.3 从 1600 × 1000、2× 像素密度的实际工作台重新采集。
+`assistant-stepping` 与 `assistant-finished` 使用同一 Eight Main Highlight，分别完成 86／97 刀与 97／97 刀，由当前切面的斜向跟随相机观察。中间步骤的粉色平面提示下一刀；完成图无切割平面。成品及助手图片在 1.0 RC 修订时从 macOS Chrome 152 的 1521 × 848 实际工作台重新采集。
 
 `crystal-import` 是“保留原石的凹槽，再安排切割”页使用的真实 L 形 OBJ 导入预检，单位未指定、+Z 朝上；对应 `08-concave-crystal.obj`。
 
@@ -60,4 +60,8 @@ npm run manual:build
 
 ## 参考图试作
 
-第 29 页演示 Codex 参数化设计流程。配图来自原创圆形练习的同实体对照，不作为照片还原精度证据。使用 `design:review` 生成器创建新的试作目录，下载 JSON 后在新项目继续编辑。
+第 29 页演示 Codex 参数化设计流程。配图来自 Eight Main Highlight 预设的同实体对照，不作为照片还原精度证据。使用 `design:review` 生成器创建新的试作目录，下载 JSON 后在新项目继续编辑。
+
+## 正式成品配图的复现与来源
+
+封面、实时预览、光学观察、文件交付与试作展示使用 **PC 01.338 Eight Main Highlight**，设计者 **Long, R H & Steele, N W**，来源记录为 *Facet Design v5 (1984) pC12*。在「文件 → 浏览预设琢型」搜索名称并载入；[对应可编辑 JSON](../../public/presets/documents/94504-pc-01-338-eight-main-highlight.json) 与 [来源记录](../../public/presets/catalog.json) 随仓库提供。截图取自真实工作台，未改动几何；简化练习仅用于讲解切割过程与 Meet 操作。

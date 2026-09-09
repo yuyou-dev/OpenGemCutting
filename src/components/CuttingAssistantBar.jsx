@@ -40,7 +40,7 @@ export function CuttingAssistantInspector({ replay, position, solid, follow, onF
   </aside>;
 }
 
-export function CuttingAssistantPlayer({ replay, position, onPositionChange, playing, onPlaying, speed, onSpeed }) {
+export function CuttingAssistantPlayer({ replay, position, onPositionChange, playing, onPlaying, speed, onSpeed, phase }) {
   const { total, stepper } = replay;
   const go = p => { onPlaying(false); onPositionChange(p); };
   const finished = position >= total;
@@ -54,6 +54,6 @@ export function CuttingAssistantPlayer({ replay, position, onPositionChange, pla
       <button disabled={finished} onClick={()=>go(position+1)}><span>下一步</span><IconPlayerTrackNext size={18}/></button>
       <button disabled={finished} onClick={()=>go(stepper.nextTierPos(position))}><span>下一组</span><IconPlayerSkipForward size={18}/></button>
     </div><label className="assistant-speed"><span>播放速度</span><select aria-label="播放速度" value={speed} onChange={e=>onSpeed(Number(e.target.value))}><option value={.5}>0.5×</option><option value={1}>1×</option><option value={2}>2×</option></select></label></div>
-    <p className="assistant-playback-status" role="status">{playing?"自动播放中":finished?(total?"全部完成 · 可从头播放":"请先保存切割图层"):"已暂停 · 手动步进或播放"} · 1× 每刀停留 3 秒</p>
+    <p className="assistant-playback-status" role="status">{playing?"自动播放中":finished?(total?"全部完成 · 可从头播放":"请先保存切割图层"):"已暂停 · 手动步进或播放"}{!finished && ` · ${phase === "hold" ? "切后观察 · 0.5 秒" : phase === "rotate" ? "正在转向下一刀" : "1× 刀前观察 3 秒"}`}</p>
   </section>;
 }
