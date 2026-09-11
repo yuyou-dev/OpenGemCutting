@@ -102,7 +102,7 @@ const resources = [
   ['facet://guide', '本地对话设计入门', 'docs/mcp/README.md'],
   ['facet://architecture', '同源架构与兼容规则', 'docs/mcp/architecture.md'],
   ['facet://examples', '可执行设计案例', 'docs/mcp/examples.md'],
-  ['facet://state', '工作台状态契约', 'state-contract.md'],
+  ['facet://state', '工作台状态契约', 'docs/architecture/state-contract.md'],
   [
     'facet://skill',
     '参数化设计工作流',

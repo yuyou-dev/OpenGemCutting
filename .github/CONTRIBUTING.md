@@ -8,20 +8,20 @@
 
 With the OpenGemCutting Companion installed, ask Codex to open the community hub. It can guide GitHub onboarding, browse categorized Discussions, route a faceting question or idea, review local changes, run the repository checks, and prepare a Pull Request while preserving contributor attribution. Nothing is published without a final preview and explicit confirmation.
 
-Installation instructions are in the [Companion lifecycle guide](plugins/opengemcutting-companion/LIFECYCLE.md). Traditional GitHub participation remains fully supported.
+Installation instructions are in the [Companion lifecycle guide](../plugins/opengemcutting-companion/LIFECYCLE.md). Traditional GitHub participation remains fully supported.
 
 ## 开始之前 · Before you start
 
 - 开放式问题、产品想法和切型展示优先放在 [GitHub Discussions](https://github.com/yuyou-dev/OpenGemCutting/discussions)；可复现的缺陷使用 Issue。
 - Bug 请提供最小复现、浏览器/系统信息、期望与实际结果；涉及几何时附上可公开的 JSON。
 - 新功能请先描述切磨场景、操作流程和可验收结果，再讨论实现。
-- 安全问题或疑似凭据泄露不要放进公开 Issue，按 `SECURITY.md` 私下报告。
+- 安全问题或疑似凭据泄露不要放进公开 Issue，按 `.github/SECURITY.md` 私下报告。
 - 提交贡献即表示你有权提供相关内容，并同意其按仓库的 MIT License 分发。
 
 ## Pull request workflow
 
 1. Fork 仓库并从 `main` 创建一个聚焦分支，避免夹带无关格式化或重构。
-2. 阅读 `AGENTS.md` 和 `design-system.md`，保持 CUT 状态机、几何符号与视觉约定。
+2. 阅读 `AGENTS.md` 和 `docs/architecture/design-system.md`，保持 CUT 状态机、几何符号与视觉约定。
 3. 为领域行为增加或更新 Node.js 测试；可见界面变化附真实截图。
 4. 运行 `npm run check`，并在 PR 中写明命令结果和未覆盖风险。
 5. 保持依赖最小；新增依赖需要说明现有代码无法简洁解决的问题。
@@ -39,4 +39,4 @@ Companion 只会将这些步骤变成对话式流程，不改变 GitHub 的 Fork
 
 ## Commit and PR notes
 
-提交信息建议使用简短祈使句。PR 需要说明：用户可见结果、动机、验证、视觉证据（如适用）以及有意不处理的范围。参与即表示同意遵守 `CODE_OF_CONDUCT.md`。
+提交信息建议使用简短祈使句。PR 需要说明：用户可见结果、动机、验证、视觉证据（如适用）以及有意不处理的范围。参与即表示同意遵守 `.github/CODE_OF_CONDUCT.md`。

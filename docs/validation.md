@@ -12,7 +12,7 @@
 
 已实际验证的对话流程包括页面与项目匹配、圆形起点、冠部比例预览/提交、撤销/重做、保存及 JSON 重开。普通静态页面能够在没有 MCP 的情况下新建和编辑。
 
-Node 22 的 CI 首轮发现旧测试目录入口不兼容，已使用共享测试启动器显式枚举文件，并补上空集合、嵌套目录、含空格路径与失败传播回归。Companion 版本检查允许官方 Codex 缓存后缀；仓库文本固定 LF，避免 Windows Git 自动换行转换改变生成资产。构建检查的远程结果见 [Actions](https://github.com/yuyou-dev/OpenGemCutting/actions)。
+持续构建结果见 [Actions](https://github.com/yuyou-dev/OpenGemCutting/actions)，版本修复细节见 [更新记录](../CHANGELOG.md)。
 
 ## 平台
 

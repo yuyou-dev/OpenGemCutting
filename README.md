@@ -14,7 +14,7 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 [![License](https://img.shields.io/badge/license-MIT-222222?style=flat-square)](LICENSE)
 [![Browser](https://img.shields.io/badge/browser-local_first-38755d?style=flat-square)](#start)
 
-**[立即体验 ↗](https://yuyou-dev.github.io/OpenGemCutting/)**　·　**[用 Codex 创作](#install)**　·　[图解手册](public/manual/facet-96-operation-manual.pdf)　·　[参与贡献](CONTRIBUTING.md)
+**[立即体验 ↗](https://yuyou-dev.github.io/OpenGemCutting/)**　·　**[用 Codex 创作](#install)**　·　[图解手册](public/manual/facet-96-operation-manual.pdf)　·　[参与贡献](.github/CONTRIBUTING.md)
 
 <br>
 
@@ -47,7 +47,7 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 </tr>
 </table>
 
-<sub>展示琢型：PC 01.338 Eight Main Highlight，Long, R H &amp; Steele, N W；来源 Facet Design v5 (1984) pC12。可在预设库按名称载入。[来源与许可](THIRD_PARTY_NOTICES.md)。</sub>
+<sub>展示琢型：PC 01.338 Eight Main Highlight，Long, R H &amp; Steele, N W；来源 Facet Design v5 (1984) pC12。可在预设库按名称载入。[来源与许可](docs/legal/THIRD_PARTY_NOTICES.md)。</sub>
 
 <a id="start"></a>
 
@@ -147,7 +147,7 @@ npm run check:mcp      # 加上 MCP 的连接与版本检查
 
 ## 一起完善这张工作台
 
-欢迎提交可复现的问题、切型案例和聚焦改进。[Discussions](https://github.com/yuyou-dev/OpenGemCutting/discussions) 用于交流，[Issues](https://github.com/yuyou-dev/OpenGemCutting/issues) 用于缺陷，[贡献指南](CONTRIBUTING.md) 说明代码参与方式。
+欢迎提交可复现的问题、切型案例和聚焦改进。[Discussions](https://github.com/yuyou-dev/OpenGemCutting/discussions) 用于交流，[Issues](https://github.com/yuyou-dev/OpenGemCutting/issues) 用于缺陷，[贡献指南](.github/CONTRIBUTING.md) 说明代码参与方式。
 
 可选的 **OpenGemCutting Companion** 帮你整理社区反馈和贡献草稿，与设计插件分别安装；任何公开发送前都会展示内容并请求确认。[了解 Companion](plugins/opengemcutting-companion/LIFECYCLE.md)。
 
@@ -166,6 +166,6 @@ npm run check:mcp      # 加上 MCP 的连接与版本检查
 
 **OpenGemCutting** · SUVA / Facet 96
 
-[MIT License](LICENSE) · [第三方来源](THIRD_PARTY_NOTICES.md) · [品牌说明](TRADEMARKS.md) · [更新记录](CHANGELOG.md)
+[MIT License](LICENSE) · [第三方来源](docs/legal/THIRD_PARTY_NOTICES.md) · [品牌说明](docs/legal/TRADEMARKS.md) · [更新记录](CHANGELOG.md)
 
 </div>

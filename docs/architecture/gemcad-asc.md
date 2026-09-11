@@ -1,6 +1,6 @@
 # GemCad ASC 兼容说明
 
-格式实现见 [gemcadAsc.js](src/domain/gemcadAsc.js)，当前文档职责见 [索引](docs/README.md)。
+格式实现见 [gemcadAsc.js](../../src/domain/gemcadAsc.js)，当前文档职责见 [索引](../README.md)。
 
 ## mesh 晶体边界（v0.9.0）
 

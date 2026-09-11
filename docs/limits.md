@@ -10,4 +10,4 @@
 
 JSON 保留初始晶体、完整参数化工序和已提交构造，是继续设计的首选文件。PDF 面向阅读与沟通。ASC 交换最终有效切面，预检会说明信息损失；导入 mesh 晶体项目不能导出 ASC。
 
-几何、尺寸与来源规则见 [状态契约](../state-contract.md)、[ASC 说明](../gemcad-asc.md) 和 [操作手册](manual/README.md)。
+几何、尺寸与来源规则见 [状态契约](architecture/state-contract.md)、[ASC 说明](architecture/gemcad-asc.md) 和 [操作手册](manual/README.md)。

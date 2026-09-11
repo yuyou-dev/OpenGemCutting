@@ -1,6 +1,6 @@
 # 全局状态与 CUT 交互契约
 
-本文件是 Facet 96 编辑器全局状态的单一约定：哪些状态存在、归谁所有、是否进入文档与撤销历史，以及 CUT 交互必须遵守的状态机契约。新增交互或状态前必须先读本文件；长期决策在此登记，其他文档按 [文档索引](docs/README.md) 引用此处规则。
+本文件是 Facet 96 编辑器全局状态的单一约定：哪些状态存在、归谁所有、是否进入文档与撤销历史，以及 CUT 交互必须遵守的状态机契约。新增交互或状态前必须先读本文件；长期决策在此登记，其他文档按 [文档索引](../README.md) 引用此处规则。
 
 ## 开发契约
 
@@ -13,7 +13,7 @@
 - 草稿参数（`industryAngle / depth / baseIndex / repeat / mirrorOffset / patternMode / customIndices / preform`）、草稿构造状态 `construction` 与群组参数（`deltaZ / scale / rotationTeeth`）只存在于会话对象的 `draft` / `construction` / `group` 字段，经状态机事件更新。参数 patch 和 Meet 自动求解后的深度必须由同一个 `changeDraftWithConstruction()` 编排入口原子派发到 `CHANGE_DRAFT`，禁止侧栏、行内编辑、Gizmo、分度环或组件本地 state 各自求解；区域默认值只从 `DEFAULT_DRAFT_ANGLES` / `DEFAULT_DRAFT_DEPTHS` / `defaultDraftForRegion` 取得。
 - 领域锁定在状态机层强制，而不是只靠 UI 禁用：腰部 `industryAngle` 锁定 `90°` 由 `CHANGE_DRAFT` 直接压回，固定台面 `0°` 同理不依赖控件 disabled。UI 禁用只是配套提示。
 - 图层的常显“编辑”按钮、参数／面数兼容入口和视口选层共用 `SELECT_LAYER` 事件与 `canPickLayer` 能力；传给列表的 `canSelectLayers` 仅映射该能力。选中只恢复保存参数和构造，不提交、不改变实体或历史；按钮样式归设计规范。此入口复用既有事件，不创建新的 CUT 状态。
-- 实时 CUT 的 helper 与实体预览必须使用同一版草稿；不得只延后实体派生而显示新参数的机械臂。缓存只复用输入未变的计算，不跳过当前草稿的提交检查。复杂度、容差边界与复测方法见 [CUT 性能](docs/cut-performance.md)。
+- 实时 CUT 的 helper 与实体预览必须使用同一版草稿；不得只延后实体派生而显示新参数的机械臂。缓存只复用输入未变的计算，不跳过当前草稿的提交检查。复杂度、容差边界与复测方法见 [CUT 性能](../cut-performance.md)。
 - cube 的索引／批量求交用于瞬时预览与影响预告；提交、保存实体、Meet 来源、施工前缀及逐刀回放保留原顺序精确内核，不能引用预览顶点作为持久化来源。mesh 的预览与保存均使用保孔洞的索引内核，提交仍验证完整工序；报告消费已提交真实实体。
 - 提交、取消和文档替换都必须经状态机事件（`COMMIT_SUCCESS` / `CANCEL` / `DOCUMENT_*`）收尾，保证会话身份、`dirty`、草稿与 Gizmo 现场同步释放。
 - 替换当前文档的入口（JSON 导入、预设载入、ASC 导入、旧备份恢复）遵守“先校验、后确认、最后提交”：文件读取与解析不得修改当前文档或预览；存在未保存 CUT / Meet / 群组预览时必须先经明确的放弃确认（JSON 导入为阻断式确认，对话框入口为同语义的条件警告），取消则完整保留草稿现场；一次确认只产生一次 `applyImportedDocument` 替换，旧已提交文档按统一命令可撤销。

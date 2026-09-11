@@ -16,6 +16,6 @@ Unacceptable behavior includes harassment, threats, discriminatory language, sex
 
 ## Enforcement
 
-Maintainers may edit or remove contributions that violate this code and may temporarily or permanently restrict participation. Enforcement reports should be sent privately through the maintainer contact described in `SECURITY.md`, not posted publicly. Reports will be reviewed in good faith with attention to the safety and privacy of everyone involved.
+Maintainers may edit or remove contributions that violate this code and may temporarily or permanently restrict participation. Enforcement reports should be sent privately through the maintainer contact described in `.github/SECURITY.md`, not posted publicly. Reports will be reviewed in good faith with attention to the safety and privacy of everyone involved.
 
 This policy applies in project spaces and when someone is officially representing the project elsewhere. It is adapted from the spirit of the Contributor Covenant 2.1.
