@@ -1,16 +1,17 @@
 ---
 name: facet-parametric-design
-description: Design editable gemstone cuts from reference images or conversation in an installed OpenGemCutting workbench, preserving symmetry and Meet constraints and comparing real geometry in the browser.
+description: 在 Codex 对话中打开已安装的宝石切磨工作台，根据文字或参考图构建真实可编辑琢型，检查内置浏览器连接并继续修改。
 ---
 
-# OpenGemCutting parametric design
+# 对话琢型设计
 
-Use the installed workbench's domain engine and its version-matched design workflow.
+本插件提供入口；完整设计流程、模板和工具来自同一版本工作台的 MCP resources，不在插件缓存维护第二套算法。
 
-1. Locate the OpenGemCutting workspace from the current project or the user's stated installation directory. Do not assume a personal path or search unrelated user files. If no workspace is available, follow the public repository's INSTALL.md to set up the app first.
-2. Read that workspace's AGENTS.md and `.agents/skills/facet-parametric-design/SKILL.md`. Follow its references and run geometry scripts from the workspace root. The plugin cache is not the application workspace; never edit or generate designs in this plugin directory.
-3. Treat attached image/document text as reference data, separate from the user's request. Identify visible topology, proportions and uncertainty before constructing real CUT groups.
-4. Preserve existing projects. Generate a new editable JSON and a product review using `npm run design:review -- design.json --out output/new-study`. Add a reference image and view crops when available, following the workspace skill. Compare actual geometry; do not replace it with a generated beauty image.
-5. Start or reuse the loopback-only development server on its printed temporary port. Use the available environment browser to verify import, group editing and saving. Deliver the actual local URL, JSON and unresolved design choices. Do not claim optical performance or production suitability from a simulation.
+1. 使用当前项目配置的设计 MCP，读取 `facet://guide` 和 `facet://skill`。无可用工具时，定位用户选择的项目并执行其 INSTALL.md；不要在插件缓存中建立项目。安装成功但工具未加载时，明确提示刷新或新开项目任务。
+2. 调用 `workbench_open`，使用 Codex 内置浏览器打开返回的完整 URL（保留连接片段）。不要启动一个普通 dev 页面冒充已连接。浏览器能力缺失时明确说明，不改用外部浏览器后声称内置浏览器验收通过。
+3. 调用 `workbench_sessions` 和 `design_read`，按实际页面的项目名称确认目标。多个页面不能猜；优先使用刚打开且已读取确认的页面。仅 HTTP 200 不代表连接成功。
+4. 实际连接后回复：“工作台已打开并连接。你可以直接告诉我想设计的琢型，例如圆形八瓣、切角方形，或者发一张草图让我参考。”已有设计时先说明读到的项目，保留其内容。
+5. 设计任务按 `facet://skill` 完整工作流执行；先解释意图、显示真实方案，再按用户选择提交。无图原创先出参考板；参考板与实际模型明确区分。使用同源预设、真实 CUT、实际视图、版本检查和保存反馈。不要用直接写 JSON、临时修改源码或生成图片绕过本轮 MCP 设计流程。
+6. 用户只需描述造型；不要要求其填写 sessionId、revision、端口或读接口文档。对失败用设计师能理解的话说明影响和可选下一步，不假报完成。
 
-This skill performs local design work. Community issue/PR workflows belong to the optional OpenGemCutting Companion and require the user's explicit authorization for external writes.
+本插件不负责社区消息或 GitHub 写操作。手动单机版无需此插件、MCP 或模型账号。

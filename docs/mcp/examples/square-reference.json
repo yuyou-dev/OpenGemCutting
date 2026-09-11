@@ -1,0 +1,20 @@
+{
+  "description": "Engineering reference, declared before solving: square outline ±0.8; square table ±0.4; table z=0.45; upper/lower girdle z=±0.05; pavilion tip z=-0.85. Top-view scale=400, center=[400,400]. This is a dimensioned construction exercise, not an image restoration or aesthetic benchmark.",
+  "graph": {
+    "nodes": {
+      "tNE":{"pixel":[560,240]},"tNW":{"pixel":[240,240]},"tSW":{"pixel":[240,560]},"tSE":{"pixel":[560,560]},
+      "gNE":{"pixel":[720,80]},"gNW":{"pixel":[80,80]},"gSW":{"pixel":[80,720]},"gSE":{"pixel":[720,720]}
+    },
+    "faces": [
+      {"id":"table","nodes":["tNE","tNW","tSW","tSE"]},
+      {"id":"east","nodes":["tSE","tNE","gNE","gSE"]},
+      {"id":"north","nodes":["tNE","tNW","gNW","gNE"]},
+      {"id":"west","nodes":["tNW","tSW","gSW","gNW"]},
+      {"id":"south","nodes":["tSW","tSE","gSE","gSW"]},
+      {"id":"gEast","nodes":["gNE","gSE"]},{"id":"gNorth","nodes":["gNW","gNE"]},
+      {"id":"gWest","nodes":["gSW","gNW"]},{"id":"gSouth","nodes":["gSE","gSW"]}
+    ],
+    "edges":[["tNE","tNW"],["tNW","tSW"],["tSW","tSE"],["tSE","tNE"],["gNE","gNW"],["gNW","gSW"],["gSW","gSE"],["gSE","gNE"],["tNE","gNE"],["tNW","gNW"],["tSW","gSW"],["tSE","gSE"]]
+  },
+  "faceMap":{"table":"table-facet:96","east":"square-crown:96","north":"square-crown:24","west":"square-crown:48","south":"square-crown:72","gEast":"girdle-preform:96","gNorth":"girdle-preform:24","gWest":"girdle-preform:48","gSouth":"girdle-preform:72"}
+}

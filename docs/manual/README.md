@@ -65,3 +65,7 @@ npm run manual:build
 ## 正式成品配图的复现与来源
 
 封面、实时预览、光学观察、文件交付与试作展示使用 **PC 01.338 Eight Main Highlight**，设计者 **Long, R H & Steele, N W**，来源记录为 *Facet Design v5 (1984) pC12*。在「文件 → 浏览预设琢型」搜索名称并载入；[对应可编辑 JSON](../../public/presets/documents/94504-pc-01-338-eight-main-highlight.json) 与 [来源记录](../../public/presets/catalog.json) 随仓库提供。截图取自真实工作台，未改动几何；简化练习仅用于讲解切割过程与 Meet 操作。
+
+## 对话直连工作台
+
+第 30 页演示对话改型、手动续改与保存重开，截图来自真实连接工作台。安装与协议见 [本地设计接口](../mcp/README.md)；本轮设计师测试使用 [5 个对话任务](../mcp/designer-acceptance.md)，无需执行本手册的手动练习。

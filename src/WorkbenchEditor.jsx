@@ -1,3 +1,5 @@
+import { preparePatternCommit, transformGroup, planDesign } from './application/designOperations.js';
+import { useDesignController } from './components/useDesignController.js';
 import { assertFileBudget, assertDocumentImportBudget } from "./domain/importBudget.js";
 import { createStockSolid } from "./domain/stockGeometry.js";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
@@ -118,7 +120,7 @@ function describeCommand(command) {
   return "更新切磨参数";
 }
 
-export function WorkbenchEditor({ initialDocument, startWithDraft = false, visible = true, interactionPaused = false, onDocumentChange, onPreviewChange, onHome, onLab, onNewProject, onImportCrystal, projectStatus }) {
+export function WorkbenchEditor({ initialDocument, designControllerRef, projectId, startWithDraft = false, visible = true, interactionPaused = false, onDocumentChange, onPreviewChange, onHome, onLab, onNewProject, onImportCrystal, projectStatus }) {
   const [history, setHistory] = useState(() => createCommandHistory(initialDocument));
   const [sessionState, dispatchCutSession] = useReducer(
     cutSessionReducer,
@@ -768,9 +770,7 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
         const sequence = current ? replacePatternFacets(document.facets, current.id, facets) : [...document.facets, ...facets];
         clipPolyhedronByPlanes(stockSolid, sequence.map(planeEntry));
       }
-      const command = current
-        ? createReplacePatternCommand(patternId, facets)
-        : createAddFacetsCommand(facets);
+      const { command } = preparePatternCommit(document, facets, current?.id ?? null);
       setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
       dispatchCutSession({ type: CUT_SESSION_EVENT.COMMIT_SUCCESS });
       setPendingFullRemovalCommit(null);
@@ -910,7 +910,10 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       return;
     }
     if (!validateMeshSequence(document.facets.filter(f => f.patternId !== id))) return;
-    const command = createRemoveFacetsCommand(operation.facets.map((facet) => facet.id));
+    let nextDocument;
+    try { nextDocument = planDesign(document, [{ kind: 'remove', patternId: id }]).document; }
+    catch (error) { notify(error.message); return; }
+    const command = createReplaceDocumentCommand(nextDocument, { description: `删除 ${operation.label}` });
     setHistory((currentHistory) => executeFacetingCommand(currentHistory, command));
     setHiddenPatternIds((current) => {
       const next = new Set(current);
@@ -991,30 +994,9 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
     const rotation = Math.round(Number(groupRotationTeeth) || 0);
     if (!groupEditRegion || !cutSession.canCommit || groupPreview.error || committedResult.error) return;
 
-    const beforeSolid = savedSolid;
-    let afterSolid;
-    try { afterSolid = clipPolyhedronByPlanes(stockSolid, groupPreview.facets.map(planeEntry)); }
-    catch (error) { notify(`无法应用整体变换：${error.message}`); return; }
-    if (!afterSolid.vertices.length) { notify("该变换会移除全部材料，请调整参数。"); return; }
-    const survivingIds = new Set(afterSolid.faces.map((face) => face.facetId ?? face.id));
-    const destroyed = beforeSolid.faces.filter(
-      (face) => face.sourceOperationId && face.region !== "rough" && !survivingIds.has(face.facetId ?? face.id),
-    );
-    if (destroyed.length > 0) {
-      const labels = [...new Set(destroyed.map((face) => (
-        operations.find((operation) => operation.id === face.sourceOperationId)?.label ?? face.sourceOperationId
-      )))].join("、");
-      notify(`已拒绝整体变换：该调整会消除「${labels}」的面。`);
-      return;
-    }
-
-    const updatedAt = new Date().toISOString();
-    const nextDocument = {
-      ...document,
-      facets: groupPreview.facets.map((facet) => facet.region === groupEditRegion
-        ? { ...facet, metadata: { ...(facet.metadata || {}), updatedAt } }
-        : facet),
-    };
+    let nextDocument;
+    try { nextDocument = transformGroup(document, groupEditRegion, { deltaZ: shift, scale, rotationTeeth: rotation }); }
+    catch (error) { notify(error.message); return; }
     const groupLabel = groupEditRegion === "crown" ? "冠部与台面" : "亭部";
     const description = `${groupLabel}整体变换 · ΔZ ${shift >= 0 ? "+" : ""}${shift.toFixed(3)} · H ${(scale * 100).toFixed(1)}% · R ${rotation >= 0 ? "+" : ""}${rotation}T`;
     const command = createReplaceDocumentCommand(nextDocument, { description });
@@ -1304,6 +1286,13 @@ export function WorkbenchEditor({ initialDocument, startWithDraft = false, visib
       selectCut(entry.patternId);
     }
   };
+
+  useDesignController({
+    controllerRef: designControllerRef, projectId, document, history, setHistory,
+    sessionState, dispatchCutSession, hiddenPatternIds, setHiddenPatternIds,
+    blocked: !visible ? '请返回切型编辑页面。' : interactionPaused || modal || ledgerOpen || ascTransfer || presetLibraryOpen || recoveryOpen || assistantOpen ? '请先结束当前弹窗操作。' : viewportMode !== 'edit' ? '请先退出光学或切割助手。' : '',
+    projectStatus, notify,
+  });
 
   const visibleEffectiveCount = useMemo(() => summarizeEffectiveFacets(displaySolid).effectiveFacetIds.length, [displaySolid]);
   const composerStatus = `有效刻面 ${visibleEffectiveCount} · ${document.stock.kind === "mesh" ? "原石面片" : "毛坯面"} ${displaySolid.faces.filter(face => face.region === "rough").length} · 体积 ${metrics.volume.toFixed(3)}`;

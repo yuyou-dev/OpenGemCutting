@@ -1,0 +1,24 @@
+name: design-setup
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix mcp
+      - run: npm run check:mcp
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./setup/bootstrap.ps1 doctor
+      - if: runner.os == 'macOS'
+        run: sh setup/bootstrap.sh doctor

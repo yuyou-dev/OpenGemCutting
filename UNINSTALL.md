@@ -34,3 +34,7 @@ Report exactly which component was removed, which files or browser data were pre
 ## Design plugin
 
 The Design plugin is `opengemcutting-design@opengemcutting`. Manage it independently of the optional Companion using the current `codex plugin --help` commands. Updating the app also updates the repository skill; keep the plugin and workbench on the same release. Uninstalling a plugin does not delete projects or exported JSON.
+
+## 本地设计 MCP 与运行时
+
+完整移除对话入口时，通过 Codex CLI 移除本项目 setup/product.json 指定的 MCP 注册与设计插件；先查看真实配置，保留其他项目的服务。项目内 .runtime 仅为自动补齐的运行时，确认不再使用该安装后可随安装目录移除。导出的设计和浏览器项目不是运行时，不要一并清除。

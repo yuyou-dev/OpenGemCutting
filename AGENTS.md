@@ -6,6 +6,7 @@
 - 开发和预览只能绑定 `127.0.0.1`，使用操作系统分配的高位临时端口。
 - UI 代码放在 `src/`。保持 `.openai/hosting.json`、`worker/index.js`、`scripts/prepare-sites-build.mjs` 和 `tests/sites-worker.test.mjs` 的 Sites 交付链路可用。
 - 修改前先检查脏工作区并保留用户已有改动。实现优先简洁，不引入过度防御性抽象。
+- 所有功能变更必须进入对应职责模块，记录设计目的、行为变化与验证结果，并补充匹配风险的回归。设计能力放 application/domain，协议放 mcp，安装升级放 setup；skill 只编排正式能力。不得用临时脚本、复制算法或不断追加 skill 例外替代模块更新。公开发行使用同源模块，发行差异限于明确的配置及文档。
 - 依赖保持 UI → domain → mesh：领域和几何不反向引用组件、React、DOM 或 p5，不引入静态模块循环。派生缓存绑定不可变实体及完整计算参数，输入变化即失效；新增统计或出口先区分初始晶体面片、逻辑 CUT 平面与渲染三角形，再写对应回归。
 - 大幅视觉改动且目标不明确时先使用 Product Design 能力获取上下文；从选定效果图实现时，把效果图作为布局、密度、间距、颜色、字体、内容和层级的视觉真值。
 - 文档入口与职责以 [docs/README.md](docs/README.md) 为准：状态归属、CUT 交互与最终有效面语义写入 `state-contract.md`，视觉与版式写入 `design-system.md`，ASC 转换写入 `gemcad-asc.md`，预设收录写入 `preset-library.md`，其余领域和仓库约束写入本文件。一次性 QA 证据放在被忽略的 `tmp/`，不要提交临时报告。

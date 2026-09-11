@@ -10,7 +10,7 @@
 
 [快速开始](#快速开始) · [用 Codex 设计](#用-codex-设计) · [操作手册](public/manual/facet-96-operation-manual.pdf) · [参与贡献](CONTRIBUTING.md)
 
-![Release candidate](https://img.shields.io/badge/version-1.0.0--rc.1-ed225d)
+![Release candidate](https://img.shields.io/badge/version-1.0.0--rc.2-ed225d)
 ![MIT](https://img.shields.io/badge/license-MIT-222222)
 ![Local first](https://img.shields.io/badge/data-local_first-ffffff)
 
@@ -44,21 +44,43 @@
 
 ## 快速开始
 
-### 复制一句话给 Codex
+### 不安装 先试单机版
+
+**[打开浏览器单机版 Live Demo](https://yuyou-dev.github.io/OpenGemCutting/)**
+
+直接在浏览器手动设计，无需 Codex、MCP、账号或 API Key。它保留参数化切割、预设、保存与导出；没有对话式 AI 创作。线上版本以当前部署为准。
+
+### 复制一句话给 Codex 安装对话设计
+
+先安装并登录可以正常对话的 Codex，然后复制：
 
 ```text
-请按照 https://github.com/yuyou-dev/OpenGemCutting/blob/main/INSTALL.md 安装并启动完整 OpenGemCutting 切磨工作台，包含 OpenGemCutting Design 插件和 facet-parametric-design skill；在可用的 Codex 内置浏览器中打开工作台，验证后告诉我实际访问地址。
+请按照 https://github.com/yuyou-dev/OpenGemCutting/blob/main/INSTALL.md 安装完整 OpenGemCutting，配置工作台、运行环境、设计插件、MCP 和 skill，在 Codex 内置浏览器中打开并确认连接。完成后告诉我可以直接提出琢型设计需求。
 ```
 
-安装流程会启动本地服务、检查页面并安装设计插件。**当前候选版尚未推送时，远程 main 仍是旧版本**；本地验收应对这个候选目录执行 INSTALL.md。发布后上面的一句话即可获取完整发行版本。
+Codex 会完成环境检查与配置。macOS、Windows 都有安装入口；若客户端提示刷新或新开项目任务，完成这一次工具加载即可。只有实际连接网页后才提示可以开始创作。当前改动为本地候选，尚未推送；候选验收使用本地项目中的 INSTALL.md，远程提示词要等本版发布后才会安装到本轮能力。
 
-插件是安装包，`facet-parametric-design` 是其中的设计流程。仓库同时携带与代码版本一致的完整 skill；即使没有插件管理能力，也可在此项目的新 Codex 任务中使用它。插件变更后按 Codex 界面提示重新加载插件或新建任务；不要把“已安装”误认为当前任务已加载。
+准备好后，你可以直接说：
 
-已有安装可以让 Codex 按 [升级指南](https://github.com/yuyou-dev/OpenGemCutting/blob/main/UPGRADE.md) 更新；停止使用时按 [卸载指南](https://github.com/yuyou-dev/OpenGemCutting/blob/main/UNINSTALL.md) 保留设计并移除相应组件。
+> 帮我做一颗圆形、八向对称、台面清楚的基础琢型，先给我看真实模型。
 
-### 自己部署
+> 冠部再低一点，保留整体轮廓。给我看前后差异，等我选择。
 
-需要 Node.js **20.19+（20.x）或 22.12+**，以及 npm。
+> 根据我上传的草图做一个新琢型，先确认最重要的连接，再给我真实模型对比。
+
+工作台、完整设计 skill、同源 MCP、安装升级模块与设计插件都包含在本仓库。Codex 客户端、模型服务和账号不随源码分发。设计插件调用同一工作台能力，不维护另一套建模代码；社区 Companion 另行选择安装。
+
+### 已安装 一句话升级
+
+```text
+请按照 https://github.com/yuyou-dev/OpenGemCutting/blob/main/UPGRADE.md 升级我已有的 OpenGemCutting 和全部对话设计组件，保留我的设计，完成后重新连接内置浏览器，让我继续用对话创作。
+```
+
+升级会检查本地改动，并先保留重要设计。需要停止使用时见 [卸载说明](https://github.com/yuyou-dev/OpenGemCutting/blob/main/UNINSTALL.md)。给设计师的简短体验任务见 [用对话设计一颗宝石](docs/mcp/designer-acceptance.md)，不要求测试手动切割。
+
+### 团队从源码部署
+
+已具备开发环境的团队可使用 Node.js 20.19+（20.x）或 22.12+：
 
 ```bash
 git clone https://github.com/yuyou-dev/OpenGemCutting.git
@@ -67,26 +89,13 @@ npm ci
 npm run dev
 ```
 
-打开终端打印的 `http://127.0.0.1:<临时端口>/`。端口由操作系统分配，不占用固定端口。生产构建运行 `npm run build`，静态前端在 `dist/client/`，Sites 服务入口在 `dist/server/index.js`；普通静态服务器部署前端即可。GitHub Pages 使用 `npm run build:pages`。子路径部署需配置 Vite base。
+打开终端实际打印的本机地址。生产构建运行 `npm run build`，部署静态前端 `dist/client/`；GitHub Pages 使用 `npm run build:pages`。没有 Codex、MCP 或模型服务时，基础手动功能照常运行。Linux 保留此源码路径；macOS 和 Windows 的自动配置见 INSTALL.md。
+
+需要 AI 创作时由支持 MCP 的客户端启动 `mcp/server.mjs`；Codex 使用统一 `node setup/cli.mjs install`。协议与同源架构见 [开发文档](docs/mcp/README.md)，安装模块职责见 [setup](setup/README.md)。
 
 ## 用 Codex 设计
 
-1. 在 Codex 中打开安装好的 OpenGemCutting 项目，并启用 **OpenGemCutting Design** 插件，或直接使用仓库内 skill。
-2. 附上有权使用的参考三视图、照片或草图，说明保持的比例和希望调整的部分。
-3. 让 Codex 构建真实 CUT 分组、检查连接与对称、生成试作对照页。
-4. 在工作台调整一组角度或深度，比较顶视和侧视；认可后导出 JSON 留存。
-
-```text
-使用 facet-parametric-design，根据这张图构建切角方形阶梯琢型。保持台面与腰厚比例；区分原图明确的信息和推断。交付可编辑 JSON、同尺度三视对照和待确认项，不把个人试作加入内置预设。
-```
-
-独立试作页的可复现入口：
-
-```bash
-npm run design:review -- public/presets/documents/94504-pc-01-338-eight-main-highlight.json --out output/my-study
-```
-
-命令打印应附加到工作台地址的 `?review=...` 参数。添加 `--reference image.png --views views.json --notes notes.txt` 可生成带裁切参考的对照；格式见 [设计 skill](.agents/skills/facet-parametric-design/SKILL.md)。试作输出保存在忽略的 `output/`，不自动上传。
+在安装好的项目新开任务，发送“打开工作台，开始对话设计”。Codex 会在内置浏览器打开本机工作台并确认当前项目，你可以直接提出造型需求、参考草图或修改意见。对话中的真实模型预览与网页使用同一份设计；提交后可继续修改，重要设计请让 Codex 导出文件留存。
 
 ## 五分钟完成一次设计练习
 

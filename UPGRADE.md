@@ -1,53 +1,10 @@
-# UPGRADE.md — OpenGemCutting upgrade runbook for Codex
+# 升级并继续设计
 
-Use this runbook to update an existing OpenGemCutting installation while preserving local work.
+本文件给 Codex 执行。定位用户正在使用的安装目录，不另找旧副本冒充升级。先通过已连接工作台保存并导出重要设计 JSON，告知新地址不会自动搬迁旧端口的浏览器项目。导出未成功时先解决，不停止正在使用的服务。
 
-## Expected result
+1. 阅读当前 INSTALL.md 与 setup/README.md，检查 `git status --short --branch` 及当前上游。
+2. 干净且有正确发行上游的 Git 安装执行 `sh setup/bootstrap.sh upgrade`，Windows 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File setup/bootstrap.ps1 upgrade`。统一模块只 fast-forward，随后更新依赖、同源 MCP、skill、插件和构建。不要 reset、stash 或丢弃本地修改。
+3. 源码 ZIP 安装没有 Git 历史：在新的空目录解压新版，按 INSTALL.md 完整配置；先保留旧目录和导出的设计。若已有同名注册指向旧目录，说明将切换的具体安装路径，由用户选择后通过 Codex CLI 移除该项注册/市场再配置新目录，不覆盖其他服务。代码开发者有本地改动时交由其合并，不生成平行算法或自动覆盖源码。
+4. 若客户端仍持有旧工具进程，按客户端要求刷新或新开项目任务。使用更新后的 `workbench_open` 打开内置浏览器，`design_read` 实际核实后再宣布就绪，导入留存 JSON 继续创作。
 
-- The existing clone is fast-forwarded to the latest `origin/main`.
-- Dependencies match the current lockfile and `npm run check` passes.
-- The workbench is restarted at its actual loopback URL and opened in the built-in browser when available.
-- The Companion is upgraded only when requested.
-
-## Guardrails
-
-- Locate the existing clone; do not create a second copy and call it an upgrade.
-- Inspect `git status --short --branch` before pulling.
-- Never discard, stash, commit, publish, or overwrite local changes without permission.
-- Use `git pull --ff-only`; stop and report a dirty or diverged branch.
-- Do not kill unrelated servers or assume a port.
-
-## Upgrade the app
-
-From the existing clone:
-
-```bash
-git status --short --branch
-git pull --ff-only
-npm ci
-npm run check
-```
-
-Restart the project with `npm run dev` in a persistent session. Read the printed `127.0.0.1` URL, verify HTTP 200, and open it in Codex's built-in browser when available.
-
-## Design files and local projects
-
-v0.8.0 starts on the project home page. Committed documents and optical materials are saved to the active browser-local project, which can be reopened from the home page after a refresh. Existing JSON documents remain importable.
-
-When upgrading on the same browser and site origin, valid legacy OpenGemCutting recovery records are migrated once into the project list. Original backups remain available through the file menu; migration does not erase them or repeatedly recreate projects. Unsaved CUT drafts, camera/view settings and previous undo history are not restored after a refresh. Finish or cancel the current preview before exporting an archival JSON file.
-
-Projects and backups belong to the current browser and site origin. Clearing site data, changing browsers, domains or local ports does not automatically carry projects across. Before restarting on a different address, export each important project as JSON; import those files into projects at the new address. JSON remains the portable long-term archive.
-
-The optical laboratory in v0.8.0 is an empty workspace with project context and return navigation. Existing optical simulation remains available from the editor's display menu.
-
-## Upgrade the Companion when requested
-
-Follow the **Upgrade** section in [`plugins/opengemcutting-companion/LIFECYCLE.md`](plugins/opengemcutting-companion/LIFECYCLE.md). The updated plugin is available only after a full Codex desktop restart, a new task, and explicit selection through `Sources` → `Use plugins`.
-
-## Completion report
-
-Report the resulting commit, verification result, running URL, and whether the Companion was also upgraded. A dirty tree, diverged branch, failed check, or failed plugin refresh is not success.
-
-## Design plugin
-
-The Design plugin is `opengemcutting-design@opengemcutting`. Manage it independently of the optional Companion using the current `codex plugin --help` commands. Updating the app also updates the repository skill; keep the plugin and workbench on the same release. Uninstalling a plugin does not delete projects or exported JSON.
+完成回复：“已升级并连接工作台。现在可以继续告诉我想调整的琢型。”只有配置完成但尚待刷新时，明确报告这一状态。社区插件仅按用户要求更新；单机版继续支持独立源码升级，不要求 AI 依赖。

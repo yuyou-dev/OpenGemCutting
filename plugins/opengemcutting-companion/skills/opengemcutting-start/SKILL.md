@@ -9,14 +9,7 @@ Bring the user to an observable running OpenGemCutting workbench while preservin
 
 ## App workflow
 
-1. Use the current clone when suitable; otherwise look for an existing nearby clone before creating one. Never overwrite a non-empty directory.
-2. Inspect `git status --short --branch` before updating. Pull only a clean, non-diverged clone with `git pull --ff-only`.
-3. Require Node.js 20.19 or newer. Installing the browser app does not require GitHub authentication, an API key, or Codex login.
-4. Run `npm ci` and `npm run check`.
-5. Start `npm run dev` in a persistent session. Read the printed `127.0.0.1` URL instead of assuming a port.
-6. Verify HTTP 200 and open the URL in Codex's built-in browser when available.
-
-Use the repository's root `INSTALL.md`, `UPGRADE.md`, or `UNINSTALL.md` for the corresponding lifecycle request. An uninstall must preview exact scope and obtain confirmation before any removal.
+Use the repository INSTALL.md, UPGRADE.md or UNINSTALL.md as the single lifecycle workflow. Full setup includes the same-source design MCP and Design plugin; Companion remains optional. Do not maintain separate npm or startup commands here. For conversational design, open the URL returned by workbench_open in the built-in browser and verify workbench_sessions plus design_read before announcing readiness. A plain development page is not an AI connection. Tell the user they can now describe the desired gemstone directly.
 
 ## Community hub
 

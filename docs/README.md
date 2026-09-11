@@ -5,6 +5,8 @@
 - [产品与快速开始](../README.md)
 - [安装](../INSTALL.md)、[升级](../UPGRADE.md)、[卸载](../UNINSTALL.md)
 - [图解手册与原创练习](manual/README.md)
+- [对话设计师测试：5 个任务](mcp/designer-acceptance.md)
+- [本地 MCP 与能力文档](mcp/README.md)
 - [设计 skill](../.agents/skills/facet-parametric-design/SKILL.md)
 - [状态契约](../state-contract.md)、[视觉规范](../design-system.md)、[ASC](../gemcad-asc.md)、[预设库](../preset-library.md)
 - [性能与边界](cut-performance.md)、[RC 验收](rc-validation.md)

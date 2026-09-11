@@ -2,7 +2,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
-const excluded = new Set([".git", "node_modules", "dist", "tmp", "output"]);
+const excluded = new Set([".git", "node_modules", "dist", "tmp", "output", ".runtime"]);
 const patterns = [
   ["personal macOS path", new RegExp("/Us" + "ers/[^/\\s]+/")],
   ["personal Linux path", new RegExp("/ho" + "me/[^/\\s]+/")],

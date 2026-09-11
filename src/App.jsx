@@ -1,3 +1,10 @@
+import { flushSync } from 'react-dom';
+import { useDesignBridge } from './components/useDesignBridge.js';
+import { validateTool, DESIGN_API_VERSION } from './application/designContract.js';
+import { designError } from './application/designOperations.js';
+import { projectDesign } from './application/projectDesign.js';
+import { createPresetLibrary, createStaticPresetProvider } from './domain/presetLibrary.js';
+import { STOCK_PRESETS } from './domain/stockPresets.js';
 import { RenderBoundary } from "./components/RenderBoundary.jsx";
 import { useDismissFloatingMenus } from "./components/useDismissFloatingMenus.js";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +24,10 @@ import { safeFileStem } from "./utils/format.js";
 export function App() {
   useDismissFloatingMenus();
   const projects = useProjects();
+  const designControllerRef = useRef(null);
+  const designLibrary = useRef(null);
+  designLibrary.current ??= createPresetLibrary([createStaticPresetProvider({ publicBase: import.meta.env.BASE_URL })]);
+  const liveApp = useRef(null);
   const [page, setPage] = useState("home");
   const [active, setActive] = useState(null);
   const [latestDocument, setLatestDocument] = useState(null);
@@ -175,10 +186,49 @@ export function App() {
     ? { ...record, document: latestDocument } : record);
   const projectError = projects.error || (projects.unreadableCount ? `${projects.unreadableCount} 份本地设计暂时无法读取，原记录仍保留。` : "");
 
+  liveApp.current = { active, page, hasPreview, pendingDelete, pendingSwitch, confirmReload, helpOpen, crystalImportOpen, newProjectOpen };
+  const bridge = useDesignBridge(async (name, args, request) => {
+    validateTool(name, args);
+    if (name === 'preset_list') {
+      const all = await designLibrary.current.list();
+      const query = (args.query ?? '').toLocaleLowerCase();
+      const found = all.filter(item => item.searchText.includes(query));
+      const offset = args.offset ?? 0, limit = args.limit ?? 20;
+      return { apiVersion: DESIGN_API_VERSION, total: found.length, offset, presets: found.slice(offset, offset + limit).map(({ id, name, designer, shape, facetCount }) => ({ id, name, designer, shape, facetCount })), stockTemplates: STOCK_PRESETS.map(({ id, name, symmetry }) => ({ id, name, symmetry })) };
+    }
+    if (name === 'design_read' && !active) return { apiVersion: DESIGN_API_VERSION, projectId: 'none', revision: 'home', canWrite: false, blockedReason: '请先创建或打开一个设计项目。' };
+    if (name === 'project_create') {
+      const current = liveApp.current;
+      const getStamp = () => { const state = liveApp.current; return JSON.stringify([state.active?.id, state.active?.mountSeq, state.page, state.hasPreview, Boolean(state.pendingSwitch), Boolean(state.pendingDelete), state.confirmReload, state.helpOpen, state.crystalImportOpen, state.newProjectOpen]); };
+      const stamp = getStamp();
+      const initialState = designControllerRef.current?.read() ?? { projectId: 'none', revision: 'home' };
+      if (args.projectId !== initialState.projectId || args.revision !== initialState.revision) throw designError('STALE_REVISION', '当前项目已变化，请重新读取。');
+      if (current.hasPreview || current.pendingDelete || current.pendingSwitch || current.confirmReload || current.helpOpen || current.crystalImportOpen || current.newProjectOpen || designControllerRef.current?.read().sessionMode && designControllerRef.current.read().sessionMode !== 'idle') throw designError('WORKSPACE_BUSY', '请先在网页结束当前操作，再创建对话设计项目。');
+      const revision = designControllerRef.current?.read().revision;
+      const document = await projectDesign(args, designLibrary.current);
+      if (stamp !== getStamp() || revision !== designControllerRef.current?.read().revision) throw designError('STALE_REVISION', '载入期间页面或项目已变化，请重试。');
+      if (!await flush()) throw designError('SAVE_FAILED', '原项目保存失败；当前设计保留。');
+      request.assertLive();
+      if (stamp !== getStamp() || revision !== designControllerRef.current?.read().revision) throw designError('STALE_REVISION', '保存期间页面或项目已变化，请重试。');
+      const record = projects.create(document);
+      if (!record) throw designError('SAVE_FAILED', '新项目未能保存。');
+      flushSync(() => activate(record));
+      return designControllerRef.current.read();
+    }
+    if (!designControllerRef.current) throw designError('NO_PROJECT', '请先创建或打开项目。');
+    if (name === 'project_save') {
+      designControllerRef.current.assertWrite(args);
+      if (!await flush()) throw designError('SAVE_FAILED', '保存失败或冲突，请查看网页反馈。');
+      return { projectId: active.id, saved: true, storageRevision: baseRevision.current, note: '保存于本浏览器和端口；跨环境归档请导出 JSON。' };
+    }
+    return designControllerRef.current.handle(name, args, request);
+  });
+
   return (
     <>
+      {bridge.enabled ? <div className="design-connection" role="status"><strong>{bridge.status === 'connected' ? '对话设计已连接' : bridge.status === 'connecting' ? '正在连接对话设计' : '对话设计已断开'}</strong><span>{bridge.status === 'connected' ? 'AI 操作当前项目；每个方案均可撤销，手动编辑始终可用。' : '手动设计、撤销和保存仍然可用。'}</span>{bridge.status !== 'off' ? <button onClick={bridge.disconnect}>断开 AI 连接</button> : null}</div> : null}
       {page === "home" ? <HomePage projects={projectList} activeProjectId={active?.id} onOpenProject={openProject} onNewProject={createProject} onDeleteProject={requestDeleteProject} onOpenLab={() => navigate("lab")} onResume={() => setPage("editor")} error={projectError} onRetry={projects.refresh} onOpenHelp={() => setHelpOpen(true)} /> : null}
-      {active ? <RenderBoundary key={`${active.id}:${active.mountSeq ?? 0}`} hidden={page !== "editor"} onRetry={() => { setHasPreview(false); setActive(current => ({ ...current, document: latestDocument ?? current.document, startWithDraft: false, mountSeq: ++editorSeq.current })); }} onExport={exportCurrent} onHome={() => navigate("home")}><WorkbenchEditor initialDocument={active.document} startWithDraft={active.startWithDraft} visible={page === "editor"} interactionPaused={Boolean(pendingSwitch) || confirmReload || helpOpen || crystalImportOpen || newProjectOpen} onDocumentChange={receiveDocument} onPreviewChange={setHasPreview} onHome={() => navigate("home")} onLab={() => navigate("lab")} onNewProject={createProject} onImportCrystal={() => { setCrystalReturnToNew(false); setCrystalImportOpen(true); }} projectStatus={saveStatus} /></RenderBoundary> : null}
+      {active ? <RenderBoundary key={`${active.id}:${active.mountSeq ?? 0}`} hidden={page !== "editor"} onRetry={() => { setHasPreview(false); setActive(current => ({ ...current, document: latestDocument ?? current.document, startWithDraft: false, mountSeq: ++editorSeq.current })); }} onExport={exportCurrent} onHome={() => navigate("home")}><WorkbenchEditor designControllerRef={designControllerRef} projectId={active.id} initialDocument={active.document} startWithDraft={active.startWithDraft} visible={page === "editor"} interactionPaused={Boolean(pendingSwitch) || confirmReload || helpOpen || crystalImportOpen || newProjectOpen} onDocumentChange={receiveDocument} onPreviewChange={setHasPreview} onHome={() => navigate("home")} onLab={() => navigate("lab")} onNewProject={createProject} onImportCrystal={() => { setCrystalReturnToNew(false); setCrystalImportOpen(true); }} projectStatus={saveStatus} /></RenderBoundary> : null}
       {page === "lab" ? <OpticalLabPage projectName={latestDocument?.name} hasProject={Boolean(active)} onHome={() => navigate("home")} onEditor={() => setPage("editor")} /> : null}
       {saveStatus.state === "error" ? <div className="project-save-error" role="alert"><div><strong>项目尚未保存</strong><p>{saveStatus.code === "PROJECT_DELETED" ? saveStatus.message : projects.error || saveStatus.message}</p></div><button onClick={flush}>重试保存</button>{saveStatus.code === "PROJECT_DELETED" ? <button onClick={() => saveAsNewProject()}>另存为新项目</button> : null}<button onClick={exportCurrent}>导出 JSON</button><button onClick={() => navigate("home")}>管理本地项目</button></div> : null}
       {saveStatus.state === "conflict" ? <div className="project-save-error" role="alert"><div><strong>该项目已在其他窗口被修改</strong><p>自动保存已暂停，本地未保存的设计仍保留在内存中。请选择如何处理，不会自动合并或覆盖。</p></div><button onClick={requestReloadLatest}>重新载入最新版本</button><button onClick={() => saveAsNewProject("（冲突副本）")}>另存为新项目</button><button onClick={exportCurrent}>导出 JSON</button></div> : null}

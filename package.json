@@ -1,6 +1,6 @@
 {
   "name": "opengemcutting",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "private": true,
   "description": "A browser-based parametric gemstone faceting workbench for the 96-index system.",
   "license": "MIT",
@@ -19,7 +19,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/run-vite-local.mjs",
-    "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "build": "vite build && node scripts/design-build-stamp.mjs && node scripts/prepare-sites-build.mjs",
     "build:pages": "vite build --base=/OpenGemCutting/",
     "preview": "node scripts/run-vite-local.mjs preview",
     "presets:build": "node scripts/build-preset-library.mjs",
@@ -27,10 +27,16 @@
     "report:sample": "node scripts/generate-report-sample.mjs",
     "companion:test": "node --test plugins/opengemcutting-companion/tests/*.test.mjs",
     "test": "node --test src/",
-    "check": "npm run scan:public && npm run test && npm run companion:test && npm run build && npm run test:sites",
+    "check": "npm run scan:public && npm run test:setup && npm run test && npm run test:design && npm run companion:test && npm run build && npm run test:sites",
     "scan:public": "node scripts/public-scan.mjs",
     "test:sites": "node --test tests/sites-worker.test.mjs",
-    "design:review": "node scripts/create-design-review.mjs"
+    "design:review": "node scripts/create-design-review.mjs",
+    "design:docs": "node scripts/design-interface.mjs --write",
+    "test:design": "node scripts/design-interface.mjs && node --test .agents/skills/facet-parametric-design/scripts/*test.mjs",
+    "mcp:start": "node mcp/server.mjs",
+    "check:mcp": "npm run check && npm --prefix mcp test",
+    "setup": "node setup/cli.mjs",
+    "test:setup": "node --test setup/*.test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-sc": "^5.3.0",

@@ -1,0 +1,703 @@
+{
+  "apiVersion": "1.0",
+  "tools": [
+    {
+      "name": "design_read",
+      "description": "Read the bound project, committed CUT groups, revision, edit capabilities and save status. Read this before planning changes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "design_plan",
+      "description": "Preview an atomic ordered sequence of CUT edits without changing the project. Existing patternId edits in place; a new id adds a group. Returns planId, exact solid diagnostics and removals requiring confirmation. Use design_view with planId to inspect.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "cut",
+                    "remove",
+                    "rename",
+                    "reorder",
+                    "transform"
+                  ]
+                },
+                "patternId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "region": {
+                  "type": "string",
+                  "enum": [
+                    "crown",
+                    "girdle",
+                    "pavilion"
+                  ]
+                },
+                "draft": {
+                  "type": "object",
+                  "properties": {
+                    "industryAngle": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 90
+                    },
+                    "depth": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "baseIndex": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 95
+                    },
+                    "repeat": {
+                      "type": "integer",
+                      "enum": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        6,
+                        8,
+                        12,
+                        16,
+                        24,
+                        32,
+                        48,
+                        96
+                      ]
+                    },
+                    "mirrorOffset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 95
+                    },
+                    "patternMode": {
+                      "type": "string",
+                      "enum": [
+                        "symmetric",
+                        "arbitrary"
+                      ]
+                    },
+                    "customIndices": {
+                      "type": "string",
+                      "maxLength": 400
+                    },
+                    "preform": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
+                },
+                "meet": {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    },
+                    "b": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 8192
+                    },
+                    "ratioA": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "ratioB": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "clear": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
+                },
+                "order": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "maxItems": 256
+                },
+                "deltaZ": {
+                  "type": "number"
+                },
+                "scale": {
+                  "type": "number",
+                  "minimum": 0.02
+                },
+                "rotationTeeth": {
+                  "type": "integer",
+                  "minimum": -95,
+                  "maximum": 95
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 128,
+            "minItems": 1
+          }
+        },
+        "required": [
+          "sessionId",
+          "projectId",
+          "revision",
+          "operations"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "design_commit",
+      "description": "Commit a previously inspected plan as ONE undoable command. Confirm only the listed full removals. Stale revisions, manual drafts and unavailable workspaces are rejected.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "planId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "confirmedRemovals": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 256
+          }
+        },
+        "required": [
+          "sessionId",
+          "projectId",
+          "revision",
+          "planId"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": true
+    },
+    {
+      "name": "design_history",
+      "description": "Undo or redo the same history used by the manual editor. Requires an idle editable workspace and current revision.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "undo",
+              "redo"
+            ]
+          }
+        },
+        "required": [
+          "sessionId",
+          "projectId",
+          "revision",
+          "direction"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": true
+    },
+    {
+      "name": "design_topology",
+      "description": "Read real vertices, edges and faces at the committed end or BEFORE a pattern. Use returned topologyKey / edgeTopologyKey for Meet, tied to this revision.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "beforePatternId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "design_jump",
+      "description": "List exact existing vertex targets reachable by a CUT or a second Meet, without changing the document. Editing uses the prefix before patternId.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "patternId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "region": {
+            "type": "string",
+            "enum": [
+              "crown",
+              "pavilion"
+            ]
+          },
+          "draft": {
+            "type": "object",
+            "properties": {
+              "industryAngle": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 90
+              },
+              "depth": {
+                "type": "number",
+                "minimum": 0
+              },
+              "baseIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 95
+              },
+              "repeat": {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  6,
+                  8,
+                  12,
+                  16,
+                  24,
+                  32,
+                  48,
+                  96
+                ]
+              },
+              "mirrorOffset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 95
+              },
+              "patternMode": {
+                "type": "string",
+                "enum": [
+                  "symmetric",
+                  "arbitrary"
+                ]
+              },
+              "customIndices": {
+                "type": "string",
+                "maxLength": 400
+              },
+              "preform": {
+                "type": "boolean"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "targetA": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          }
+        },
+        "required": [
+          "sessionId",
+          "region",
+          "draft"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "design_view",
+      "description": "Return a PNG orthographic/isometric view from the exact committed solid or an uncommitted plan. Views share the real technical projection renderer; no AI-simulated geometry.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "planId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "view": {
+            "type": "string",
+            "enum": [
+              "isometric",
+              "top",
+              "bottom",
+              "front",
+              "side"
+            ]
+          }
+        },
+        "required": [
+          "sessionId",
+          "view"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "design_inspect",
+      "description": "Inspect final logical CUT planes separately from stock surface pieces, volume, dimensions, Meet provenance and JSON roundtrip. Optional referenceTopology checks real named nodes and edges.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "planId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "referenceTopology": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "design_projection",
+      "description": "Compare an independent reference graph with actual nodes and edges using one similarity transform. Returns per-node deviations, missing connections and extra visible vertices. Convex CUT solids only; never infer aesthetic acceptance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "planId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "graph": {
+            "type": "object"
+          },
+          "faceMap": {
+            "type": "object"
+          },
+          "view": {
+            "type": "string",
+            "enum": [
+              "top",
+              "bottom",
+              "front",
+              "side"
+            ]
+          },
+          "scale": {
+            "type": "number",
+            "minimum": 0.000001
+          },
+          "center": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "rotation": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sessionId",
+          "graph",
+          "faceMap",
+          "view",
+          "scale"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "design_export",
+      "description": "Export the committed design as full editable JSON, vector PDF or preflighted ASC; mesh ASC remains blocked. Does not commit a draft.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "asc",
+              "pdf"
+            ]
+          }
+        },
+        "required": [
+          "sessionId",
+          "format"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    },
+    {
+      "name": "project_create",
+      "description": "Create a separate project from the default cube, a stock template, a catalog preset, JSON or preflighted OBJ. Existing projects remain intact. Manual previews block switching.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "stockPresetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "presetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "json": {
+            "type": "string",
+            "maxLength": 20971520
+          },
+          "obj": {
+            "type": "string",
+            "maxLength": 20971520
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "unitless",
+              "mm",
+              "cm",
+              "m",
+              "in"
+            ]
+          },
+          "upAxis": {
+            "type": "string",
+            "enum": [
+              "x",
+              "y",
+              "z"
+            ]
+          }
+        },
+        "required": [
+          "sessionId",
+          "projectId",
+          "revision",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": true
+    },
+    {
+      "name": "project_save",
+      "description": "Flush the committed snapshot to this browser project store. Returns actual success or conflict; JSON remains the portable archive across ports and browsers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "sessionId",
+          "projectId",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": true
+    },
+    {
+      "name": "preset_list",
+      "description": "Search the same curated catalog and initial stock templates used by the manual editor. Pagination prevents dumping the full catalog into context.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "additionalProperties": false
+      },
+      "mutates": false
+    }
+  ]
+}

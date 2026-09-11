@@ -1,80 +1,36 @@
-# INSTALL.md — OpenGemCutting install runbook for Codex
+# 安装并打开对话设计工作台
 
-This runbook gives Codex a safe, observable way to install the browser app and,
-the OpenGemCutting Design plugin with facet-parametric-design. The Companion remains optional.
+本文件给 Codex 执行。设计师只需复制 README 的安装提示词，不需要运行命令或理解 MCP。完整安装授权本项目依赖、设计插件与本机配置；社区 Companion 仅在用户要求时安装。
 
-## Expected result
+## 获取正确版本
 
-- The public repository is cloned without overwriting an existing directory.
-- Dependencies match `package-lock.json` and `npm run check` passes.
-- The development server remains running on its printed `127.0.0.1` port.
-- The workbench is verified with HTTP 200 and opened in Codex's built-in browser when available.
-- `opengemcutting-design` is installed and listed; its version-matched full skill is also available in the workspace. Companion is optional.
+优先使用用户打开的当前项目，检查版本和工作区，保留全部改动。没有项目时从用户指定的仓库获取；OpenGemCutting 的公开地址为 https://github.com/yuyou-dev/OpenGemCutting 。Git 可用时 clone 到空目录；没有 Git 时下载该仓库已发布版本的源码 ZIP，在空目录解压即可安装，不把 Git 作为基础创作前提。不要覆盖非空目录，不把尚未推送的候选说成已在远程发布。
 
-An already-correct installation counts as success. Reuse a suitable existing clone rather than creating duplicates.
+开始前说明会配置本地工作台与对话设计入口。用户已发出完整安装请求时，不重复要求其逐项批准 npm、MCP 和本地插件配置。Codex 应已安装并能对话；项目不会创建模型账号或绕过客户端登录、权限确认。
 
-## Guardrails
+## 执行统一安装
 
-- Never read or print credential files, tokens, passwords, verification codes, or recovery codes.
-- Never pipe remote content into a shell.
-- Ask before installing system-level software.
-- Inspect `git status --short` before updating an existing clone. Do not discard, stash, commit, or overwrite local work without permission.
-- Do not kill unrelated development servers. Read the actual URL printed by the project.
-- Installing and running the workbench does not require GitHub, Codex login, an API key, or the Companion.
+先阅读 setup/README.md 和对应本地入口，然后执行：
 
-## Install the app
+- macOS：`sh setup/bootstrap.sh install`
+- Windows：`powershell -NoProfile -ExecutionPolicy Bypass -File setup/bootstrap.ps1 install`。Bypass 仅作用于此次进程，不修改系统执行策略。
+- Linux 或已准备 Node 的团队：`node setup/cli.mjs install`
 
-1. Confirm Node.js 20.19+ on 20.x, or 22.12+ and npm are available:
+脚本复用兼容 Node，缺少时在本项目忽略的 `.runtime` 安装带校验的运行时；安装网页依赖、构建、可选 MCP 依赖，验证协议和网页，注册本项目专用 MCP 并安装设计插件。私有与公开版服务名不同，可在同一电脑共存。发现同名注册指向其他安装时保留原配置，核对用户意图，不直接覆盖。
 
-   ```bash
-   node --version
-   npm --version
-   ```
+命令失败后定位具体步骤并修复正式安装模块，不另写一个临时安装器掩盖问题。`doctor` 成功只代表服务可运行，下一节仍须执行。
 
-2. If a suitable OpenGemCutting clone already exists, inspect it first. Pull only when the working tree is clean and a fast-forward is possible:
+## 打开内置浏览器并核实连接
 
-   ```bash
-   git status --short --branch
-   git pull --ff-only
-   ```
+1. 发现本项目原生设计工具，读取 `facet://guide`。若新安装工具尚未载入，按 Codex 当前提示刷新工具或让用户新开本项目任务，发送“打开工作台，开始对话设计”。此时明确说“配置已完成，等待工具加载”，不宣称连接完成。
+2. 调用 `workbench_open`，通过 Codex 的内置浏览器能力打开它返回的完整本机 URL。保留连接片段，不另开普通 dev 服务；内置浏览器不可用时如实说明。
+3. 等网页连接后调用 `workbench_sessions`、`design_read`。读到刚打开页面的项目或主页才算连接成功。多个页面按实际项目匹配，不能猜测。
+4. 不自动创建或覆盖用户设计。页面可创作后给友好回复：“工作台已打开并连接。你可以直接在这里描述想设计的琢型，例如圆形八瓣、低冠比例、切角方形，或者上传一张草图。”如用户同时提出设计需求，继续完成该设计。
 
-   Otherwise clone into a new empty location:
+## 普通单机版
 
-   ```bash
-   git clone https://github.com/yuyou-dev/OpenGemCutting.git
-   cd OpenGemCutting
-   ```
+用户明确只要手动版时在安装命令加 `--app-only`（PowerShell 为 `-AppOnly`），然后由 Codex 启动 `npm run preview` 并打开实际打印的本机地址。源码团队可直接 `npm ci && npm run build`，部署 `dist/client`；根依赖和静态页面均不需要 MCP、插件、Codex 或 API Key。
 
-3. Install and verify:
+## 完成标准
 
-   ```bash
-   npm ci
-   npm run check
-   ```
-
-4. Start `npm run dev` in a persistent terminal or background session. Read its printed loopback URL; do not assume a port.
-
-5. Request that URL and confirm HTTP 200. Open it in Codex's built-in browser when available; otherwise return a clickable URL. Keep the server running for the user.
-
-## Install the Design plugin
-
-The complete-install request authorizes installation of the Design plugin. For an explicit app-only request, skip this section; the repository skill still works in a project task.
-
-```bash
-codex plugin marketplace list
-codex plugin marketplace add yuyou-dev/OpenGemCutting --ref main
-codex plugin add opengemcutting-design@opengemcutting
-codex plugin list
-```
-
-If this marketplace already exists, upgrade it instead of adding a duplicate. For a local, unpublished RC, register the verified **local repository path** as the marketplace source instead of fetching main; do not claim the remote contains unpushed code. Do not replace an existing marketplace source without checking its purpose.
-
-Verify the installed plugin and that the workspace contains `.agents/skills/facet-parametric-design/SKILL.md`. A plugin catalog update may require a new Codex task or app reload; follow the app's current prompt and select OpenGemCutting Design in plugin sources when needed. Do not claim it is loaded in the current task merely because installation succeeded. If the CLI lacks plugin support, finish launching the app and explain that the workspace skill can be used directly in a project task.
-
-## Optional community Companion
-
-Only install when requested. Follow [Companion lifecycle](plugins/opengemcutting-companion/LIFECYCLE.md). It handles community feedback and contributions, separately from local gemstone design.
-
-## Hand-off
-
-Report the installed commit, checks, actual local URL, Design plugin installation state and reload requirements. Start a design task with `facet-parametric-design` and the user's reference image. Never claim an installation command or a browser you did not run was verified.
+分别记录：依赖安装、构建、MCP 自检、注册与插件、实际内置浏览器连接。回复面向创作，详细检查结果放记录。临时连接凭据不进入共享文档。安装配置和浏览器绑定有任一项未完成，应明确剩余一步。
