@@ -148,7 +148,9 @@ test('stdio server completes MCP initialize and resource read', async (t) => {
   await once(child, 'exit')
 })
 
-test('MCP launcher starts when Node is absent from PATH', async (t) => {
+test('POSIX MCP launcher starts when Node is absent from PATH', {
+  skip: process.platform === 'win32' ? 'Companion ships a macOS/Linux Bash launcher; Windows design MCP is tested separately.' : false,
+}, async (t) => {
   const pluginRoot = fileURLToPath(new URL('../', import.meta.url))
   const manifest = JSON.parse(readFileSync(new URL('../.mcp.json', import.meta.url), 'utf8'))
   const config = manifest.mcpServers.opengemcutting_companion

@@ -4,6 +4,8 @@ Canonical repository: `https://github.com/yuyou-dev/OpenGemCutting`
 
 This runbook covers the Companion only. It does not clone, update, run, or remove the OpenGemCutting app.
 
+The packaged Companion launcher requires `/bin/bash` on macOS or Linux. It does not currently provide a native Windows launcher. This optional community plugin is separate from the cross-platform design MCP and design plugin.
+
 ## Install
 
 Inspect configured marketplaces:
