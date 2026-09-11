@@ -13,14 +13,4 @@ codex plugin add opengemcutting-companion@opengemcutting
 
 When the marketplace already exists, use `codex plugin marketplace upgrade opengemcutting` before reinstalling or updating. After a catalog change, completely restart Codex desktop, create a new task, select **OpenGemCutting Companion** through `Sources` → `Use plugins`, then ask to open the OpenGemCutting community hub.
 
-The app itself uses:
-
-```bash
-git clone https://github.com/yuyou-dev/OpenGemCutting.git
-cd OpenGemCutting
-npm ci
-npm run check
-npm run dev
-```
-
-Read the actual loopback URL printed by the server and verify it before opening it.
+App dependencies, server startup and browser verification are owned by the root lifecycle guides above; do not maintain a second installation recipe here.

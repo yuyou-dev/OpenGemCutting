@@ -48,6 +48,7 @@ Codex 使用 `node setup/cli.mjs install` 完整配置；`mcp/register-codex.mjs
 
 | 代码 | 处理 |
 | --- | --- |
+| RESTART_REQUIRED | 当前版本已更新，先导出设计，再刷新工具或新开项目任务重新连接 |
 | NO_SESSION / DISCONNECTED | 打开链接或重新连接，重新列出会话并读状态；不要盲目重放上一次写操作 |
 | STALE_REVISION / PLAN_EXPIRED | 网页或设计已变化，重新读取和规划 |
 | WORKSPACE_BUSY | 按网页状态结束当前操作，不自动取消草稿 |

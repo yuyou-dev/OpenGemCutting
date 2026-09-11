@@ -12,7 +12,7 @@ export async function designSourceHash(root) {
     for (const item of entries.sort((a, b) =>
       a.name.localeCompare(b.name, 'en'),
     )) {
-      const name = path.join(relative, item.name);
+      const name = path.posix.join(relative, item.name);
       if (item.isDirectory()) await visit(name);
       else if (!/\.test\./.test(item.name)) {
         hash.update(name);
@@ -21,7 +21,11 @@ export async function designSourceHash(root) {
     }
   }
   await visit('src');
-  hash.update(await readFile(path.join(root, 'package.json')));
+  // Changes to the adapter or build entry must invalidate an already running host too.
+  for (const name of ['package.json', 'package-lock.json', 'index.html', 'vite.config.mjs', 'mcp/server.mjs', 'mcp/host.mjs', 'mcp/package-lock.json']) {
+    hash.update(name);
+    hash.update(await readFile(path.join(root, name)));
+  }
   return hash.digest('hex');
 }
 if (

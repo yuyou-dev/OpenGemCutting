@@ -1,3 +1,4 @@
+import { APP_VERSION } from "../version.js";
 import { IconArrowLeft, IconHome } from "@tabler/icons-react";
 import { RepositoryLink } from "./RepositoryLink.jsx";
 import "./workspace-pages.css";
@@ -8,7 +9,7 @@ export function OpticalLabPage({ projectName, hasProject, onHome, onEditor }) {
       <header className="lab-topbar">
         <button type="button" className="workspace-page-brand" onClick={onHome} aria-label="返回主页">
           <img src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="" />
-          <span><strong>切磨工作台 <small>1.0 RC</small></strong><em>SUVA · FACET 96</em></span>
+          <span><strong>切磨工作台 <small>{APP_VERSION}</small></strong><em>SUVA · FACET 96</em></span>
         </button>
         <RepositoryLink />
         <nav className="lab-navigation" aria-label="工作区导航">

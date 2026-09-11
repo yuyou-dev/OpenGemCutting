@@ -1,3 +1,4 @@
+import { APP_VERSION } from "./version.js";
 import { preparePatternCommit, transformGroup, planDesign } from './application/designOperations.js';
 import { useDesignController } from './components/useDesignController.js';
 import { assertFileBudget, assertDocumentImportBudget } from "./domain/importBudget.js";
@@ -1305,7 +1306,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       <div className="workbench-topbar">
         <button className="workbench-brand" onClick={onHome} aria-label="切磨工作台 · 返回项目主页">
           <img src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="" />
-          <span><strong>切磨工作台 <em>1.0 RC</em></strong><small>SUVA · FACET 96</small></span>
+          <span><strong>切磨工作台 <em>{APP_VERSION}</em></strong><small>SUVA · FACET 96</small></span>
         </button>
         <div className="workbench-links">
           <nav className="workbench-navigation" aria-label="工作台页面">

@@ -61,11 +61,11 @@ const renderPage = (page, index) => {
   ]
     .filter(Boolean)
     .join(" ");
-  const brand = `<img src="${asset("public/brand/logo-header.webp")}"><span><b>切磨工作台</b><small>1.0 RC · SUVA / FACET 96</small></span>`;
+  const brand = `<img src="${asset("public/brand/logo-header.webp")}"><span><b>切磨工作台</b><small>${esc(version)} · SUVA / FACET 96</small></span>`;
   const heading =
     index === 0
       ? `<div class="cover-brand">${brand}</div>`
-      : `<header class="chrome head"><span><img src="${asset("public/brand/logo-header.webp")}"><b>切磨工作台</b><em>1.0 RC · SUVA / FACET 96</em></span><span>设计师操作手册</span></header>`;
+      : `<header class="chrome head"><span><img src="${asset("public/brand/logo-header.webp")}"><b>切磨工作台</b><em>${esc(version)} · SUVA / FACET 96</em></span><span>设计师操作手册</span></header>`;
   const illustration =
     page.hero || page.image
       ? image(page.hero || page.image, page.caption)

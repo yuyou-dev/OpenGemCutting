@@ -1,3 +1,4 @@
+import { APP_VERSION } from "../version.js";
 import { RenderBoundary } from "./RenderBoundary.jsx";
 import { memo, useMemo, useState } from "react";
 import { IconArrowRight, IconDots, IconFlask, IconPlus, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
@@ -54,7 +55,7 @@ export function HomePage({ projects, activeProjectId, onOpenProject, onNewProjec
 
       <section className="home-introduction" aria-labelledby="home-title">
         <img className="home-brand-logo" src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="苏哇品牌标志" />
-        <div className="home-title-line"><h1 id="home-title">切磨工作台</h1><span>1.0 RC</span></div>
+        <div className="home-title-line"><h1 id="home-title">切磨工作台</h1><span>{APP_VERSION}</span></div>
         <p>从一个切型，开始下一次设计。</p>
         <div className="home-search">
           <IconSearch size={19} stroke={1.5} aria-hidden="true" />

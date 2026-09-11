@@ -1,40 +1,25 @@
-# UNINSTALL.md — OpenGemCutting uninstall runbook for Codex
+# 卸载 OpenGemCutting
 
-Uninstallation is always previewed before files or plugin registrations are removed.
+本文件给 Codex 执行。先区分用户要移除的是工作台、对话设计组件、社区 Companion，还是全部；各组件可以独立移除。
 
-## Guardrails
+## 保留设计并定位安装
 
-- Determine whether the user means the app, the Companion, or both.
-- Resolve the exact app directory and inspect `git status --short --branch`.
-- Show the exact removal scope and obtain explicit confirmation before deleting or moving files.
-- Preserve uncommitted work, exported JSON/ASC/PDF files, screenshots, and user-added material unless explicitly included.
-- Prefer moving the confirmed app directory to the operating system Trash over permanent deletion.
-- Stop only the OpenGemCutting server associated with the confirmed directory.
-- Removing a clone does not automatically clear browser storage; explain that separately if a complete data reset is requested.
+查看实际安装目录、Git 状态和本机注册。先保存并导出重要设计；源码、导出的 JSON/ASC/PDF、截图和浏览器项目不是可随意删除的缓存。说明具体移除范围，再按用户明确选择执行。
 
-## Uninstall the app
+## 移除对话设计入口
 
-1. Locate and display the exact OpenGemCutting clone.
-2. Inspect its Git status and identify uncommitted or untracked work.
-3. Stop only the development server launched from that clone.
-4. Preview the files and local work that would be affected.
-5. After explicit confirmation, move only that confirmed directory to Trash.
-6. Report whether the operation is recoverable and what browser-local data remains.
+1. 读取 setup/product.json，确认 MCP 与设计插件名称，核对注册确实属于本安装目录。
+2. 使用当前 Codex CLI 的 `mcp remove` 与 `plugin remove` 命令移除选定组件；语法以本机 `--help` 为准。保留其他项目服务。
+3. Marketplace 可能还提供 Companion；仍在使用时保留。插件移除不删除工作台或设计文件。
 
-The normal installation is just the cloned repository and its local `node_modules`; it does not install a system-wide OpenGemCutting package.
+## 移除工作台
 
-## Uninstall the Companion when requested
+停止该目录所属的服务，把明确选定的安装目录移到系统废纸篓。目录通常包含源码、node_modules 和可选的 .runtime；不要清理其他安装或全局 Node/Codex。
 
-Follow the **Uninstall** section in [`plugins/opengemcutting-companion/LIFECYCLE.md`](plugins/opengemcutting-companion/LIFECYCLE.md). Removing the Companion does not remove the app, local documents, or GitHub account data.
+浏览器项目不会随目录自动删除。只有用户明确要求重置浏览器数据时才另行处理；确认重要设计已经导出。
 
-## Completion report
+## 移除社区 Companion
 
-Report exactly which component was removed, which files or browser data were preserved, and whether the app directory can be recovered from Trash.
+仅在用户要求时按 [Companion 生命周期](plugins/opengemcutting-companion/LIFECYCLE.md) 操作。移除 Companion 不影响设计插件、工作台或 GitHub 账号数据。
 
-## Design plugin
-
-The Design plugin is `opengemcutting-design@opengemcutting`. Manage it independently of the optional Companion using the current `codex plugin --help` commands. Updating the app also updates the repository skill; keep the plugin and workbench on the same release. Uninstalling a plugin does not delete projects or exported JSON.
-
-## 本地设计 MCP 与运行时
-
-完整移除对话入口时，通过 Codex CLI 移除本项目 setup/product.json 指定的 MCP 注册与设计插件；先查看真实配置，保留其他项目的服务。项目内 .runtime 仅为自动补齐的运行时，确认不再使用该安装后可随安装目录移除。导出的设计和浏览器项目不是运行时，不要一并清除。
+完成时说明移除了什么、保留了什么，以及安装目录是否可从废纸篓恢复。

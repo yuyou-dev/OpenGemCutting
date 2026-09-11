@@ -8,7 +8,7 @@
 
 With the OpenGemCutting Companion installed, ask Codex to open the community hub. It can guide GitHub onboarding, browse categorized Discussions, route a faceting question or idea, review local changes, run the repository checks, and prepare a Pull Request while preserving contributor attribution. Nothing is published without a final preview and explicit confirmation.
 
-Installation instructions are in the [README](README.md#交给-codex-的一句话--one-sentence-for-codex). Traditional GitHub participation remains fully supported.
+Installation instructions are in the [Companion lifecycle guide](plugins/opengemcutting-companion/LIFECYCLE.md). Traditional GitHub participation remains fully supported.
 
 ## 开始之前 · Before you start
 
@@ -30,7 +30,7 @@ Companion 只会将这些步骤变成对话式流程，不改变 GitHub 的 Fork
 
 ## Project contracts
 
-- `CUT STACK` 是唯一几何数据源；编辑必须在原布尔序列位置替换。
+- 初始晶体 `stock` 与 `CUT STACK` 共同构成唯一几何数据源；编辑必须在原布尔序列位置替换。
 - `normal · point <= offset`、`+Z` 朝冠部、索引 `0` 显示为 `96`。
 - CUT 空闲/新建/编辑/群组四态由 `src/domain/cutSession.js` 统一管理。
 - 开发与预览只绑定 `127.0.0.1`，端口由操作系统分配。

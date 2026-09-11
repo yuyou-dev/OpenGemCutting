@@ -9,7 +9,7 @@ MCP SDK → mcp/host → 可选网页桥接 → application → domain → mesh
 
 MCP 只处理协议、静态服务和请求关联，不拥有当前文档、不复制几何算法。在线编辑通过网页的 `WorkbenchEditor` 历史提交；批量计划是绑定当前 revision 的临时计算快照，不是第二套 CUT 会话，不写 JSON 或项目存储。
 
-网页使用原生 WebSocket，只有 `127.0.0.1` 上含显式连接片段的启动链接才建立连接。普通页面不尝试连接，不加载 Node SDK。MCP 的 package.json、锁文件和 node_modules 独立，根目录的安装、测试和构建不需要它们。Sites/GitHub Pages 只交付静态网页。
+网页使用原生 WebSocket，只有 `127.0.0.1` 上含显式连接片段的启动链接才建立连接。普通页面不尝试连接，不加载 Node SDK。MCP 的依赖包与锁文件独立维护；根目录安装、测试和构建不需要安装 MCP 依赖。Sites/GitHub Pages 只交付静态网页。
 
 ## 同步维护
 
@@ -36,8 +36,10 @@ MCP 只处理协议、静态服务和请求关联，不拥有当前文档、不�
 
 未来扩展优先新增明确设计操作与测试，避免通用执行代码工具、动态插件平台或第二套持久化数据库。
 
-构建生成 `dist/client/design-build.json`，包含源代码摘要和 API 版本。MCP 启动检查它与当前 src/package.json 一致；源码更新但页面未重建时明确拒绝启动。这个摘要不包含本机路径、密钥或私有 Git 历史。
+构建生成 `dist/client/design-build.json`，包含源代码摘要和 API 版本。摘要覆盖 src、产品元数据与锁文件、启动页和 Vite 配置，以及 MCP 服务/宿主实现和锁文件。MCP 启动与每次工具调用都核对构建；更新但未重建时拒绝启动，运行中的旧服务返回 RESTART_REQUIRED。这个摘要不包含本机路径、密钥或私有 Git 历史。
 
 ## 安装与发布维护
 
 安装生命周期归 setup；插件只编排服务器资源，不复制设计算法。macOS 与 Windows 引导共用 Node 安装模块，发行差异留在 product.json。源模块同步后运行两边的完整检查；公开版本保留独立 Git 历史与社区插件。Windows CI 检查不能代替实际桌面和首次无环境安装的人工验收。
+
+共享手册源、示例、截图与 PDF 随同一里程碑发行；README 与手册引用同一组当前截图。公开同步须检查多余的遗留文件，不能只覆盖新增或修改文件。文档链接与锚点由 `npm run test:docs` 检查并纳入常规验收。

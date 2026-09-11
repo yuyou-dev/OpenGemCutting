@@ -46,11 +46,11 @@ npm run manual:build
 
 `round-optics` 与 `round-optics-top` 使用预设 PC 01.338 Eight Main Highlight（97 个有效面），分别为透视与台面观察位；材质为石英（水晶）、折射率 1.544、色散 0.013、中性吸收 0，观察环境为柔光摄影棚／雾白、曝光 0。两图只改变观察位。
 
-`assistant-stepping` 与 `assistant-finished` 使用同一 Eight Main Highlight，分别完成 86／97 刀与 97／97 刀，由当前切面的斜向跟随相机观察。中间步骤的粉色平面提示下一刀；完成图无切割平面。成品及助手图片在 1.0 RC 修订时从 macOS Chrome 152 的 1521 × 848 实际工作台重新采集。
+`assistant-stepping` 与 `assistant-finished` 使用同一 Eight Main Highlight，分别完成 86／97 刀与 97／97 刀，由当前切面的斜向跟随相机观察。中间步骤的粉色平面提示下一刀；完成图无切割平面。1.0.0 发布准备时，受版本标识影响的完整界面统一从 Codex 内置 Chromium 重新采集，视口 1600 × 1000、2× 像素密度。
 
 `crystal-import` 是“保留原石的凹槽，再安排切割”页使用的真实 L 形 OBJ 导入预检，单位未指定、+Z 朝上；对应 `08-concave-crystal.obj`。
 
-`recovery-empty` 是 v0.9.0 文档清理时从“文件 → 恢复本地设计”采集的真实空列表，说明旧版备份与当前项目自动保存的区别。恢复现有备份会替换当前项目并自动保存，可撤销且不改变来源备份。
+不含版本标识且交互未改变的局部图继续使用已核对的真实截图。`recovery-empty` 从“文件 → 恢复本地设计”采集的真实空列表，说明旧版备份与当前项目自动保存的区别。恢复现有备份会替换当前项目并自动保存，可撤销且不改变来源备份。
 
 `screenshots/` 仅保留当前手册正文引用的图；旧截图可从 Git 历史查阅，不另设相互覆盖的手册版本。
 
@@ -60,12 +60,12 @@ npm run manual:build
 
 ## 参考图试作
 
-第 29 页演示 Codex 参数化设计流程。配图来自 Eight Main Highlight 预设的同实体对照，不作为照片还原精度证据。使用 `design:review` 生成器创建新的试作目录，下载 JSON 后在新项目继续编辑。
+第 29–30 页演示 Codex 参数化设计流程。配图来自 Eight Main Highlight 预设的同实体对照，不作为照片还原精度证据。使用 `design:review` 生成器创建新的试作目录，下载 JSON 后在新项目继续编辑。
 
 ## 正式成品配图的复现与来源
 
 封面、实时预览、光学观察、文件交付与试作展示使用 **PC 01.338 Eight Main Highlight**，设计者 **Long, R H & Steele, N W**，来源记录为 *Facet Design v5 (1984) pC12*。在「文件 → 浏览预设琢型」搜索名称并载入；[对应可编辑 JSON](../../public/presets/documents/94504-pc-01-338-eight-main-highlight.json) 与 [来源记录](../../public/presets/catalog.json) 随仓库提供。截图取自真实工作台，未改动几何；简化练习仅用于讲解切割过程与 Meet 操作。
 
-## 对话直连工作台
+## 可选对话设计
 
-第 30 页演示对话改型、手动续改与保存重开，截图来自真实连接工作台。安装与协议见 [本地设计接口](../mcp/README.md)；本轮设计师测试使用 [5 个对话任务](../mcp/designer-acceptance.md)，无需执行本手册的手动练习。
+手册最后一页以 97 面 Eight Main Highlight 预设演示“对话改型 → 手动续改 → 保存重开”。真实截图为 `local-design-bridge.jpg`；安装与工具契约归 [本地设计接口](../mcp/README.md)。没有 MCP/Codex 的静态网页仍可完成全部手动设计任务。

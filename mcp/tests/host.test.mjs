@@ -17,12 +17,16 @@ test('a running host detects an upgraded build before offering its link', async 
     await mkdir(path.join(directory, 'src'));
     await mkdir(path.join(directory, 'dist/client'), { recursive: true });
     await writeFile(path.join(directory, 'src/app.js'), 'old');
-    await writeFile(path.join(directory, 'package.json'), '{}');
+    await mkdir(path.join(directory, 'mcp'));
+    for (const file of ['package.json', 'package-lock.json', 'index.html', 'vite.config.mjs', 'mcp/server.mjs', 'mcp/host.mjs', 'mcp/package-lock.json'])
+      await writeFile(path.join(directory, file), '{}');
     await writeFile(path.join(directory, 'dist/client/index.html'), '<html></html>');
     const stampFile = path.join(directory, 'dist/client/design-build.json');
     await writeFile(stampFile, JSON.stringify({ apiVersion: DESIGN_API_VERSION, sourceHash: await designSourceHash(directory) }));
     host = await startHost({ root: directory });
     await host.assertCurrentBuild();
+    await writeFile(path.join(directory, 'mcp/server.mjs'), 'new adapter');
+    await assert.rejects(host.assertCurrentBuild(), { code: 'RESTART_REQUIRED' });
     await writeFile(path.join(directory, 'src/app.js'), 'new');
     await writeFile(stampFile, JSON.stringify({ apiVersion: DESIGN_API_VERSION, sourceHash: await designSourceHash(directory) }));
     await assert.rejects(host.assertCurrentBuild(), { code: 'RESTART_REQUIRED' });

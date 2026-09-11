@@ -139,9 +139,9 @@ server.setRequestHandler(
   CallToolRequestSchema,
   async ({ params }, { signal }) => {
     try {
+      await host.assertCurrentBuild();
       let result;
       if (params.name === 'workbench_open') {
-        await host.assertCurrentBuild();
         result = {
           url: host.url,
           apiVersion: DESIGN_API_VERSION,
