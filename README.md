@@ -156,7 +156,7 @@ npm run check:mcp      # 加上 MCP 的连接与版本检查
 <table>
 <tr>
 <td width="220" align="center"><a href="docs/assets/community/wecom-open-source-group.jpg"><img src="docs/assets/community/wecom-open-source-group.jpg" width="200" alt="企业微信二维码：加入余博士开源技术群" /></a></td>
-<td><b>余博士开源技术群</b><br><br>用企业微信扫描左侧二维码加入群聊，一起交流使用经验与开源技术。<br><sub>点击二维码可查看大图。</sub></td>
+<td><b>余博士开源技术群</b><br><br>扫描左侧企业微信二维码加入群聊，一起交流使用经验与开源技术。<br><sub>点击二维码可查看大图。</sub></td>
 </tr>
 </table>
 
