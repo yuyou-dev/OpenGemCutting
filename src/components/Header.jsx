@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n/locale.js';
 import { useEffect, useRef, useState } from "react";
 import {
   IconArrowBackUp,
@@ -27,8 +28,8 @@ function IconButton({ label, children, onClick, disabled = false }) {
     <button
       type="button"
       className="icon-button"
-      aria-label={label}
-      title={label}
+      aria-label={t(label)}
+      title={t(label)}
       onClick={onClick}
       disabled={disabled}
     >
@@ -111,32 +112,32 @@ export function Header({
 
   if (opticsActive) {
     return (
-      <header className={`app-header floating-toolbar is-optics-toolbar${opticsInspectorOpen ? "" : " is-inspector-closed"}`} aria-label="光学仿真工具栏">
-        <div className="toolbar-project-status is-readonly" title={`${projectName} · 已提交 ${facetCount} 个有效刻面`}>
-          <strong>{projectName}</strong><small title="已提交文档的最终有效刻面，不含毛坯面与未保存预览">{facetCount} 有效面</small>
+      <header className={`app-header floating-toolbar is-optics-toolbar${opticsInspectorOpen ? "" : " is-inspector-closed"}`} aria-label={t("光学仿真工具栏")}>
+        <div className="toolbar-project-status is-readonly" title={t("{0} · 已提交 {1} 个有效刻面", [projectName, facetCount])}>
+          <strong>{projectName}</strong><small title={t("已提交文档的最终有效刻面，不含毛坯面与未保存预览")}>{facetCount} {t("有效面")}</small>
         </div>
         {!opticsInspectorOpen ? (
           <button type="button" className="optics-toolbar-button" onClick={onOpenOpticsInspector}>
-            <IconDiamond size={15} stroke={1.7} /><span>光学参数</span>
+            <IconDiamond size={15} stroke={1.7} /><span>{t("光学参数")}</span>
           </button>
         ) : null}
         <button type="button" className="optics-exit-button" onClick={onExitOptics}>
-          <IconX size={15} stroke={1.9} /><span>退出仿真</span>
+          <IconX size={15} stroke={1.9} /><span>{t("退出仿真")}</span>
         </button>
-        <span className="optics-live-badge"><i />光学仿真 · 实时</span>
+        <span className="optics-live-badge"><i />{t("光学仿真 · 实时")}</span>
       </header>
     );
   }
 
   return (
-    <header className="app-header floating-toolbar" aria-label="工作区工具栏">
+    <header className="app-header floating-toolbar" aria-label={t("工作区工具栏")}>
       <details data-floating-menu className="toolbar-menu toolbar-view-menu" name="toolbar-menu">
-        <summary title={`切换视图 · ${activeView}`} aria-label={`切换视图，当前${activeView}`}>
+        <summary title={t("切换视图 · {0}", [t(activeView)])} aria-label={t("切换视图，当前{0}", [t(activeView)])}>
           <IconCube size={16} stroke={1.7} />
           <IconChevronDown size={13} stroke={1.7} />
         </summary>
-        <div className="toolbar-menu-popover" role="menu" aria-label="视图">
-          <span className="toolbar-menu-label">VIEW 视图</span>
+        <div className="toolbar-menu-popover" role="menu" aria-label={t("视图")}>
+          <span className="toolbar-menu-label">{t("VIEW 视图")}</span>
           {VIEWS.map(([value, label]) => (
             <button
               type="button"
@@ -145,20 +146,20 @@ export function Header({
               onClick={(event) => runMenuAction(event, () => onViewMode(value))}
               key={value}
             >
-              <span>{label}</span>
+              <span>{t(label)}</span>
               {viewMode === value ? <IconCheck size={14} stroke={1.8} /> : null}
             </button>
           ))}
         </div>
       </details>
 
-      <div className="toolbar-project-status" title={`${projectName} · 已提交 ${facetCount} 个有效刻面`}>
+      <div className="toolbar-project-status" title={t("{0} · 已提交 {1} 个有效刻面", [projectName, facetCount])}>
         <input
           ref={projectNameInputRef}
           type="text"
           value={projectNameDraft}
-          aria-label="切型名称"
-          title="点击编辑切型名称；回车或失焦保存，Esc 取消"
+          aria-label={t("切型名称")}
+          title={t("点击编辑切型名称；回车或失焦保存，Esc 取消")}
           spellCheck="false"
           onChange={(event) => setProjectNameDraft(event.target.value)}
           onFocus={(event) => event.currentTarget.select()}
@@ -178,107 +179,107 @@ export function Header({
             }
           }}
         />
-        <small title="已提交文档的最终有效刻面，不含毛坯面与未保存预览">{facetCount} 有效面</small>
+        <small title={t("已提交文档的最终有效刻面，不含毛坯面与未保存预览")}>{facetCount} {t("有效面")}</small>
       </div>
 
       <details data-floating-menu className="toolbar-menu toolbar-display-menu" name="toolbar-menu">
-        <summary className={isXray ? "is-xray" : ""} title="显示模式" aria-label="显示模式">
+        <summary className={isXray ? "is-xray" : ""} title={t("显示模式")} aria-label={t("显示模式")}>
           {isXray ? <IconEye size={15} stroke={1.8} /> : <IconEyeOff size={15} stroke={1.8} />}
           <IconChevronDown size={12} stroke={1.7} />
         </summary>
-        <div className="toolbar-menu-popover" role="menu" aria-label="显示模式">
-          <span className="toolbar-menu-label">DISPLAY 显示</span>
+        <div className="toolbar-menu-popover" role="menu" aria-label={t("显示模式")}>
+          <span className="toolbar-menu-label">{t("DISPLAY 显示")}</span>
           <button type="button" role="menuitem" className={!isXray ? "is-active" : ""} onClick={(event) => runMenuAction(event, () => onDisplayMode("solid"))}>
-            <IconEyeOff size={15} /><span>实体</span>{!isXray ? <IconCheck size={14} /> : null}
+            <IconEyeOff size={15} /><span>{t("实体")}</span>{!isXray ? <IconCheck size={14} /> : null}
           </button>
           <button type="button" role="menuitem" className={isXray ? "is-active" : ""} onClick={(event) => runMenuAction(event, () => onDisplayMode("xray"))}>
-            <IconEye size={15} /><span>穿透 X-RAY</span>{isXray ? <IconCheck size={14} /> : null}
+            <IconEye size={15} /><span>{t("穿透 X-RAY")}</span>{isXray ? <IconCheck size={14} /> : null}
           </button>
           <button type="button" role="menuitem" className="is-optics-entry" onClick={(event) => runMenuAction(event, onEnterOptics)}>
-            <IconDiamond size={15} /><span>光学仿真</span>
+            <IconDiamond size={15} /><span>{t("光学仿真")}</span>
           </button>
         </div>
       </details>
 
       <details data-floating-menu className="toolbar-menu toolbar-file-menu" name="toolbar-menu">
-        <summary title="文件" aria-label="文件">
+        <summary title={t("文件")} aria-label={t("文件")}>
           <IconFolder size={16} stroke={1.7} />
           <IconChevronDown size={13} stroke={1.7} />
         </summary>
-        <div className="toolbar-menu-popover is-right" role="menu" aria-label="文件">
-          <span className="toolbar-menu-label">FILE 文件</span>
-          <p className="toolbar-backup-status" role="status">{backupStatus?.message || "已提交切割自动保存到当前项目；不含未保存预览"}{backupStatus?.savedAt ? ` · ${new Date(backupStatus.savedAt).toLocaleTimeString("zh-CN")}` : ""}</p>
+        <div className="toolbar-menu-popover is-right" role="menu" aria-label={t("文件")}>
+          <span className="toolbar-menu-label">{t("FILE 文件")}</span>
+          <p className="toolbar-backup-status" role="status">{t(backupStatus?.message || t("已提交切割自动保存到当前项目；不含未保存预览"))}{t(backupStatus?.savedAt ? ` · ${new Date(backupStatus.savedAt).toLocaleTimeString(getLocale())}` : "")}</p>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenRecovery)}>
-            <IconHistory size={15} /><span>恢复本地设计</span>
+            <IconHistory size={15} /><span>{t("恢复本地设计")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onNew)}>
             <IconFilePlus size={15} />
-            <span>新建设计</span>
+            <span>{t("新建设计")}</span>
           </button>
           <button type="button" role="menuitem" className="is-preset-entry" onClick={(event) => runMenuAction(event, onOpenPresets)}>
             <IconLayoutGrid size={15} />
-            <span>浏览预设琢型</span>
+            <span>{t("浏览预设琢型")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImport)}>
             <IconFileUpload size={15} />
-            <span>导入 JSON</span>
+            <span>{t("导入 JSON")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportCrystal)}>
-            <IconCube size={15} /><span>导入初始晶体…</span>
+            <IconCube size={15} /><span>{t("导入初始晶体…")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportAsc)}>
             <IconFileUpload size={15} />
-            <span>导入 GemCad ASC</span>
+            <span>{t("导入 GemCad ASC")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExport)}>
             <IconDeviceFloppy size={15} />
-            <span>导出 JSON</span>
+            <span>{t("导出 JSON")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportAsc)}>
             <IconDeviceFloppy size={15} />
-            <span>导出 GemCad ASC</span>
+            <span>{t("导出 GemCad ASC")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportPdf)}>
             <IconFileTypePdf size={15} />
-            <span>导出 PDF 报告</span>
+            <span>{t("导出 PDF 报告")}</span>
           </button>
         </div>
       </details>
 
       <div className="header-actions">
-        <IconButton label="撤销" onClick={onUndo} disabled={!canUndo}>
+        <IconButton label={t("撤销")} onClick={onUndo} disabled={!canUndo}>
           <IconArrowBackUp size={17} stroke={1.7} />
         </IconButton>
-        <IconButton label="重做" onClick={onRedo} disabled={!canRedo}>
+        <IconButton label={t("重做")} onClick={onRedo} disabled={!canRedo}>
           <IconArrowForwardUp size={17} stroke={1.7} />
         </IconButton>
       </div>
 
       <details data-floating-menu className="toolbar-menu toolbar-more-menu" name="toolbar-menu">
-        <summary title="更多工具" aria-label="更多工具">
+        <summary title={t("更多工具")} aria-label={t("更多工具")}>
           <IconDots size={18} stroke={1.8} />
         </summary>
-        <div className="toolbar-menu-popover is-right" role="menu" aria-label="更多工具">
-          <span className="toolbar-menu-label">TOOLS 工具</span>
+        <div className="toolbar-menu-popover is-right" role="menu" aria-label={t("更多工具")}>
+          <span className="toolbar-menu-label">{t("TOOLS 工具")}</span>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenHistory)}>
             <IconHistory size={15} />
-            <span>历史记录</span>
+            <span>{t("历史记录")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenLedger)}>
             <IconTable size={15} />
-            <span>刻面表</span>
+            <span>{t("刻面表")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenSettings)}>
             <IconSettings size={15} />
-            <span>设置</span>
+            <span>{t("设置")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenAssistant)}>
             <IconHistory size={15} />
-            <span>逐层试切助理</span>
+            <span>{t("逐层试切助理")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenHelp)}>
             <IconHelpCircle size={15} />
-            <span>帮助与操作手册</span>
+            <span>{t("帮助与操作手册")}</span>
           </button>
         </div>
       </details>

@@ -286,3 +286,19 @@ figcaption {
 }
 
 .compact-image figure img { height: 60mm; }
+
+/* English needs more line space than Chinese; keep readable type and reserve the footer. */
+html[lang="en"] body { font-family: Arial, "Noto Sans SC Variable", sans-serif; }
+html[lang="en"] h1 { font-size: 21pt; line-height: 1.25; margin-bottom: 4mm; }
+html[lang="en"] .cover h1 { font-size: 32pt; }
+html[lang="en"] p.intro { line-height: 1.55; }
+html[lang="en"] .step p, html[lang="en"] .block p { line-height: 1.5; }
+html[lang="en"] .steps, html[lang="en"] .blocks { gap: 2.6mm; }
+html[lang="en"] .question, html[lang="en"] .note { line-height: 1.5; margin-top: 3mm; padding-block: 2.5mm; }
+html[lang="en"] .toc article { padding-block: 4mm; }
+html[lang="en"] figure img { height: 88mm; }
+html[lang="en"] .cover figure img { height: 110mm; }
+html[lang="en"] .controls figure img { height: 96mm; }
+html[lang="en"] .compact-image figure img { height: 55mm; }
+html[lang="en"] .pair figure img { height: 85mm; }
+html[lang="en"] .block p, html[lang="en"] .step p { font-size: 10pt; }

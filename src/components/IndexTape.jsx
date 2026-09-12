@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { INDEX_TEETH, displayIndex, indexToAzimuthDeg, normalizeIndex } from "../domain/faceting.js";
@@ -71,7 +72,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
     <div
       className={disabled ? "index-tape is-disabled" : "index-tape"}
       role="slider"
-      aria-label="96 齿索引"
+      aria-label={t("96 齿索引")}
       aria-valuemin={1}
       aria-valuemax={96}
       aria-valuenow={shown}
@@ -95,7 +96,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
         className="index-tape-step"
         onClick={() => onIndexChange(normalizeIndex(index - 1))}
         disabled={disabled}
-        aria-label="索引减一"
+        aria-label={t("索引减一")}
         tabIndex={-1}
       >
         <IconChevronLeft size={15} stroke={1.8} />
@@ -109,10 +110,10 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div className="index-tape-ticks" aria-hidden="true">{ticks}</div>
+        <div className="index-tape-ticks" aria-hidden="true">{t(ticks)}</div>
         {["96", "24", "48", "72"].map((label, labelIndex) => (
           <span key={label} className="index-tape-label" style={{ left: `${(labelIndex * 24 / INDEX_TEETH) * 100}%` }} aria-hidden="true">
-            {label}
+            {t(label)}
           </span>
         ))}
         <span className="index-tape-handle" style={{ left: `${(index / INDEX_TEETH) * 100}%` }} aria-hidden="true" />
@@ -123,7 +124,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
         className="index-tape-step"
         onClick={() => onIndexChange(normalizeIndex(index + 1))}
         disabled={disabled}
-        aria-label="索引加一"
+        aria-label={t("索引加一")}
         tabIndex={-1}
       >
         <IconChevronRight size={15} stroke={1.8} />
@@ -147,7 +148,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
               setEditing(false);
             }
           }}
-          aria-label="输入索引 1 到 96"
+          aria-label={t("输入索引 1 到 96")}
         />
       ) : (
         <button
@@ -159,7 +160,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
             setEditing(true);
           }}
           disabled={disabled}
-          title="点击输入精确索引"
+          title={t("点击输入精确索引")}
         >
           <strong>{String(shown).padStart(2, "0")}</strong>
           <small>{azimuth.toFixed(1)}°</small>

@@ -66,3 +66,7 @@ npm run design:review -- design.json --out output/new-review --reference referen
 ```
 
 裁切格式、来源与尺度约定见 [参考板](references/reference-board.md) 和 [实现](references/construction.md)。交付可编辑 JSON、同实体真实三视/3D、原图对照或叠加、逐项偏差、可复现入口及未通过项。工程状态与设计师待验收分开；失败继续定位和修订，不删除目标、隐藏棱、压扁实体或回写参考来变绿。确有不可兼容的已知要求时，展示具体位置和经过验证的替代方案。
+
+## 双语工作台
+
+使用 `design_read.locale` 了解界面语言，按用户的对话语言回复。英文报告使用 `design_export` 的 `locale: "en"`；工具名称、参数和用户设计名称不翻译。珠宝术语优先核对 `src/i18n/terminology.json` 的语境与待审核状态。

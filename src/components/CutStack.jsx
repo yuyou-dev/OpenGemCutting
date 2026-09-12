@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { useEffect, useRef, useState } from "react";
 import {
   IconChevronDown,
@@ -48,7 +49,7 @@ function InlineEditor({ operation, values, onEdit, onCommit, depthEditable = tru
   return (
     <div className="cut-stack-inline" onClick={(event) => event.stopPropagation()}>
       <label>
-        <span>角度°</span>
+        <span>{t("角度°")}</span>
         <input
           type="number"
           min="0"
@@ -62,11 +63,11 @@ function InlineEditor({ operation, values, onEdit, onCommit, depthEditable = tru
             emit("angle", event.target.value);
           }}
           onKeyDown={keyDown}
-          aria-label="行业角"
+          aria-label={t("行业角")}
         />
       </label>
       <label>
-        <span>深度</span>
+        <span>{t("深度")}</span>
         <input
           type="number"
           min="0"
@@ -79,10 +80,10 @@ function InlineEditor({ operation, values, onEdit, onCommit, depthEditable = tru
             emit("depth", event.target.value);
           }}
           onKeyDown={keyDown}
-          aria-label="切入深度"
+          aria-label={t("切入深度")}
         />
       </label>
-      <small>回车保存</small>
+      <small>{t("回车保存")}</small>
     </div>
   );
 }
@@ -166,8 +167,8 @@ export function CutStack({
     <section className={`cut-stack${collapsed ? " is-collapsed" : ""}`} aria-labelledby="cut-stack-title">
       <div className="cut-stack-heading">
         <div>
-          <span id="cut-stack-title">解析序列 CUT STACK</span>
-          <small>{filteredOperations.length} / {operations.length} 个预切割动作</small>
+          <span id="cut-stack-title">{t("解析序列 CUT STACK")}</span>
+          <small>{filteredOperations.length} / {operations.length} {t("个预切割动作")}</small>
         </div>
         <div className="cut-stack-heading-actions">
           {onToggle ? (
@@ -175,9 +176,9 @@ export function CutStack({
               type="button"
               onClick={onToggle}
               disabled={!canMutateStack && !collapsed}
-              aria-label={collapsed ? "展开解析序列" : "折叠解析序列"}
+              aria-label={collapsed ? t("展开解析序列") : t("折叠解析序列")}
               aria-expanded={!collapsed}
-              title={!canMutateStack && !collapsed ? "请先保存或取消当前操作" : collapsed ? "展开解析序列" : "折叠解析序列"}
+              title={!canMutateStack && !collapsed ? t("请先保存或取消当前操作") : collapsed ? t("展开解析序列") : t("折叠解析序列")}
             >
               {collapsed ? <IconChevronDown size={16} stroke={1.8} /> : <IconChevronUp size={16} stroke={1.8} />}
             </button>
@@ -186,7 +187,7 @@ export function CutStack({
       </div>
 
       {!collapsed ? (
-        <div className="cut-stack-region-tabs" role="tablist" aria-label="按部位筛选并新建切割动作">
+        <div className="cut-stack-region-tabs" role="tablist" aria-label={t("按部位筛选并新建切割动作")}>
           {REGION_TABS.map(([id, label, shortLabel]) => (
             <button
               type="button"
@@ -196,9 +197,9 @@ export function CutStack({
               aria-selected={activeRegion === id}
               onClick={() => onRegionChange?.(id)}
               disabled={!canChangeRegion}
-              title={`查看${label}图层；切换后以${label}参数新建动作`}
+              title={t("查看{0}图层；切换后以{1}参数新建动作", [t(label), t(label)])}
             >
-              <span>{shortLabel}</span>{label}
+              <span>{t(shortLabel)}</span>{t(label)}
             </button>
           ))}
         </div>
@@ -209,25 +210,25 @@ export function CutStack({
           {groupEditRegion === activeRegion ? (
             <>
               <div className="cut-stack-group-copy">
-                <strong>{activeRegion === "crown" ? "冠部与台面" : "亭部"} · 整体变换</strong>
-                <small>三轴联动预览</small>
+                <strong>{activeRegion === "crown" ? t("冠部与台面") : t("亭部")} {t("· 整体变换")}</strong>
+                <small>{t("三轴联动预览")}</small>
               </div>
               <div className="cut-stack-group-values">
                 <label className="is-translate">
-                  <span><i />升降 ΔZ</span>
+                  <span><i />{t("升降 ΔZ")}</span>
                   <span className="cut-stack-group-unit">
                     <input
                       type="number"
                       step="0.01"
                       value={groupDeltaZ}
                       onChange={(event) => onGroupDeltaChange?.(event.target.value)}
-                      aria-label={`${activeRegion === "crown" ? "冠部" : "亭部"}整体垂直位移`}
+                      aria-label={t("{0}整体垂直位移", [activeRegion === "crown" ? t("冠部") : t("亭部")])}
                     />
                   </span>
                   <small>{Number(groupDeltaZ) >= 0 ? "+" : ""}{Number(groupDeltaZ).toFixed(3)}</small>
                 </label>
                 <label className="is-scale">
-                  <span><i />比例 H</span>
+                  <span><i />{t("比例 H")}</span>
                   <span className="cut-stack-group-unit">
                     <input
                       type="number"
@@ -235,14 +236,14 @@ export function CutStack({
                       step="1"
                       value={Number((groupScale * 100).toFixed(3))}
                       onChange={(event) => onGroupScaleChange?.(Number(event.target.value) / 100)}
-                      aria-label={`${activeRegion === "crown" ? "冠部" : "亭部"}高度比例百分比`}
+                      aria-label={t("{0}高度比例百分比", [activeRegion === "crown" ? t("冠部") : t("亭部")])}
                     />
                     <b>%</b>
                   </span>
                   <small>{groupBaseHeight.toFixed(3)} → {(groupBaseHeight * groupScale).toFixed(3)}</small>
                 </label>
                 <label className="is-rotate">
-                  <span><i />旋转 R</span>
+                  <span><i />{t("旋转 R")}</span>
                   <span className="cut-stack-group-unit">
                     <input
                       type="number"
@@ -251,31 +252,29 @@ export function CutStack({
                       step="1"
                       value={groupRotationTeeth}
                       onChange={(event) => onGroupRotationChange?.(event.target.value)}
-                      aria-label={`${activeRegion === "crown" ? "冠部" : "亭部"}96 分度旋转齿数`}
+                      aria-label={t("{0}96 分度旋转齿数", [activeRegion === "crown" ? t("冠部") : t("亭部")])}
                     />
                     <b>T</b>
                   </span>
                   <small>{(groupRotationTeeth * 3.75).toFixed(2)}°</small>
                 </label>
               </div>
-              {groupError ? <small className="cut-stack-group-error">{groupError}</small> : null}
+              {groupError ? <small className="cut-stack-group-error">{t(groupError)}</small> : null}
               <div className="cut-stack-group-actions">
-                <button type="button" onClick={onCancelGroupEdit}>{groupExitLabel}</button>
+                <button type="button" onClick={onCancelGroupEdit}>{t(groupExitLabel)}</button>
                 <button
                   type="button"
                   className="is-primary"
                   onClick={onApplyGroupEdit}
                   disabled={Boolean(groupError) || !canApplyGroupEdit}
-                >
-                  应用整体变换
-                </button>
+                > {t("应用整体变换")} </button>
               </div>
             </>
           ) : (
-            <div className="cut-stack-group-tools" role="group" aria-label={`${activeRegion === "crown" ? "冠部与台面" : "亭部"}批量调整`}>
+            <div className="cut-stack-group-tools" role="group" aria-label={t("{0}批量调整", [activeRegion === "crown" ? t("冠部与台面") : t("亭部")])}>
               <button type="button" className="cut-stack-group-trigger is-transform" onClick={() => onStartGroupEdit?.(activeRegion)}>
                 <IconTransform size={14} stroke={1.7} />
-                <span><strong>整体变换</strong><small>升降 · 比例 · 96 分度旋转</small></span>
+                <span><strong>{t("整体变换")}</strong><small>{t("升降 · 比例 · 96 分度旋转")}</small></span>
               </button>
             </div>
           )}
@@ -329,13 +328,13 @@ export function CutStack({
                       setDragIndex(null);
                       setDropIndex(null);
                     }}
-                    title={operation.locked ? "固定结构层，始终位于序列首位" : "拖拽调整布尔顺序"}
+                    title={operation.locked ? t("固定结构层，始终位于序列首位") : t("拖拽调整布尔顺序")}
                     aria-hidden="true"
                   >
                     <IconGripVertical size={13} stroke={1.6} />
                   </span>
                   <span className={`cut-stack-chip region-${operation.locked ? "table" : operation.region}`} aria-hidden="true">
-                    {chipLetter(operation)}
+                    {t(chipLetter(operation))}
                   </span>
                   <div className="cut-stack-select">
                     <div className="cut-stack-copy">
@@ -356,7 +355,7 @@ export function CutStack({
                               event.currentTarget.blur();
                             }
                           }}
-                          aria-label={`重命名 ${operation.label}`}
+                          aria-label={t("重命名 {0}", [operation.label])}
                         />
                       ) : (
                         <button
@@ -367,37 +366,37 @@ export function CutStack({
                             setRenamingId(operation.id);
                             setRenameValue(operation.label);
                           }}
-                          title={operation.locked ? operation.label : `${operation.label} · 点击名称改名；点击“编辑”调整切割`}
-                          aria-label={`重命名 ${operation.label}`}
+                          title={operation.locked ? operation.label : t("{0} · 点击名称改名；点击“编辑”调整切割", [operation.label])}
+                          aria-label={t("重命名 {0}", [operation.label])}
                         >
                           <strong>{operation.label}{selected ? <em>EDIT</em> : null}</strong>
                         </button>
                       )}
                       {operation.preform || diagnostic ? (
                         <span className="cut-stack-construction-tags">
-                          {operation.preform ? <span className="cut-stack-preform-tag">预形</span> : null}
-                          {diagnostic ? <span className={`cut-stack-meet-tag${stale ? " is-stale" : ""}`} title={diagnostic.message}>{stale ? "Meet 失效" : "Meet"}</span> : null}
+                          {operation.preform ? <span className="cut-stack-preform-tag">{t("预形")}</span> : null}
+                          {diagnostic ? <span className={`cut-stack-meet-tag${stale ? " is-stale" : ""}`} title={t(diagnostic.message)}>{stale ? t("Meet 失效") : "Meet"}</span> : null}
                         </span>
                       ) : null}
-                      <button type="button" className="cut-stack-parameters" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} aria-label={`编辑 ${operation.label}`}>
-                        <small>{operation.industryAngleDeg.toFixed(2)}° · D {operation.depth.toFixed(3)}{operation.status === "参与解析" ? "" : ` · ${operation.status}`}</small>
+                      <button type="button" className="cut-stack-parameters" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} aria-label={t("编辑 {0}", [operation.label])}>
+                        <small>{operation.industryAngleDeg.toFixed(2)}° · D {operation.depth.toFixed(3)}{operation.status === "参与解析" ? "" : ` · ${t(operation.status)}`}</small>
                       </button>
                     </div>
                     <div className="cut-stack-edit-actions">
-                      <button type="button" className="cut-stack-count" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} title={`有效 ${operation.effectiveCount} / 生成 ${operation.recordedCount} 面`} aria-label={`编辑 ${operation.label}，有效 ${operation.effectiveCount} 面`}>
-                        {operation.effectiveCount === operation.recordedCount
+                      <button type="button" className="cut-stack-count" onClick={() => onSelect(operation.id)} disabled={!canSelectLayers} title={t("有效 {0} / 生成 {1} 面", [operation.effectiveCount, operation.recordedCount])} aria-label={t("编辑 {0}，有效 {1} 面", [operation.label, operation.effectiveCount])}>
+                        {t(operation.effectiveCount === operation.recordedCount
                           ? `${operation.recordedCount}F`
-                          : `${operation.effectiveCount}/${operation.recordedCount}F`}
+                          : `${operation.effectiveCount}/${operation.recordedCount}F`)}
                       </button>
                       <button
                         type="button"
                         className="cut-stack-edit-button"
                         onClick={() => onSelect(operation.id)}
                         disabled={!canSelectLayers}
-                        aria-label={`编辑切割 ${operation.label}`}
-                        title={selected ? "正在编辑此图层；在下方保存或放弃修改" : canSelectLayers ? `编辑 ${operation.label} 的切割参数` : "请先保存或取消当前操作"}
+                        aria-label={t("编辑切割 {0}", [operation.label])}
+                        title={selected ? t("正在编辑此图层；在下方保存或放弃修改") : canSelectLayers ? t("编辑 {0} 的切割参数", [operation.label]) : t("请先保存或取消当前操作")}
                       >
-                        {selected ? "编辑中" : "编辑"}
+                        {selected ? t("编辑中") : t("编辑")}
                       </button>
                     </div>
                   </div>
@@ -405,8 +404,8 @@ export function CutStack({
                     type="button"
                     className="cut-stack-icon"
                     onClick={() => onToggleVisibility(operation.id)}
-                    aria-label={operation.locked ? `${operation.label} 固定参与序列` : operation.visible ? `隐藏 ${operation.label}` : `显示 ${operation.label}`}
-                    title={operation.locked ? "固定结构层" : operation.visible ? "从解析结果中隐藏" : "恢复到解析结果"}
+                    aria-label={operation.locked ? t("{0} 固定参与序列", [operation.label]) : operation.visible ? t("隐藏 {0}", [operation.label]) : t("显示 {0}", [operation.label])}
+                    title={operation.locked ? t("固定结构层") : operation.visible ? t("从解析结果中隐藏") : t("恢复到解析结果")}
                     disabled={operation.locked || !canMutateStack}
                   >
                     {operation.visible ? <IconEye size={15} stroke={1.7} /> : <IconEyeOff size={15} stroke={1.7} />}
@@ -415,14 +414,14 @@ export function CutStack({
                     type="button"
                     className="cut-stack-icon is-remove"
                     onClick={() => onRemove(operation.id)}
-                    aria-label={operation.locked ? `${operation.label} 不可删除` : `移除 ${operation.label}`}
-                    title={operation.locked ? "固定结构层" : "移除预切割动作（可撤销）"}
+                    aria-label={operation.locked ? t("{0} 不可删除", [operation.label]) : t("移除 {0}", [operation.label])}
+                    title={operation.locked ? t("固定结构层") : t("移除预切割动作（可撤销）")}
                     disabled={operation.locked || !canMutateStack}
                   >
                     <IconTrash size={14} stroke={1.7} />
                   </button>
                 </div>
-                {stale ? <p className="cut-stack-meet-diagnostic" role="status">{diagnostic.message ?? "施工来源失效；保留已保存切面，请重新编辑修复。"}</p> : null}
+                {stale ? <p className="cut-stack-meet-diagnostic" role="status">{t(diagnostic.message ?? t("施工来源失效；保留已保存切面，请重新编辑修复。"))}</p> : null}
                 {selected ? (
                   <InlineEditor
                     operation={operation}
@@ -445,8 +444,8 @@ export function CutStack({
             <IconPlus size={14} stroke={2.1} />
           </span>
           <span className="cut-stack-add-copy">
-            <strong>新建{REGION_TABS.find(([id]) => id === activeRegion)?.[1]}切割图层</strong>
-            <small>创建一组新的预切割面</small>
+            <strong>{t("新建{0}切割图层", [t(REGION_TABS.find(([id]) => id === activeRegion)?.[1])])}</strong>
+            <small>{t("创建一组新的预切割面")}</small>
           </span>
         </button>
       ) : !collapsed && canCancelSession ? (
@@ -454,28 +453,28 @@ export function CutStack({
           <span className="cut-stack-session-copy">
             <strong>
               {sessionMode === "edit"
-                ? `编辑${sessionDirty ? " · 未保存" : ""}`
-                : `新建${REGION_TABS.find(([id]) => id === activeRegion)?.[1]}`}
+                ? t("编辑{0}", [sessionDirty ? t(" · 未保存") : ""])
+                : t("新建{0}", [t(REGION_TABS.find(([id]) => id === activeRegion)?.[1])])}
             </strong>
-            <small>有效 {sessionEffectiveCount} / 生成 {sessionFaceCount} 面</small>
+            <small>{t("有效")} {t(sessionEffectiveCount)} {t("/ 生成")} {t(sessionFaceCount)} {t("面")}</small>
           </span>
           <span className="cut-stack-session-actions">
             <button
               type="button"
               className="cut-stack-session-cancel"
               onClick={onCancelSession}
-              title={`${sessionMode === "edit" ? "放弃修改并退出编辑" : "取消新建"} · Esc`}
+              title={`${sessionMode === "edit" ? t("放弃修改并退出编辑") : t("取消新建")} · Esc`}
             >
-              {sessionMode === "edit" ? "放弃" : "取消"}
+              {sessionMode === "edit" ? t("放弃") : t("取消")}
             </button>
             <button
               type="button"
               className="cut-stack-session-commit"
               onClick={onCommitSession}
               disabled={!canCommitSession || Boolean(commitDisabledReason) || sessionFaceCount === 0}
-              title={commitDisabledReason || undefined}
+              title={t(commitDisabledReason || undefined)}
             >
-              {sessionMode === "edit" ? "保存" : `加入序列 · ${sessionEffectiveCount} 面`}
+              {sessionMode === "edit" ? t("保存") : t("加入序列 · {0} 面", [sessionEffectiveCount])}
             </button>
           </span>
         </div>

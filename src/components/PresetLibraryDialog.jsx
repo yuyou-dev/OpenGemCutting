@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { IconSearch, IconX } from "@tabler/icons-react";
 import { filterPresetCatalog, PRESET_FACET_RANGES, PRESET_RATIO_RANGES } from "../domain/presetLibrary.js";
@@ -99,63 +100,63 @@ export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft 
 
   return (
     <div className="modal-backdrop preset-library-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="preset-library-panel" role="dialog" aria-modal="true" aria-label="预设琢型" onMouseDown={(event) => event.stopPropagation()}>
+      <section className="preset-library-panel" role="dialog" aria-modal="true" aria-label={t("预设琢型")} onMouseDown={(event) => event.stopPropagation()}>
         <header className="preset-library-heading">
-          <div><small>PRESET CUTS</small><h2>预设琢型</h2></div>
-          <span>{presets.length} 个可用琢型</span>
-          <button type="button" onClick={onClose} aria-label="关闭预设琢型"><IconX size={17} /></button>
+          <div><small>PRESET CUTS</small><h2>{t("预设琢型")}</h2></div>
+          <span>{presets.length} {t("个可用琢型")}</span>
+          <button type="button" onClick={onClose} aria-label={t("关闭预设琢型")}><IconX size={17} /></button>
         </header>
 
         <div className="preset-library-toolbar">
-          <label className="preset-search"><IconSearch size={14} /><input autoFocus value={filters.query} onChange={(event) => updateFilters({ query: event.target.value })} placeholder="搜索名称、作者或来源，可组合关键词" aria-label="搜索预设琢型" /></label>
-          <label><span>外形</span><select value={filters.shape} onChange={(event) => updateFilters({ shape: event.target.value })} aria-label="按外形筛选"><option value="all">全部外形</option>{shapes.map(([value, label]) => <option value={value} key={value}>{label} · {filterCounts.shape[value]}</option>)}</select></label>
-          <label><span>刻面</span><select value={filters.facets} onChange={(event) => updateFilters({ facets: event.target.value })} aria-label="按有效刻面数筛选"><option value="all">全部面数</option>{PRESET_FACET_RANGES.map(({ id, label }) => <option value={id} key={id}>{label} · {filterCounts.facets[id]}</option>)}</select></label>
-          <label><span>L/W</span><select value={filters.ratio} onChange={(event) => updateFilters({ ratio: event.target.value })} aria-label="按长宽比筛选"><option value="all">全部比例</option>{PRESET_RATIO_RANGES.map(({ id, label }) => <option value={id} key={id}>{label} · {filterCounts.ratio[id]}</option>)}</select></label>
-          <div className="preset-filter-summary"><span aria-live="polite">找到 <strong>{visiblePresets.length}</strong> / {presets.length} 个琢型</span><button type="button" onClick={() => updateFilters({ query: "", shape: "all", facets: "all", ratio: "all" })} disabled={!hasFilters}>清除筛选</button></div>
+          <label className="preset-search"><IconSearch size={14} /><input autoFocus value={filters.query} onChange={(event) => updateFilters({ query: event.target.value })} placeholder={t("搜索名称、作者或来源，可组合关键词")} aria-label={t("搜索预设琢型")} /></label>
+          <label><span>{t("外形")}</span><select value={filters.shape} onChange={(event) => updateFilters({ shape: event.target.value })} aria-label={t("按外形筛选")}><option value="all">{t("全部外形")}</option>{shapes.map(([value, label]) => <option value={value} key={value}>{t(label)} · {t(filterCounts.shape[value])}</option>)}</select></label>
+          <label><span>{t("刻面")}</span><select value={filters.facets} onChange={(event) => updateFilters({ facets: event.target.value })} aria-label={t("按有效刻面数筛选")}><option value="all">{t("全部面数")}</option>{PRESET_FACET_RANGES.map(({ id, label }) => <option value={id} key={id}>{t(label)} · {t(filterCounts.facets[id])}</option>)}</select></label>
+          <label><span>L/W</span><select value={filters.ratio} onChange={(event) => updateFilters({ ratio: event.target.value })} aria-label={t("按长宽比筛选")}><option value="all">{t("全部比例")}</option>{PRESET_RATIO_RANGES.map(({ id, label }) => <option value={id} key={id}>{t(label)} · {t(filterCounts.ratio[id])}</option>)}</select></label>
+          <div className="preset-filter-summary"><span aria-live="polite">{t("找到")} <strong>{visiblePresets.length}</strong> / {presets.length} {t("个琢型")}</span><button type="button" onClick={() => updateFilters({ query: "", shape: "all", facets: "all", ratio: "all" })} disabled={!hasFilters}>{t("清除筛选")}</button></div>
         </div>
 
-        {status === "loading" ? <div className="preset-library-state">正在读取预设索引…</div> : null}
-        {status === "error" ? <div className="preset-library-state is-error">{error}</div> : null}
+        {status === "loading" ? <div className="preset-library-state">{t("正在读取预设索引…")}</div> : null}
+        {status === "error" ? <div className="preset-library-state is-error">{t(error)}</div> : null}
         {status !== "loading" && status !== "error" ? (
           <div className="preset-library-body">
             <div className="preset-list-column">
-            <div className="preset-list" ref={listRef} role="listbox" aria-label="预设琢型列表">
+            <div className="preset-list" ref={listRef} role="listbox" aria-label={t("预设琢型列表")}>
               {pagePresets.map((preset) => (
                 <button type="button" role="option" aria-selected={presetKey(preset) === (selected && presetKey(selected))} className={presetKey(preset) === (selected && presetKey(selected)) ? "is-selected" : ""} onClick={() => setSelectedKey(presetKey(preset))} key={`${preset.providerId}:${preset.id}`}>
-                  <img src={preset.previews.isometric} loading="lazy" alt={`${preset.name} 45° 轴测预览`} />
-                  <span><strong>{preset.name}</strong><small>{preset.shape} · {preset.facetCount} 面 · L/W {preset.lengthToWidth.toFixed(2)}</small></span>
+                  <img src={preset.previews.isometric} loading="lazy" alt={t("{0} 45° 轴测预览", [preset.name])} />
+                  <span><strong>{preset.name}</strong><small>{t(preset.shape)} · {t(preset.facetCount)} {t("面 · L/W")} {preset.lengthToWidth.toFixed(2)}</small></span>
                 </button>
               ))}
-              {visiblePresets.length === 0 ? <p>没有符合当前条件的预设。</p> : null}
+              {visiblePresets.length === 0 ? <p>{t("没有符合当前条件的预设。")}</p> : null}
             </div>
-            <nav className="preset-pagination" aria-label="预设列表分页">
+            <nav className="preset-pagination" aria-label={t("预设列表分页")}>
               <span>{visiblePresets.length ? `${pageStart + 1}–${Math.min(pageStart + PAGE_SIZE, visiblePresets.length)}` : "0"} / {visiblePresets.length}</span>
-              <div><button type="button" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>上一页</button><span>{currentPage} / {pageCount}</span><button type="button" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>下一页</button></div>
+              <div><button type="button" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>{t("上一页")}</button><span>{t(currentPage)} / {t(pageCount)}</span><button type="button" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>{t("下一页")}</button></div>
             </nav>
             </div>
 
             {selected ? <article className="preset-detail">
-              <div className="preset-detail-title"><div><small>{selected.shape.toUpperCase()}</small><h3>{selected.name}</h3><p>{selected.designer || "设计者未署名"}</p></div><span>VALIDATED</span></div>
+              <div className="preset-detail-title"><div><small>{t(selected.shape.toUpperCase())}</small><h3>{selected.name}</h3><p>{t(selected.designer || t("设计者未署名"))}</p></div><span>VALIDATED</span></div>
               <div className="preset-preview-grid">
-                {Object.entries(VIEW_LABELS).map(([view, label]) => <figure key={view}><img src={selected.previews[view]} alt={`${selected.name} ${label}`} /><figcaption>{label}</figcaption></figure>)}
+                {Object.entries(VIEW_LABELS).map(([view, label]) => <figure key={view}><img src={selected.previews[view]} alt={`${selected.name} ${t(label)}`} /><figcaption>{t(label)}</figcaption></figure>)}
               </div>
               <dl className="preset-specs">
-                <div><dt>刻面</dt><dd>{selected.facetCount} F</dd></div>
-                <div><dt>层数</dt><dd>{selected.tierCount}</dd></div>
-                <div><dt>分度</dt><dd>{selected.sourceGear} → 96</dd></div>
+                <div><dt>{t("刻面")}</dt><dd>{t(selected.facetCount)} F</dd></div>
+                <div><dt>{t("层数")}</dt><dd>{t(selected.tierCount)}</dd></div>
+                <div><dt>{t("分度")}</dt><dd>{t(selected.sourceGear)} → 96</dd></div>
                 <div><dt>L / W</dt><dd>{selected.lengthToWidth.toFixed(3)}</dd></div>
               </dl>
-              <div className="preset-provenance"><strong>来源与开放声明</strong><p>{selected.openDeclaration} · {selected.sourceReference || "FacetDiagrams.org"}</p><a href={selected.sourcePageUrl} target="_blank" rel="noreferrer">查看来源页面</a></div>
-              {error ? <p className="preset-load-error">{error}</p> : null}
+              <div className="preset-provenance"><strong>{t("来源与开放声明")}</strong><p>{t(selected.openDeclaration)} · {t(selected.sourceReference || "FacetDiagrams.org")}</p><a href={selected.sourcePageUrl} target="_blank" rel="noreferrer">{t("查看来源页面")}</a></div>
+              {error ? <p className="preset-load-error">{t(error)}</p> : null}
               <footer>
                 <p>{discardingDraft
-                  ? "当前未保存 CUT 动作会被放弃；已保存文档仍可用一次撤销恢复。"
-                  : "载入会替换当前文档，并作为一次命令写入，可用撤销恢复。"}</p>
+                  ? t("当前未保存 CUT 动作会被放弃；已保存文档仍可用一次撤销恢复。")
+                  : t("载入会替换当前文档，并作为一次命令写入，可用撤销恢复。")}</p>
                 <button type="button" className="primary-action" onClick={loadSelected} disabled={status === "loading-preset"}>
-                  {status === "loading-preset" ? "正在载入…" : discardingDraft ? "放弃当前动作并载入" : "载入此琢型"}
+                  {status === "loading-preset" ? t("正在载入…") : discardingDraft ? t("放弃当前动作并载入") : t("载入此琢型")}
                 </button>
               </footer>
-            </article> : <div className="preset-library-state">请选择一个预设。</div>}
+            </article> : <div className="preset-library-state">{t("请选择一个预设。")}</div>}
           </div>
         ) : null}
       </section>

@@ -10,11 +10,11 @@
 
 An open-source gemstone faceting workbench. Design through conversation, refine every cut.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-ed225d?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-ed225d?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-222222?style=flat-square)](LICENSE)
 [![Browser](https://img.shields.io/badge/browser-local_first-38755d?style=flat-square)](#start)
 
-**[立即体验 ↗](https://yuyou-dev.github.io/OpenGemCutting/)**　·　**[用 Codex 创作](#install)**　·　[图解手册](public/manual/facet-96-operation-manual.pdf)　·　[参与贡献](.github/CONTRIBUTING.md)
+**[立即体验 ↗](https://yuyou-dev.github.io/OpenGemCutting/)**　·　**[用 Codex 创作](#install)**　·　[中文手册](public/manual/facet-96-operation-manual.pdf) · [English manual](public/manual/facet-96-operation-manual-en.pdf)　·　[参与贡献](.github/CONTRIBUTING.md)
 
 <br>
 
@@ -61,6 +61,14 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 | 入口 | **[打开 Live Demo →](https://yuyou-dev.github.io/OpenGemCutting/)** | **[复制安装提示词 ↓](#install)** |
 
 单机版不需要 Codex、MCP、账号或 API Key。两种方式共用设计内核，AI 是可选的创作入口。
+
+## 用熟悉的语言设计 · Chinese / English
+
+顶栏提供 **跟随系统 / 简体中文 / English**。切换后继续同一份设计，参数、名称与撤销记录保持连续；界面、帮助和 PDF 工艺报告随之切换。语言偏好保存在当前浏览器和站点。
+
+Choose your language in the top bar. Continue the same design with unchanged geometry, names and undo history. Interface text, help and PDF reports follow your selection. Both languages work in the standalone browser edition.
+
+专业人士可核对 [中英术语审阅表](docs/i18n/README.md)，其中包含语境、参考来源和意见栏。译稿尚待专业审核，欢迎提交带语境的修订。
 
 <a id="install"></a>
 

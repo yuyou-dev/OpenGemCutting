@@ -1,3 +1,4 @@
+import { createTranslator } from '../i18n/format.js';
 import { getMeshViewGeometry } from "../domain/meshDisplay.js";
 
 import { displayIndex, FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../domain/faceting.js";
@@ -63,39 +64,40 @@ function effectiveFacets(facets, solid) {
   return facets.filter((facet) => survivingFacetIds.has(facet.id));
 }
 
-function attachConstructionSummaries(groups, document, hiddenPatternIds = []) {
+function attachConstructionSummaries(groups, document, hiddenPatternIds, t) {
   const stages = buildConstructionStages(document, { hiddenPatternIds });
   const stageById = new Map(stages.map((stage) => [stage.id, stage]));
   const labelById = new Map(stages.map((stage) => [stage.id, (stage.facets[0].label || stage.id).split(/\s+/)[0]]));
   const describeTarget = (target) => {
     const sources = target.sourceOperationIds.filter((id) => id !== "rough-cube" && id !== "rough-mesh")
-      .map((id) => labelById.get(id) ?? id).join(" × ") || "毛坯";
-    const kind = target.kind === "edge-point" ? `棱点 ${(target.ratio * 100).toFixed(2)}%` : "顶点";
-    return `${kind} · 来源 ${sources}`;
+      .map((id) => labelById.get(id) ?? id).join(" × ") || t("毛坯");
+    const kind = target.kind === "edge-point" ? t("棱点 {0}%", [(target.ratio * 100).toFixed(2)]) : t("顶点");
+    return t("{0} · 来源 {1}", [kind, sources]);
   };
   return groups.map((group) => {
     const stage = stageById.get(group.id);
     const metadata = stage.facets[0]?.metadata?.construction;
     const preform = stage.preform;
-    if (!metadata) return preform ? { ...group, preform, construction: { status: "valid", text: "预形工序" } } : group;
+    if (!metadata) return preform ? { ...group, preform, construction: { status: "valid", text: t("预形工序") } } : group;
     const diagnosis = stage.construction;
     const intent = metadata.type === "dual-meet"
-      ? `双 Meet · A ${describeTarget(metadata.target)}；B ${describeTarget(metadata.secondTarget)}`
+      ? t("双 Meet · A {0}；B {1}", [describeTarget(metadata.target), describeTarget(metadata.secondTarget)])
       : `Meet · ${describeTarget(metadata.target)}`;
     return {
       ...group, preform,
       construction: {
         ...diagnosis,
-        text: `${preform ? "预形 · " : ""}${intent}${diagnosis.status === MEET_STATUS.VALID ? "" : `；来源已失效：${diagnosis.message}，当前切面以显式参数为准`}`,
+        text: `${preform ? t("预形 · ") : ""}${intent}${diagnosis.status === MEET_STATUS.VALID ? "" : t("；来源已失效：{0}，当前切面以显式参数为准", [t(diagnosis.message)])}`,
       },
     };
   });
 }
 
-export function createFacetReportModel({ document, solid, metrics, generatedAt = new Date(), includeGirdle = true, hiddenPatternIds = [] }) {
+export function createFacetReportModel({ document, solid, metrics, generatedAt = new Date(), includeGirdle = true, hiddenPatternIds = [], locale = "zh-CN" }) {
+  const t = createTranslator(locale);
   const reportFacets = effectiveFacets(document.facets, solid);
   const omittedFacetCount = document.facets.length - reportFacets.length;
-  const groups = attachConstructionSummaries(groupFacets(reportFacets), document, hiddenPatternIds);
+  const groups = attachConstructionSummaries(groupFacets(reportFacets), document, hiddenPatternIds, t);
   const bounds = boundsOf(solid.vertices);
   const girdleGroups = groups.filter((group) => group.region === "girdle");
   const girdleFacetCount = girdleGroups.reduce((sum, group) => sum + group.facets.length, 0);
@@ -116,7 +118,7 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
     }));
     return {
       id: region,
-      label: REGION_LABELS[region],
+      label: locale === "en" ? REGION_ENGLISH[region] : REGION_LABELS[region],
       groups: regionGroups,
       facetCount: regionGroups.reduce((sum, group) => sum + group.facets.length, 0),
       rows: regionGroups.flatMap((group) => group.rows),
@@ -124,8 +126,8 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
   });
   const width = Math.max(bounds.size.y, 1e-9);
   return {
-    name: document.name, stock: document.stock,
-    generatedAt: generatedAt.toLocaleString("zh-CN", { hour12: false }),
+    name: document.name, stock: document.stock, locale,
+    generatedAt: generatedAt.toLocaleString(locale, { hour12: false }),
     facetCount: document.facets.length,
     storedFacetCount: document.facets.length,
     effectiveFacetCount: reportFacets.length,
@@ -254,16 +256,23 @@ async function fetchBytes(url) {
 }
 
 function rgbOf(rgb, value) { return rgb(...value); }
-function drawTextTop(page, text, x, top, options) { page.drawText(String(text), { ...options, x, y: A4.height - top - options.size }); }
+function drawTextTop(page, text, x, top, options) {
+  const value = String(text);
+  const maxWidth = options.maxWidth ?? A4.width - MARGIN - x;
+  const measured = options.font.widthOfTextAtSize(value, options.size);
+  const size = measured > maxWidth ? options.size * maxWidth / measured : options.size;
+  page.drawText(value, { ...options, size, x, y: A4.height - top - size });
+}
 function drawRectTop(page, x, top, width, height, options) { page.drawRectangle({ ...options, x, y: A4.height - top - height, width, height }); }
 function drawLineTop(page, start, end, options) {
   page.drawLine({ ...options, start: { x: start.x, y: A4.height - start.y }, end: { x: end.x, y: A4.height - end.y } });
 }
 
 function drawHeader(page, model, assets, section, pageNumber) {
+  const t = createTranslator(model.locale);
   const { font, bold, latin, rgb, logo } = assets;
   if (logo) page.drawImage(logo, { x: MARGIN, y: A4.height - 45, width: 30, height: 30 });
-  drawTextTop(page, "切磨工作台", MARGIN + 38, 20, { font: bold, size: 12.5, color: rgbOf(rgb, COLOR.ink) });
+  drawTextTop(page, t("切磨工作台"), MARGIN + 38, 20, { font: bold, size: 12.5, color: rgbOf(rgb, COLOR.ink) });
   drawTextTop(page, "SUVA  ·  FACET 96", MARGIN + 38, 39, { font: latin, size: 6.2, color: rgbOf(rgb, COLOR.muted) });
   const sectionWidth = font.widthOfTextAtSize(section, 7.2);
   drawTextTop(page, section, A4.width - MARGIN - sectionWidth, 21, { font, size: 7.2, color: rgbOf(rgb, COLOR.ink) });
@@ -437,14 +446,15 @@ function drawSpecRow(page, x, top, width, label, value, assets, accent = false) 
 }
 
 function drawCover(page, model, assets, pageNumber) {
+  const t = createTranslator(model.locale);
   const { font, bold, latinBold, rgb } = assets;
-  drawHeader(page, model, assets, "切型技术报告", pageNumber);
+  drawHeader(page, model, assets, t("切型技术报告"), pageNumber);
   drawTextTop(page, "FACETING DESIGN DOSSIER  /  96 INDEX", MARGIN, 88, { font: latinBold, size: 6.8, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, model.name, MARGIN, 106, { font: bold, size: 22, color: rgbOf(rgb, COLOR.ink) });
-  drawTextTop(page, "精密切型技术图谱 · 尺寸比例 · 切面编号 · 逐面参数", MARGIN, 138, { font, size: 7.2, color: rgbOf(rgb, COLOR.muted) });
+  drawTextTop(page, t("精密切型技术图谱 · 尺寸比例 · 切面编号 · 逐面参数"), MARGIN, 138, { font, size: 7.2, color: rgbOf(rgb, COLOR.muted) });
   drawRectTop(page, MARGIN, 158, 519, 2.4, { color: rgbOf(rgb, COLOR.accent) });
 
-  drawTextTop(page, "ORTHOGRAPHIC STUDY  /  正投影技术图", MARGIN, 176, { font: bold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
+  drawTextTop(page, t("ORTHOGRAPHIC STUDY  /  正投影技术图"), MARGIN, 176, { font: bold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
   const gap = 8;
   const wideDiagramWidth = (A4.width - MARGIN * 2 - gap) / 2;
   const narrowDiagramWidth = (A4.width - MARGIN * 2 - gap * 2) / 3;
@@ -452,7 +462,7 @@ function drawCover(page, model, assets, pageNumber) {
   const sqrt6 = Math.sqrt(6);
   const sqrt3 = Math.sqrt(3);
   drawProjection(page, model, {
-    x: MARGIN, top: 190, width: narrowDiagramWidth, height: 158, title: "斜45°标准视图 / 45°", subtitle: "OPAQUE",
+    x: MARGIN, top: 190, width: narrowDiagramWidth, height: 158, title: t("斜45°标准视图 / 45°"), subtitle: "OPAQUE",
     basis: {
       horizontal: { x: 1 / sqrt2, y: -1 / sqrt2, z: 0 },
       vertical: { x: -1 / sqrt6, y: -1 / sqrt6, z: 2 / sqrt6 },
@@ -461,22 +471,22 @@ function drawCover(page, model, assets, pageNumber) {
     showFaceLabels: true,
   }, assets);
   drawProjection(page, model, {
-    x: MARGIN + narrowDiagramWidth + gap, top: 190, width: narrowDiagramWidth, height: 158, title: "顶面视图 / TOP", subtitle: "OPAQUE +Z",
+    x: MARGIN + narrowDiagramWidth + gap, top: 190, width: narrowDiagramWidth, height: 158, title: t("顶面视图 / TOP"), subtitle: "OPAQUE +Z",
     axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
     verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: 1,
   }, assets);
   drawProjection(page, model, {
-    x: MARGIN + (narrowDiagramWidth + gap) * 2, top: 190, width: narrowDiagramWidth, height: 158, title: "底面视图 / BOTTOM", subtitle: "OPAQUE -Z",
+    x: MARGIN + (narrowDiagramWidth + gap) * 2, top: 190, width: narrowDiagramWidth, height: 158, title: t("底面视图 / BOTTOM"), subtitle: "OPAQUE -Z",
     axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
     verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: -1,
   }, assets);
   drawProjection(page, model, {
-    x: MARGIN, top: 360, width: wideDiagramWidth, height: 158, title: "正面视图 / FRONT", subtitle: "OPAQUE +Y",
+    x: MARGIN, top: 360, width: wideDiagramWidth, height: 158, title: t("正面视图 / FRONT"), subtitle: "OPAQUE +Y",
     axes: ["x", "z"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
     verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true,
   }, assets);
   drawProjection(page, model, {
-    x: MARGIN + wideDiagramWidth + gap, top: 360, width: wideDiagramWidth, height: 158, title: "侧面视图 / SIDE", subtitle: "OPAQUE +X",
+    x: MARGIN + wideDiagramWidth + gap, top: 360, width: wideDiagramWidth, height: 158, title: t("侧面视图 / SIDE"), subtitle: "OPAQUE +X",
     axes: ["y", "z"], horizontalLabel: `W ${fixed(model.bounds.size.y, 3)}`,
     verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true,
   }, assets);
@@ -485,9 +495,9 @@ function drawCover(page, model, assets, pageNumber) {
   drawTextTop(page, "DESIGN SPECIFICATION", MARGIN, 540, { font: latinBold, size: 6.2, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, model.name, MARGIN, 557, { font: bold, size: 12.5, color: rgbOf(rgb, COLOR.ink) });
   drawTextTop(page, "SUVA FACET 96  /  TECHNICAL CUT", MARGIN, 578, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
-  drawSpecRow(page, MARGIN, 595, specWidth, "分度系统", "96 INDEX", assets, true);
-  drawSpecRow(page, MARGIN, 614, specWidth, "存储 / 有效记录", `${model.storedFacetCount} / ${model.effectiveFacetCount} FACES`, assets);
-  drawSpecRow(page, MARGIN, 633, specWidth, "外包尺寸 L / W / H", `${fixed(model.bounds.size.x, 3)} / ${fixed(model.bounds.size.y, 3)} / ${fixed(model.bounds.size.z, 3)}`, assets);
+  drawSpecRow(page, MARGIN, 595, specWidth, t("分度系统"), "96 INDEX", assets, true);
+  drawSpecRow(page, MARGIN, 614, specWidth, t("存储 / 有效记录"), `${model.storedFacetCount} / ${model.effectiveFacetCount} FACES`, assets);
+  drawSpecRow(page, MARGIN, 633, specWidth, t("外包尺寸 L / W / H"), `${fixed(model.bounds.size.x, 3)} / ${fixed(model.bounds.size.y, 3)} / ${fixed(model.bounds.size.z, 3)}`, assets);
   const ratioX = 307;
   drawTextTop(page, "MEASURED RATIOS", ratioX, 540, { font: latinBold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
   drawSpecRow(page, ratioX, 557, specWidth, "L / W", fixed(model.ratios.lengthWidth, 3), assets);
@@ -496,7 +506,7 @@ function drawCover(page, model, assets, pageNumber) {
   drawSpecRow(page, ratioX, 614, specWidth, "AREA / W²", fixed(model.ratios.areaWidth2, 3), assets);
   drawSpecRow(page, ratioX, 633, specWidth, "CENTROID Z", fixed(model.centroid.z, 3), assets);
 
-  drawTextTop(page, "FACET STRUCTURE  /  切面结构", MARGIN, 674, { font: bold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
+  drawTextTop(page, t("FACET STRUCTURE  /  切面结构"), MARGIN, 674, { font: bold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
   model.regions.forEach((region, index) => {
     const x = MARGIN + index * 176;
     drawRectTop(page, x, 690, 166, 53, { color: rgbOf(rgb, index % 2 ? COLOR.white : COLOR.soft), borderColor: rgbOf(rgb, COLOR.rule), borderWidth: 0.35 });
@@ -508,31 +518,32 @@ function drawCover(page, model, assets, pageNumber) {
   if (!model.includeGirdle && model.girdleSummary.facetCount > 0) {
     const noteX = MARGIN + model.regions.length * 176;
     drawRectTop(page, noteX, 690, 166, 53, { borderColor: rgbOf(rgb, COLOR.rule), borderWidth: 0.35 });
-    drawTextTop(page, "腰部 GIRDLE", noteX + 10, 700, { font: bold, size: 7, color: rgbOf(rgb, COLOR.muted) });
-    drawTextTop(page, `${model.girdleSummary.facetCount} FACES · 逐面表未导出`, noteX + 10, 720, { font, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
+    drawTextTop(page, t("腰部 GIRDLE"), noteX + 10, 700, { font: bold, size: 7, color: rgbOf(rgb, COLOR.muted) });
+    drawTextTop(page, t("{0} FACES · 逐面表未导出", [model.girdleSummary.facetCount]), noteX + 10, 720, { font, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
   }
   drawTextTop(page, "DRAWING NOTES", MARGIN, 761, { font: latinBold, size: 5.8, color: rgbOf(rgb, COLOR.ink) });
-  drawTextTop(page, "所有视图均为不穿透投影；含斜45°标准视图，尺寸线以双向箭头直接标注外包尺寸和台面宽度 T。", MARGIN, 777, { font, size: 6, color: rgbOf(rgb, COLOR.muted) });
+  drawTextTop(page, t("所有视图均为不穿透投影；含斜45°标准视图，尺寸线以双向箭头直接标注外包尺寸和台面宽度 T。"), MARGIN, 777, { font, size: 6, color: rgbOf(rgb, COLOR.muted) });
   if (model.omittedFacetCount > 0) {
-    drawTextTop(page, `最终实体已省略 ${model.omittedFacetCount} 条被后续切割覆盖的存储记录；完整 CUT STACK 请查阅 JSON 主文件。`, MARGIN, 789, {
+    drawTextTop(page, t("最终实体已省略 {0} 条被后续切割覆盖的存储记录；完整 CUT STACK 请查阅 JSON 主文件。", [model.omittedFacetCount]), MARGIN, 789, {
       font, size: 5.8, color: rgbOf(rgb, COLOR.accent),
     });
   }
 }
 
 function drawGroupAnalysis(page, model, region, group, top, assets) {
+  const t = createTranslator(model.locale);
   const { font, bold, latin, latinBold, rgb } = assets;
   const diagramWidth = 226;
   const projection = region.id === "girdle"
     ? {
       axes: ["x", "z"], viewSign: 1,
-      title: "腰部正视 / GIRDLE FRONT", subtitle: "OPAQUE +Y",
+      title: t("腰部正视 / GIRDLE FRONT"), subtitle: "OPAQUE +Y",
       horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
       verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`,
     }
     : {
       axes: ["x", "y"], viewSign: region.id === "crown" ? 1 : -1,
-      title: region.id === "crown" ? "冠部顶视 / CROWN TOP" : "亭部底视 / PAVILION BOTTOM",
+      title: region.id === "crown" ? t("冠部顶视 / CROWN TOP") : t("亭部底视 / PAVILION BOTTOM"),
       subtitle: region.id === "crown" ? "OPAQUE +Z" : "OPAQUE -Z",
       horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
       verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`,
@@ -550,10 +561,10 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
   const depths = group.facets.map((facet) => facet.depth);
   const angleRange = angles.length ? `${formatAngle(Math.min(...angles))}°  /  ${formatAngle(Math.max(...angles))}°` : "-";
   const depthRange = depths.length ? `${formatDepth(Math.min(...depths))}  /  ${formatDepth(Math.max(...depths))}` : "-";
-  drawSpecRow(page, panelX + 12, top + 51, panelWidth - 24, "记录面", `${group.facets.length} FACES`, assets);
-  drawSpecRow(page, panelX + 12, top + 70, panelWidth - 24, "重复 / 镜像", `${group.repeat} / ${group.mirror ? `+${group.mirror}` : "AXIS"}`, assets);
-  drawSpecRow(page, panelX + 12, top + 89, panelWidth - 24, "行业角范围", angleRange, assets);
-  drawSpecRow(page, panelX + 12, top + 108, panelWidth - 24, "深度范围", depthRange, assets);
+  drawSpecRow(page, panelX + 12, top + 51, panelWidth - 24, t("记录面"), `${group.facets.length} FACES`, assets);
+  drawSpecRow(page, panelX + 12, top + 70, panelWidth - 24, t("重复 / 镜像"), `${group.repeat} / ${group.mirror ? `+${group.mirror}` : "AXIS"}`, assets);
+  drawSpecRow(page, panelX + 12, top + 89, panelWidth - 24, t("行业角范围"), angleRange, assets);
+  drawSpecRow(page, panelX + 12, top + 108, panelWidth - 24, t("深度范围"), depthRange, assets);
   const indices = group.facets.map((facet) => String(displayIndex(facet.index)).padStart(2, "0")).join("-");
   const indexTop = top + 134;
   drawTextTop(page, "INDEX", panelX + 12, indexTop, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.accent) });
@@ -561,18 +572,19 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
 }
 
 function drawGroupPage(page, model, descriptor, assets) {
+  const t = createTranslator(model.locale);
   const { font, bold, latin, rgb } = assets;
   const { region, group, rows, part, parts, pageNumber } = descriptor;
   drawHeader(page, model, assets, `${group.label} / ${region.label}`, pageNumber);
   drawTextTop(page, "FACET GROUP SCHEDULE", MARGIN, 88, { font: assets.latinBold, size: 6.2, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, group.label, MARGIN, 104, { font: bold, size: 18, color: rgbOf(rgb, COLOR.ink) });
-  const summary = `${region.label} · ${group.facets.length} 面 · ${part}/${parts}`;
+  const summary = t("{0} · {1} 面 · {2}/{3}", [region.label, group.facets.length, part, parts]);
   drawTextTop(page, summary, A4.width - MARGIN - font.widthOfTextAtSize(summary, 7), 113, { font, size: 7, color: rgbOf(rgb, COLOR.muted) });
   drawGroupAnalysis(page, model, region, group, 140, assets);
   const columns = [
-    { x: MARGIN, label: "组 / 面" }, { x: 143, label: "索引" }, { x: 188, label: "行业角" },
-    { x: 249, label: "几何 β" }, { x: 310, label: "深度" }, { x: 365, label: "方位角" },
-    { x: 435, label: "裁切平面 normal / offset" },
+    { x: MARGIN, label: t("组 / 面") }, { x: 143, label: t("索引") }, { x: 188, label: t("行业角") },
+    { x: 249, label: t("几何 β") }, { x: 310, label: t("深度") }, { x: 365, label: t("方位角") },
+    { x: 435, label: t("裁切平面 normal / offset") },
   ];
   const intentLines = constructionLines(group);
   intentLines.forEach((line, index) => drawTextTop(page, line, MARGIN, 310 + index * 10, {
@@ -595,6 +607,7 @@ function drawGroupPage(page, model, descriptor, assets) {
 }
 
 export async function createFacetReportPdfBytes(input, resources) {
+  const t = createTranslator(input.locale ?? "zh-CN");
   const [{ PDFDocument, StandardFonts, degrees, rgb }, fontkit] = await Promise.all([import("pdf-lib"), import("@pdf-lib/fontkit")]);
   const { regularBytes, boldBytes, logoBytes = null } = resources;
   const pdf = await PDFDocument.create();
@@ -610,9 +623,9 @@ export async function createFacetReportPdfBytes(input, resources) {
     if (descriptor.kind === "cover") drawCover(page, model, assets, descriptor.pageNumber);
     else drawGroupPage(page, model, descriptor, assets);
   });
-  pdf.setTitle(`${model.name} - 切磨技术报告`);
+  pdf.setTitle(t("{0} - 切磨技术报告", [model.name]));
   pdf.setSubject("Facet 96 cutting parameters and measured vector drawings");
-  pdf.setAuthor("SUVA 切磨工作台");
+  pdf.setAuthor(t("SUVA 切磨工作台"));
   pdf.setCreator("SUVA Facet 96");
   return pdf.save({ useObjectStreams: true });
 }
@@ -627,7 +640,8 @@ export async function createFacetReportPdf(input) {
 }
 
 export async function downloadFacetReport(input) {
+  const t = createTranslator(input.locale ?? "zh-CN");
   const blob = await createFacetReportPdf(input);
   const safeName = safeFileStem(input.document.name);
-  downloadBlob(blob, `${safeName}-切磨技术报告.pdf`);
+  downloadBlob(blob, t("{0}-切磨技术报告.pdf", [safeName]));
 }

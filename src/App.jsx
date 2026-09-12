@@ -1,3 +1,5 @@
+import { t, getLocale } from './i18n/locale.js';
+import { useLocale } from './i18n/react.jsx';
 import { flushSync } from 'react-dom';
 import { useDesignBridge } from './components/useDesignBridge.js';
 import { validateTool, DESIGN_API_VERSION } from './application/designContract.js';
@@ -22,6 +24,7 @@ import { downloadBlob } from "./utils/download.js";
 import { safeFileStem } from "./utils/format.js";
 
 export function App() {
+  useLocale();
   useDismissFloatingMenus();
   const projects = useProjects();
   const designControllerRef = useRef(null);
@@ -119,7 +122,7 @@ export function App() {
   const createDefaultProject = () => {
     setNewProjectOpen(false);
     switchProject(() => {
-    const record = projects.create(createWorkbenchDocument(`未命名切型 ${String(projects.records.length + 1).padStart(2, "0")}`));
+    const record = projects.create(createWorkbenchDocument(t("未命名切型 {0}", [String(projects.records.length + 1).padStart(2, "0")])));
     if (record) activate(record, true);
     });
   };
@@ -196,7 +199,7 @@ export function App() {
       const offset = args.offset ?? 0, limit = args.limit ?? 20;
       return { apiVersion: DESIGN_API_VERSION, total: found.length, offset, presets: found.slice(offset, offset + limit).map(({ id, name, designer, shape, facetCount }) => ({ id, name, designer, shape, facetCount })), stockTemplates: STOCK_PRESETS.map(({ id, name, symmetry }) => ({ id, name, symmetry })) };
     }
-    if (name === 'design_read' && !active) return { apiVersion: DESIGN_API_VERSION, projectId: 'none', revision: 'home', canWrite: false, blockedReason: '请先创建或打开一个设计项目。' };
+    if (name === 'design_read' && !active) return { apiVersion: DESIGN_API_VERSION, projectId: 'none', revision: 'home', locale: getLocale(), canWrite: false, blockedReason: t('请先创建或打开一个设计项目。') };
     if (name === 'project_create') {
       const current = liveApp.current;
       const getStamp = () => { const state = liveApp.current; return JSON.stringify([state.active?.id, state.active?.mountSeq, state.page, state.hasPreview, Boolean(state.pendingSwitch), Boolean(state.pendingDelete), state.confirmReload, state.helpOpen, state.crystalImportOpen, state.newProjectOpen]); };
@@ -226,19 +229,19 @@ export function App() {
 
   return (
     <>
-      {bridge.enabled ? <div className="design-connection" role="status"><strong>{bridge.status === 'connected' ? '对话设计已连接' : bridge.status === 'connecting' ? '正在连接对话设计' : '对话设计已断开'}</strong><span>{bridge.status === 'connected' ? 'AI 操作当前项目；每个方案均可撤销，手动编辑始终可用。' : '手动设计、撤销和保存仍然可用。'}</span>{bridge.status !== 'off' ? <button onClick={bridge.disconnect}>断开 AI 连接</button> : null}</div> : null}
+      {bridge.enabled ? <div className="design-connection" role="status"><strong>{bridge.status === 'connected' ? t("对话设计已连接") : bridge.status === 'connecting' ? t("正在连接对话设计") : t("对话设计已断开")}</strong><span>{bridge.status === 'connected' ? t("AI 操作当前项目；每个方案均可撤销，手动编辑始终可用。") : t("手动设计、撤销和保存仍然可用。")}</span>{bridge.status !== 'off' ? <button onClick={bridge.disconnect}>{t("断开 AI 连接")}</button> : null}</div> : null}
       {page === "home" ? <HomePage projects={projectList} activeProjectId={active?.id} onOpenProject={openProject} onNewProject={createProject} onDeleteProject={requestDeleteProject} onOpenLab={() => navigate("lab")} onResume={() => setPage("editor")} error={projectError} onRetry={projects.refresh} onOpenHelp={() => setHelpOpen(true)} /> : null}
       {active ? <RenderBoundary key={`${active.id}:${active.mountSeq ?? 0}`} hidden={page !== "editor"} onRetry={() => { setHasPreview(false); setActive(current => ({ ...current, document: latestDocument ?? current.document, startWithDraft: false, mountSeq: ++editorSeq.current })); }} onExport={exportCurrent} onHome={() => navigate("home")}><WorkbenchEditor designControllerRef={designControllerRef} projectId={active.id} initialDocument={active.document} startWithDraft={active.startWithDraft} visible={page === "editor"} interactionPaused={Boolean(pendingSwitch) || confirmReload || helpOpen || crystalImportOpen || newProjectOpen} onDocumentChange={receiveDocument} onPreviewChange={setHasPreview} onHome={() => navigate("home")} onLab={() => navigate("lab")} onNewProject={createProject} onImportCrystal={() => { setCrystalReturnToNew(false); setCrystalImportOpen(true); }} projectStatus={saveStatus} /></RenderBoundary> : null}
       {page === "lab" ? <OpticalLabPage projectName={latestDocument?.name} hasProject={Boolean(active)} onHome={() => navigate("home")} onEditor={() => setPage("editor")} /> : null}
-      {saveStatus.state === "error" ? <div className="project-save-error" role="alert"><div><strong>项目尚未保存</strong><p>{saveStatus.code === "PROJECT_DELETED" ? saveStatus.message : projects.error || saveStatus.message}</p></div><button onClick={flush}>重试保存</button>{saveStatus.code === "PROJECT_DELETED" ? <button onClick={() => saveAsNewProject()}>另存为新项目</button> : null}<button onClick={exportCurrent}>导出 JSON</button><button onClick={() => navigate("home")}>管理本地项目</button></div> : null}
-      {saveStatus.state === "conflict" ? <div className="project-save-error" role="alert"><div><strong>该项目已在其他窗口被修改</strong><p>自动保存已暂停，本地未保存的设计仍保留在内存中。请选择如何处理，不会自动合并或覆盖。</p></div><button onClick={requestReloadLatest}>重新载入最新版本</button><button onClick={() => saveAsNewProject("（冲突副本）")}>另存为新项目</button><button onClick={exportCurrent}>导出 JSON</button></div> : null}
-      {confirmReload ? <Modal title="重新载入最新保存版本" confirmLabel="放弃本地修改并载入" closeLabel="保留本地修改" destructive onClose={() => setConfirmReload(false)} onConfirm={() => { setConfirmReload(false); reloadLatestVersion(); }}><p>另一窗口保存的版本将替换当前编辑现场；本地未保存的切割与预览会被放弃。如需保留，可先取消并导出 JSON 或另存为新项目。</p></Modal> : null}
-      {pendingSwitch ? <Modal title="切换项目前保留切割预览" confirmLabel="放弃预览并继续" closeLabel="保留当前预览" destructive onClose={() => setPendingSwitch(null)} onConfirm={() => { const { action } = pendingSwitch; setPendingSwitch(null); action(); }}><p>当前项目还有未保存的切割预览。切换项目会放弃这部分预览；已经保存的图层仍保留在原项目中。</p><p>如需继续调整，可保留预览并返回当前项目。</p></Modal> : null}
-      {pendingDelete ? <Modal title="删除本地项目" confirmLabel="确认删除项目" closeLabel="保留项目" destructive onClose={() => setPendingDelete(null)} onConfirm={confirmDeleteProject}>
-        <p>将从此浏览器删除“{pendingDelete.document.name}”，此操作不可撤销。其他窗口中打开的同一项目之后无法再保存。</p>
+      {saveStatus.state === "error" ? <div className="project-save-error" role="alert"><div><strong>{t("项目尚未保存")}</strong><p>{t(saveStatus.code === "PROJECT_DELETED" ? saveStatus.message : projects.error || saveStatus.message)}</p></div><button onClick={flush}>{t("重试保存")}</button>{saveStatus.code === "PROJECT_DELETED" ? <button onClick={() => saveAsNewProject()}>{t("另存为新项目")}</button> : null}<button onClick={exportCurrent}>{t("导出 JSON")}</button><button onClick={() => navigate("home")}>{t("管理本地项目")}</button></div> : null}
+      {saveStatus.state === "conflict" ? <div className="project-save-error" role="alert"><div><strong>{t("该项目已在其他窗口被修改")}</strong><p>{t("自动保存已暂停，本地未保存的设计仍保留在内存中。请选择如何处理，不会自动合并或覆盖。")}</p></div><button onClick={requestReloadLatest}>{t("重新载入最新版本")}</button><button onClick={() => saveAsNewProject("（冲突副本）")}>{t("另存为新项目")}</button><button onClick={exportCurrent}>{t("导出 JSON")}</button></div> : null}
+      {confirmReload ? <Modal title={t("重新载入最新保存版本")} confirmLabel={t("放弃本地修改并载入")} closeLabel={t("保留本地修改")} destructive onClose={() => setConfirmReload(false)} onConfirm={() => { setConfirmReload(false); reloadLatestVersion(); }}><p>{t("另一窗口保存的版本将替换当前编辑现场；本地未保存的切割与预览会被放弃。如需保留，可先取消并导出 JSON 或另存为新项目。")}</p></Modal> : null}
+      {pendingSwitch ? <Modal title={t("切换项目前保留切割预览")} confirmLabel={t("放弃预览并继续")} closeLabel={t("保留当前预览")} destructive onClose={() => setPendingSwitch(null)} onConfirm={() => { const { action } = pendingSwitch; setPendingSwitch(null); action(); }}><p>{t("当前项目还有未保存的切割预览。切换项目会放弃这部分预览；已经保存的图层仍保留在原项目中。")}</p><p>{t("如需继续调整，可保留预览并返回当前项目。")}</p></Modal> : null}
+      {pendingDelete ? <Modal title={t("删除本地项目")} confirmLabel={t("确认删除项目")} closeLabel={t("保留项目")} destructive onClose={() => setPendingDelete(null)} onConfirm={confirmDeleteProject}>
+        <p>{t("将从此浏览器删除“")}{pendingDelete.document.name}{t("”，此操作不可撤销。其他窗口中打开的同一项目之后无法再保存。")}</p>
         {pendingDelete.id === active?.id
-          ? <p>该项目正在编辑中：删除后当前未保存的切割与预览会一并放弃。如需保留，请先取消，回到编辑器从文件菜单导出 JSON。</p>
-          : <p>如需留存，请先取消，打开项目后从文件菜单导出 JSON 备份。</p>}
+          ? <p>{t("该项目正在编辑中：删除后当前未保存的切割与预览会一并放弃。如需保留，请先取消，回到编辑器从文件菜单导出 JSON。")}</p>
+          : <p>{t("如需留存，请先取消，打开项目后从文件菜单导出 JSON 备份。")}</p>}
       </Modal> : null}
       {newProjectOpen ? <NewProjectDialog onClose={() => setNewProjectOpen(false)} onDefault={createDefaultProject} onPreset={importCrystal} onUpload={() => { setNewProjectOpen(false); setCrystalReturnToNew(true); setCrystalImportOpen(true); }} /> : null}
       {crystalImportOpen ? <CrystalImportDialog onBack={crystalReturnToNew ? () => { setCrystalImportOpen(false); setNewProjectOpen(true); } : undefined} onClose={() => setCrystalImportOpen(false)} onImport={importCrystal} /> : null}

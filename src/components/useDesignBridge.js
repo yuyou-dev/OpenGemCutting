@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { useEffect, useRef, useState } from 'react';
 import { DESIGN_API_VERSION } from '../application/designContract.js';
 
@@ -99,7 +100,7 @@ export function useDesignBridge(handle) {
               id: message.id,
               error: {
                 code: error.code ?? 'DESIGN_ERROR',
-                message: error.message,
+                message: t(error.message),
                 details: error.details,
               },
             };

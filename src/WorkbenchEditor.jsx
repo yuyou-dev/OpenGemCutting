@@ -1,3 +1,6 @@
+import { getLocale } from './i18n/locale.js';
+import { t } from './i18n/locale.js';
+import { LanguageSelector } from './components/LanguageSelector.jsx';
 import { APP_VERSION } from "./version.js";
 import { preparePatternCommit, transformGroup, planDesign } from './application/designOperations.js';
 import { useDesignController } from './components/useDesignController.js';
@@ -1169,7 +1172,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     setModal(null);
     notify("正在生成切磨数据报告…");
     try {
-      await downloadFacetReport({
+      await downloadFacetReport({ locale: getLocale(),
         document,
         solid: reportSolid,
         metrics: reportMetrics,
@@ -1296,7 +1299,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   });
 
   const visibleEffectiveCount = useMemo(() => summarizeEffectiveFacets(displaySolid).effectiveFacetIds.length, [displaySolid]);
-  const composerStatus = `有效刻面 ${visibleEffectiveCount} · ${document.stock.kind === "mesh" ? "原石面片" : "毛坯面"} ${displaySolid.faces.filter(face => face.region === "rough").length} · 体积 ${metrics.volume.toFixed(3)}`;
+  const composerStatus = t("有效刻面 {0} · {1} {2} · 体积 {3}", [visibleEffectiveCount, t(document.stock.kind === "mesh" ? "原石面片" : "毛坯面"), displaySolid.faces.filter(face => face.region === "rough").length, metrics.volume.toFixed(3)]);
   const composerValidationMessage = groupEditRegion
     ? `正在整体变换${groupEditRegion === "crown" ? "冠部与台面" : "亭部"}；请先应用或取消。`
     : cutSession.active ? validationMessage : "";
@@ -1304,16 +1307,16 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   return (
     <main className={`app-shell workspace-editor${opticsActive ? " is-optics-active" : ""}`} hidden={!visible} aria-hidden={!visible} inert={!visible || interactionPaused}>
       <div className="workbench-topbar">
-        <button className="workbench-brand" onClick={onHome} aria-label="切磨工作台 · 返回项目主页">
+        <button className="workbench-brand" onClick={onHome} aria-label={t("切磨工作台 · 返回项目主页")}>
           <img src={`${import.meta.env.BASE_URL}brand/logo-header.webp`} alt="" />
-          <span><strong>切磨工作台 <em>{APP_VERSION}</em></strong><small>SUVA · FACET 96</small></span>
+          <span><strong>{t("切磨工作台")} <em>{APP_VERSION}</em></strong><small>SUVA · FACET 96</small></span>
         </button>
         <div className="workbench-links">
-          <nav className="workbench-navigation" aria-label="工作台页面">
-            <button onClick={onHome}><IconHome size={15} stroke={1.6} /><span>项目主页</span></button>
-            <button onClick={onLab}><IconFlask size={15} stroke={1.6} /><span>光学实验室</span></button>
+          <nav className="workbench-navigation" aria-label={t("工作台页面")}>
+            <button onClick={onHome}><IconHome size={15} stroke={1.6} /><span>{t("项目主页")}</span></button>
+            <button onClick={onLab}><IconFlask size={15} stroke={1.6} /><span>{t("光学实验室")}</span></button>
           </nav>
-          <RepositoryLink />
+          <LanguageSelector /><RepositoryLink />
         </div>
           {cuttingAssistantActive && cuttingReplay ? (
             <CuttingAssistantBar name={document.name} onExit={() => changeViewportMode("edit")} />
@@ -1363,15 +1366,15 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
           )}
       </div>
       <section className={`${sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}${opticsActive ? " is-optics-focus" : ""}${cuttingAssistantActive ? " is-assistant-focus" : ""}`}>
-        {viewportMode === "edit" ? <aside className="control-sidebar" aria-label="切磨参数侧栏" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
+        {viewportMode === "edit" ? <aside className="control-sidebar" aria-label={t("切磨参数侧栏")} aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
           <div className="parameter-rail-title">
             <span>CUT PARAMETERS</span>
-            <button type="button" className="collapse-sidebar" onClick={() => setSidebarOpen(false)} aria-label="收起参数侧栏"><IconChevronLeft size={16} stroke={1.7} /></button>
+            <button type="button" className="collapse-sidebar" onClick={() => setSidebarOpen(false)} aria-label={t("收起参数侧栏")}><IconChevronLeft size={16} stroke={1.7} /></button>
           </div>
 
           <div className="sidebar-sections">
             <details className="control-section" open>
-              <summary><span>切割参数 CUT</span><small>{FACET_REGION_LABELS[region]}</small></summary>
+              <summary><span>{t("切割参数 CUT")}</span><small>{t(FACET_REGION_LABELS[region])}</small></summary>
               <MastControl
                 region={region}
                 industryAngle={industryAngle}
@@ -1453,7 +1456,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
 
         <div className="viewport-column">
           {viewportMode === "edit" && !sidebarOpen ? (
-            <button type="button" className="sidebar-reopen" onClick={() => setSidebarOpen(true)} aria-label="展开参数侧栏">
+            <button type="button" className="sidebar-reopen" onClick={() => setSidebarOpen(true)} aria-label={t("展开参数侧栏")}>
               <IconChevronRight size={18} stroke={1.8} />
             </button>
           ) : null}
@@ -1475,7 +1478,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             <button type="button" className="construction-stale-notice" onClick={() => {
               setAssistantStageIndex(constructionStages.findIndex((stage) => stage.construction?.status === "stale"));
               setAssistantOpen(true);
-            }}>Meet 来源失效 · {constructionStages.filter((stage) => stage.construction?.status === "stale").length} 层 · 检查施工顺序</button>
+            }}>{t("Meet 来源失效 ·")} {t(constructionStages.filter((stage) => stage.construction?.status === "stale").length)} {t("层 · 检查施工顺序")}</button>
           ) : null}
           <GemViewport
             polyhedron={cuttingAssistantActive && assistantSolid ? assistantSolid : displaySolid}
@@ -1561,10 +1564,10 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
           ) : null}
 
           {viewportMode === "edit" && historyOpen ? (
-            <aside className="floating-inspector" aria-label="历史记录检查器">
+            <aside className="floating-inspector" aria-label={t("历史记录检查器")}>
               <div className="inspector-title">
-                <span><IconHistory size={17} stroke={1.7} />历史记录 HISTORY</span>
-                <button type="button" onClick={() => setHistoryOpen(false)} aria-label="关闭历史记录">×</button>
+                <span><IconHistory size={17} stroke={1.7} />{t("历史记录 HISTORY")}</span>
+                <button type="button" onClick={() => setHistoryOpen(false)} aria-label={t("关闭历史记录")}>×</button>
               </div>
               <HistoryPanel
                 stockKind={document.stock.kind}
@@ -1576,7 +1579,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             </aside>
           ) : null}
         </div>
-        {viewportMode === "edit" ? <aside className="workbench-right-sidebar" aria-label="切割序列与正交预览">
+        {viewportMode === "edit" ? <aside className="workbench-right-sidebar" aria-label={t("切割序列与正交预览")}>
           <CutStack
             operations={operations}
             selectedId={editingPatternId}
@@ -1638,7 +1641,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             className="ledger-floating-panel"
             role="dialog"
             aria-modal="true"
-            aria-label="刻面表浮层"
+            aria-label={t("刻面表浮层")}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <FacetLedger
@@ -1659,7 +1662,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
 
       <input ref={importRef} type="file" accept="application/json,.json" className="sr-only" onChange={importDocument} />
       <input ref={ascImportRef} type="file" accept=".asc,text/plain" className="sr-only" onChange={inspectAscFile} />
-      {toast ? <div className="toast" role="status" aria-live="polite">{toast}</div> : null}
+      {toast ? <div className="toast" role="status" aria-live="polite">{t(toast)}</div> : null}
 
       {ascTransfer ? (
         <AscTransferDialog
@@ -1702,10 +1705,10 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
 
       {modal === "import-confirm" && pendingImport ? (
         <Modal
-          title="导入前保留切割预览"
+          title={t("导入前保留切割预览")}
           eyebrow="JSON · IMPORT"
-          confirmLabel="放弃预览并导入"
-          closeLabel="保留当前预览"
+          confirmLabel={t("放弃预览并导入")}
+          closeLabel={t("保留当前预览")}
           destructive
           onClose={() => { setPendingImport(null); setModal(null); }}
           onConfirm={() => {
@@ -1716,37 +1719,37 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             notify(`已导入“${imported.name}”，共 ${imported.facets.length} 个面，可撤销。`);
           }}
         >
-          <p>当前还有未保存的 CUT / Meet / 整体变换预览。导入“{pendingImport.name}”会放弃这部分预览；已经提交的文档仍可用一次撤销恢复。</p>
-          <p>如需继续调整，可保留预览并取消本次导入。</p>
+          <p>{t("当前还有未保存的 CUT / Meet / 整体变换预览。导入“")}{pendingImport.name}{t("”会放弃这部分预览；已经提交的文档仍可用一次撤销恢复。")}</p>
+          <p>{t("如需继续调整，可保留预览并取消本次导入。")}</p>
         </Modal>
       ) : null}
 
       {modal === "json-export" ? (
-        <Modal eyebrow="JSON · EXPORT" title="导出已提交的 JSON" confirmLabel="导出已提交文档" onClose={() => setModal(null)} onConfirm={() => { setModal(null); exportDocument(); }}>
-          <p>当前还有未保存的 CUT / 整体变换预览，本次导出不包含这些修改，也不会提交或取消它们。</p>
-          <p>JSON 保留已提交的完整 CUT STACK（含被覆盖工序）、Meet 快照和光学材质。需要导出当前预览时，请先取消此窗口并保存切割。</p>
+        <Modal eyebrow="JSON · EXPORT" title={t("导出已提交的 JSON")} confirmLabel={t("导出已提交文档")} onClose={() => setModal(null)} onConfirm={() => { setModal(null); exportDocument(); }}>
+          <p>{t("当前还有未保存的 CUT / 整体变换预览，本次导出不包含这些修改，也不会提交或取消它们。")}</p>
+          <p>{t("JSON 保留已提交的完整 CUT STACK（含被覆盖工序）、Meet 快照和光学材质。需要导出当前预览时，请先取消此窗口并保存切割。")}</p>
         </Modal>
       ) : null}
 
       {modal === "pdf" ? (
-        <Modal eyebrow="PDF · REPORT" title="导出 PDF 技术报告" confirmLabel="生成报告" onClose={() => setModal(null)} onConfirm={exportPdfReport}>
-          <p>本次报告只包含已提交文档的 {savedEffectiveFacets.effectiveFacetIds.length} 个最终有效刻面；{hasUnsavedPreview ? "当前未保存 CUT / 整体变换预览不包含在内。" : "不包含毛坯面。"}</p>
-          <p>报告包含封面五视图（含台面宽 T 标注）与分区逐面参数表。腰部是辅助面，逐面表默认不导出。</p>
+        <Modal eyebrow="PDF · REPORT" title={t("导出 PDF 技术报告")} confirmLabel={t("生成报告")} onClose={() => setModal(null)} onConfirm={exportPdfReport}>
+          <p>{t("本次报告只包含已提交文档的")} {savedEffectiveFacets.effectiveFacetIds.length} {t("个最终有效刻面；")}{hasUnsavedPreview ? t("当前未保存 CUT / 整体变换预览不包含在内。") : t("不包含毛坯面。")}</p>
+          <p>{t("报告包含封面五视图（含台面宽 T 标注）与分区逐面参数表。腰部是辅助面，逐面表默认不导出。")}</p>
           <label className="modal-check">
             <input
               type="checkbox"
               checked={reportIncludeGirdle}
               onChange={(event) => setReportIncludeGirdle(event.target.checked)}
             />
-            <span>包含腰部逐面参数表（{operations.filter((item) => item.region === "girdle").reduce((sum, item) => sum + item.effectiveCount, 0)} 面）</span>
+            <span>{t("包含腰部逐面参数表（")}{t(operations.filter((item) => item.region === "girdle").reduce((sum, item) => sum + item.effectiveCount, 0))} {t("面）")}</span>
           </label>
         </Modal>
       ) : null}
 
       {modal === "confirm-face-removal" && pendingFullRemovalCommit ? (
         <Modal
-          title="确认覆盖已有切面"
-          confirmLabel="确认切割并保留历史"
+          title={t("确认覆盖已有切面")}
+          confirmLabel={t("确认切割并保留历史")}
           destructive
           onClose={() => {
             setPendingFullRemovalCommit(null);
@@ -1757,32 +1760,32 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             applyDraft(true);
           }}
         >
-          <p>新切面会让以下普通图层在最终实体中完全消失。原参数化工序仍保留在 CUT STACK 和 JSON 中；撤销或移除覆盖层后可以自动恢复。</p>
+          <p>{t("新切面会让以下普通图层在最终实体中完全消失。原参数化工序仍保留在 CUT STACK 和 JSON 中；撤销或移除覆盖层后可以自动恢复。")}</p>
           <ul>
             {pendingFullRemovalCommit.operations.map((operation) => (
-              <li key={operation.operationId}>{operation.label}：覆盖 {operation.removedCount} 个有效面</li>
+              <li key={operation.operationId}>{operation.label}{t("：覆盖")} {t(operation.removedCount)} {t("个有效面")}</li>
             ))}
           </ul>
         </Modal>
       ) : null}
 
       {modal === "clear" ? (
-        <Modal title="清除用户切割" confirmLabel={document.stock.kind === "mesh" ? "恢复初始晶体" : "恢复默认预形"} destructive onClose={() => setModal(null)} onConfirm={() => {
+        <Modal title={t("清除用户切割")} confirmLabel={document.stock.kind === "mesh" ? "恢复初始晶体" : "恢复默认预形"} destructive onClose={() => setModal(null)} onConfirm={() => {
           resetDocument(document.name);
           setModal(null);
           notify(document.stock.kind === "mesh" ? "已恢复导入时的晶体，可撤销恢复切割。" : "已清除用户切割并恢复固定台面 T1 与默认腰部 G1。");
         }}>
-          <p>{document.stock.kind === "mesh" ? "清除全部切割层，恢复导入时的初始晶体；此操作可撤销。" : "这会清除 C1、P1 等用户图层及撤销历史；固定台面 T1 与默认 32 面腰部 G1 会保留。"}</p>
+          <p>{document.stock.kind === "mesh" ? t("清除全部切割层，恢复导入时的初始晶体；此操作可撤销。") : t("这会清除 C1、P1 等用户图层及撤销历史；固定台面 T1 与默认 32 面腰部 G1 会保留。")}</p>
         </Modal>
       ) : null}
 
       {modal === "settings" ? (
-        <Modal title="系统设置" onClose={() => setModal(null)}>
+        <Modal title={t("系统设置")} onClose={() => setModal(null)}>
           <ul>
-            <li>{document.stock.kind === "mesh" ? "初始晶体：导入多面体，最长边归一为 2.000，中心位于机台原点" : "毛坯：中心立方体，边长 2.000"}</li>
-            <li>分度轮：固定 96 齿，每齿 3.75°</li>
-            <li>切割保留平面内侧的材料，凹部与孔洞保持真实形状</li>
-            <li>几何轴：+Z 指向冠部；几何 β 冠部为正、腰部为 0、亭部为负</li>
+            <li>{document.stock.kind === "mesh" ? t("初始晶体：导入多面体，最长边归一为 2.000，中心位于机台原点") : t("毛坯：中心立方体，边长 2.000")}</li>
+            <li>{t("分度轮：固定 96 齿，每齿 3.75°")}</li>
+            <li>{t("切割保留平面内侧的材料，凹部与孔洞保持真实形状")}</li>
+            <li>{t("几何轴：+Z 指向冠部；几何 β 冠部为正、腰部为 0、亭部为负")}</li>
           </ul>
         </Modal>
       ) : null}

@@ -69,3 +69,7 @@ npm run manual:build
 ## 可选对话设计
 
 手册最后一页以 97 面 Eight Main Highlight 预设演示“对话改型 → 手动续改 → 保存重开”。真实截图为 `local-design-bridge.jpg`；安装与工具契约归 [本地设计接口](../mcp/README.md)。没有 MCP/Codex 的静态网页仍可完成全部手动设计任务。
+
+## 英文版
+
+顶栏切换 English 后，帮助入口下载英文图解手册。两种语言共用 30 页案例结构与生成器：`npm run manual:build` 生成中文，`npm run manual:build:en` 生成英文。英文截图位于 `screenshots/en/`，来自真实英文界面；练习中的用户名称和图层名称保持原文，操作按 T1 / C1 / C2 等编号定位。术语审核流程见 [双语说明](../i18n/README.md)。

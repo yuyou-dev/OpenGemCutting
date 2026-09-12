@@ -199,3 +199,10 @@ test('independently dimensioned square reference produces the specified nodes an
   assert.equal(inspectDesign(plan.document).effectiveCutPlanes, 13);
   assert.ok(Math.abs(inspectDesign(plan.document).dimensions.z - 1.3) < 1e-9);
 });
+
+test('report export language is optional and restricted without changing design protocol fields', () => {
+  const args = { sessionId: 'test-browser', format: 'pdf' };
+  for (const locale of ['zh-CN', 'en']) assert.doesNotThrow(() => validateTool('design_export', { ...args, locale }));
+  assert.doesNotThrow(() => validateTool('design_export', args));
+  assert.throws(() => validateTool('design_export', { ...args, locale: 'fr' }), /expected zh-CN, en/);
+});

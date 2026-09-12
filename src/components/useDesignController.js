@@ -1,3 +1,4 @@
+import { getLocale, t } from '../i18n/locale.js';
 import { useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import {
@@ -113,12 +114,13 @@ export function useDesignController({
     projectId,
     revision,
     name: document.name,
+    locale: getLocale(),
     canWrite: !reason,
-    blockedReason: reason || null,
+    blockedReason: reason ? t(reason) : null,
     sessionMode: session.mode,
     canUndo: canUndo(history),
     canRedo: canRedo(history),
-    saveStatus: projectStatus,
+    saveStatus: { ...projectStatus, message: t(projectStatus.message) },
     design: inspectDesign(document),
   });
   const assertWrite = (args) => {
@@ -281,7 +283,7 @@ export function useDesignController({
     if (name === 'design_export' && args.format === 'pdf') {
       const { createFacetReportPdf } = await import('../report/pdfReport.js');
       const solid = solveDocument(document);
-      const blob = await createFacetReportPdf({
+      const blob = await createFacetReportPdf({ locale: args.locale ?? getLocale(),
         document,
         solid,
         metrics: measurePolyhedron(solid),

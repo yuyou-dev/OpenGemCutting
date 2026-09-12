@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { renderTechnicalMesh } from "./meshTechnicalRenderer.js";
 import { projectTechnicalPreview } from "../domain/technicalPreview.js";
@@ -24,7 +25,7 @@ function VectorTechnicalPreview({
       className={`technical-preview ${className}`.trim()}
       viewBox={`0 0 ${projection.width} ${projection.height}`}
       role="img"
-      aria-label={label || projection.label}
+      aria-label={label || t(projection.label)}
     >
       {projection.faces.map((face, index) => (
         <polygon
@@ -79,7 +80,7 @@ function MeshTechnicalPreview(props) {
     return () => observer.disconnect();
   }, [fallback]);
   if (fallback) return <VectorTechnicalPreview {...props} />;
-  return <canvas ref={canvasRef} className={`technical-preview ${className}`.trim()} role="img" aria-label={label || `${view} · 宝石正交预览`} style={{ display: "block", width: "100%", height: "100%" }} />;
+  return <canvas ref={canvasRef} className={`technical-preview ${className}`.trim()} role="img" aria-label={t(label || t("{0} · 宝石正交预览", [view]))} style={{ display: "block", width: "100%", height: "100%" }} />;
 }
 
 export function TechnicalPreview(props) {

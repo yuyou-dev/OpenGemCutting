@@ -1,19 +1,26 @@
+import { createTranslator } from '../src/i18n/format.js';
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { manualPages } from "./manual/content.mjs";
+import { manualPages as sourcePages } from "./manual/content.mjs";
 import { importFacetingJSON } from "../src/domain/faceting.js";
 import { buildConstructionStages } from "../src/domain/constructionHistory.js";
+const locale = process.argv.includes('--locale=en') ? 'en' : 'zh-CN';
+const t = createTranslator(locale);
+const localize = (value) => Array.isArray(value) ? value.map(localize) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, localize(item)])) : t(value);
+const manualPages = localize(sourcePages);
+const suffix = locale === 'en' ? '-en' : '';
+const screenshots = locale === 'en' ? 'docs/manual/screenshots/en' : 'docs/manual/screenshots';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outputPath = path.join(
   root,
-  "public/manual/facet-96-operation-manual.pdf",
+  `public/manual/facet-96-operation-manual${suffix}.pdf`,
 );
 const htmlPath = path.join(
   root,
-  "tmp/pdfs/manual-v2/facet-96-operation-manual.html",
+  `tmp/pdfs/manual-v2/facet-96-operation-manual${suffix}.html`,
 );
 const { version } = JSON.parse(
   await readFile(path.join(root, "package.json"), "utf8"),
@@ -39,7 +46,7 @@ const names = new Set(
 );
 await Promise.all(
   [...names].map((name) =>
-    access(path.join(root, "docs/manual/screenshots", `${name}.jpg`)),
+    access(path.join(root, screenshots, `${name}.jpg`)),
   ),
 );
 const asset = (relative) => pathToFileURL(path.join(root, relative)).href;
@@ -50,7 +57,7 @@ const esc = (s) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 const image = (name, caption = "") =>
-  `<figure><img src="${asset(`docs/manual/screenshots/${name}.jpg`)}" alt="${esc(caption)}">${caption ? `<figcaption>${esc(caption)}</figcaption>` : ""}</figure>`;
+  `<figure><img src="${asset(`${screenshots}/${name}.jpg`)}" alt="${esc(caption)}">${caption ? `<figcaption>${esc(caption)}</figcaption>` : ""}</figure>`;
 const renderPage = (page, index) => {
   const classes = [
     "page",
@@ -61,11 +68,11 @@ const renderPage = (page, index) => {
   ]
     .filter(Boolean)
     .join(" ");
-  const brand = `<img src="${asset("public/brand/logo-header.webp")}"><span><b>切磨工作台</b><small>${esc(version)} · SUVA / FACET 96</small></span>`;
+  const brand = `<img src="${asset("public/brand/logo-header.webp")}"><span><b>${t("切磨工作台")}</b><small>${esc(version)} · SUVA / FACET 96</small></span>`;
   const heading =
     index === 0
       ? `<div class="cover-brand">${brand}</div>`
-      : `<header class="chrome head"><span><img src="${asset("public/brand/logo-header.webp")}"><b>切磨工作台</b><em>${esc(version)} · SUVA / FACET 96</em></span><span>设计师操作手册</span></header>`;
+      : `<header class="chrome head"><span><img src="${asset("public/brand/logo-header.webp")}"><b>${t("切磨工作台")}</b><em>${esc(version)} · SUVA / FACET 96</em></span><span>${t("设计师操作手册")}</span></header>`;
   const illustration =
     page.hero || page.image
       ? image(page.hero || page.image, page.caption)
@@ -98,23 +105,23 @@ const renderPage = (page, index) => {
       ${heading}
       <main class="body">
         <div class="kicker">${esc(page.kicker)}</div>
-        <h1>${index === 0 ? "从一个想法<br>到一颗自己的宝石" : esc(page.title)}</h1>
+        <h1>${index === 0 ? (locale === "en" ? "From an idea<br>to a gem of your own" : "从一个想法<br>到一颗自己的宝石") : esc(page.title)}</h1>
         <p class="intro">${esc(page.intro)}</p>
         ${illustration}
         ${contents ? `<div class="toc">${contents}</div>` : ""}
         ${blocks ? `<div class="blocks">${blocks}</div>` : ""}
         ${steps ? `<div class="steps">${steps}</div>` : ""}
-        ${page.question ? `<aside class="question"><b>停下来，作一个设计判断</b>${page.question}</aside>` : ""}
-        ${page.note ? `<aside class="note"><b>继续操作前请知道</b>${page.note}</aside>` : ""}
+        ${page.question ? `<aside class="question"><b>${locale === "en" ? "Pause and make a design judgment" : "停下来，作一个设计判断"}</b>${page.question}</aside>` : ""}
+        ${page.note ? `<aside class="note"><b>${locale === "en" ? "Before you continue" : "继续操作前请知道"}</b>${page.note}</aside>` : ""}
       </main>
-      <footer class="chrome foot"><span>v${version} · 教学版 · 配套 7 份 JSON + 1 份原晶 OBJ</span><span><b>${String(index + 1).padStart(2, "0")}</b> / ${manualPages.length}</span></footer>
+      <footer class="chrome foot"><span>v${version} · ${locale === "en" ? "Learning edition · 7 JSON exercises + 1 rough OBJ" : "教学版 · 配套 7 份 JSON + 1 份原晶 OBJ"}</span><span><b>${String(index + 1).padStart(2, "0")}</b> / ${manualPages.length}</span></footer>
     </section>
   `;
 };
 const html = `<!doctype html>
-<html lang="zh-CN"><head>
+<html lang="${locale}"><head>
   <meta charset="utf-8">
-  <title>切磨工作台 · 设计师操作手册 v${version}</title>
+  <title>${t("切磨工作台")} · ${t("设计师操作手册")} v${version}</title>
   <link rel="stylesheet" href="${asset("node_modules/@fontsource-variable/noto-sans-sc/index.css")}">
   <style>${await readFile(path.join(root, "scripts/manual/manual.css"), "utf8")}</style>
 </head><body>${manualPages.map(renderPage).join("")}</body></html>`;

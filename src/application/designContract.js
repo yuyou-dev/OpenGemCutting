@@ -165,6 +165,7 @@ export const DESIGN_TOOLS = [
       {
         ...readScope,
         format: { type: 'string', enum: ['json', 'asc', 'pdf'] },
+        locale: { type: 'string', enum: ['zh-CN', 'en'] },
       },
       ['sessionId', 'format'],
     ),

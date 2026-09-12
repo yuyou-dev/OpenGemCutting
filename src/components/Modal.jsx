@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { useId, useRef } from "react";
 import { IconX } from "@tabler/icons-react";
 import { useDialogFocus } from "./useDialogFocus.js";
@@ -18,19 +19,19 @@ export function Modal({ title, children, confirmLabel, onConfirm, onClose, destr
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="modal-heading">
-          <div>{eyebrow ? <small>{eyebrow}</small> : null}<h2 id={titleId}>{title}</h2></div>
-          <button type="button" className="modal-close" aria-label={`关闭${title}`} onClick={onClose}><IconX size={17} stroke={1.6} /></button>
+          <div>{eyebrow ? <small>{t(eyebrow)}</small> : null}<h2 id={titleId}>{t(title)}</h2></div>
+          <button type="button" className="modal-close" aria-label={t("关闭{0}", [title])} onClick={onClose}><IconX size={17} stroke={1.6} /></button>
         </header>
         <div className="modal-body">{children}</div>
         <div className="modal-actions">
-          <button type="button" className="secondary-button modal-button" onClick={onClose}>{closeLabel ?? (onConfirm ? "取消" : "知道了")}</button>
+          <button type="button" className="secondary-button modal-button" onClick={onClose}>{t(closeLabel ?? (onConfirm ? t("取消") : t("知道了")))}</button>
           {onConfirm ? (
             <button
               type="button"
               className={destructive ? "primary-action modal-button is-destructive" : "primary-action modal-button"}
               onClick={onConfirm}
             >
-              {confirmLabel}
+              {t(confirmLabel)}
             </button>
           ) : null}
         </div>

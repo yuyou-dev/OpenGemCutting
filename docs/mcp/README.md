@@ -62,3 +62,7 @@ Codex 使用 `node setup/cli.mjs install` 完整配置；`mcp/register-codex.mjs
 Codex 注册语法以 [官方 MCP 文档](https://developers.openai.com/codex/mcp) 和本机 `codex mcp add --help` 为准。
 
 PDF 返回本机临时下载链接，避免大型字体嵌入对话消息。服务最多保留最近八份报告，停止服务后删除；需要长期保留时及时下载。
+
+## 中英双语
+
+顶栏语言选项控制界面、帮助及默认 PDF 报告语言；`design_read.locale` 返回当前界面语言。`design_export` 的 PDF 可指定 `locale: "en"` 或 `"zh-CN"`，省略则跟随界面。JSON、ASC、工具名、ID 和参数保持语言无关。对话可用中文或英文提出设计需求；语言切换不清空手动草稿，也不修改设计 revision。术语审核见 [双语维护说明](../i18n/README.md)。

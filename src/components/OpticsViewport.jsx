@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconCube, IconHandMove, IconRotate3d, IconZoomIn } from "@tabler/icons-react";
 import { backgroundColor, resolveOpticsSettings } from "../domain/optics.js";
@@ -674,14 +675,14 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
   };
 
   return (
-    <section className="optics-viewport" aria-label="宝石光学仿真视口">
+    <section className="optics-viewport" aria-label={t("宝石光学仿真视口")}>
       <canvas
         ref={canvasRef}
         className="optics-viewport__canvas"
         data-testid="optics-webgl-canvas"
         tabIndex="0"
         role="application"
-        aria-label="物理宝石光学仿真。拖拽旋转，Shift 加拖拽平移，滚轮缩放，0 键复位。"
+        aria-label={t("物理宝石光学仿真。拖拽旋转，Shift 加拖拽平移，滚轮缩放，0 键复位。")}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           if (transitionRef.current) {
@@ -743,17 +744,17 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
           }
         }}
       />
-      {error ? <p className="optics-viewport__error">{error}</p> : null}
+      {error ? <p className="optics-viewport__error">{t(error)}</p> : null}
       <div className="optics-orientation" aria-hidden="true">
         <IconCube size={27} stroke={1.25} />
         <span className="axis-x">X</span><span className="axis-y">Y</span><span className="axis-z">Z</span>
       </div>
-      <div className="optics-viewport__hints" aria-label="仿真视口操作提示">
-        <span><IconRotate3d size={15} stroke={1.7} />拖拽旋转</span>
-        <span><IconZoomIn size={15} stroke={1.7} />滚轮缩放</span>
-        <span><IconHandMove size={15} stroke={1.7} />Shift + 拖拽平移</span>
+      <div className="optics-viewport__hints" aria-label={t("仿真视口操作提示")}>
+        <span><IconRotate3d size={15} stroke={1.7} />{t("拖拽旋转")}</span>
+        <span><IconZoomIn size={15} stroke={1.7} />{t("滚轮缩放")}</span>
+        <span><IconHandMove size={15} stroke={1.7} />{t("Shift + 拖拽平移")}</span>
       </div>
-      <span className="optics-viewport__geometry-status">视口实体 · {geometry.faceCount} {polyhedron.kind === "mesh" ? "面片" : "面"}{(polyhedron.kind === "mesh" ? polyhedron.faces.some((face) => face.region === "rough" || face.sourceOperationId === "rough-mesh") : polyhedron.faces.some((face) => face.sourceOperationId === "rough-cube")) ? "（含毛坯面）" : "（全部为刻面）"}</span>
+      <span className="optics-viewport__geometry-status">{t("视口实体 ·")} {t(geometry.faceCount)} {polyhedron.kind === "mesh" ? t("面片") : t("面")}{(polyhedron.kind === "mesh" ? polyhedron.faces.some((face) => face.region === "rough" || face.sourceOperationId === "rough-mesh") : polyhedron.faces.some((face) => face.sourceOperationId === "rough-cube")) ? t("（含毛坯面）") : t("（全部为刻面）")}</span>
     </section>
   );
 }

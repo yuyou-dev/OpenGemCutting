@@ -1,3 +1,4 @@
+import { getLocale, t } from '../i18n/locale.js';
 import { useRef, useState } from "react";
 import { useDialogFocus } from "./useDialogFocus.js";
 import {
@@ -22,6 +23,7 @@ const HELP_SECTIONS = [
       ["03", "改变一个设计要素", "右侧 CUT STACK 列出设计步骤，内容多时可滚动。点击图层旁的“编辑”，在左侧调角度或深度；想增加一组刻面，则用列表底部的新建入口。"],
       ["04", "同时比较几个方向", "右侧下方提供实时正交预览：上窗切“冠部”看顶视、切“亭部”看底视，下窗看侧面比例。满意后在 CUT STACK 保存，再用画布左上模式切换组进入光学仿真观察材质。"],
     ],
+    facts: [["选择工作语言", "顶栏语言按钮可选择跟随系统、简体中文或 English。切换立即生效并在此站点记住，不保存或放弃当前切割，也不改项目与图层名称；帮助下载与 PDF 报告跟随所选语言。"]],
     note: "项目主页、编辑工作台与光学实验室沿用同一界面规范。回主页或去实验室会保留本页编辑现场，不会替你保存 CUT；切换到另一项目或刷新时，未保存预览不作为项目内容恢复。",
   },
   {
@@ -101,16 +103,16 @@ const HELP_SECTIONS = [
 function HelpContent({ section }) {
   return (
     <div className="help-content">
-      <small>{section.eyebrow}</small>
-      <h3>{section.title}</h3>
-      <p>{section.intro}</p>
+      <small>{t(section.eyebrow)}</small>
+      <h3>{t(section.title)}</h3>
+      <p>{t(section.intro)}</p>
 
       {section.steps ? (
         <ol className="help-step-list">
           {section.steps.map(([number, title, description]) => (
             <li key={number}>
               <span>{number}</span>
-              <div><strong>{title}</strong><p>{description}</p></div>
+              <div><strong>{t(title)}</strong><p>{t(description)}</p></div>
             </li>
           ))}
         </ol>
@@ -119,7 +121,7 @@ function HelpContent({ section }) {
       {section.facts ? (
         <dl className="help-fact-list">
           {section.facts.map(([term, description]) => (
-            <div key={term}><dt>{term}</dt><dd>{description}</dd></div>
+            <div key={term}><dt>{t(term)}</dt><dd>{t(description)}</dd></div>
           ))}
         </dl>
       ) : null}
@@ -127,12 +129,12 @@ function HelpContent({ section }) {
       {section.keys ? (
         <dl className="help-key-list">
           {section.keys.map(([keys, action]) => (
-            <div key={keys}><dt>{keys}</dt><dd>{action}</dd></div>
+            <div key={keys}><dt>{t(keys)}</dt><dd>{t(action)}</dd></div>
           ))}
         </dl>
       ) : null}
 
-      <aside className="help-note"><strong>使用提示</strong><span>{section.note}</span></aside>
+      <aside className="help-note"><strong>{t("使用提示")}</strong><span>{t(section.note)}</span></aside>
     </div>
   );
 }
@@ -141,7 +143,7 @@ export function HelpCenterDialog({ onClose }) {
   const [activeId, setActiveId] = useState("start");
   const panelRef = useRef(null);
   const activeSection = HELP_SECTIONS.find((section) => section.id === activeId) ?? HELP_SECTIONS[0];
-  const manualUrl = `${import.meta.env.BASE_URL}manual/facet-96-operation-manual.pdf`;
+  const manualUrl = `${import.meta.env.BASE_URL}manual/facet-96-operation-manual${getLocale() === 'en' ? '-en' : ''}.pdf`;
 
   useDialogFocus(panelRef, onClose);
 
@@ -160,16 +162,16 @@ export function HelpCenterDialog({ onClose }) {
         <header className="help-dialog__header">
           <div>
             <small>HELP CENTER · FACET 96</small>
-            <h2 id="help-dialog-title">工作台使用帮助</h2>
-            <p id="help-dialog-summary">从设计目标到造型比较，按任务找到下一步。</p>
+            <h2 id="help-dialog-title">{t("工作台使用帮助")}</h2>
+            <p id="help-dialog-summary">{t("从设计目标到造型比较，按任务找到下一步。")}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="关闭帮助中心">
+          <button type="button" onClick={onClose} aria-label={t("关闭帮助中心")}>
             <IconX size={17} stroke={1.8} />
           </button>
         </header>
 
         <div className="help-dialog__body">
-          <nav aria-label="帮助主题">
+          <nav aria-label={t("帮助主题")}>
             {HELP_SECTIONS.map((section) => {
               const Icon = section.icon;
               const active = section.id === activeId;
@@ -182,7 +184,7 @@ export function HelpCenterDialog({ onClose }) {
                   key={section.id}
                 >
                   <Icon size={15} stroke={1.7} />
-                  <span>{section.label}</span>
+                  <span>{t(section.label)}</span>
                   <IconChevronRight size={13} stroke={1.7} />
                 </button>
               );
@@ -192,11 +194,10 @@ export function HelpCenterDialog({ onClose }) {
         </div>
 
         <footer className="help-dialog__footer">
-          <div><IconBook2 size={16} stroke={1.7} /><span><strong>完整操作手册</strong><small>A4 PDF · 设计案例与前后对比 · 可打印</small></span></div>
+          <div><IconBook2 size={16} stroke={1.7} /><span><strong>{t("完整操作手册")}</strong><small>{t("A4 PDF · 设计案例与前后对比 · 可打印")}</small></span></div>
           <a className="secondary-button help-manual-link" href={manualUrl} download>
-            <IconDownload size={15} stroke={1.8} />下载 PDF
-          </a>
-          <button type="button" className="primary-action help-close-action" onClick={onClose}>返回工作台</button>
+            <IconDownload size={15} stroke={1.8} />{t("下载 PDF")} </a>
+          <button type="button" className="primary-action help-close-action" onClick={onClose}>{t("返回工作台")}</button>
         </footer>
       </section>
     </div>

@@ -1,3 +1,4 @@
+import { t, subscribeLocale } from '../i18n/locale.js';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   IconHandMove,
@@ -1679,6 +1680,7 @@ function drawCanvasBadge(context, x, y, label, color) {
   context.save();
   context.font = "600 12px 'IBM Plex Mono', monospace";
   context.textBaseline = "middle";
+  label = t(label);
   const width = Math.ceil(context.measureText(label).width) + 16;
   const height = 25;
   const density = context.getTransform().a || 1;
@@ -1840,13 +1842,13 @@ function drawGizmoLabels(canvas, scene) {
       context.lineTo(legendX + 24, legendY);
       context.stroke();
       context.fillStyle = "#4d5559";
-      context.fillText("外圈：分度", legendX + 32, legendY);
+      context.fillText(t("外圈：分度"), legendX + 32, legendY);
       context.strokeStyle = "#a67712";
       context.beginPath();
       context.moveTo(legendX, legendY + 21);
       context.lineTo(legendX + 24, legendY + 21);
       context.stroke();
-      context.fillText("内圈：镜像轴偏移", legendX + 32, legendY + 21);
+      context.fillText(t("内圈：镜像轴偏移"), legendX + 32, legendY + 21);
     }
     context.restore();
     if (!isOccluded(indexRing.outerHandle)) {
@@ -2513,6 +2515,10 @@ export function GemViewport({
       },
     });
     framesRef.current = frames;
+    const unsubscribeLanguage = subscribeLocale(() => {
+      host.querySelector("canvas")?.setAttribute("aria-label", t("宝石多面体三维视口"));
+      frames.invalidate();
+    });
     frames.setSuspended(sceneRef.current.suspended);
 
     const sketch = (p) => {
@@ -2528,7 +2534,7 @@ export function GemViewport({
         renderer.elt.setAttribute("role", "application");
         renderer.elt.setAttribute(
           "aria-label",
-          "三维宝石视口。拖拽或方向键旋转，Shift 加拖拽或方向键平移，滚轮或加减键缩放，0 键复位。拖动外分度环调整索引，拖动内环调整镜像轴偏移，拖动蓝色弧形桥架调整行业角，拖动粉色伸缩杆调整深度；群组操纵杆可拖动紫色升降面、青绿色高度比例面和暖金色 96 分度旋转环。",
+          t("三维宝石视口。拖拽或方向键旋转，Shift 加拖拽或方向键平移，滚轮或加减键缩放，0 键复位。拖动外分度环调整索引，拖动内环调整镜像轴偏移，拖动蓝色弧形桥架调整行业角，拖动粉色伸缩杆调整深度；群组操纵杆可拖动紫色升降面、青绿色高度比例面和暖金色 96 分度旋转环。"),
         );
         renderer.elt.setAttribute("data-testid", "gem-webgl-canvas");
         detachInteractions = attachViewportInteractions(
@@ -2639,6 +2645,7 @@ export function GemViewport({
       cancelled = true;
       frames.dispose();
       framesRef.current = null;
+      unsubscribeLanguage();
       resizeObserver?.disconnect();
       detachInteractions();
       if (instance) releasePolyhedronMeshes(instance);
@@ -2647,15 +2654,15 @@ export function GemViewport({
   }, []);
 
   return (
-    <section className="gem-viewport" aria-label="宝石多面体三维视口">
+    <section className="gem-viewport" aria-label={t("宝石多面体三维视口")}>
       <div className="gem-viewport__canvas" ref={hostRef} />
 
       <canvas className="gem-viewport__gizmo-labels" ref={gizmoLabelCanvasRef} aria-hidden="true" />
 
-      <div className="gem-viewport__interaction-hints" aria-label="视口操作提示">
-        <span><IconRotate3d size={16} stroke={1.7} />拖拽旋转</span>
-        <span><IconZoomIn size={16} stroke={1.7} />滚轮缩放</span>
-        <span><IconHandMove size={16} stroke={1.7} />Shift + 拖拽平移</span>
+      <div className="gem-viewport__interaction-hints" aria-label={t("视口操作提示")}>
+        <span><IconRotate3d size={16} stroke={1.7} />{t("拖拽旋转")}</span>
+        <span><IconZoomIn size={16} stroke={1.7} />{t("滚轮缩放")}</span>
+        <span><IconHandMove size={16} stroke={1.7} />{t("Shift + 拖拽平移")}</span>
       </div>
     </section>
   );
