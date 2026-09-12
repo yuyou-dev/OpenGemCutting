@@ -10,7 +10,7 @@
 
 An open-source gemstone faceting workbench. Design through conversation, refine every cut.
 
-[![Version](https://img.shields.io/badge/version-1.1.0-ed225d?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.1-ed225d?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-222222?style=flat-square)](LICENSE)
 [![Browser](https://img.shields.io/badge/browser-local_first-38755d?style=flat-square)](#start)
 

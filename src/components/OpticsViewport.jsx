@@ -3,10 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { IconCube, IconHandMove, IconRotate3d, IconZoomIn } from "@tabler/icons-react";
 import { backgroundColor, resolveOpticsSettings } from "../domain/optics.js";
 import { normalizedOpticsPlanes, packOpticsPlaneTexture, normalizedOpticsMesh, packOpticsMeshTextures, opticsMeshFraming } from "../domain/opticsGeometry.js";
-import { crossVectors as cross, normalizeVector } from "../utils/vector3.js";
+import { normalizeVector } from "../utils/vector3.js";
 import { clamp } from "../utils/format.js";
 import { createOpticsRendererLifecycle } from "./opticsRendererLifecycle.js";
 import { createOpticsRenderScheduler } from "./opticsRenderScheduler.js";
+import { opticsOrbitAfterInput, opticsCameraFrame } from "./viewportOrbit.js";
 import "./OpticsViewport.css";
 
 const VERTEX_SHADER = `#version 300 es
@@ -418,19 +419,6 @@ function cameraOrbitForView(viewMode) {
   return null;
 }
 
-function cameraFrame(camera) {
-  const orbit = camera;
-  const horizontal = Math.cos(orbit.elevation);
-  const position = [
-    Math.sin(orbit.yaw) * horizontal * 4.4,
-    -Math.cos(orbit.yaw) * horizontal * 4.4,
-    Math.sin(orbit.elevation) * 4.4,
-  ];
-  const forward = normalizeVector(position.map((item) => -item));
-  const right = [Math.cos(orbit.yaw), Math.sin(orbit.yaw), 0];
-  const up = normalizeVector(cross(right, forward));
-  return { position, forward, right, up };
-}
 
 function environmentIndex(id) {
   return id === "jewelry" ? 1 : id === "contrast" ? 2 : id === "hearts" ? 3 : 0;
@@ -521,7 +509,7 @@ function createRenderer(canvas, onError) {
           gl.activeTexture(gl.TEXTURE0 + unit);
           gl.bindTexture(gl.TEXTURE_2D, texture);
         });
-        const frame = cameraFrame(camera);
+        const frame = opticsCameraFrame(camera);
         let meshFraming;
         if (geometry.mesh) {
           const inspector = focusOffset ? canvas.parentElement?.parentElement?.querySelector(".optics-inspector") : null;
@@ -694,10 +682,6 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
           dragRef.current = {
             x: event.clientX,
             y: event.clientY,
-            yaw: cameraRef.current.yaw,
-            elevation: cameraRef.current.elevation,
-            panX: cameraRef.current.panX,
-            panY: cameraRef.current.panY,
             pan: event.shiftKey,
           };
         }}
@@ -706,12 +690,13 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
           if (!drag) return;
           const dx = event.clientX - drag.x;
           const dy = event.clientY - drag.y;
+          drag.x = event.clientX;
+          drag.y = event.clientY;
           if (drag.pan) {
-            cameraRef.current.panX = drag.panX + dx * 0.002;
-            cameraRef.current.panY = drag.panY - dy * 0.002;
+            cameraRef.current.panX += dx * 0.002;
+            cameraRef.current.panY -= dy * 0.002;
           } else {
-            cameraRef.current.yaw = drag.yaw + dx * 0.008;
-            cameraRef.current.elevation = drag.elevation + dy * 0.008;
+            Object.assign(cameraRef.current, opticsOrbitAfterInput(cameraRef.current, dx * 0.008, dy * 0.008));
             previousViewRef.current = "perspective";
             onViewModeChange?.("perspective");
           }
@@ -734,10 +719,9 @@ export function OpticsViewport({ polyhedron, settings, viewMode = "perspective",
             event.preventDefault();
             cancelAnimationFrame(transitionRef.current);
             transitionRef.current = 0;
-            if (event.key === "ArrowLeft") cameraRef.current.yaw -= 0.08;
-            if (event.key === "ArrowRight") cameraRef.current.yaw += 0.08;
-            const elevationDelta = event.key === "ArrowUp" ? -0.06 : event.key === "ArrowDown" ? 0.06 : 0;
-            cameraRef.current.elevation += elevationDelta;
+            const horizontal = event.key === "ArrowLeft" ? -0.08 : event.key === "ArrowRight" ? 0.08 : 0;
+            const vertical = event.key === "ArrowUp" ? -0.06 : event.key === "ArrowDown" ? 0.06 : 0;
+            Object.assign(cameraRef.current, opticsOrbitAfterInput(cameraRef.current, horizontal, vertical));
             previousViewRef.current = "perspective";
             onViewModeChange?.("perspective");
             drawRef.current();

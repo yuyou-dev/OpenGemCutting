@@ -289,7 +289,6 @@
   "项目保存与旧备份": "Project saving and legacy backups",
   "已提交的切割与材质自动写入当前项目。旧版备份一次性迁入主页，不再新增或更新；手动恢复会替换当前项目并自动保存，可一步撤销，原备份不变。未保存 CUT、相机和旧撤销历史不跨刷新恢复。同一项目在多个窗口编辑时后保存的一方会收到冲突提示，自动保存暂停，可重新载入最新版本、另存为新项目或导出 JSON，不会互相覆盖。": "Committed cuts and material save to the current project. Legacy backups migrate once to home and are no longer updated. Manual recovery replaces and saves the current design, can be undone once, and leaves the backup intact. Drafts, camera and old history do not survive reload. Concurrent windows detect save conflicts and pause autosave; reload, save as a new project or export JSON to resolve them.",
   "方便的快捷操作": "Useful shortcuts",
-  "拖拽旋转，Shift + 拖拽平移，滚轮缩放，0 复位；J / Shift+J 前后浏览候选，M 锁 A，B 锁第二点，V 切换顶点拾取。数值框里优先进行文字编辑。": "Drag to rotate, Shift-drag to pan, scroll to zoom, 0 to reset. J / Shift+J browse candidates, M locks A, B locks the second point, V toggles vertex picking. Text editing takes priority in input fields.",
   "需要说明时": "When you need an explanation",
   "更多工具 → 帮助中心。Escape 关闭帮助或当前浮层；帮助本身不改变设计。若项目保存失败，请重试、导出 JSON 留住设计，或点“管理本地项目”回主页删除不再需要的项目释放空间，不要忽略失败提示。删除项目或清理浏览器数据前先归档。": "More tools → Help center. Escape closes help or the active menu without changing the design. If saving fails, retry, export JSON or use Manage local projects to delete unneeded projects and free space. Archive before deleting projects or clearing browser data.",
   "完成一次设计，而不只是完成一组点击": "Complete a design, not just a sequence of clicks",
@@ -981,7 +980,6 @@
   "退出助手回到编辑": "Exit the assistant to edit",
   "点顶部右侧粉色“退出助手”或按 Escape，回到进入前的编辑现场；未保存的草稿原样保留。想复盘某个会合关系时，改用更多工具里的“逐层试切助理”。": "Use the pink Exit assistant button or Escape to restore the previous workspace, including unsaved drafts. Use More tools → Stage inspector to review Meet sources.",
   "拖拽 / 方向键": "Drag / arrow keys",
-  "旋转宝石，查看背面的刻面关系": "Rotate to inspect facets on the far side",
   "Shift + 拖拽": "Shift + drag",
   "平移画布，把要看的细节移到中间": "Pan to center the detail you want to inspect",
   "滚轮 / + / -": "Scroll / + / -",
@@ -1510,5 +1508,7 @@
   "Trapeze 梯形": "Trapeze",
   "Triangle 三角形": "Triangle",
   "选择工作语言": "Choose your working language",
-  "顶栏语言按钮可选择跟随系统、简体中文或 English。切换立即生效并在此站点记住，不保存或放弃当前切割，也不改项目与图层名称；帮助下载与 PDF 报告跟随所选语言。": "Use the language selector in the top bar to follow the system, use Simplified Chinese, or use English. The choice takes effect immediately and is remembered for this site. It neither saves nor discards the current cut, and preserves project and tier names. Help downloads and PDF reports follow the selected language."
+  "顶栏语言按钮可选择跟随系统、简体中文或 English。切换立即生效并在此站点记住，不保存或放弃当前切割，也不改项目与图层名称；帮助下载与 PDF 报告跟随所选语言。": "Use the language selector in the top bar to follow the system, use Simplified Chinese, or use English. The choice takes effect immediately and is remembered for this site. It neither saves nor discards the current cut, and preserves project and tier names. Help downloads and PDF reports follow the selected language.",
+  "朝拖动方向转动宝石面前的一侧，查看背面的刻面关系；编辑与光学仿真保持一致": "Turn the near side of the gem in the drag direction to inspect hidden facets. Edit and Optical simulation use the same directions.",
+  "拖拽或方向键让宝石面前的一侧朝输入方向转动；编辑与光学仿真保持一致。Shift + 拖拽平移，滚轮缩放，0 复位。J / Shift+J 浏览候选，M 锁 A，B 锁第二点，V 切换顶点拾取；数值框优先编辑文字。": "Drag or use arrow keys to turn the near side of the gem in the input direction, consistently in Edit and Optical simulation. Shift-drag pans, scroll zooms, 0 resets. J / Shift+J browse candidates, M locks A, B locks a second point, V toggles vertex picking. Text fields prioritize typing."
 }

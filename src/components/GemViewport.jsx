@@ -19,6 +19,7 @@ import { getMeshBoundaryEdges } from "../domain/meshDisplay.js";
 import { getMeshBvh, raycastMesh, intersectMeshSegment, isPointInsideMesh } from "../domain/meshRaycast.js";
 import { clamp } from "../utils/format.js";
 import { advanceViewportCamera, createViewportFrames, cuttingCameraPose, startCameraTransition } from "./viewportFrames.js";
+import { editorOrbitAfterInput } from "./viewportOrbit.js";
 import "./GemViewport.css";
 
 const VIEW_POSES = {
@@ -2029,6 +2030,14 @@ function isStockGeometry(polyhedron, geometry) {
 function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewModeRef, interactionRef, invalidate) {
   let activePointer = null;
   let gizmoDrag = null;
+  const rotateOrbit = (horizontal, vertical) => {
+    const camera = cameraRef.current;
+    const next = editorOrbitAfterInput({ yaw: camera.targetYaw, pitch: camera.targetPitch }, horizontal, vertical);
+    const changed = next.yaw !== camera.targetYaw || next.pitch !== camera.targetPitch;
+    camera.targetYaw = next.yaw;
+    camera.targetPitch = next.pitch;
+    return changed;
+  };
 
   const canvasPoint = (event) => {
     const rect = canvas.getBoundingClientRect();
@@ -2205,9 +2214,8 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
         camera.targetPanX += movedX;
         camera.targetPanY += movedY;
       } else {
-        camera.targetYaw += movedX * 0.008;
-        camera.targetPitch = clamp(camera.targetPitch + movedY * 0.008, -1.48, 1.48);
-        if (sceneRef.current.viewMode !== "perspective") {
+        const rotated = rotateOrbit(movedX * 0.008, movedY * 0.008);
+        if (rotated && sceneRef.current.viewMode !== "perspective") {
           requestViewModeRef.current?.("perspective", true);
         }
       }
@@ -2294,19 +2302,19 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
     switch (event.key) {
       case "ArrowLeft":
         if (isPan) camera.targetPanX -= 14;
-        else { camera.targetYaw -= 0.12; changesOrbit = true; }
+        else { changesOrbit = rotateOrbit(-0.12, 0); }
         break;
       case "ArrowRight":
         if (isPan) camera.targetPanX += 14;
-        else { camera.targetYaw += 0.12; changesOrbit = true; }
+        else { changesOrbit = rotateOrbit(0.12, 0); }
         break;
       case "ArrowUp":
         if (isPan) camera.targetPanY -= 14;
-        else { camera.targetPitch = clamp(camera.targetPitch - 0.1, -1.48, 1.48); changesOrbit = true; }
+        else { changesOrbit = rotateOrbit(0, -0.1); }
         break;
       case "ArrowDown":
         if (isPan) camera.targetPanY += 14;
-        else { camera.targetPitch = clamp(camera.targetPitch + 0.1, -1.48, 1.48); changesOrbit = true; }
+        else { changesOrbit = rotateOrbit(0, 0.1); }
         break;
       case "+":
       case "=":
