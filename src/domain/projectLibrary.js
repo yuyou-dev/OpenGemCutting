@@ -2,6 +2,7 @@ import { importFacetingJSON } from "./faceting.js";
 import { createLocalRecoveryStore } from "./localRecovery.js";
 
 const PREFIX = "facet96:project:v1:";
+const STARTED_KEY = "facet96:projects-started:v1";
 const MIGRATED_PREFIX = "facet96:project-migration:v1:";
 const legacyProjectId = (id) => `legacy-${encodeURIComponent(id)}`;
 
@@ -76,9 +77,30 @@ export function createProjectStore(storage, { locks } = {}) {
       }
       return { records: records.sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id)), unreadableCount };
     },
+    needsStarterProjects() {
+      if (storage.getItem(STARTED_KEY)) return false;
+      const listing = this.list();
+      if (listing.records.length || listing.unreadableCount) {
+        storage.setItem(STARTED_KEY, "1");
+        return false;
+      }
+      return true;
+    },
+    seedStarterProjects(documents) {
+      // Recheck after loading presets: another tab or a manual creation may have won.
+      if (!this.needsStarterProjects()) return;
+      const now = Date.now();
+      documents.forEach((document, index) => write({
+        id: `starter-${index + 1}`, createdAt: now, updatedAt: now - index,
+        revision: 1, document,
+      }));
+      storage.setItem(STARTED_KEY, "1");
+    },
     create(document, { id = crypto.randomUUID(), now = Date.now() } = {}) {
       if (storage.getItem(`${PREFIX}${id}`) !== null) throw new Error("项目已存在，请打开原项目。");
-      return write({ id, createdAt: now, updatedAt: now, revision: 1, document });
+      const record = write({ id, createdAt: now, updatedAt: now, revision: 1, document });
+      storage.setItem(STARTED_KEY, "1");
+      return record;
     },
     save(id, document, options = {}) {
       const { expectedRevision, updatedAt = Date.now() } = typeof options === "number" ? { updatedAt: options } : options;
@@ -99,6 +121,7 @@ export function createProjectStore(storage, { locks } = {}) {
     },
     remove(id) {
       return withWriteLock(id, () => {
+        storage.setItem(STARTED_KEY, "1");
         // The marker survives deletion, including a previously interrupted migration.
         if (id.startsWith("legacy-")) storage.setItem(`${MIGRATED_PREFIX}${id}`, "1");
         storage.removeItem(`${PREFIX}${id}`);

@@ -26,10 +26,10 @@ import { safeFileStem } from "./utils/format.js";
 export function App() {
   useLocale();
   useDismissFloatingMenus();
-  const projects = useProjects();
   const designControllerRef = useRef(null);
   const designLibrary = useRef(null);
   designLibrary.current ??= createPresetLibrary([createStaticPresetProvider({ publicBase: import.meta.env.BASE_URL })]);
+  const projects = useProjects(designLibrary.current);
   const liveApp = useRef(null);
   const [page, setPage] = useState("home");
   const [active, setActive] = useState(null);

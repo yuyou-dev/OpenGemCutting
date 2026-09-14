@@ -274,7 +274,7 @@ server.setRequestHandler(GetPromptRequestSchema, async ({ params }) => {
         role: 'user',
         content: {
           type: 'text',
-          text: `设计目标：${params.arguments?.intent ?? ''}\n先读 facet://guide 和 facet://skill。发现并绑定工作台，读取当前项目与 revision。先建立独立参考记录；规划真实 CUT，检查各视图与连接，再提交保存。新 CUT 至少形成一个有效面；明确记录推断、偏差和待设计师判断项。`,
+          text: `设计目标：${params.arguments?.intent ?? ''}\n按需读取 facet://guide 和 facet://skill，复用同版本已读资源与已验证连接，读取当前项目与最新 revision。按 Skill 的任务分支执行：普通参数修改检查实际变化后提交保存；参考图还原才建立独立参考记录并检查投影与连接。已授权的普通有效修改不追加审批，整体消面确认与手动草稿保护仍须遵守。新 CUT 至少形成一个有效面；明确记录推断、偏差和待设计师判断项。`,
         },
       },
     ],

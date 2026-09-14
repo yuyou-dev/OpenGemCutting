@@ -21,6 +21,8 @@ Codex 使用 `node setup/cli.mjs install` 完整配置；`mcp/register-codex.mjs
 
 ## 一次完整创作
 
+以下是新建并留档的完整示例，不是每次操作的必经步骤。已有连接可复用；查看和导出只执行相应工具，参数修改只规划、核实受影响结果并提交保存。参考还原的详细方法按需读取 `facet://reference/reference-workflow`。
+
 1. 调用 `workbench_open`，在 Codex 内置浏览器打开返回的完整链接。此链接只连接本机，并携带临时连接凭据，勿对外分享。通过 `design_read` 读到对应网页后再宣布“已连接，可以直接提出设计需求”；普通 dev 页面或仅 HTTP 成功不能替代连接验收。
 2. 调用 `workbench_sessions`，选择明确的网页会话；多个页面时根据 `design_read` 的项目识别，不猜测当前标签页。
 3. `design_read` 返回项目、revision、可写状态、图层和保存反馈。主页返回 `projectId: none / revision: home`；使用此作用域调用 `project_create`。
@@ -34,7 +36,7 @@ Codex 使用 `node setup/cli.mjs install` 完整配置；`mcp/register-codex.mjs
 
 ## 参考构造与结果判断
 
-先独立记录图像节点和连接，再构造共享平面。`construction_plane` 提供精确整数分度候选和双点平面检查；`design_topology` 的 beforePatternId 返回该组之前的真实顶点与棱，作为 Meet 来源。修改已有带 Meet 的 CUT 时默认保留并重新求解构造；`meet: {clear: true}` 明确解除，不能伪造来源或用最近坐标替代。
+参考图还原时，先独立记录图像节点和连接，再构造共享平面。`construction_plane` 提供精确整数分度候选和双点平面检查；`design_topology` 的 beforePatternId 返回该组之前的真实顶点与棱，作为 Meet 来源。修改已有带 Meet 的 CUT 时默认保留并重新求解构造；`meet: {clear: true}` 明确解除，不能伪造来源或用最近坐标替代。
 
 `design_inspect` 的有效面数是最终逻辑 CUT 平面数；原石面片另列。没有独立参考记录时造型状态为未评估。图片渲染来自真实实体，但不代表实际光学收益、切磨保证或审美通过。
 

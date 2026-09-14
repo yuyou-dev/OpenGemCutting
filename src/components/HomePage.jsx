@@ -5,7 +5,7 @@ import { LanguageSelector } from './LanguageSelector.jsx';
 import { APP_VERSION } from "../version.js";
 import { RenderBoundary } from "./RenderBoundary.jsx";
 import { memo, useMemo, useState } from "react";
-import { IconArrowRight, IconDots, IconFlask, IconPlus, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
+import { IconArrowRight, IconChevronDown, IconChevronUp, IconDots, IconFlask, IconPlus, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
 import { buildConstructionStages } from "../domain/constructionHistory.js";
 import { createStockSolid } from "../domain/stockGeometry.js";
 import { RepositoryLink } from "./RepositoryLink.jsx";
@@ -24,6 +24,7 @@ const ProjectCard = memo(function ProjectCard({ project, active, onOpen, onDelet
         <div className="project-card-drawing">
           <TechnicalPreview solid={solid} view="isometric" className="project-card-preview" label={t("{0}的轴测预览", [project.document.name])} />
           <span className="project-card-view">45° / AXON</span>
+          {project.id.startsWith("starter-") && <span className="project-card-starter">{t("预制")}</span>}
           {active && <span className="project-card-current">{t("当前项目")}</span>}
         </div>
         <div className="project-card-caption">
@@ -41,8 +42,10 @@ const ProjectCard = memo(function ProjectCard({ project, active, onOpen, onDelet
 
 export function HomePage({ projects, activeProjectId, onOpenProject, onNewProject, onDeleteProject, onOpenLab, onResume, error, onRetry, onOpenHelp }) {
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   const matchingProjects = projects.filter((project) => words.every((word) => project.document.name.toLocaleLowerCase().includes(word)));
+  const visibleProjects = showAll || words.length ? matchingProjects : matchingProjects.slice(0, 3);
   const activeProject = projects.find((project) => project.id === activeProjectId);
   return (
     <main className="workspace-home">
@@ -75,22 +78,25 @@ export function HomePage({ projects, activeProjectId, onOpenProject, onNewProjec
           <div className="home-projects-actions">
             <button type="button" className="workspace-page-button" onClick={onOpenLab}><IconFlask size={16} stroke={1.6} />{t("光学实验室")}</button>
             {activeProject && <button type="button" className="workspace-page-button home-resume" onClick={onResume}>{t("继续当前设计")}<IconArrowRight size={15} stroke={1.6} /></button>}
-            <button type="button" className="workspace-page-button is-create" onClick={onNewProject}><IconPlus size={17} stroke={1.8} />{t("新建项目")}</button>
+            {projects.length > 3 && !words.length && <button type="button" className="workspace-page-button home-show-all" aria-expanded={showAll} aria-controls="home-project-list" onClick={() => setShowAll((value) => !value)}>{showAll ? t("收起") : t("全部")}{showAll ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}</button>}
           </div>
         </div>
         {error && <div className="workspace-page-error" role="alert"><span>{t(error)}</span><button type="button" onClick={onRetry}>{t("重试")}</button></div>}
-        {projects.length === 0 ? (
-          <div className="home-empty">
-            <span className="home-empty-index" aria-hidden="true">01</span>
-            <h3>{t("开始你的第一个切型")}</h3>
-            <p>{t("新建项目进入工作台，或在工作台的文件菜单中导入已有设计。")}</p>
-            <button type="button" className="workspace-page-button is-create" onClick={onNewProject}><IconPlus size={17} />{t("新建项目")}</button>
+        <div className="home-project-grid" style={{ "--project-columns": Math.max(1, Math.min(3, visibleProjects.length)) }}>
+          <button type="button" className="home-create-card" onClick={onNewProject}>
+            <span className="home-create-icon"><IconPlus size={26} stroke={1.6} aria-hidden="true" /></span>
+            <strong>{t("新建项目")}</strong>
+            <span>{t("从新的切型开始")}</span>
+          </button>
+          <div id="home-project-list" className="home-saved-projects">
+            {visibleProjects.map((project) => <RenderBoundary key={project.id} fallback={<div className="project-card render-recovery"><h3>{project.document.name}</h3><p>{t("预览暂不可用，设计仍保留。")}</p><button onClick={() => onOpenProject(project.id)}>{t("打开设计")}</button></div>}><ProjectCard project={project} active={project.id === activeProjectId} onOpen={onOpenProject} onDelete={onDeleteProject} /></RenderBoundary>)}
+            {matchingProjects.length === 0 && <div className="home-empty">
+              <h3>{words.length ? t("没有找到匹配的项目") : t("开始你的下一个切型")}</h3>
+              <p>{words.length ? t("试试其他名称，或清除搜索查看全部项目。") : t("点击左侧新建项目，开始新的设计。")}</p>
+              {words.length > 0 && <button type="button" className="workspace-page-button" onClick={() => setQuery("")}>{t("清除搜索")}</button>}
+            </div>}
           </div>
-        ) : matchingProjects.length === 0 ? (
-          <div className="home-empty home-search-empty"><h3>{t("没有找到匹配的项目")}</h3><p>{t("试试其他名称，或清除搜索查看全部项目。")}</p><button type="button" className="workspace-page-button" onClick={() => setQuery("")}>{t("清除搜索")}</button></div>
-        ) : (
-          <div className="home-project-grid">{matchingProjects.map((project) => <RenderBoundary key={project.id} fallback={<div className="project-card render-recovery"><h3>{project.document.name}</h3><p>{t("预览暂不可用，设计仍保留。")}</p><button onClick={() => onOpenProject(project.id)}>{t("打开设计")}</button></div>}><ProjectCard project={project} active={project.id === activeProjectId} onOpen={onOpenProject} onDelete={onDeleteProject} /></RenderBoundary>)}</div>
-        )}
+        </div>
         <p className="home-storage-note">{t("项目保存在此浏览器。重要设计请在文件菜单中导出 JSON 留存。")}</p>
       </section>
     </main>

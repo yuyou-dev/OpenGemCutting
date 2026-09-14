@@ -1,6 +1,6 @@
 # 本项目构建入口与实测陷阱
 
-从仓库根目录运行领域脚本。生成器使用 `src/domain/faceting.js` 的 `resolveFacetPattern`、`createFacetingDocument`、`exportFacetingJSON` 和 `importFacetingJSON`；工序与来源诊断使用 `buildConstructionStages`；目标枚举与求解使用 `meetJump.js`；实际正交投影使用 `technicalPreviewSvg`。先查当前导出与签名，勿猜 API。数学脚本不依赖 React／DOM。
+仅供明确要求的离线工程诊断或相关源码维护；普通对话设计使用正式 MCP 能力，不要求读取本页或运行领域脚本。离线诊断从仓库根目录运行。生成器使用 `src/domain/faceting.js` 的 `resolveFacetPattern`、`createFacetingDocument`、`exportFacetingJSON` 和 `importFacetingJSON`；工序与来源诊断使用 `buildConstructionStages`；目标枚举与求解使用 `meetJump.js`；实际正交投影使用 `technicalPreviewSvg`。先查当前导出与签名，勿猜 API。数学脚本不依赖 React／DOM。
 
 - `repeat` 是旋转重复。`mirror` 是相对主面偏移的反射轴族，不是绝对轴角。X 反射对应轴 index 24 模 48，单组镜像偏移 `(24-baseIndex) mod 48`。用 `generateFacetIndices` 验证结果，不靠口诀。
 - 同角同深不是合组的充分条件：还须同设计用途、完整可生成的索引集合、兼容来源与工序顺序。若多种表达等价，优先最大真实旋转次数及更简单的镜像表达。

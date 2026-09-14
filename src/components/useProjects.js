@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createProjectStore } from "../domain/projectLibrary.js";
 
-export function useProjects() {
+import { loadStarterProjects } from "../application/starterProjects.js";
+
+export function useProjects(library) {
+  const refreshRef = useRef(null);
   const storeRef = useRef(null);
   const [listing, setListing] = useState({ records: [], unreadableCount: 0, error: "" });
   const getStore = useCallback(() => {
@@ -10,20 +13,28 @@ export function useProjects() {
   }, []);
 
   const refresh = useCallback(() => {
-    try {
-      const store = getStore();
-      let legacyUnreadable = 0;
-      let error = "";
-      try { legacyUnreadable = store.migrateLegacy().unreadableCount; }
-      catch { error = "旧设计迁移未完成，请重试；原有本地备份仍保留。"; }
-      const next = store.list();
-      setListing({ ...next, unreadableCount: next.unreadableCount + legacyUnreadable, error });
-      return !error;
-    } catch {
-      setListing((current) => ({ ...current, error: "无法读取或迁移本地项目，请重试；原有设计仍保留在浏览器中。" }));
-      return false;
-    }
-  }, [getStore]);
+    if (refreshRef.current) return refreshRef.current;
+    refreshRef.current = (async () => {
+      try {
+        const store = getStore();
+        let legacyUnreadable = 0;
+        let error = "";
+        try { legacyUnreadable = store.migrateLegacy().unreadableCount; }
+        catch { error = "旧设计迁移未完成，请重试；原有本地备份仍保留。"; }
+        if (!error && !legacyUnreadable && store.needsStarterProjects()) {
+          try { store.seedStarterProjects(await loadStarterProjects(library)); }
+          catch { error = "初始切型项目准备失败，请重试；仍可新建自己的项目。"; }
+        }
+        const next = store.list();
+        setListing({ ...next, unreadableCount: next.unreadableCount + legacyUnreadable, error });
+        return !error;
+      } catch {
+        setListing((current) => ({ ...current, error: "无法读取或迁移本地项目，请重试；原有设计仍保留在浏览器中。" }));
+        return false;
+      }
+    })().finally(() => { refreshRef.current = null; });
+    return refreshRef.current;
+  }, [getStore, library]);
 
   useEffect(() => {
     refresh();

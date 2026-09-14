@@ -334,3 +334,44 @@ test("a near-simultaneous cross-tab save loses the race instead of silently over
   );
   assert.equal(secondTab.read("race").document.name, "A 先写");
 });
+
+test("starter projects initialize once and never return after deletion", () => {
+  const storage = memoryStorage();
+  const store = createProjectStore(storage);
+  const documents = [createWorkbenchDocument("Cushion"), createWorkbenchDocument("Emerald")];
+  assert.equal(store.needsStarterProjects(), true);
+  store.seedStarterProjects(documents);
+  assert.equal(store.list().records.length, 2);
+  store.seedStarterProjects(documents);
+  assert.equal(store.list().records.length, 2);
+  for (const record of store.list().records) store.remove(record.id);
+  const reopened = createProjectStore(storage);
+  reopened.seedStarterProjects(documents);
+  assert.equal(reopened.list().records.length, 0);
+});
+
+test("existing, unreadable and newly created projects prevent starter insertion", () => {
+  for (const kind of ["existing", "unreadable", "created-during-load"]) {
+    const storage = memoryStorage();
+    const store = createProjectStore(storage);
+    if (kind === "created-during-load") assert.equal(store.needsStarterProjects(), true);
+    if (kind === "unreadable") storage.setItem("facet96:project:v1:broken", "{");
+    else store.create(createWorkbenchDocument("Mine"));
+    store.seedStarterProjects([createWorkbenchDocument("Example")]);
+    const listing = store.list();
+    assert.equal(listing.records.length + listing.unreadableCount, 1);
+    assert.equal(store.needsStarterProjects(), false);
+  }
+});
+
+test("starter load failure can retry without creating placeholders", () => {
+  const storage = memoryStorage();
+  const store = createProjectStore(storage);
+  const setItem = storage.setItem;
+  storage.setItem = () => { throw new Error("quota"); };
+  assert.throws(() => store.seedStarterProjects([createWorkbenchDocument("Example")]), /quota/);
+  storage.setItem = setItem;
+  assert.equal(store.needsStarterProjects(), true);
+  store.seedStarterProjects([createWorkbenchDocument("Example")]);
+  assert.equal(store.list().records.length, 1);
+});

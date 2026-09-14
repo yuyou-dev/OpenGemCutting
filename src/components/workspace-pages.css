@@ -39,7 +39,16 @@
 .workspace-page-button.is-create:hover { border-color: var(--create); background: #e6f4eb; }
 .home-resume { color: var(--pink); border-color: #ebbdcb; }
 .home-resume:hover { border-color: var(--pink); background: var(--pink-soft); }
-.home-project-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; margin-top: 24px; }
+.home-project-grid { display: grid; grid-template-columns: repeat(calc(var(--project-columns) + 1), minmax(0, 1fr)); align-items: start; gap: 22px; margin-top: 24px; }
+.home-saved-projects { grid-column: span var(--project-columns); display: grid; grid-template-columns: repeat(var(--project-columns), minmax(0, 1fr)); gap: 22px; direction: rtl; }
+.home-saved-projects > * { direction: ltr; }
+.home-create-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 251px; padding: 24px 12px; border: 1px dashed var(--create-border); border-radius: 4px; background: var(--create-soft); color: var(--create); cursor: pointer; }
+.home-create-card:hover { border-color: var(--create); background: #e6f4eb; }
+.home-create-icon { display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid var(--create-border); border-radius: 8px; background: #fff; }
+.home-create-card strong { font-size: 14px; font-weight: 600; }
+.home-create-card > span:last-child { color: #596e60; font-size: 11px; }
+.home-create-card:focus-visible, .project-card-open:focus-visible { outline: 2px solid var(--create); outline-offset: -4px; }
+.home-saved-projects .home-empty { margin: 0; min-height: 251px; }
 .project-card { position: relative; display: block; min-width: 0; padding: 0; text-align: left; background: #fff; border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
 .project-card:hover { border-color: #5c665e; }
 .project-card.is-current { border-color: #929b93; }
@@ -50,6 +59,7 @@
 .project-card-preview { display: block; width: 100%; height: 100%; }
 .project-card-preview svg, .project-card-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .project-card-view { position: absolute; left: 12px; bottom: 10px; font: 9px var(--mono); letter-spacing: .05em; color: #838880; }
+.project-card-starter { position: absolute; right: 12px; bottom: 9px; padding: 2px 6px; border: 1px solid #e0e4de; border-radius: 3px; background: #f6f8f4; color: #66735f; font-size: 10px; line-height: 1.4; }
 .project-card-current { position: absolute; top: 10px; right: 10px; padding: 3px 6px; border: 1px solid #d1d7d1; border-radius: 2px; background: #f4f6f2; color: #515e52; font-size: 10px; }
 .project-card-caption { display: grid; grid-template-columns: minmax(0, 1fr) 16px; align-items: center; gap: 7px 12px; padding: 13px 14px; }
 .project-card-caption strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
@@ -82,12 +92,13 @@
 .lab-empty-copy h1 { margin: 13px 0 9px; font-size: 23px; font-weight: 500; }
 .lab-empty-copy p { color: var(--muted); font-size: 12px; }
 @media (max-width: 1280px) {
-  .home-project-grid { gap: 18px; }
+  .home-project-grid, .home-saved-projects { gap: 18px; }
+  .home-create-card { min-height: 231px; }
   .project-card-drawing { height: 164px; padding-inline: 16px; }
   .lab-layout { grid-template-columns: 230px minmax(0, 1fr) 250px; }
 }
 @media (max-width: 1080px) {
-  .home-project-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
   .home-projects { width: calc(100% - 64px); }
   .home-introduction { padding-top: 32px; padding-bottom: 32px; }
   .lab-layout { grid-template-columns: 180px minmax(0, 1fr) 210px; }
@@ -101,7 +112,10 @@
   .home-projects { width: calc(100% - 32px); }
   .home-projects-heading { align-items: flex-start; }
   .home-projects-actions { flex-wrap: wrap; }
-  .home-project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .home-project-grid { grid-template-columns: 1fr; gap: 12px; }
+  .home-saved-projects { grid-column: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .home-create-card { min-height: 150px; }
+  .home-topbar { flex-wrap: wrap; }
   .home-title-line h1 { font-size: 26px; }
   .project-card-drawing { height: 150px; }
   .lab-topbar { grid-template-columns: 1fr auto; }
@@ -110,7 +124,7 @@
   .lab-layout { grid-template-columns: 24px minmax(0, 1fr) 24px; min-height: calc(100dvh - 108px); }
 }
 @media (max-width: 440px) {
-  .home-project-grid { grid-template-columns: 1fr; }
+  .home-saved-projects { grid-template-columns: 1fr; }
   .project-card-drawing { height: 190px; }
 }
 @media (prefers-reduced-motion: reduce) { .home-brand-logo { animation: none; } }
