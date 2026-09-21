@@ -46,3 +46,18 @@ Codex 应用及账号登录由使用者准备；首次注册或更新后，客�
 本次回应 [issue #1](https://github.com/yuyou-dev/OpenGemCutting/issues/1) 的旋转建议。发布状态以 [v1.1.1 Release](https://github.com/yuyou-dev/OpenGemCutting/releases/tag/v1.1.1) 和对应 Actions 为准；v1.1.0 条目中的“仍待核验”属于该版历史状态。
 
 v1.1.1 发布前完整 `npm run check:mcp` 通过 339 项，公开敏感信息扫描通过，网页与 MCP 依赖审计均为 0 已知漏洞；标准构建与 Pages 子路径构建分别保留。
+
+## 光学 WebGPU / WebGL2 回归
+
+设计目标是在旋转宝石、比较体色和灯光时减少等待，同时保持原有切型、观察位置与光学模型。WebGPU 实现使用懒加载的 `vgpu@0.5.0`；不支持或设备中断时回到 WebGL2。该后端变更本身不提高物理真实性，也不改变既有光学参数的单位或解释。
+
+工程验证：运行 `npm run check` 和 `npm run build:pages`。异步初始化、延迟卸载、重复失败及最新状态回放由 `opticsAsyncRenderer.test.js` 覆盖；单帧提交、输入合并、空闲停止及失败由 `opticsWebgpuScheduler.test.js` 覆盖。现有 WebGL2 上下文恢复回归保留。
+
+浏览器复跑入口：
+
+1. `npm run dev`，使用命令输出的本机地址。新建默认切型，再从画布左上进入“光学仿真”。用相同项目、窗口尺寸、材质、观察位、缩放和灯光条件比较默认后端与 URL 查询参数 `?opticsBackend=webgl2` 强制回退。`canvas[data-testid="optics-webgl-canvas"]` 保留原测试标识，实际后端由 `data-backend` 区分。
+2. 比较钻石和蓝色蓝宝石，在柔光摄影棚及八心八箭环境下检查边缘、体色、高光与背景；包括默认凸体、A 形贯穿孔、蝴蝶结凹体及分离组件网格。两个后端都应保留相同的孔、凹槽及全部实体。
+3. 旋转、Shift 平移、滚轮缩放、键盘方向与复位；修改材质和视图、折叠检查器、退出再进入仿真。静止后确认不持续提交 GPU 工作。
+4. 在浏览器测试工具中模拟 WebGPU 不可用、adapter 拒绝、device lost 和初始化中卸载。回退必须重绘最新实体、保留观察条件，且新 canvas 仍可操作；继续模拟 WebGL2 context lost/restored。退出后不能有后台绘制或错误回调。
+
+GPU 性能应在相同输出像素、采样和相机轨迹下依次测量两个后端，用各 API 的 GPU timer 分离渲染时间与 JavaScript/同步开销。两后端共享 GPU 的并排拖动不构成性能基准；完成帧间隔不等于屏幕呈现 FPS。首次加载的下载、模块解析、管线编译和驱动缓存需单独记录。一次性数据、截图和机器信息放在 PR 验证说明与忽略的 `tmp/`，不把单机测试写成所有浏览器的性能保证。
