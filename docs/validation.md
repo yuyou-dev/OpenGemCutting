@@ -59,6 +59,8 @@ v1.1.1 发布前完整 `npm run check:mcp` 通过 339 项，公开敏感信息�
 
 维护者已完成私有主线验收并授权发布到 main、创建 v1.3.0 Release 与更新线上演示。带旋向设计的方向由维护者在 Gem Cut Studio 1.1 中实机核对（格式中心转换的 GCS 与其自带的 ASC 导入分度、渲染一致）。本机工程验证：`npm ci`、`npm ci --prefix mcp`、`npm audit` 与 MCP 依赖审计 0 已知漏洞；`npm run check:mcp` 通过（核心 485 项通过，3 项依赖未公开旧实验室交付包的升级回归按设计跳过；Companion 14、设计接口 10、Sites 4、MCP 5），公开敏感信息扫描通过 1786 个文本文件。Pages 子路径构建在系统 Chrome 实测：版本 1.3.0、中英手册可下载，格式中心读取 GCS 实际存档、无台面 ASC 与 GemCAD `.gem` 并给出各去向结果，`.gem` 在工作台打开为 73 个有效面，无控制台错误或资源 404。
 
+线上发布：PR #7 的 GitHub CI 7 项通过并合并，标签与 v1.3.0 Release 已发布，Pages 部署成功。线上演示实测显示 1.3.0，格式中心读取 GCS 实际存档、无台面 ASC 与 GemCAD `.gem` 的各去向结果与本地一致，`.gem` 在工作台打开为 73 个有效面，无控制台错误或资源 404；中英 PDF 手册与发布文件逐字节一致。
+
 未验证：Gem Cut Studio 1.1 以外版本、Windows 版 GemCAD 直接打开导出的 ASC、Windows 实机、Safari／Firefox、触屏真机。
 
 ## 光学 WebGPU / WebGL2 回归
