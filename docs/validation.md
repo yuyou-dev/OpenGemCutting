@@ -51,6 +51,8 @@ v1.1.1 发布前完整 `npm run check:mcp` 通过 339 项，公开敏感信息�
 
 维护者已完成私有主线验收并授权发布到 main、创建 v1.2.0 Release 与更新线上演示。本机工程验证：`npm ci`、`npm ci --prefix mcp`、`npm audit` 与 MCP 依赖审计 0 已知漏洞；`npm run check:mcp` 通过（核心 440 项通过，3 项依赖未公开旧实验室交付包的升级回归按设计跳过；Companion 14、设计接口 10、Sites 4、MCP 5），公开敏感信息扫描通过。Pages 子路径构建在系统 Chrome 实测：光学全抛光／按设计表面切换、上下文丢失与恢复、退出重入、390px 窄屏、PDF 导出（含磨砂标注）与图案实验室新建实验均无错误或资源 404。
 
+发布状态：[PR #5](https://github.com/yuyou-dev/OpenGemCutting/pull/5) CI 7 项通过后于 2026-09-25 合入 main（`6c04cf0`），标签与 [v1.2.0 Release](https://github.com/yuyou-dev/OpenGemCutting/releases/tag/v1.2.0) 已发布，Pages 部署成功。线上实测：首页显示 1.2.0；中英手册、字体、实验室模块与 v3 schema 均返回 200，线上中文手册与发布文件逐字节一致；光学全抛光／按设计表面及上下文恢复、PDF 导出（含磨砂标注）与新建实验均无控制台错误或失败请求。
+
 未验证：Windows 实机、Safari／Firefox、触屏真机、在干净目录经 Codex 重新执行 README 安装提示词。磨砂预览是渲染模型，不代表砂目或实物效果；图案实验室专业界面目前为中文。
 
 ## 光学 WebGPU / WebGL2 回归
