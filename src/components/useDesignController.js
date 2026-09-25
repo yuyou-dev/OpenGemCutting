@@ -32,6 +32,7 @@ import { auditProjection } from '../domain/projectionAudit.js';
 import { inspectTopology } from '../domain/referenceTopology.js';
 import { technicalPreviewSvg } from '../domain/technicalPreview.js';
 import { serializeGemCadAsc } from '../domain/gemcadAsc.js';
+import { inspectProjectSource, planTarget } from '../application/formatCenter.js';
 
 async function renderPng(solid, view) {
   const svg = technicalPreviewSvg(solid, view, {
@@ -258,6 +259,10 @@ export function useDesignController({
         surfaceFinish: args.surfaceFinish ?? 'polished',
       });
       return { projectId, revision, ...(await request.exportArtifact(blob)) };
+    }
+    if (name === 'design_export' && args.format === 'gcs') {
+      const { status, text, diagnostics, report, verified } = planTarget(inspectProjectSource(document), 'gcs');
+      return { projectId, revision, format: 'gcs', status, text, diagnostics, report, verified };
     }
     if (name === 'design_export')
       return {

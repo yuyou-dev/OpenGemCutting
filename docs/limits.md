@@ -8,6 +8,6 @@
 | JSON | 最多 4096 个 CUT 平面；mesh stock 最多 20000 顶点和 20000 面片 |
 | OBJ 初始晶体 | 最多 4000 顶点、1000 源多边形；分解后最多 1000 面片，必须通过闭合、朝向、退化与自交预检 |
 
-JSON 保留初始晶体、完整参数化工序和已提交构造，是继续设计的首选文件。PDF 面向阅读与沟通。ASC 交换最终有效切面，预检会说明信息损失；导入 mesh 晶体项目不能导出 ASC。
+JSON 保留初始晶体、完整参数化工序和已提交构造，是继续设计的首选文件。PDF 面向阅读与沟通。与 GemCAD、Gem Cut Studio 的交换在格式中心进行：只交换最终有效切面，每个去向说明信息损失并读回核对；GemCAD .gem 只读；导入 mesh 晶体或启用凹切的项目不能导出 ASC 或 GCS。
 
-几何、尺寸与来源规则见 [状态契约](architecture/state-contract.md)、[ASC 说明](architecture/gemcad-asc.md) 和 [操作手册](manual/README.md)。
+几何、尺寸与来源规则见 [状态契约](architecture/state-contract.md)、[ASC 说明](architecture/gemcad-asc.md)、[格式中心](architecture/format-center.md) 和 [操作手册](manual/README.md)。

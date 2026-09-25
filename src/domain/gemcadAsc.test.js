@@ -192,7 +192,8 @@ test("serializes 96-tooth explicit planes and imports them back equivalently", a
   const imported = inspectGemCadAsc(await readFile(fixtureUrl, "utf8")).document;
   const exported = serializeGemCadAsc(imported);
   assert.equal(exported.status, "warning");
-  assert.match(exported.text, /^GemCad 5\.0\ng96 0\.0\ny 8 n\nI 1\.54\n/);
+  assert.match(exported.text, /^GemCad 5\.0\r\ng96 0\.0\r\ny 8 n\r\nI 1\.54\r\n/);
+  assert.equal(exported.text.split("\r\n").length, exported.text.split("\n").length, "every line ends in CRLF like GemCad's own files");
   const restored = inspectGemCadAsc(exported.text);
   assert.notEqual(restored.status, "error");
   assert.equal(restored.document.facets.length, imported.facets.length);
@@ -330,7 +331,7 @@ test("exports mixed authored wheels from normals in the selected report wheel", 
   const before = JSON.stringify(document);
   const result = serializeGemCadAsc(document);
   assert.notEqual(result.status, "error");
-  assert.match(result.text, /^GemCad 5\.0\ng360 0\.0/);
+  assert.match(result.text, /^GemCad 5\.0\r\ng360 0\.0/);
   const parsed = parseGemCadAsc(result.text);
   assert.deepEqual(parsed.tiers.find((tier) => tier.angle === 32).indexTokens, ["3.75"]);
   assert.deepEqual(parsed.tiers.find((tier) => tier.angle === -41).indexTokens, ["3"]);
@@ -378,4 +379,60 @@ test("rejects empty exports and reports surviving rough boundaries", () => {
   const partial = serializeGemCadAsc(createFacetingDocument({ facets: resolveFacetPattern({ patternId: "one", region: "crown", repeat: 1, industryAngleDeg: 32, depth: 0.2 }) }));
   assert.equal(partial.status, "warning");
   assert.ok(partial.diagnostics.some((item) => item.code === "ROUGH_STOCK_REMAINS"));
+});
+
+test("wrapped tier lines keep indices, facet names and instructions", () => {
+  const result = inspectGemCadAsc([
+    "GemCad 5.0",
+    "g 96 0.0",
+    "y 1 n",
+    "I 1.54",
+    "a -41.000000 0.50000000 3 9 15",
+    " 21 27 n P1 33 G Cut to",
+    " n P2",
+    "G point",
+    "a 0.000000 0.30000000 96 n T",
+  ].join("\r\n"));
+  assert.equal(result.diagnostics.some((item) => item.severity === "error" || item.code === "UNKNOWN_TIER_TOKEN"), false, JSON.stringify(result.diagnostics));
+  const pavilion = result.document.facets.filter((facet) => facet.region === "pavilion");
+  assert.deepEqual(pavilion.map((facet) => facet.index).sort((a, b) => a - b), [3, 9, 15, 21, 27, 33]);
+  assert.equal(pavilion.find((facet) => facet.index === 27).metadata.asc.facetName, "P1");
+  assert.equal(pavilion.find((facet) => facet.index === 33).metadata.asc.facetName, "P2");
+  assert.equal(pavilion[0].metadata.asc.instructions, "Cut to point");
+});
+
+test("negative and wrapped-around indices describe the same direction with a warning", () => {
+  const result = inspectGemCadAsc(ascFor(96, ["-12", "12", "108"]));
+  assert.ok(result.diagnostics.some((item) => item.code === "INDEX_NORMALIZED"));
+  assert.ok(result.diagnostics.some((item) => item.code === "DUPLICATE_INDEX"));
+  const crown = result.document.facets.filter((facet) => facet.patternId !== "table-facet");
+  assert.deepEqual(crown.map((facet) => facet.index).sort((a, b) => a - b), [12, 84]);
+});
+
+test("a flat pavilion culet exports with a negative distance and imports back as the culet", () => {
+  const source = [
+    "GemCad 5.0", "g 96 0.0", "y 8 n", "I 1.54",
+    "a -41.000000 0.50000000 3 15 27 39 51 63 75 87 n P1",
+    "a 0.000000 -0.60000000 96 n C",
+    "a 42.000000 0.50000000 3 15 27 39 51 63 75 87 n C1",
+    "a 0.000000 0.30000000 96 n T",
+  ].join("\n");
+  const imported = inspectGemCadAsc(source);
+  assert.equal(imported.status === "error", false, JSON.stringify(imported.diagnostics));
+  const culet = imported.document.facets.find((facet) => facet.metadata.asc.name === "C");
+  assert.equal(culet.region, "pavilion");
+  const exported = serializeGemCadAsc(imported.document);
+  assert.match(exported.text, /^a 0\.000000 -\d/m);
+  const again = inspectGemCadAsc(exported.text);
+  assert.equal(again.diagnostics.some((item) => item.code === "AMBIGUOUS_TABLE"), false);
+  assert.equal(again.document.facets.filter((facet) => facet.region === "pavilion" && facet.industryAngleDeg === 0).length, 1);
+});
+
+test("exporting frosted faces warns that GemCad has no frosted surface", () => {
+  const imported = inspectGemCadAsc(ascFor(96, [3, 15, 27, 39, 51, 63, 75, 87]));
+  const frosted = { version: 1, model: "ggx-dielectric", state: "frosted", alpha: 0.25 };
+  const document = createFacetingDocument({ ...imported.document,
+    facets: imported.document.facets.map((facet, index) => index === 1 ? { ...facet, metadata: { ...facet.metadata, surfaceFinish: frosted } } : facet) });
+  const exported = serializeGemCadAsc(document);
+  assert.ok(exported.diagnostics.some((item) => item.code === "FROSTED_FINISH_OMITTED" && /1 个磨砂面/.test(item.message)));
 });

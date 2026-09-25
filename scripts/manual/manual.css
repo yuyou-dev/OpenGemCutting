@@ -312,3 +312,6 @@ figure img[src$="/crystal-import.jpg"] { height: 56mm; }
 html[lang="en"] figure img[src$="/crystal-import.jpg"] { height: 48mm; }
 html[lang="zh-CN"] .compact-image figure img[src$="/local-design-bridge.jpg"] { height: 58mm; }
 html[lang="en"] .compact-image .pair figure img { height: 80mm; }
+/* The format center page shows only its destination section, cropped wide for legibility. */
+.compact-image figure img[src$="/format-center.jpg"] { height: 68mm; }
+html[lang="en"] .compact-image figure img[src$="/format-center.jpg"] { height: 64mm; }

@@ -11,7 +11,7 @@
 - [设计 skill](../.agents/skills/facet-parametric-design/SKILL.md)
 - [代理行为对照验收](mcp/agent-behavior-acceptance.md)
 - [几何契约](architecture/geometry-contract.md)
-- [状态契约](architecture/state-contract.md)、[视觉规范](architecture/design-system.md)、[ASC](architecture/gemcad-asc.md)、[预设库](architecture/preset-library.md)
+- [状态契约](architecture/state-contract.md)、[视觉规范](architecture/design-system.md)、[ASC](architecture/gemcad-asc.md)、[格式中心](architecture/format-center.md)、[预设库](architecture/preset-library.md)
 - [文件与设计边界](limits.md)、[性能](cut-performance.md)、[支持与验收](validation.md)
 - [贡献指南](../.github/CONTRIBUTING.md)、[社区准则](../.github/CODE_OF_CONDUCT.md)、[安全反馈](../.github/SECURITY.md)
 - [第三方来源](legal/THIRD_PARTY_NOTICES.md)、[品牌说明](legal/TRADEMARKS.md)

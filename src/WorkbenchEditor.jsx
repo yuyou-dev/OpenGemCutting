@@ -30,7 +30,6 @@ import { CutComposer } from "./components/CutComposer.jsx";
 import { CutStack } from "./components/CutStack.jsx";
 import { FacetLedger } from "./components/FacetLedger.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
-import { AscTransferDialog } from "./components/AscTransferDialog.jsx";
 import { HelpCenterDialog } from "./components/HelpCenterDialog.jsx";
 import { Modal } from "./components/Modal.jsx";
 import { RecoveryDialog } from "./components/RecoveryDialog.jsx";
@@ -88,7 +87,6 @@ import {
   summarizeEffectiveFacets,
 } from "./domain/meetJump.js";
 import { DEFAULT_OPTICS_SETTINGS, createDocumentOpticsCommand, resolveOpticsSettings } from "./domain/optics.js";
-import { inspectGemCadAsc, serializeGemCadAsc } from "./domain/gemcadAsc.js";
 import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
 import { parseCustomIndices, planeEntry, resolveDraftGeometry, solveDraftConstruction, snapshotMeetTarget } from "./domain/cutConstruction.js";
 import { buildConstructionStages } from "./domain/constructionHistory.js";
@@ -128,7 +126,7 @@ function describeCommand(command) {
   return "更新切磨参数";
 }
 
-export function WorkbenchEditor({ initialDocument, designControllerRef, projectId, startWithDraft = false, visible = true, interactionPaused = false, onDocumentChange, onPreviewChange, onHome, onLab, onNewProject, onOpenDocument, onImportCrystal, projectStatus }) {
+export function WorkbenchEditor({ initialDocument, designControllerRef, projectId, startWithDraft = false, visible = true, interactionPaused = false, onDocumentChange, onPreviewChange, onHome, onLab, onFormats, onNewProject, onOpenDocument, onImportCrystal, projectStatus }) {
   const [history, setHistory] = useState(() => createCommandHistory(initialDocument));
   const [sessionState, dispatchCutSession] = useReducer(
     cutSessionReducer,
@@ -163,9 +161,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const [toast, setToast] = useState("");
   const [reportIncludeGirdle, setReportIncludeGirdle] = useState(false);
   const [reportSurfaceFinish, setReportSurfaceFinish] = useState("polished");
-  const [ascTransfer, setAscTransfer] = useState(null);
   const importRef = useRef(null);
-  const ascImportRef = useRef(null);
   const toastTimerRef = useRef(null);
   const operationSequence = useRef(0);
 
@@ -247,7 +243,6 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     window.clearTimeout(toastTimerRef.current);
     toastTimerRef.current = window.setTimeout(() => setToast(""), 2600);
   }, []);
-  const closeAscTransfer = useCallback(() => setAscTransfer(null), []);
   useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
   const changeViewportMode = useCallback((nextMode) => {
@@ -803,7 +798,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   }, [cutMode, cutSession.canCancel, cutSession.dirty, notify]);
 
   useEffect(() => {
-    if (!visible || interactionPaused || !cutSession.canCancel || modal || ascTransfer || viewportMode !== "edit" || concaveActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
+    if (!visible || interactionPaused || !cutSession.canCancel || modal || viewportMode !== "edit" || concaveActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
     const handleEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -816,10 +811,10 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     };
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [visible, interactionPaused, ascTransfer, cancelCutSession, cutSession.canCancel, cutSession.canCancelConstructionTool, ledgerOpen, modal, notify, viewportMode, concaveActive, recoveryOpen, assistantOpen]);
+  }, [visible, interactionPaused, cancelCutSession, cutSession.canCancel, cutSession.canCancelConstructionTool, ledgerOpen, modal, notify, viewportMode, concaveActive, recoveryOpen, assistantOpen]);
 
   useEffect(() => {
-    if (!visible || interactionPaused || !opticsActive || modal || ascTransfer) return undefined;
+    if (!visible || interactionPaused || !opticsActive || modal) return undefined;
     const handleOpticsEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -828,10 +823,10 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     };
     window.addEventListener("keydown", handleOpticsEscape);
     return () => window.removeEventListener("keydown", handleOpticsEscape);
-  }, [visible, interactionPaused, ascTransfer, modal, notify, opticsActive]);
+  }, [visible, interactionPaused, modal, notify, opticsActive]);
 
   useEffect(() => {
-    if (!visible || interactionPaused || !cuttingAssistantActive || modal || ascTransfer) return undefined;
+    if (!visible || interactionPaused || !cuttingAssistantActive || modal) return undefined;
     const handleAssistantEscape = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -840,7 +835,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     };
     window.addEventListener("keydown", handleAssistantEscape);
     return () => window.removeEventListener("keydown", handleAssistantEscape);
-  }, [visible, interactionPaused, ascTransfer, modal, notify, cuttingAssistantActive]);
+  }, [visible, interactionPaused, modal, notify, cuttingAssistantActive]);
 
   const selectCut = (id) => {
     if (["rough-cube", "rough-mesh"].includes(id)) return;
@@ -1056,7 +1051,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET, slot, ...(result ? { meet: { ...result.meet, sourceLabel: sourceLabelForTarget(remaining) }, patch: result.draft } : {}) });
   };
   useEffect(() => {
-    if (!visible || interactionPaused || !cutSession.canUseMeetJump || modal || ascTransfer || viewportMode !== "edit" || concaveActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
+    if (!visible || interactionPaused || !cutSession.canUseMeetJump || modal || viewportMode !== "edit" || concaveActive || ledgerOpen || recoveryOpen || assistantOpen) return undefined;
     const handleJumpKey = (event) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const key = event.key.toLowerCase();
@@ -1074,7 +1069,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     };
     window.addEventListener("keydown", handleJumpKey);
     return () => window.removeEventListener("keydown", handleJumpKey);
-  }, [visible, interactionPaused, ascTransfer, cutSession, handleJump, ledgerOpen, lockMeet, modal, viewportMode, concaveActive, recoveryOpen, assistantOpen, startMeetPick]);
+  }, [visible, interactionPaused, cutSession, handleJump, ledgerOpen, lockMeet, modal, viewportMode, concaveActive, recoveryOpen, assistantOpen, startMeetPick]);
 
   const handleDepthDrag = (rawDepth) => {
     if (!cutSession.depthEditable) return;
@@ -1247,45 +1242,6 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     notify(indexExportSummary(imported).notice || `已导入“${imported.name}”，共 ${imported.facets.length} 个面。`);
   };
 
-  const inspectAscFile = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    try {
-      assertFileBudget(file);
-      const result = inspectGemCadAsc(await file.text(), { fileName: file.name });
-      if (result.document) assertDocumentImportBudget(result.document);
-      setAscTransfer({ mode: "import", fileName: file.name, result });
-    } catch (error) { notify(`ASC 导入失败：${error.message}`); }
-  };
-
-  const openAscExport = () => {
-    const result = serializeGemCadAsc(document);
-    setAscTransfer({
-      mode: "export",
-      fileName: `${safeFileStem(document.name)}.asc`,
-      result,
-    });
-  };
-
-  const confirmAscTransfer = () => {
-    if (!ascTransfer || ascTransfer.result.status === "error") return;
-    if (ascTransfer.mode === "import") {
-      const imported = ascTransfer.result.document;
-      if (!applyImportedDocument(imported, {
-        description: `导入 GemCad ASC · ${ascTransfer.fileName}`,
-      })) return;
-      setAscTransfer(null);
-      notify(`已导入“${imported.name}”：${ascTransfer.result.summary.tierCount} 层 / ${imported.facets.length} 面；已创建独立项目，原项目保留。`);
-      return;
-    }
-
-    const blob = new Blob([ascTransfer.result.text], { type: "text/plain;charset=utf-8" });
-    downloadBlob(blob, ascTransfer.fileName);
-    setAscTransfer(null);
-    notify(`已导出 ${ascTransfer.result.summary.tierCount} 个 ASC tier；JSON 完整主文件未受影响。`);
-  };
-
   const toggleVisibility = (id) => {
     if (!cutSession.canMutateStack) return;
     if (["rough-cube", "rough-mesh"].includes(id)) return;
@@ -1316,7 +1272,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   useDesignController({
     controllerRef: designControllerRef, projectId, document, history, setHistory,
     sessionState, dispatchCutSession, hiddenPatternIds, setHiddenPatternIds,
-    blocked: !visible ? '请返回切型编辑页面。' : interactionPaused || modal || ledgerOpen || ascTransfer || recoveryOpen || assistantOpen ? '请先结束当前弹窗操作。' : viewportMode !== 'edit' ? '请先退出光学或切割助手。' : currentConcavePreview ? '请先完成凹切深度调整。' : '',
+    blocked: !visible ? '请返回切型编辑页面。' : interactionPaused || modal || ledgerOpen || recoveryOpen || assistantOpen ? '请先结束当前弹窗操作。' : viewportMode !== 'edit' ? '请先退出光学或切割助手。' : currentConcavePreview ? '请先完成凹切深度调整。' : '',
     projectStatus, notify,
   });
 
@@ -1355,7 +1311,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             onNew={onNewProject}
             onImport={() => importRef.current?.click()}
             onImportCrystal={onImportCrystal}
-            onImportAsc={() => ascImportRef.current?.click()}
+            onImportOther={() => onFormats?.("file")}
             onExport={() => hasUnsavedPreview || equipment.notice ? setModal("json-export") : exportDocument()}
             hasPhysicalStock={document.stock.kind === "mesh"}
             onExportGroup={group => downloadBlob(new Blob([JSON.stringify(exportParameterGroup(document, group), null, 2)], { type: 'application/json' }), `${safeFileStem(document.name)}-${group}.json`)}
@@ -1364,7 +1320,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
               localRecovery.refresh();
               setRecoveryOpen(true);
             }}
-            onExportAsc={openAscExport}
+            onExportOther={() => onFormats?.("project")}
             onExportPdf={() => setModal("pdf")}
             onUndo={() => {
               const next = undoFacetingCommand(history);
@@ -1709,20 +1665,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       ) : null}
 
       <input ref={importRef} type="file" accept="application/json,.json" className="sr-only" onChange={importDocument} />
-      <input ref={ascImportRef} type="file" accept=".asc,text/plain" className="sr-only" onChange={inspectAscFile} />
       {toast ? <div className="toast" role="status" aria-live="polite">{t(toast)}</div> : null}
-
-      {ascTransfer ? (
-        <AscTransferDialog
-          mode={ascTransfer.mode}
-          fileName={ascTransfer.fileName}
-          discardingDraft={hasUnsavedPreview}
-          result={ascTransfer.result}
-          onClose={closeAscTransfer}
-          onReselect={() => ascImportRef.current?.click()}
-          onConfirm={confirmAscTransfer}
-        />
-      ) : null}
 
       {recoveryOpen ? (
         <RecoveryDialog

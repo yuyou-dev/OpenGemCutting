@@ -55,6 +55,12 @@ v1.1.1 发布前完整 `npm run check:mcp` 通过 339 项，公开敏感信息�
 
 未验证：Windows 实机、Safari／Firefox、触屏真机、在干净目录经 Codex 重新执行 README 安装提示词。磨砂预览是渲染模型，不代表砂目或实物效果；图案实验室专业界面目前为中文。
 
+## v1.3.0 格式中心 · 2026-09-25
+
+维护者已完成私有主线验收并授权发布到 main、创建 v1.3.0 Release 与更新线上演示。带旋向设计的方向由维护者在 Gem Cut Studio 1.1 中实机核对（格式中心转换的 GCS 与其自带的 ASC 导入分度、渲染一致）。本机工程验证：`npm ci`、`npm ci --prefix mcp`、`npm audit` 与 MCP 依赖审计 0 已知漏洞；`npm run check:mcp` 通过（核心 485 项通过，3 项依赖未公开旧实验室交付包的升级回归按设计跳过；Companion 14、设计接口 10、Sites 4、MCP 5），公开敏感信息扫描通过 1786 个文本文件。Pages 子路径构建在系统 Chrome 实测：版本 1.3.0、中英手册可下载，格式中心读取 GCS 实际存档、无台面 ASC 与 GemCAD `.gem` 并给出各去向结果，`.gem` 在工作台打开为 73 个有效面，无控制台错误或资源 404。
+
+未验证：Gem Cut Studio 1.1 以外版本、Windows 版 GemCAD 直接打开导出的 ASC、Windows 实机、Safari／Firefox、触屏真机。
+
 ## 光学 WebGPU / WebGL2 回归
 
 设计目标是在旋转宝石、比较体色和灯光时减少等待，同时保持原有切型、观察位置与光学模型。WebGPU 实现使用懒加载的 `@vgpu/core@0.5.0`；不支持或设备中断时回到 WebGL2。该后端变更本身不提高物理真实性，也不改变既有光学参数的单位或解释。

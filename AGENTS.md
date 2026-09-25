@@ -9,7 +9,7 @@
 - 所有功能变更必须进入对应职责模块，记录设计目的、行为变化与验证结果，并补充匹配风险的回归。设计能力放 application/domain，协议放 mcp，安装升级放 setup；skill 只编排正式能力。不得用临时脚本、复制算法或不断追加 skill 例外替代模块更新。公开发行使用同源模块，发行差异限于明确的配置及文档。
 - 依赖保持 UI → domain → mesh：领域和几何不反向引用组件、React、DOM 或 p5，不引入静态模块循环。派生缓存绑定不可变实体及完整计算参数，输入变化即失效；新增统计或出口先区分初始晶体面片、逻辑 CUT 平面与渲染三角形，再写对应回归。
 - 大幅视觉改动且目标不明确时先使用 Product Design 能力获取上下文；从选定效果图实现时，把效果图作为布局、密度、间距、颜色、字体、内容和层级的视觉真值。
-- 文档入口与职责以 [docs/README.md](docs/README.md) 为准：状态归属、CUT 交互与最终有效面语义写入 `docs/architecture/state-contract.md`，视觉与版式写入 `docs/architecture/design-system.md`，ASC 转换写入 `docs/architecture/gemcad-asc.md`，预设收录写入 `docs/architecture/preset-library.md`，其余领域和仓库约束写入本文件。一次性 QA 证据放在被忽略的 `tmp/`，不要提交临时报告。
+- 文档入口与职责以 [docs/README.md](docs/README.md) 为准：状态归属、CUT 交互与最终有效面语义写入 `docs/architecture/state-contract.md`，视觉与版式写入 `docs/architecture/design-system.md`，ASC 转换写入 `docs/architecture/gemcad-asc.md`，格式中心与 GCS／GEM 写入 `docs/architecture/format-center.md`，预设收录写入 `docs/architecture/preset-library.md`，其余领域和仓库约束写入本文件。一次性 QA 证据放在被忽略的 `tmp/`，不要提交临时报告。
 - 全局状态归属与 CUT 交互一律遵守 `docs/architecture/state-contract.md` 的契约：新增 CUT 交互与状态变更必须先按其中流程评审事件与能力位。
 
 ## 验收
@@ -30,7 +30,7 @@
 ## 产品与视觉真值
 
 - 视觉、控件、品牌拼写、参考图、常驻 GitHub 入口、帮助、操作手册及聚焦模式布局统一维护在 [design-system.md](docs/architecture/design-system.md)。不得在本文件复制完整细则。
-- ASC 的持久预检、精确 96 齿映射、统一比例、台面/preform 阻断及导出范围以 [gemcad-asc.md](docs/architecture/gemcad-asc.md) 为准；禁止静默取整、虚构层或用凸包绕过 mesh 导出阻断。
+- ASC 的精确源分度保留、统一比例、台面/preform 阻断及导出范围以 [gemcad-asc.md](docs/architecture/gemcad-asc.md) 为准；GemCAD／Gem Cut Studio 的读写、损失说明与读回核对以 [format-center.md](docs/architecture/format-center.md) 为准。禁止静默取整、虚构层、隐瞒信息损失或用凸包绕过 mesh 导出阻断。
 - 预设的收录门槛、策展排除、真实四视图、来源追溯和 `list / load / 可选 save` provider 边界以 [preset-library.md](docs/architecture/preset-library.md) 为准；不得将个人资料存储耦合到内置 catalog，重新生成不得让策展排除项回流。
 - 名称元数据、文档替换、光学与切割助手的挂起/恢复和只读边界以 [state-contract.md](docs/architecture/state-contract.md) 为准。助手用于逐步切割演示，“更多工具”中的逐层试切助理用于 Meet 来源与失效诊断；序列规则唯一真值为 `src/domain/cuttingAssistant.js`。
 
@@ -60,8 +60,8 @@
 
 ## 切割指令与报告
 
-- 面数、指令、刻面台账、PDF 与 ASC 必须从完整已提交实体派生，只消费最终有效面；JSON 保留完整参数化 CUT STACK 与已提交 Meet metadata。最终面、显隐与构造来源诊断按 [state-contract.md](docs/architecture/state-contract.md#参数化工序与最终有效面)。
-- 指令版式、PDF 视图/字段/分页/腰部省略与有效 Meet 或 stale 表达按 [design-system.md](docs/architecture/design-system.md#pdf-图层示意)；ASC 能力和信息损失提示按 [gemcad-asc.md](docs/architecture/gemcad-asc.md#导出规则)。
+- 面数、指令、刻面台账、PDF、ASC 与 GCS 必须从完整已提交实体派生，只消费最终有效面；JSON 保留完整参数化 CUT STACK 与已提交 Meet metadata。最终面、显隐与构造来源诊断按 [state-contract.md](docs/architecture/state-contract.md#参数化工序与最终有效面)。
+- 指令版式、PDF 视图/字段/分页/腰部省略与有效 Meet 或 stale 表达按 [design-system.md](docs/architecture/design-system.md#pdf-图层示意)；外部格式能力和信息损失提示按 [format-center.md](docs/architecture/format-center.md#损失说明)。
 
 ## 仓库
 

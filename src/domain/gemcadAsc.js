@@ -1,42 +1,21 @@
-import { evaluateDocument } from "./documentGeometry.js";
+import { normalizeIndex } from "./faceting.js";
 import {
-  createFacetingDocument,
-  displayIndex,
-  facetNormal,
-  industryAngleToBetaDeg,
-  normalizeIndex,
-  resolveFacet,
-  rotationalStockSupportOffset,
-  validateFacetingDocument,
-} from "./faceting.js";
-import { summarizeEffectiveFacets } from "./meetJump.js";
+  cleanIndex,
+  designFromDocument,
+  designSummary,
+  documentFromDesign,
+  markTable,
+  tierRegion,
+} from "./formats/planeDesign.js";
+import { diagnostic, statusFor } from "./formats/shared.js";
 
-import { facetIndexForGear, indexCompatibilityReport } from "./indexing.js";
-
-const DEFAULT_GEAR = 96;
 const EPSILON = 1e-9;
-
-const REGION_LABELS = {
-  crown: "冠部",
-  girdle: "腰部",
-  pavilion: "亭部",
-};
 
 const REGION_PREFIXES = {
   crown: "C",
   girdle: "G",
   pavilion: "P",
 };
-
-function diagnostic(severity, code, message, line) {
-  return { severity, code, message, ...(line ? { line } : {}) };
-}
-
-function statusFor(diagnostics) {
-  if (diagnostics.some((item) => item.severity === "error")) return "error";
-  if (diagnostics.some((item) => item.severity === "warning")) return "warning";
-  return "ready";
-}
 
 function isDecimalToken(token) {
   const text = String(token).trim();
@@ -47,19 +26,45 @@ function sourceIndex(token, gear, offset = 0) {
   return normalizeIndex((Number(token) - offset) * Math.sign(gear), Math.abs(gear));
 }
 
-// Trim floating-point noise after normal-to-index conversion, never snap a
-// fractional direction to a machine tooth.
-function formatIndex(index, teeth) {
-  const rounded = Number(index.toFixed(10));
-  return rounded === 0 || rounded === teeth ? teeth : rounded;
-}
-
 function appendInstructions(tier, value) {
   const next = value.trim();
   if (!next) return;
   tier.instructions = tier.instructions
     ? `${tier.instructions} ${next}`
     : next;
+}
+
+// Tier tokens: index numbers, "n name" for the preceding index and "G text"
+// to the end of the line. Continuation lines use the same grammar, so a wrapped
+// tier keeps every index, facet name and instruction.
+function consumeTierTokens(tier, tokens, lineNumber, diagnostics) {
+  let cursor = 0;
+  while (cursor < tokens.length) {
+    const token = tokens[cursor];
+    if (token.toLowerCase() === "n") {
+      const name = tokens[cursor + 1] ?? "";
+      if (!tier.lastIndexToken || !name) {
+        diagnostics.push(diagnostic("error", "INVALID_FACET_NAME", "“n”必须紧跟一个索引，并在后面提供刻面名称。", lineNumber));
+      } else {
+        tier.facetNames[tier.lastIndexToken] = name;
+        if (!tier.name) tier.name = name;
+      }
+      cursor += 2;
+      continue;
+    }
+    if (token === "G") {
+      appendInstructions(tier, tokens.slice(cursor + 1).join(" "));
+      break;
+    }
+    if (isDecimalToken(token.replaceAll("−", "-"))) {
+      const value = token.replaceAll("−", "-");
+      tier.indexTokens.push(value);
+      tier.lastIndexToken = value;
+    } else {
+      diagnostics.push(diagnostic("warning", "UNKNOWN_TIER_TOKEN", `刻面层中的“${token}”未识别，已忽略。`, lineNumber));
+    }
+    cursor += 1;
+  }
 }
 
 function parseTier(line, lineNumber, diagnostics) {
@@ -90,38 +95,9 @@ function parseTier(line, lineNumber, diagnostics) {
     facetNames: {},
     name: "",
     instructions: "",
+    lastIndexToken: "",
   };
-  let cursor = 3;
-  let previousIndexToken = "";
-  while (cursor < tokens.length) {
-    const token = tokens[cursor];
-    if (token.toLowerCase() === "n") {
-      const name = tokens[cursor + 1] ?? "";
-      if (!previousIndexToken || !name) {
-        diagnostics.push(diagnostic("error", "INVALID_FACET_NAME", "“n”必须紧跟一个索引，并在后面提供刻面名称。", lineNumber));
-      } else {
-        tier.facetNames[previousIndexToken] = name;
-        if (!tier.name) tier.name = name;
-      }
-      cursor += 2;
-      continue;
-    }
-    if (token === "G") {
-      appendInstructions(tier, tokens.slice(cursor + 1).join(" "));
-      break;
-    }
-    if (isDecimalToken(token)) {
-      tier.indexTokens.push(token);
-      previousIndexToken = token;
-    } else {
-      diagnostics.push(diagnostic("warning", "UNKNOWN_TIER_TOKEN", `刻面层中的“${token}”未识别，已忽略。`, lineNumber));
-    }
-    cursor += 1;
-  }
-
-  if (tier.indexTokens.length === 0 && Math.abs(angle) > EPSILON) {
-    diagnostics.push(diagnostic("error", "MISSING_INDICES", "刻面层没有任何索引。", lineNumber));
-  }
+  consumeTierTokens(tier, tokens.slice(3), lineNumber, diagnostics);
   return tier;
 }
 
@@ -218,8 +194,9 @@ export function parseGemCadAsc(source) {
       appendInstructions(currentTier, line.slice(1));
       return;
     }
-    if (currentTier && line.split(/\s+/).every((token) => isDecimalToken(token))) {
-      currentTier.indexTokens.push(...line.split(/\s+/));
+    const firstToken = line.split(/\s+/)[0].replaceAll("−", "-");
+    if (currentTier && (isDecimalToken(firstToken) || firstToken.toLowerCase() === "n")) {
+      consumeTierTokens(currentTier, line.split(/\s+/), lineNumber, diagnostics);
       return;
     }
 
@@ -259,6 +236,9 @@ export function parseGemCadAsc(source) {
     diagnostics.push(diagnostic("error", "NO_TIERS", "ASC 文件没有刻面层记录。"));
   }
   parsed.tiers.forEach((tier) => {
+    if (tier.indexTokens.length === 0 && Math.abs(tier.angle) > EPSILON) {
+      diagnostics.push(diagnostic("error", "MISSING_INDICES", "刻面层没有任何索引。", tier.line));
+    }
     if (tier.centerDistance < 0 && Math.abs(tier.angle) > EPSILON) {
       diagnostics.push(diagnostic("error", "NEGATIVE_NON_CULET_DISTANCE", "只有 0° 底尖层可以使用负平面距离。", tier.line));
     }
@@ -266,40 +246,80 @@ export function parseGemCadAsc(source) {
   return parsed;
 }
 
-function tierRegion(tier) {
-  if (Math.abs(Math.abs(tier.angle) - 90) <= EPSILON) return "girdle";
-  if (tier.angle < 0 || Object.is(tier.angle, -0) || /^\s*-0(?:\.0*)?\s*$/.test(tier.angleToken)) {
-    return "pavilion";
+/** GemCad ASC text as a PlaneDesign, without the workbench's table rule: a
+ * tableless or open design can still be converted to another format. */
+export function readAscDesign(source, { fileName = "Imported GemCad Design.asc" } = {}) {
+  const parsed = parseGemCadAsc(source);
+  const diagnostics = [...parsed.diagnostics];
+  if (diagnostics.some((item) => item.severity === "error")) {
+    return { status: "error", design: null, parsed, diagnostics, summary: baseSummary(parsed) };
   }
-  return "crown";
-}
 
-function tierLabel(tier, region, count) {
-  const prefix = tier.name || `${REGION_PREFIXES[region]}${count}`;
-  return `${prefix} ${REGION_LABELS[region]}`;
-}
+  const gear = Math.abs(parsed.gear);
+  const tiers = markTable(parsed.tiers.map((tier) => {
+    const region = tierRegion(tier.angle, tier.centerDistance, tier.angleToken);
+    const common = {
+      angle: tier.angle,
+      distance: tier.centerDistance,
+      region,
+      table: false,
+      name: tier.name,
+      instructions: tier.instructions,
+      line: tier.line,
+      sourceAngle: tier.angleToken,
+      hidden: false,
+    };
+    const tokens = tier.indexTokens.length > 0 ? tier.indexTokens : [String(gear)];
+    if (Math.abs(tier.angle) <= EPSILON) {
+      return { ...common, entries: [{ index: 0, token: tokens[0], name: tier.facetNames[tokens[0]] ?? "", finish: null }] };
+    }
+    let normalized = false;
+    const entries = [];
+    for (const token of tokens) {
+      const value = Number(token);
+      if (value < 0 || value > gear) normalized = true;
+      const index = sourceIndex(token, parsed.gear, parsed.gearOffset);
+      if (entries.some((entry) => entry.index === index)) {
+        diagnostics.push(diagnostic("warning", "DUPLICATE_INDEX", "该层包含重复索引；导入时已去重。", tier.line));
+        continue;
+      }
+      entries.push({ index, token, name: tier.facetNames[token] ?? "", finish: null });
+    }
+    if (normalized) {
+      diagnostics.push(diagnostic("warning", "INDEX_NORMALIZED", `该层含负索引或超出 0–${gear} 的索引；已按 ${gear} 齿循环换算到同一方向。`, tier.line));
+    }
+    return { ...common, entries };
+  }));
 
-function geometrySummary(document) {
-  const solid = evaluateDocument(document);
-  if (solid.vertices.length === 0) return { solid, dimensions: null };
-  const xs = solid.vertices.map((point) => point.x);
-  const ys = solid.vertices.map((point) => point.y);
-  const zs = solid.vertices.map((point) => point.z);
-  const x = Math.max(...xs) - Math.min(...xs);
-  const y = Math.max(...ys) - Math.min(...ys);
-  const z = Math.max(...zs) - Math.min(...zs);
-  const width = Math.min(x, y);
-  const length = Math.max(x, y);
-  return {
-    solid,
-    dimensions: {
-      x,
-      y,
-      z,
-      lengthToWidth: width > EPSILON ? length / width : null,
-      heightToWidth: width > EPSILON ? z / width : null,
+  if (Math.abs(parsed.gearOffset) > EPSILON || parsed.gear < 0) {
+    diagnostics.push(diagnostic("info", "GEAR_OFFSET_APPLIED", `按源 ${parsed.gear} 齿盘应用方位偏移 ${parsed.gearOffset}，保留精确方向与小数分度；文档使用 ${gear} 齿正向标记。`));
+  }
+  const design = {
+    name: parsed.headings.find((line) => line.trim()) || fileName.replace(/\.asc$/i, "") || "Imported GemCad Design",
+    gear,
+    symmetry: parsed.symmetry,
+    mirror: parsed.mirrorSymmetry,
+    refractiveIndex: parsed.refractiveIndex,
+    headings: parsed.headings,
+    footnotes: parsed.footnotes,
+    tiers,
+    extras: {
+      asc: {
+        formatVersion: parsed.formatVersion,
+        sourceGear: parsed.gear,
+        sourceGearOffset: parsed.gearOffset,
+        comments: parsed.comments,
+      },
     },
   };
+  const summary = { ...baseSummary(parsed), ...designSummary(design), tierCount: parsed.tiers.length };
+  return { status: statusFor(diagnostics), design, parsed, diagnostics, summary };
+}
+
+export function inspectGemCadAsc(source, options = {}) {
+  const read = readAscDesign(source, options);
+  if (!read.design) return { status: "error", document: null, parsed: read.parsed, diagnostics: read.diagnostics, summary: read.summary };
+  return documentFromDesign(read.design, { diagnostics: read.diagnostics, summary: read.summary, parsed: read.parsed });
 }
 
 function baseSummary(parsed) {
@@ -317,207 +337,6 @@ function baseSummary(parsed) {
   };
 }
 
-export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.asc" } = {}) {
-  const parsed = parseGemCadAsc(source);
-  const diagnostics = [...parsed.diagnostics];
-  const summary = baseSummary(parsed);
-  if (diagnostics.some((item) => item.severity === "error")) {
-    return { status: "error", document: null, parsed, diagnostics, summary };
-  }
-
-  const indexTeeth = Math.abs(parsed.gear);
-  const mappedTiers = parsed.tiers.map((tier) => {
-    const sourceIndices = tier.indexTokens.length > 0
-      ? tier.indexTokens
-      : [String(Math.abs(parsed.gear))];
-    if (Math.abs(tier.angle) <= EPSILON) {
-      return { ...tier, indexTokens: sourceIndices, indices: [0], region: tierRegion(tier) };
-    }
-    const indices = [];
-    for (const token of sourceIndices) {
-      const value = Number(token);
-      if (!Number.isFinite(value) || value < 0 || value > Math.abs(parsed.gear)) {
-        diagnostics.push(diagnostic("error", "INDEX_OUT_OF_RANGE", `索引 ${token} 不在 0–${Math.abs(parsed.gear)} 齿轮范围内。`, tier.line));
-        continue;
-      }
-      indices.push(sourceIndex(token, parsed.gear, parsed.gearOffset));
-    }
-    const uniqueIndices = [...new Set(indices)];
-    if (uniqueIndices.length !== indices.length) {
-      diagnostics.push(diagnostic("warning", "DUPLICATE_INDEX", "该层包含重复索引；导入时已去重。", tier.line));
-    }
-    return { ...tier, indexTokens: sourceIndices, indices: uniqueIndices, region: tierRegion(tier) };
-  });
-
-  if (Math.abs(parsed.gearOffset) > EPSILON || parsed.gear < 0) {
-    diagnostics.push(diagnostic("info", "GEAR_OFFSET_APPLIED", `按源 ${parsed.gear} 齿盘应用方位偏移 ${parsed.gearOffset}，保留精确方向与小数分度；文档使用 ${indexTeeth} 齿正向标记。`));
-  }
-  if (diagnostics.some((item) => item.severity === "error")) {
-    return { status: "error", document: null, parsed, diagnostics, summary };
-  }
-
-  let scale = 1;
-  for (const tier of mappedTiers) {
-    const industryAngleDeg = Math.abs(tier.angle);
-    const betaDeg = industryAngleToBetaDeg(tier.region, industryAngleDeg);
-    for (const index of tier.indices) {
-      const support = rotationalStockSupportOffset(facetNormal(index, betaDeg, indexTeeth));
-      const distance = Math.abs(tier.centerDistance);
-      if (distance > EPSILON) scale = Math.min(scale, support / distance);
-    }
-  }
-  scale = Math.min(1, scale);
-  summary.scale = scale;
-  if (scale < 1 - EPSILON) {
-    diagnostics.push(diagnostic(
-      "warning",
-      "UNIFORM_SCALE_NORMALIZATION",
-      `为保持深度非负，全部平面距离统一缩放为 ${(scale * 100).toFixed(3)}%；角度、L/W 与冠亭高度比例保持不变。`,
-    ));
-  }
-
-  const regionCounts = { crown: 0, girdle: 0, pavilion: 0 };
-  const tableTiers = mappedTiers.filter((tier) => (
-    tier.region === "crown" && Math.abs(tier.angle) <= EPSILON
-  ));
-  if (tableTiers.length === 0) {
-    diagnostics.push(diagnostic("error", "MISSING_TABLE", "源文件没有可识别的 0° 水平台面；当前文档模型要求唯一固定 T1，不能无提示虚构。"));
-    return { status: "error", document: null, parsed, diagnostics, summary };
-  }
-  if (tableTiers.length > 1) {
-    diagnostics.push(diagnostic("error", "AMBIGUOUS_TABLE", "源文件包含多个 0° 水平层；当前文档模型要求唯一固定 T1，请先在 GemCad 中合并或删除多余台面。", tableTiers[1].line));
-    return { status: "error", document: null, parsed, diagnostics, summary };
-  }
-  const [tableTier] = tableTiers;
-  if (mappedTiers.indexOf(tableTier) !== 0) {
-    diagnostics.push(diagnostic("warning", "TABLE_REORDERED", "T1 在 CUT STACK 中提升为固定首层；半空间几何不变，原 ASC 工序序号会保留供再次导出。", tableTier.line));
-  }
-  const facetGroups = [];
-  for (const [tierIndex, tier] of mappedTiers.entries()) {
-    const isTable = tier === tableTier;
-    if (!isTable) regionCounts[tier.region] += 1;
-    const patternId = isTable ? "table-facet" : `asc-tier-${tierIndex + 1}`;
-    const label = isTable ? "T1 台面" : tierLabel(tier, tier.region, regionCounts[tier.region]);
-    const industryAngleDeg = Math.abs(tier.angle);
-    const betaDeg = industryAngleToBetaDeg(tier.region, industryAngleDeg);
-    const metadata = {
-      patternMode: "arbitrary",
-      ...(isTable ? { operationType: "table", fixedAngle: true } : {}),
-      asc: {
-        order: tierIndex,
-        line: tier.line,
-        name: tier.name,
-        instructions: tier.instructions,
-        sourceAngle: tier.angleToken,
-        sourceCenterDistance: tier.centerDistance,
-        sourceIndices: tier.indexTokens,
-      },
-    };
-    const facets = tier.indices.map((index, ordinal) => {
-      const support = rotationalStockSupportOffset(facetNormal(index, betaDeg, indexTeeth));
-      const depth = Math.max(0, support - Math.abs(tier.centerDistance) * scale);
-      const sourceIndex = tier.indexTokens[ordinal];
-      return resolveFacet({
-        id: `${patternId}:${displayIndex(index, indexTeeth)}`,
-        patternId,
-        ordinal,
-        region: tier.region,
-        baseIndex: index,
-        indexTeeth,
-        repeat: 1,
-        mirror: 0,
-        index,
-        industryAngleDeg,
-        depth,
-        label,
-        metadata: {
-          ...metadata,
-          asc: {
-            ...metadata.asc,
-            facetName: tier.facetNames[sourceIndex] ?? "",
-          },
-        },
-      });
-    });
-    facetGroups.push({ isTable, facets });
-  }
-
-  const facets = [
-    ...facetGroups.filter((group) => group.isTable).flatMap((group) => group.facets),
-    ...facetGroups.filter((group) => !group.isTable).flatMap((group) => group.facets),
-  ];
-  const rawName = parsed.headings.find(Boolean) || fileName.replace(/\.asc$/i, "") || "Imported GemCad Design";
-  const document = createFacetingDocument({
-    name: rawName,
-    indexGear: indexTeeth,
-    facets,
-    metadata: {
-      optics: { refractiveIndex: parsed.refractiveIndex },
-      asc: {
-        formatVersion: parsed.formatVersion,
-        sourceGear: parsed.gear,
-        sourceGearOffset: parsed.gearOffset,
-        symmetry: parsed.symmetry,
-        mirrorSymmetry: parsed.mirrorSymmetry,
-        headings: parsed.headings,
-        footnotes: parsed.footnotes,
-        comments: parsed.comments,
-        importScale: scale,
-      },
-    },
-  });
-  const geometry = geometrySummary(document);
-  if (geometry.solid.vertices.length === 0) {
-    diagnostics.push(diagnostic("error", "EMPTY_GEOMETRY", "这些切面组合会移除全部毛坯，无法导入。"));
-  } else {
-    const survivingPatterns = new Set(
-      geometry.solid.faces.map((face) => face.sourceOperationId).filter(Boolean),
-    );
-    facetGroups.forEach((group) => {
-      const patternId = group.facets[0]?.patternId;
-      if (patternId && !survivingPatterns.has(patternId)) {
-        diagnostics.push(diagnostic("warning", "REDUNDANT_TIER", `图层“${group.facets[0].label}”在最终实体中没有保留刻面；仍按原工序保存在 CUT STACK。`, group.facets[0].metadata?.asc?.line));
-      }
-    });
-    if (survivingPatterns.has("rough-cube")) {
-      diagnostics.push(diagnostic("warning", "ROUGH_STOCK_REMAINS", "最终实体仍包含毛坯原始面；请检查源 ASC 是否依赖未编码的预形。"));
-    }
-  }
-  summary.compatibility = indexCompatibilityReport(document, { gears: [indexTeeth, ...(indexTeeth === DEFAULT_GEAR ? [] : [DEFAULT_GEAR])] });
-  const nativeCompatibility = summary.compatibility[0];
-  if (!nativeCompatibility.compatible) {
-    diagnostics.push(diagnostic("warning", "FRACTIONAL_INDICES_PRESERVED", `${nativeCompatibility.incompatibleCount} 个方向在 ${indexTeeth} 齿盘上需要小数分度；几何已原样保留，未取整。`));
-  }
-  summary.dimensions = geometry.dimensions;
-  summary.tierCount = facetGroups.length;
-  summary.facetCount = facets.length;
-  for (const tier of mappedTiers) summary.regions[tier.region] += tier.indices.length;
-  summary.regions.table = tableTier.indices.length;
-  summary.regions.crown -= tableTier.indices.length;
-
-  return {
-    status: statusFor(diagnostics),
-    document: diagnostics.some((item) => item.severity === "error") ? null : document,
-    parsed,
-    diagnostics,
-    summary,
-  };
-}
-
-function groupFacets(facets) {
-  const groups = new Map();
-  facets.forEach((facet) => {
-    if (!groups.has(facet.patternId)) groups.set(facet.patternId, []);
-    groups.get(facet.patternId).push(facet);
-  });
-  return [...groups.values()];
-}
-
-function effectiveFacets(facets, solid) {
-  const survivingFacetIds = new Set(summarizeEffectiveFacets(solid).effectiveFacetIds);
-  return facets.filter((facet) => survivingFacetIds.has(facet.id));
-}
-
 function safeTierName(value, fallback, diagnostics) {
   const raw = String(value ?? "").trim();
   if (/^[A-Za-z0-9_.-]+$/.test(raw)) return raw;
@@ -525,153 +344,95 @@ function safeTierName(value, fallback, diagnostics) {
   return fallback;
 }
 
-function operationRank(group) {
-  const first = group[0];
-  const sourceOrder = first.metadata?.asc?.order;
-  if (Number.isInteger(sourceOrder)) return sourceOrder;
-  if (first.metadata?.operationType === "table") return 400000;
-  return { pavilion: 100000, girdle: 200000, crown: 300000 }[first.region] ?? 350000;
-}
-
-export function serializeGemCadAsc(document) {
-  const diagnostics = [];
-  if (document.concaveCuts?.some((cut) => cut.enabled !== false)) {
-    diagnostics.push(diagnostic("error", "CONCAVE_CUTS_UNSUPPORTED", "ASC 不能表达凹切刀具与曲面；请用 JSON 保存完整项目，或导出 PDF 查看独立凹切工序。"));
-    return { status: "error", text: "", diagnostics, summary: null };
+/** Write a PlaneDesign as GemCad 5.0 text; every loss is reported. */
+export function writeAscDesign(design, { diagnostics = [] } = {}) {
+  const tiers = design.tiers.filter((tier) => !tier.hidden);
+  const hidden = design.tiers.length - tiers.length;
+  if (hidden) {
+    diagnostics.push(diagnostic("warning", "HIDDEN_TIERS_OMITTED", `${hidden} 个在 Gem Cut Studio 中隐藏（不切）的层不会写入 ASC；GemCad 没有隐藏层。`));
   }
-  if (document.concaveCuts?.length) {
-    diagnostics.push(diagnostic("warning", "DISABLED_CONCAVE_CUTS_OMITTED", "已停用的凹切参数不会写入 ASC；它们只保留在 JSON 完整项目中。"));
-  }
-  if (document.stock?.kind === "mesh") {
-    diagnostics.push(diagnostic("error", "MESH_STOCK_UNSUPPORTED", "ASC 无法保存导入晶体的凹部、孔洞与原始表面；请使用 JSON 完整保存，或导出 PDF 查看切割指令。"));
-    return { status: "error", text: "", diagnostics, summary: null };
-  }
-  const validation = validateFacetingDocument(document);
-  if (!validation.valid) {
-    validation.errors.slice(0, 8).forEach((error) => diagnostics.push(diagnostic("error", "INVALID_DOCUMENT", `${error.path} ${error.message}`)));
-    return { status: "error", text: "", diagnostics, summary: null };
-  }
-
-  const indexTeeth = document.indexGear?.teeth ?? DEFAULT_GEAR;
-  const geometry = geometrySummary(document);
-  const exportedFacets = effectiveFacets(document.facets, geometry.solid);
-  if (!geometry.solid.vertices.length) {
-    diagnostics.push(diagnostic("error", "EMPTY_GEOMETRY", "当前切割已移除全部底胚，没有可导出的实体。"));
-  } else if (!exportedFacets.length) {
-    diagnostics.push(diagnostic("error", "NO_EFFECTIVE_FACETS", "当前没有最终有效的平面工序可写入 ASC，请用 JSON 保存底胚与完整项目。"));
-  } else if (geometry.solid.faces.some((face) => face.sourceOperationId === "rough-cube")) {
-    diagnostics.push(diagnostic("warning", "ROUGH_STOCK_REMAINS", "当前实体保留部分初始底胚面；ASC 只写切割平面，不包含这些底胚边界，不能独立还原完整外形。"));
-  }
-  const omittedFacetCount = document.facets.length - exportedFacets.length;
-  const groups = groupFacets(exportedFacets).sort((left, right) => operationRank(left) - operationRank(right));
-  const ascMetadata = document.metadata?.asc ?? {};
-  const symmetry = Number.isInteger(ascMetadata.symmetry) && ascMetadata.symmetry > 0 ? ascMetadata.symmetry : 1;
-  const mirror = ascMetadata.mirrorSymmetry ? "y" : "n";
-  if (!ascMetadata.symmetry) {
+  if (!design.symmetry) {
     diagnostics.push(diagnostic("warning", "SYMMETRY_NORMALIZED", "全局对称设置将写为 1-fold / no mirror；所有真实刻面仍由显式索引完整保留。"));
   }
-  const ri = Number(document.metadata?.optics?.material?.ior ?? document.metadata?.optics?.refractiveIndex);
-  const refractiveIndex = Number.isFinite(ri) && ri > 1 ? ri : 1.54;
-  const headings = [document.name, ...(Array.isArray(ascMetadata.headings) ? ascMetadata.headings.slice(1) : [])].slice(0, 4);
-  const footnotes = Array.isArray(ascMetadata.footnotes) ? ascMetadata.footnotes.slice(0, 4) : [];
+  const headings = design.headings.slice(0, 4);
+  const footnotes = design.footnotes.slice(0, 4);
+  if (design.headings.length > 4 || design.footnotes.length > 4) {
+    diagnostics.push(diagnostic("warning", "TEXT_LINES_TRUNCATED", "GemCad 只保留前四行标题与前四行脚注；其余行不会写入 ASC。"));
+  }
   if ([...headings, ...footnotes].some((line) => /[^\x00-\x7F]/.test(line))) {
     diagnostics.push(diagnostic("warning", "UNICODE_TEXT", "标题或脚注含非 ASCII 字符；现代 UTF-8 工具可读取，但旧版 GemCad 的显示编码需人工确认。"));
   }
-
-  let flattened = false;
-  const tierLines = groups.map((group, groupIndex) => {
-    const first = group[0];
-    const sameTier = group.every((facet) => (
-      facet.region === first.region
-      && Math.abs(facet.industryAngleDeg - first.industryAngleDeg) <= EPSILON
-      && Math.abs(facet.plane.offset - first.plane.offset) <= EPSILON
-    ));
-    if (!sameTier) {
-      diagnostics.push(diagnostic("error", "INCONSISTENT_LAYER", `图层“${first.label ?? first.patternId}”内的刻面不共享角度和平面距离，不能写为一个 ASC tier。`));
-    }
-    if (first.repeat > 1 || first.mirror > 0) flattened = true;
-    const isTable = first.metadata?.operationType === "table";
-    const sourceAngle = Number(first.metadata?.asc?.sourceAngle);
-    const angle = isTable
-      ? 0
-      : first.region === "pavilion"
-        ? -first.industryAngleDeg
-        : first.region === "girdle" && Number.isFinite(sourceAngle) && Math.abs(sourceAngle) === 90
-          ? sourceAngle
-          : first.industryAngleDeg;
-    const fallback = isTable ? "T" : `${REGION_PREFIXES[first.region]}${groupIndex + 1}`;
-    const name = safeTierName(first.metadata?.asc?.name || first.label?.split(/\s+/)[0], fallback, diagnostics);
-    const indexEntries = [];
-    const seenIndices = new Set();
-    group.forEach((facet) => {
-      const index = formatIndex(facetIndexForGear(facet, indexTeeth) ?? 0, indexTeeth);
-      if (seenIndices.has(index)) return;
-      seenIndices.add(index);
-      indexEntries.push({ index, facetName: facet.metadata?.asc?.facetName ?? "" });
+  const written = tiers.map((tier, tierIndex) => {
+    const fallback = tier.table ? "T" : `${REGION_PREFIXES[tier.region]}${tierIndex + 1}`;
+    const name = safeTierName(tier.name, fallback, diagnostics);
+    const hasFacetNames = tier.entries.some((entry) => entry.name);
+    const entries = tier.entries.map((entry, index) => {
+      const raw = entry.name || (!hasFacetNames && index === 0 ? name : "");
+      return { index: cleanIndex(entry.index, design.gear), name: raw ? safeTierName(raw, name, diagnostics) : "" };
     });
-    const hasPerFacetNames = indexEntries.some((entry) => entry.facetName);
-    const renderedIndices = indexEntries.map((entry, index) => {
-      const rawName = entry.facetName || (!hasPerFacetNames && index === 0 ? name : "");
-      return rawName
-        ? `${entry.index} n ${safeTierName(rawName, name, diagnostics)}`
-        : String(entry.index);
-    }).join(" ");
-    const instruction = String(first.metadata?.asc?.instructions ?? "").trim();
-    return `a ${angle.toFixed(6)} ${first.plane.offset.toFixed(8)} ${renderedIndices}${instruction ? ` G ${instruction}` : ""}`;
+    return { angle: tier.angle, distance: tier.distance, entries, instructions: String(tier.instructions ?? "").replace(/\s+/g, " ").trim() };
   });
+  const frosted = tiers.reduce((sum, tier) => sum + tier.entries.filter((entry) => entry.finish?.state === "frosted").length, 0);
+  if (frosted > 0) {
+    diagnostics.push(diagnostic("warning", "FROSTED_FINISH_OMITTED", `${frosted} 个磨砂面在 ASC 中写为普通刻面；GemCad 没有磨砂表面，磨砂标注只保留在 JSON 与 GCS 中。`));
+  }
+  if (design.extras?.gcs?.render) {
+    diagnostics.push(diagnostic("warning", "GCS_RENDER_OMITTED", "Gem Cut Studio 的材质、颜色与灯光设置不会写入 ASC；ASC 只保存折射率。"));
+  }
+  const text = formatAscText({
+    gear: design.gear,
+    symmetry: design.symmetry || 1,
+    mirror: Boolean(design.symmetry) && design.mirror,
+    refractiveIndex: design.refractiveIndex,
+    headings,
+    footnotes,
+    tiers: written,
+  });
+  return { status: statusFor(diagnostics), text, diagnostics };
+}
 
-  if (flattened) {
-    diagnostics.push(diagnostic("warning", "PARAMETRIC_RELATIONSHIP_FLATTENED", "重复与镜像关系会展开为显式索引；刻面几何保持，但该参数关系无法从 ASC 恢复。"));
-  }
-  if (document.facets.some((facet) => facet.metadata?.construction)) {
-    diagnostics.push(diagnostic("warning", "MEET_CONSTRUCTION_OMITTED", "ASC 只保留显式切面；Meet 顶点／棱点来源、比例与双点构造意图不会写入，请保留 JSON 主文件。"));
-  }
-  if (document.facets.some((facet) => facet.metadata?.preform)) {
-    diagnostics.push(diagnostic("warning", "PREFORM_PURPOSE_OMITTED", "ASC 只保留最终有效切面；预形工序用途标记不会写入，请保留 JSON 主文件。"));
-  }
-  if (omittedFacetCount > 0) {
-    diagnostics.push(diagnostic(
-      "warning",
-      "OVERWRITTEN_FACETS_OMITTED",
-      `最终实体中有 ${omittedFacetCount} 条刻面记录已被后续切割覆盖，ASC 已省略；完整 CUT STACK 仍保留在 JSON 主文件中。`,
-    ));
-  }
-  const opticsKeys = Object.keys(document.metadata?.optics ?? {}).filter((key) => key !== "refractiveIndex");
-  if (opticsKeys.length > 0) {
-    diagnostics.push(diagnostic("warning", "OPTICS_METADATA_OMITTED", "ASC 只保存折射率；色散、体色、吸收与观察环境仍只保留在 JSON 中。"));
-  }
-  diagnostics.push(diagnostic("warning", "EDITOR_STATE_OMITTED", "ASC 不包含撤销历史、隐藏状态、毛坯定义或编辑器会话；请同时保留 JSON 作为完整主文件。"));
+export function serializeGemCadAsc(document) {
+  const converted = designFromDocument(document, { target: "ASC" });
+  const { design, diagnostics, facts } = converted;
+  const summary = design || facts.effectiveFacetCount !== undefined ? {
+    sourceGear: design?.gear ?? document.indexGear?.teeth ?? 96,
+    targetGear: design?.gear ?? document.indexGear?.teeth ?? 96,
+    compatibility: facts.compatibility,
+    symmetry: design?.symmetry || 1,
+    mirrorSymmetry: Boolean(design?.symmetry) && Boolean(design?.mirror),
+    refractiveIndex: design?.refractiveIndex,
+    tierCount: design?.tiers.filter((tier) => !tier.hidden).length ?? 0,
+    facetCount: facts.effectiveFacetCount,
+    storedFacetCount: facts.storedFacetCount,
+    effectiveFacetCount: facts.effectiveFacetCount,
+    omittedFacetCount: facts.overwritten,
+    dimensions: facts.dimensions,
+  } : null;
+  if (!design) return { status: "error", text: "", diagnostics, summary };
+  const written = writeAscDesign(design, { diagnostics });
+  return { status: written.status, text: written.text, diagnostics, summary };
+}
 
-  const compatibility = indexCompatibilityReport(document, { scope: "final", finalFacets: exportedFacets, gears: [indexTeeth] });
-  if (!compatibility[0].compatible) {
-    diagnostics.push(diagnostic("warning", "FRACTIONAL_INDICES_PRESERVED", `${compatibility[0].incompatibleCount} 个最终平面在 ${indexTeeth} 齿盘上需要小数分度；ASC 保留这些方向，未取整。整齿最大偏差 ${compatibility[0].maxErrorDeg.toFixed(6)}°。`));
-  }
-  const summary = {
-    sourceGear: indexTeeth,
-    targetGear: indexTeeth,
-    compatibility,
-    symmetry,
-    mirrorSymmetry: mirror === "y",
-    refractiveIndex,
-    tierCount: groups.length,
-    facetCount: exportedFacets.length,
-    storedFacetCount: document.facets.length,
-    effectiveFacetCount: exportedFacets.length,
-    omittedFacetCount,
-    dimensions: geometry.dimensions,
-  };
-  if (diagnostics.some((item) => item.severity === "error")) {
-    return { status: "error", text: "", diagnostics, summary };
-  }
-  const text = [
+/**
+ * Write GemCad 5.0 text. Tiers: {angle (signed; culet 0 with negative
+ * distance), distance, entries [{index, name}], instructions}. Indices are
+ * written in `gear` numbering with location 0; fractional indices stay exact.
+ * Lines end in CRLF like GemCad's own files: Gem Cut Studio 1.1 reads a
+ * trailing character into the last name of LF-only files.
+ */
+export function formatAscText({ gear, symmetry = 1, mirror = false, refractiveIndex = 1.54, headings = [], footnotes = [], tiers }) {
+  const tierLines = tiers.map(({ angle, distance, entries, instructions = "" }) => {
+    const rendered = entries.map(({ index, name }) => name ? `${index} n ${name}` : String(index)).join(" ");
+    return `a ${angle.toFixed(6)} ${distance.toFixed(8)}${rendered ? ` ${rendered}` : ""}${instructions ? ` G ${instructions}` : ""}`;
+  });
+  return [
     "GemCad 5.0",
-    `g${indexTeeth} 0.0`,
-    `y ${symmetry} ${mirror}`,
+    `g${gear} 0.0`,
+    `y ${symmetry} ${mirror ? "y" : "n"}`,
     `I ${refractiveIndex}`,
     ...headings.map((line) => `H ${line}`),
     ...tierLines,
     ...footnotes.map((line) => `F ${line}`),
     "",
-  ].join("\n");
-  return { status: statusFor(diagnostics), text, diagnostics, summary };
+  ].join("\r\n");
 }

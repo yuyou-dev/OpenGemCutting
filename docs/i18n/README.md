@@ -28,6 +28,6 @@
 - `src/i18n/format.js`：纯消息格式化、语言解析；`en.json` 为英文消息目录。
 - `src/i18n/locale.js`：站点偏好；`react.jsx` 订阅显示语言。领域和几何模块不反向引用它们。
 - 模板整句翻译并显式传递参数，用户名称作为不透明值；不能做 DOM 扫描或逐词替换。历史领域诊断仅在显示边界匹配完整注册模板。
-- `src/report/pdfReport.js`：显式 locale 参数，异步生成使用入口语言快照。`design_export` 可单独选择 PDF 语言，JSON / ASC 不受影响。
+- `src/report/pdfReport.js`：显式 locale 参数，异步生成使用入口语言快照。`design_export` 可单独选择 PDF 语言，JSON / ASC / GCS 不受影响。
 - `scripts/manual/content.mjs` 共用案例结构，生成器按 locale 取文案及真实截图；不复制手册排版算法。中文、英文入口分别为 `facet-96-operation-manual.pdf` / `facet-96-operation-manual-en.pdf`。
 - 新增界面消息时补目录与占位符回归；术语修改需同步受影响材料。完整验证入口仍为 `npm run check`，协议变更另运行 `npm run check:mcp`。

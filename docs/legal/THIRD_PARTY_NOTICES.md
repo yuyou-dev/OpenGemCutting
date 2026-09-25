@@ -8,6 +8,12 @@ OpenGemCutting uses third-party packages listed in `package.json` and locked by 
 - The bundled Noto Serif SC font files in `public/fonts/` use the SIL Open Font License 1.1; the complete text is included at `public/fonts/OFL.txt`.
 - Fontsource packages provide font software under the corresponding upstream font licenses; inspect their package metadata when redistributing a build.
 
+## Format interchange
+
+GemCAD and Gem Cut Studio are products of their respective owners; OpenGemCutting reads and writes their file formats for interoperability only, contains no code from either program and implies no endorsement. The read-only GemCAD `.gem` reader is an original implementation whose record layout follows the MIT-licensed [gemcad-file-reader](https://github.com/mbparker/gemcad-file-reader) by Mike Parker. The format core originates from Facet Format Bridge 0.1.0-rc.1 by the OpenGemCutting maintainer, released under MIT.
+
+Test samples in `src/domain/formats/fixtures/`: `smallest-square.asc` is Smallest Square by Robert H. Long, assigned to the public domain by its source page; the two `gcs-1.1-*.gcs` files are the bundled preset 100058 (Norman W. Steele, see the preset catalog) opened and saved by Gem Cut Studio 1.1. They are interoperability data, not recommended cutting designs.
+
 ## Built-in faceting presets
 
 `public/presets/` contains normalized parameter records and generated technical previews derived from 252 designs indexed by [FacetDiagrams.org](https://facetdiagrams.org/). Every catalog entry preserves the credited designer, source page, source download URL, source SHA-256 and the archive-supplied `Open` declaration and duplicate-source associations so users can review its provenance.

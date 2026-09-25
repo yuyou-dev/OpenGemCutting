@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
+  IconArrowsExchange,
   IconCheck,
   IconChevronDown,
   IconCube,
@@ -58,10 +59,10 @@ export function Header({
   onOpenRecovery,
   backupStatus,
   onImport,
-  onImportAsc,
+  onImportOther,
   onImportCrystal,
   onExport,
-  onExportAsc,
+  onExportOther,
   onExportGroup,
   hasPhysicalStock = false,
   onExportPdf,
@@ -223,18 +224,18 @@ export function Header({
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportCrystal)}>
             <IconCube size={15} /><span>{t("从底胚新建项目…")}</span>
           </button>
-          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportAsc)}>
-            <IconFileUpload size={15} />
-            <span>{t("导入 GemCad ASC")}</span>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportOther)}>
+            <IconArrowsExchange size={15} />
+            <span>{t("从 GemCAD / Gem Cut Studio 导入…")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExport)}>
             <IconDeviceFloppy size={15} />
             <span>{t("导出 JSON")}</span>
           </button>
           {['stock', 'planar', 'concave'].map((group, index) => (group !== 'stock' || hasPhysicalStock) && <button key={group} type="button" role="menuitem" onClick={event => runMenuAction(event, () => onExportGroup(group))}><IconDeviceFloppy size={15} /><span>{t(['导出底胚参数', '导出平切参数', '导出凹切参数'][index])}</span></button>)}
-          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportAsc)}>
-            <IconDeviceFloppy size={15} />
-            <span>{t("导出 GemCad ASC")}</span>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportOther)}>
+            <IconArrowsExchange size={15} />
+            <span>{t("导出到其他软件…")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportPdf)}>
             <IconFileTypePdf size={15} />

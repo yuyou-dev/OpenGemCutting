@@ -10,7 +10,7 @@
 
 An open-source gemstone faceting workbench. Design through conversation, refine every cut.
 
-[![Version](https://img.shields.io/badge/version-1.2.0-ed225d?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-ed225d?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-222222?style=flat-square)](LICENSE)
 [![Browser](https://img.shields.io/badge/browser-local_first-38755d?style=flat-square)](#start)
 
@@ -34,7 +34,7 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 | :--- | :--- | :--- |
 | 从文字、草图或预设开始 | 三维与顶、底、侧视对照 | JSON 保留完整参数化工序 |
 | 比较方案，继续提出修改 | 多分度（默认 96 齿）、重复、镜像与 Meet | PDF 切割报告便于沟通 |
-| 预览后采用，也能撤销 | 光学仿真观察材质与亮暗 | ASC 预检后交换切割数据 |
+| 预览后采用，也能撤销 | 光学仿真观察材质与亮暗 | 格式中心与 GemCAD、Gem Cut Studio 互通 |
 
 <table>
 <tr>
@@ -47,7 +47,7 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 </tr>
 </table>
 
-**v1.2.0 新增**：11 种分度盘与连续分度；球刀、圆柱、V 形轮与三角柱凹切，独立图层可撤销；图案实验室（带入设计或新建实验，检查后另存为新项目）；逐面磨砂标注——切割助手提示“无需抛光”，光学仿真可在“全抛光／按设计表面”间对比，PDF 报告可选标注磨砂面；WebGPU 光学后端（WebGL 2 回退）；PDF 封面代号不再重叠。详见 [CHANGELOG](CHANGELOG.md)。
+**v1.3.0 新增**：格式中心——打开 GemCAD（.asc、.gem）与 Gem Cut Studio（.gcs）的设计，或把当前设计交给这些软件；每个去向先写明会保留、简化或丢失什么，导出后读回核对形状。磨砂面与 Gem Cut Studio 磨砂互转，无台面的老设计也能直接互转。详见 [CHANGELOG](CHANGELOG.md)。
 
 <sub>展示琢型：PC 01.338 Eight Main Highlight，Long, R H &amp; Steele, N W；来源 Facet Design v5 (1984) pC12。可在预设库按名称载入。[来源与许可](docs/legal/THIRD_PARTY_NOTICES.md)。</sub>
 
