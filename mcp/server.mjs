@@ -56,12 +56,13 @@ const extraTools = [
   {
     name: 'construction_plane',
     description:
-      'Pure geometry: enumerate nearby exact 96-tooth indices or construct a plane through two 3D nodes at an explicit integer index. Optional assigned/protected nodes diagnose coplanarity and half-space feasibility. Does not alter a document.',
+      'Pure geometry: enumerate nearby integer teeth on a selected wheel (default 96), or construct a plane through two 3D nodes at an exact decimal index. Optional assigned/protected nodes diagnose coplanarity and half-space feasibility. Does not alter a document.',
     inputSchema: {
       type: 'object',
       properties: {
         angleDegrees: { type: 'number' },
-        index: { type: 'integer', minimum: 0, maximum: 95 },
+        index: { type: 'number', minimum: 0, maximum: 360 },
+        indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
         a: {
           type: 'array',
           items: { type: 'number' },
@@ -156,7 +157,7 @@ server.setRequestHandler(
         validateInput(extraTools[2].inputSchema, params.arguments ?? {});
         const args = params.arguments ?? {};
         if (args.angleDegrees !== undefined)
-          result = { candidates: indexCandidates(args.angleDegrees) };
+          result = { candidates: indexCandidates(args.angleDegrees, 2, args.indexTeeth ?? 96) };
         else {
           if (!args.a || !args.b || args.index === undefined)
             throw new Error('Provide angleDegrees OR index, a and b.');
@@ -165,6 +166,7 @@ server.setRequestHandler(
             args.a,
             args.b,
             args.region ?? 'crown',
+            args.indexTeeth ?? 96,
           );
           result = {
             plane,
@@ -274,7 +276,7 @@ server.setRequestHandler(GetPromptRequestSchema, async ({ params }) => {
         role: 'user',
         content: {
           type: 'text',
-          text: `设计目标：${params.arguments?.intent ?? ''}\n按需读取 facet://guide 和 facet://skill，复用同版本已读资源与已验证连接，读取当前项目与最新 revision。按 Skill 的任务分支执行：普通参数修改检查实际变化后提交保存；参考图还原才建立独立参考记录并检查投影与连接。已授权的普通有效修改不追加审批，整体消面确认与手动草稿保护仍须遵守。新 CUT 至少形成一个有效面；明确记录推断、偏差和待设计师判断项。`,
+          text: `设计目标：${params.arguments?.intent ?? ''}\n按需读取 facet://guide 和 facet://skill，复用同版本已读资源与已验证连接，读取当前项目与最新 revision。按 Skill 的任务分支执行：普通参数修改检查实际变化后提交保存；参考图还原才建立独立参考记录并检查投影与连接。已授权的普通有效修改不追加审批；整体消面提示覆盖影响，保留原层参数，可直接提交和撤销；手动草稿保护仍须遵守。新 CUT 至少形成一个有效面，空实体和非法几何禁止提交；明确记录推断、偏差和待设计师判断项。`,
         },
       },
     ],

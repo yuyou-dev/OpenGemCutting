@@ -11,7 +11,6 @@ import {
   solveDocument,
   constructionPrefix,
   topologyOf,
-  lookupTarget,
   planDesign,
 } from '../application/designOperations.js';
 import { measurePolyhedron } from '../domain/geometry.js';
@@ -27,13 +26,8 @@ import {
 import {
   CUT_SESSION_EVENT,
   resolveCutSession,
-  defaultDraftForRegion,
 } from '../domain/cutSession.js';
-import { resolveDraftGeometry } from '../domain/cutConstruction.js';
-import {
-  generateJumpCandidates,
-  generateDualJumpCandidates,
-} from '../domain/meetJump.js';
+import { designJumpCandidates } from '../application/designJump.js';
 import { auditProjection } from '../domain/projectionAudit.js';
 import { inspectTopology } from '../domain/referenceTopology.js';
 import { technicalPreviewSvg } from '../domain/technicalPreview.js';
@@ -161,16 +155,6 @@ export function useDesignController({
       assertWrite(args);
       const plan = plans.current.get(args.planId);
       if (!plan) throw designError('PLAN_EXPIRED', '方案已失效，请重新规划。');
-      if (
-        plan.requiredConfirmations.some(
-          (id) => !args.confirmedRemovals?.includes(id),
-        )
-      )
-        throw designError(
-          'CONFIRMATION_REQUIRED',
-          '以下图层的有效面将全部消失；确认该具体方案后再提交。',
-          { requiredConfirmations: plan.requiredConfirmations },
-        );
       flushSync(() => {
         setHistory(
           executeFacetingCommand(
@@ -217,24 +201,7 @@ export function useDesignController({
       };
     }
     if (name === 'design_jump') {
-      const solid = constructionPrefix(document, args.patternId);
-      const draft = { ...defaultDraftForRegion(args.region), ...args.draft };
-      const geometry = resolveDraftGeometry(draft, args.region, document.stock);
-      if (geometry.error) throw designError('INVALID_CUT', geometry.error);
-      const primary = geometry.facets.find((f) => f.index === draft.baseIndex);
-      const candidates = args.targetA
-        ? generateDualJumpCandidates({
-            baseSolid: solid,
-            targetA: lookupTarget(solid, args.targetA),
-            baseIndex: draft.baseIndex,
-            region: args.region,
-            stock: document.stock,
-          })
-        : generateJumpCandidates({
-            baseSolid: solid,
-            normal: primary.plane.normal,
-            stock: document.stock,
-          });
+      const candidates = designJumpCandidates(document, args);
       return {
         projectId,
         revision,
@@ -288,6 +255,7 @@ export function useDesignController({
         solid,
         metrics: measurePolyhedron(solid),
         includeGirdle: false,
+        surfaceFinish: args.surfaceFinish ?? 'polished',
       });
       return { projectId, revision, ...(await request.exportArtifact(blob)) };
     }

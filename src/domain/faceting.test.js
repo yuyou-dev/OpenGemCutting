@@ -44,15 +44,14 @@ test("normalizes the 96-tooth wheel and prints 96 as the zero alias", () => {
   assert.equal(displayIndex(0), 96);
   assert.equal(displayIndex(96), 96);
   assert.equal(displayIndex(95), 95);
-  assert.throws(() => normalizeIndex(2.5), /integer/);
+  assert.equal(normalizeIndex(2.5), 2.5);
+  assert.throws(() => normalizeIndex(NaN), /finite/);
 });
 
-test("only divisors of 96 are valid repeat counts", () => {
-  assert.deepEqual(VALID_REPEAT_COUNTS, [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 96]);
-  assert.throws(
-    () => generateFacetIndices({ baseIndex: 0, repeat: 5 }),
-    /must divide 96/,
-  );
+test("repeat supports every integer from 1 through 360 independently of the wheel", () => {
+  assert.equal(VALID_REPEAT_COUNTS.length, 360);
+  assert.deepEqual(generateFacetIndices({ baseIndex: 0, repeat: 5 }), [19.2, 38.4, 57.6, 76.8, 0]);
+  for (const repeat of [0, 361, 2.5]) assert.throws(() => generateFacetIndices({ repeat }), /integer/);
 });
 
 test("builds N undirected mirror axes and reflects the rotation orbit across them", () => {
@@ -67,15 +66,15 @@ test("builds N undirected mirror axes and reflects the rotation orbit across the
 
   const mirrored = generateFacetIndices({ baseIndex: 12, repeat: 4, mirror: 2 });
   assert.deepEqual(
-    mirrored.map(displayIndex),
+    mirrored.map((index) => displayIndex(index)),
     [12, 16, 36, 40, 60, 64, 84, 88],
   );
 
   const plain = generateFacetIndices({ baseIndex: 96, repeat: 4, mirror: 0 });
-  assert.deepEqual(plain.map(displayIndex), [24, 48, 72, 96]);
+  assert.deepEqual(plain.map((index) => displayIndex(index)), [24, 48, 72, 96]);
 
   const deDuplicated = generateFacetIndices({ baseIndex: 0, repeat: 8, mirror: 6 });
-  assert.deepEqual(deDuplicated.map(displayIndex), [12, 24, 36, 48, 60, 72, 84, 96]);
+  assert.deepEqual(deDuplicated.map((index) => displayIndex(index)), [12, 24, 36, 48, 60, 72, 84, 96]);
 });
 
 test("converts tooth index to azimuth", () => {
@@ -198,7 +197,7 @@ test("rotates a facet group by whole 96-wheel teeth without changing its pattern
     assert.equal(facet.depth, facets[index].depth);
   });
 
-  assert.throws(() => rotateFacetsByTeeth(facets, 0.5), /integer/);
+  assert.equal(rotateFacetsByTeeth(facets, 0.5)[0].index, normalizeIndex(facets[0].index + 0.5));
 });
 
 test("places crown facets above the girdle and pavilion facets below it", () => {

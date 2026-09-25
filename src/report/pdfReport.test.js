@@ -225,3 +225,118 @@ test('PDF renders Chinese-only operation labels with embedded CJK fonts', async 
   const bytes = await createFacetReportPdfBytes(input, { regularBytes, boldBytes });
   assert.equal(new TextDecoder().decode(bytes.slice(0, 5)), '%PDF-');
 });
+
+
+test("reports real directions on the chosen wheel across mixed authored wheels", () => {
+  const facets = [
+    ...resolveFacetPattern({ patternId: "n96", label: "N96", region: "crown", baseIndex: 1, indexTeeth: 96, repeat: 1, industryAngleDeg: 32, depth: 0.2 }),
+    ...resolveFacetPattern({ patternId: "n120", label: "N120", region: "pavilion", baseIndex: 1, indexTeeth: 120, repeat: 1, industryAngleDeg: 41, depth: 0.2 }),
+  ];
+  const model = createFacetReportModel({ document: createFacetingDocument({ facets, indexGear: 360 }) });
+  assert.equal(model.indexTeeth, 360);
+  assert.equal(model.regions.find((region) => region.id === "crown").rows[0].index, "3.75");
+  assert.equal(model.regions.find((region) => region.id === "pavilion").rows[0].index, "03");
+  assert.equal(model.compatibility.compatible, false);
+  assert.equal(model.compatibility.incompatibleCount, 1);
+});
+
+test("evaluates the committed concave solid and separates curved surfaces from flat instructions", () => {
+  const input = makeInput();
+  const plain = createFacetReportModel(input);
+  const document = createFacetingDocument({ ...input.document, concaveCuts: [
+    { id: "five", type: "sphere", position: [0.8, 0, 0], radius: 0.3, repeat: 5, segments: 12 },
+    { id: "disabled", type: "cylinder", position: [0, 0, 0], radius: 0.2, length: 1, enabled: false },
+  ] });
+  const model = createFacetReportModel({ ...input, document });
+  assert.ok(model.volume < plain.volume, "stale supplied solid and metrics cannot hide active concave cuts");
+  assert.equal(model.concaveOperations.length, 2);
+  assert.equal(model.activeConcaveCount, 1);
+  assert.ok(model.concaveOperations[0].surfacePatchCount > 0);
+  assert.ok(model.regions.every((region) => region.groups.every((group) => group.id !== "five")));
+  const pages = buildFacetReportPages(model);
+  assert.equal(pages.at(-1).kind, "concave");
+  assert.equal(pages.at(-1).operations.length, 2);
+  assert.match(model.hardwareNote, /平面工序/);
+});
+
+function withFrostedPavilion(input) {
+  const frosted = { version: 1, model: "ggx-dielectric", state: "frosted", alpha: 0.28 };
+  const document = createFacetingDocument({ ...input.document,
+    facets: input.document.facets.map((facet) => facet.patternId === "p1" && facet.index % 24 === 0
+      ? { ...facet, metadata: { ...(facet.metadata ?? {}), surfaceFinish: frosted } } : facet) });
+  return { ...input, document };
+}
+
+test("surface finishes export as polished by default and are annotated only on request", async () => {
+  const { REPORT_SURFACE_MODES } = await import("./pdfReport.js");
+  assert.deepEqual(REPORT_SURFACE_MODES, ["polished", "annotated"]);
+  const input = withFrostedPavilion(makeInput());
+  const polished = createFacetReportModel(input);
+  assert.equal(polished.surface.frostedCount, 4);
+  assert.equal(polished.surface.annotate, false, "the default report is all polished");
+  assert.ok(polished.regions.flatMap((region) => region.rows).every((row) => row.finish === undefined && row.frosted === false));
+
+  const annotated = createFacetReportModel({ ...input, surfaceFinish: "annotated" });
+  const pavilion = annotated.regions.find((region) => region.id === "pavilion");
+  assert.equal(annotated.surface.annotate, true);
+  assert.equal(pavilion.frostedCount, 4);
+  assert.equal(pavilion.groups[0].frostedCount, 4);
+  const finishes = pavilion.rows.map((row) => row.finish);
+  assert.equal(finishes.filter((finish) => finish === "磨砂 α 0.28").length, 4);
+  assert.equal(finishes.filter((finish) => finish === "抛光").length, 4);
+  assert.ok(pavilion.rows.every((row) => row.frosted === (row.finish !== "抛光")));
+  const english = createFacetReportModel({ ...input, surfaceFinish: "annotated", locale: "en" });
+  assert.deepEqual([...new Set(english.regions.find((region) => region.id === "pavilion").rows.map((row) => row.finish))].sort(), ["Frosted α 0.28", "Polished"]);
+  // Annotation without any frosted face changes nothing.
+  assert.equal(createFacetReportModel({ ...makeInput(), surfaceFinish: "annotated" }).surface.annotate, false);
+  assert.throws(() => createFacetReportModel({ ...input, surfaceFinish: "matte" }), /表面处理/);
+});
+
+test("face codes never overlap, skip slivers and leave the view box", async () => {
+  const { layoutFaceLabels } = await import("./pdfReport.js");
+  const face = (x, y, area) => ({ area, center: { x, y } });
+  const { placed, skipped } = layoutFaceLabels([
+    { label: "SMALL", total: 5, largest: face(50, 50, 400) },
+    { label: "BIG", total: 90, largest: face(52, 51, 900) },
+    { label: "SLIVER", total: 40, largest: face(20, 20, 3) },
+    { label: "OUT", total: 30, largest: face(400, 50, 900) },
+    { label: "FREE", total: 20, largest: face(80, 20, 400) },
+  ], { measure: (label) => label.length * 4, height: 7, box: { x: 0, y: 0, width: 120, height: 100 } });
+  assert.deepEqual(placed.map((item) => item.label), ["BIG", "FREE"]);
+  assert.equal(skipped, 3);
+  for (const [index, { rect }] of placed.entries()) for (const { rect: other } of placed.slice(index + 1)) {
+    assert.ok(rect.x + rect.width <= other.x || other.x + other.width <= rect.x || rect.y + rect.height <= other.y || other.y + other.height <= rect.y);
+  }
+});
+
+test("CJK report fonts keep digits and punctuation at their true advance", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { PDFDocument } = await import("pdf-lib");
+  const fontkit = (await import("@pdf-lib/fontkit")).default;
+  const { CJK_FONT_FEATURES } = await import("./pdfReport.js");
+  const bytes = await readFile(new URL("../../public/fonts/NotoSerifSC-Light.ttf", import.meta.url));
+  const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const font = await pdf.embedFont(bytes, { features: { ...CJK_FONT_FEATURES } });
+  const raw = fontkit.create(bytes);
+  // Localized forms would swap in full-width glyphs narrowed only by GPOS, which
+  // pdf-lib ignores; every Latin character must keep its default glyph and advance.
+  for (const text of ["Cut 04", "45° · P1:15", "32 FACES"]) {
+    const run = raw.layout(text, { ...CJK_FONT_FEATURES });
+    assert.deepEqual(run.glyphs.map((glyph) => glyph.id), [...text].map((character) => raw.glyphForCodePoint(character.codePointAt(0)).id), text);
+    assert.ok(run.glyphs.every((glyph) => glyph.advanceWidth < 800), text);
+    const expected = run.glyphs.reduce((sum, glyph) => sum + glyph.advanceWidth, 0) / raw.unitsPerEm * 10;
+    assert.ok(Math.abs(font.widthOfTextAtSize(text, 10) - expected) < 1e-6, text);
+  }
+  assert.notDeepEqual(raw.layout("Cut 04").glyphs.map((glyph) => glyph.id), raw.layout("Cut 04", { ...CJK_FONT_FEATURES }).glyphs.map((glyph) => glyph.id), "the font does substitute digits by default");
+  const chinese = "台面与亭部磨砂边";
+  assert.deepEqual(raw.layout(chinese, { ...CJK_FONT_FEATURES }).glyphs.map((glyph) => glyph.id), raw.layout(chinese).glyphs.map((glyph) => glyph.id));
+});
+
+test("report fonts and logo resolve against the deployment base", async () => {
+  const { reportAssetUrl } = await import("./pdfReport.js");
+  assert.equal(reportAssetUrl("fonts/NotoSerifSC-Light.ttf", "/"), "/fonts/NotoSerifSC-Light.ttf");
+  assert.equal(reportAssetUrl("fonts/NotoSerifSC-Light.ttf", "/OpenGemCutting/"), "/OpenGemCutting/fonts/NotoSerifSC-Light.ttf");
+  assert.equal(reportAssetUrl("brand/logo-report.png", "/nested"), "/nested/brand/logo-report.png");
+  assert.equal(reportAssetUrl("brand/logo-report.png"), "/brand/logo-report.png");
+});

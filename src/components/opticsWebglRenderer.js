@@ -1,7 +1,5 @@
-import { backgroundColor } from "../domain/optics.js";
-import { packOpticsPlaneTexture, packOpticsMeshTextures, opticsMeshFraming } from "../domain/opticsGeometry.js";
-import { normalizeVector } from "../utils/vector3.js";
-import { opticsCameraFrame } from "./viewportOrbit.js";
+import { packOpticsPlaneTexture, packOpticsMeshTextures } from "../domain/opticsGeometry.js";
+import { opticsViewFrame } from "./opticsViewFrame.js";
 import { createOpticsRenderScheduler } from "./opticsRenderScheduler.js";
 
 const VERTEX_SHADER = `#version 300 es
@@ -12,7 +10,7 @@ void main() {
   gl_Position = vec4(aPosition, 0.0, 1.0);
 }`;
 
-const FRAGMENT_SHADER = `#version 300 es
+export const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 precision highp sampler2D;
 
@@ -377,15 +375,16 @@ function compileShader(gl, type, source) {
   return shader;
 }
 
-function createProgram(gl) {
+export function createProgram(gl, fragmentShader = FRAGMENT_SHADER) {
   const program = gl.createProgram();
   const shaders = [];
   try {
-    for (const [type, source] of [[gl.VERTEX_SHADER, VERTEX_SHADER], [gl.FRAGMENT_SHADER, FRAGMENT_SHADER]]) {
+    for (const [type, source] of [[gl.VERTEX_SHADER, VERTEX_SHADER], [gl.FRAGMENT_SHADER, fragmentShader]]) {
       const shader = compileShader(gl, type, source);
       shaders.push(shader);
       gl.attachShader(program, shader);
     }
+    gl.bindAttribLocation(program, 0, "aPosition");
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error(gl.getProgramInfoLog(program));
@@ -400,16 +399,9 @@ function createProgram(gl) {
   }
 }
 
-function hexToRgb(hex) {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
-}
-
-function environmentIndex(id) {
-  return id === "jewelry" ? 1 : id === "contrast" ? 2 : id === "hearts" ? 3 : 0;
-}
-
-export function createWebglOpticsRenderer(canvas, onError) {
+/** `sampling` (frosted surfaces) supplies its fragment shader, a per-triangle
+ * material texture and an accumulator that owns framebuffers and display. */
+export function createWebglOpticsRenderer(canvas, onError, sampling = null) {
   const gl = canvas.getContext("webgl2", {
     antialias: false,
     alpha: false,
@@ -419,16 +411,23 @@ export function createWebglOpticsRenderer(canvas, onError) {
     onError("当前浏览器不支持 WebGL 2 光学仿真。");
     return null;
   }
+  let program, buffer, textures = [], accumulation;
+  const release = () => {
+    accumulation?.destroy();
+    textures.forEach(texture => gl.deleteTexture(texture));
+    if (buffer) gl.deleteBuffer(buffer);
+    if (program) gl.deleteProgram(program);
+  };
   try {
-    const program = createProgram(gl);
+    program = createProgram(gl, sampling?.fragmentShader);
     const position = gl.getAttribLocation(program, "aPosition");
-    const buffer = gl.createBuffer();
+    buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-    const textures = Array.from({ length: 3 }, (_, unit) => {
+    textures = Array.from({ length: sampling ? 4 : 3 }, (_, unit) => {
       const texture = gl.createTexture();
       gl.activeTexture(gl.TEXTURE0 + unit);
       gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -445,21 +444,24 @@ export function createWebglOpticsRenderer(canvas, onError) {
       "uResolution", "uCameraPosition", "uCameraForward", "uCameraRight", "uCameraUp",
       "uCameraScale", "uPlanes", "uPlaneCount", "uMeshMode", "uBvhNodes", "uTriangles", "uBvhNodeCount", "uIor", "uDispersion",
       "uBodyColor", "uAbsorption", "uExposure", "uEnvironmentRotation", "uEnvironment", "uObserverDirection",
-      "uBackground", "uMaxBounces", "uFocalOffset", "uPan",
+      "uBackground", "uMaxBounces", "uFocalOffset", "uPan", "uMaterials",
     ].map((name) => [name, location(name)]));
     gl.useProgram(program);
     gl.uniform1i(uniforms.uPlanes, 0);
     gl.uniform1i(uniforms.uBvhNodes, 1);
     gl.uniform1i(uniforms.uTriangles, 2);
+    gl.uniform1i(uniforms.uMaterials, 3);
+    accumulation = sampling?.createAccumulation(gl, program, canvas);
 
     const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     let uploadedGeometry = null;
     const scheduler = createOpticsRenderScheduler({
       gl, onError,
-      render({ geometry, settings, camera, focusOffset = 0 }) {
-        const ratio = Math.min(window.devicePixelRatio || 1, 1.5, 1100 / Math.max(canvas.clientWidth, canvas.clientHeight));
-        const width = Math.max(2, Math.round(canvas.clientWidth * ratio));
-        const height = Math.max(2, Math.round(canvas.clientHeight * ratio));
+      onComplete: accumulation?.completed,
+      render(options) {
+        const { geometry, settings, camera } = options;
+        const view = opticsViewFrame(canvas, options);
+        const { width, height, frame } = view;
         if (canvas.width !== width || canvas.height !== height) {
           canvas.width = width;
           canvas.height = height;
@@ -471,7 +473,8 @@ export function createWebglOpticsRenderer(canvas, onError) {
             const packed = geometry.mesh
               ? packOpticsMeshTextures(geometry.mesh, maxTextureSize)
               : { planes: packOpticsPlaneTexture(geometry.planes, maxTextureSize) };
-            for (const [unit, texture] of [[0, packed.planes], [1, packed.nodes], [2, packed.triangles]]) {
+            if (sampling) packed.materials = packOpticsPlaneTexture(geometry.materials, maxTextureSize);
+            for (const [unit, texture] of [[0, packed.planes], [1, packed.nodes], [2, packed.triangles], [3, packed.materials]]) {
               if (!texture) continue;
               gl.activeTexture(gl.TEXTURE0 + unit);
               gl.bindTexture(gl.TEXTURE_2D, textures[unit]);
@@ -494,39 +497,35 @@ export function createWebglOpticsRenderer(canvas, onError) {
           gl.activeTexture(gl.TEXTURE0 + unit);
           gl.bindTexture(gl.TEXTURE_2D, texture);
         });
-        const frame = opticsCameraFrame(camera);
-        let meshFraming;
-        if (geometry.mesh) {
-          const inspector = focusOffset ? canvas.parentElement?.parentElement?.querySelector(".optics-inspector") : null;
-          const canvasBounds = canvas.getBoundingClientRect();
-          const covered = inspector ? Math.max(0, canvasBounds.right - inspector.getBoundingClientRect().left + 24) : 0;
-          meshFraming = opticsMeshFraming(geometry.mesh, {
-            width: canvas.clientWidth, height: canvas.clientHeight, occludedRight: covered,
-          });
-        }
         gl.uniform2f(uniforms.uResolution, width, height);
         gl.uniform3fv(uniforms.uCameraPosition, frame.position);
         gl.uniform3fv(uniforms.uCameraForward, frame.forward);
         gl.uniform3fv(uniforms.uCameraRight, frame.right);
         gl.uniform3fv(uniforms.uCameraUp, frame.up);
-        gl.uniform1f(uniforms.uCameraScale, (meshFraming?.cameraScale ?? 0.34) / camera.zoom);
+        gl.uniform1f(uniforms.uCameraScale, view.cameraScale);
         gl.uniform1i(uniforms.uPlaneCount, geometry.planes?.length ?? 0);
         gl.uniform1i(uniforms.uMeshMode, geometry.mesh ? 1 : 0);
         gl.uniform1i(uniforms.uBvhNodeCount, geometry.mesh?.nodes.length ?? 0);
         gl.uniform1f(uniforms.uIor, settings.material.ior);
         gl.uniform1f(uniforms.uDispersion, settings.material.dispersion);
-        gl.uniform3fv(uniforms.uBodyColor, hexToRgb(settings.material.bodyColor));
+        gl.uniform3fv(uniforms.uBodyColor, view.bodyColor);
         gl.uniform1f(uniforms.uAbsorption, settings.material.absorption);
         gl.uniform1f(uniforms.uExposure, settings.view.exposure);
         gl.uniform1f(uniforms.uEnvironmentRotation, settings.view.environmentRotation);
-        gl.uniform1i(uniforms.uEnvironment, environmentIndex(settings.view.environment));
-        gl.uniform3fv(uniforms.uObserverDirection, normalizeVector(frame.position));
-        gl.uniform3fv(uniforms.uBackground, hexToRgb(backgroundColor(settings)));
+        gl.uniform1i(uniforms.uEnvironment, view.environment);
+        gl.uniform3fv(uniforms.uObserverDirection, view.observer);
+        gl.uniform3fv(uniforms.uBackground, view.background);
         gl.uniform1i(uniforms.uMaxBounces, settings.advanced.maxBounces);
-        gl.uniform1f(uniforms.uFocalOffset, meshFraming?.focusOffset ?? focusOffset);
+        gl.uniform1f(uniforms.uFocalOffset, view.focusOffset);
         gl.uniform2f(uniforms.uPan, camera.panX, camera.panY);
+        canvas.dataset.renderStage = view.stage;
+        if (!accumulation) {
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+          return;
+        }
+        if (!accumulation.begin(width, height, options)) return;
         gl.drawArrays(gl.TRIANGLES, 0, 3);
-        canvas.dataset.renderStage = "complete";
+        if (accumulation.end()) scheduler.draw(options);
       },
     });
     return {
@@ -534,12 +533,11 @@ export function createWebglOpticsRenderer(canvas, onError) {
       draw: scheduler.draw,
       destroy() {
         scheduler.destroy();
-        textures.forEach((texture) => gl.deleteTexture(texture));
-        gl.deleteBuffer(buffer);
-        gl.deleteProgram(program);
+        release();
       },
     };
   } catch (error) {
+    release();
     onError(`光学着色器初始化失败：${error.message}`);
     return null;
   }

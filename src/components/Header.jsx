@@ -17,7 +17,6 @@ import {
   IconFolder,
   IconHelpCircle,
   IconHistory,
-  IconLayoutGrid,
   IconSettings,
   IconTable,
   IconX,
@@ -56,7 +55,6 @@ export function Header({
   displayMode,
   onDisplayMode,
   onNew,
-  onOpenPresets,
   onOpenRecovery,
   backupStatus,
   onImport,
@@ -64,6 +62,8 @@ export function Header({
   onImportCrystal,
   onExport,
   onExportAsc,
+  onExportGroup,
+  hasPhysicalStock = false,
   onExportPdf,
   onUndo,
   onRedo,
@@ -216,16 +216,12 @@ export function Header({
             <IconFilePlus size={15} />
             <span>{t("新建设计")}</span>
           </button>
-          <button type="button" role="menuitem" className="is-preset-entry" onClick={(event) => runMenuAction(event, onOpenPresets)}>
-            <IconLayoutGrid size={15} />
-            <span>{t("浏览预设琢型")}</span>
-          </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImport)}>
             <IconFileUpload size={15} />
             <span>{t("导入 JSON")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportCrystal)}>
-            <IconCube size={15} /><span>{t("导入初始晶体…")}</span>
+            <IconCube size={15} /><span>{t("从底胚新建项目…")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onImportAsc)}>
             <IconFileUpload size={15} />
@@ -235,6 +231,7 @@ export function Header({
             <IconDeviceFloppy size={15} />
             <span>{t("导出 JSON")}</span>
           </button>
+          {['stock', 'planar', 'concave'].map((group, index) => (group !== 'stock' || hasPhysicalStock) && <button key={group} type="button" role="menuitem" onClick={event => runMenuAction(event, () => onExportGroup(group))}><IconDeviceFloppy size={15} /><span>{t(['导出底胚参数', '导出平切参数', '导出凹切参数'][index])}</span></button>)}
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportAsc)}>
             <IconDeviceFloppy size={15} />
             <span>{t("导出 GemCad ASC")}</span>

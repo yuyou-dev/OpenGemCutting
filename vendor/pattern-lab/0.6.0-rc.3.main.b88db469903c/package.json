@@ -1,0 +1,41 @@
+{
+  "name": "@facet96/pattern-lab",
+  "version": "0.6.0-rc.3.main.b88db469903c",
+  "private": true,
+  "type": "module",
+  "description": "Native ESM pattern laboratory candidate with a private React root",
+  "license": "MIT",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./navigation": "./navigation.js"
+  },
+  "files": [
+    "index.js",
+    "navigation.js",
+    "index.d.ts",
+    "style.css",
+    "assets",
+    "chunks",
+    "source",
+    "host",
+    "verification",
+    "licenses",
+    "LICENSE",
+    "*.mjs",
+    "*.md",
+    "*.json",
+    "SHA256SUMS"
+  ],
+  "scripts": {
+    "test": "node self-test.mjs",
+    "preview": "node serve.mjs ."
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

@@ -18,12 +18,12 @@ export function RecoveryDialog({ records, unreadableCount, error, onClose, onRes
       onClose={close}
       closeLabel={deleting ? "保留备份" : "返回工作台"}
     >
-      <p>{t("这里保留升级前的旧版备份。恢复会替换当前项目的设计并自动保存，此次载入可一步撤销，原备份不变。")}</p>
+      <p>{t("这里保留升级前的旧版备份。恢复会创建独立项目，原项目与原备份保持不变。")}</p>
       <dl className="recovery-boundary">
         <div><dt>{t("恢复内容")}</dt><dd>{t("已提交文档与光学材质")}</dd></div>
         <div><dt>{t("不含内容")}</dt><dd>{t("未保存 CUT / 群组预览、相机、视图参数与旧撤销历史")}</dd></div>
       </dl>
-      {discardingDraft && selected ? <p className="recovery-warning">{t("恢复将放弃当前未保存预览，已提交文档可通过撤销找回。")}</p> : null}
+      {discardingDraft && selected ? <p className="recovery-warning">{t("切换到恢复的项目之前，会确认如何处理当前未保存预览。")}</p> : null}
       {error ? <p className="recovery-warning" role="alert">{t(error)}</p> : null}
       {unreadableCount > 0 ? <p className="recovery-warning" role="alert">{t("有")} {t(unreadableCount)} {t("份备份无法读取，原记录已保留。")}</p> : null}
       <div className="recovery-list-heading">

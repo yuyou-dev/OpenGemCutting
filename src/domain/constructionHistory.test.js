@@ -60,6 +60,21 @@ test("changes to source signatures and primary plane produce distinct stale diag
   assert.equal(buildConstructionStages(movedPlane)[1].construction.reason, "plane-mismatch");
 });
 
+test("concave edits never change planar vertex/edge Meet sources or construction prefixes", () => {
+  for (const kind of ["vertex", "edge"]) {
+    const document = fixture(kind);
+    const expected = buildConstructionStages(document);
+    const tool = { id: "groove", type: "cylinder", radius: .12, length: 4, position: [.94, 0, 0], repeat: 4 };
+    for (const concaveCuts of [[tool], [{ ...tool, position: [.85, 0, 0], phaseDeg: 12 }], [{ ...tool, enabled: false }], []]) {
+      const changed = createFacetingDocument({ ...document, concaveCuts });
+      const stages = buildConstructionStages(changed);
+      assert.equal(stages[1].construction.status, "valid");
+      assert.deepEqual(stages, expected);
+      assert.deepEqual(changed.facets, document.facets);
+    }
+  }
+});
+
 test("dual saved intent checks both points and rejects a non-unique pair", async () => {
   const { solveDualMeet } = await import("./meetJump.js");
   const document = fixture();

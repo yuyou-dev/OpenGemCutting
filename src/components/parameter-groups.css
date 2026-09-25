@@ -1,0 +1,19 @@
+.parameter-group-content{padding:12px 14px;display:grid;gap:10px;font-size:12px}
+.parameter-group-content button,.stock-controls button{border:1px solid var(--hairline);border-radius:3px;background:var(--surface);padding:6px 10px;color:inherit;cursor:pointer;font:inherit}
+.parameter-group-content button:disabled{opacity:.45;cursor:default}
+.parameter-group-content input,.parameter-group-content select{min-width:0;width:100%;background:var(--surface);color:inherit;border:1px solid var(--hairline);border-radius:3px;padding:7px;font:inherit;box-sizing:border-box}
+.gear-selector,.stock-controls{display:grid;grid-template-columns:1fr 100px;align-items:center;gap:10px}
+.stock-controls{grid-template-columns:1fr auto}.stock-controls label{display:grid;gap:5px}.stock-controls label span{font-size:10px;color:var(--muted)}
+
+/* Use the same compact controls and action hierarchy as the main workbench. */
+.parameter-group-content input,.parameter-group-content select{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.parameter-group-content button:hover:not(:disabled){border-color:var(--ink)}
+.parameter-group-content input[type=checkbox]{accent-color:var(--pink)}
+/* Equipment feedback stays a fixed two rows; no transient warning blocks. */
+.compatibility-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.compatibility-cell{display:flex;align-items:center;justify-content:center;gap:4px;border:0;background:transparent;padding:3px 0;font:10px var(--mono);color:var(--muted)}
+.compatibility-cell i{width:6px;height:6px;border-radius:50%;background:var(--create);flex:none}
+.compatibility-cell.is-incompatible i{background:#cf3650}
+.compatibility-cell.is-selected{color:var(--ink);font-weight:600;outline:1px solid var(--hairline);border-radius:3px}
+.project-gear{max-width:340px;margin:16px 0;font-size:13px}
+.project-gear select{background:var(--surface);border:1px solid var(--hairline);border-radius:3px;padding:8px;color:var(--ink);font:inherit}

@@ -26,7 +26,10 @@ test("optics retains all 258 prism boundaries regardless of face traversal order
   const normalized = normalizedOpticsPlanes(solid);
   assert.equal(normalized.faceCount, 258);
   assert.equal(normalized.planes.length, 258);
-  assert.deepEqual(normalizedOpticsPlanes({ ...solid, faces: [...solid.faces].reverse() }), normalized);
+  const reversed = normalizedOpticsPlanes({ ...solid, faces: [...solid.faces].reverse() });
+  assert.deepEqual(reversed.planes, normalized.planes);
+  // Each sorted plane still names its source face, whatever the traversal order.
+  assert.deepEqual(reversed.faceIndices.map(index => 257 - index), normalized.faceIndices);
   assert.ok(normalized.planes.some((plane) => plane[2] === 1 && plane[3] === 1));
   assert.ok(normalized.planes.some((plane) => plane[2] === -1 && plane[3] === 1));
   for (const plane of normalized.planes.filter((plane) => plane[2] === 0)) {

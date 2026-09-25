@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { manualPages as sourcePages } from "./manual/content.mjs";
 import { importFacetingJSON } from "../src/domain/faceting.js";
 import { buildConstructionStages } from "../src/domain/constructionHistory.js";
+import { evaluateDocument } from "../src/domain/documentGeometry.js";
 const locale = process.argv.includes('--locale=en') ? 'en' : 'zh-CN';
 const t = createTranslator(locale);
 const localize = (value) => Array.isArray(value) ? value.map(localize) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, localize(item)])) : t(value);
@@ -34,7 +35,7 @@ for (const item of manifest.examples) {
   );
   const stages = buildConstructionStages(doc);
   if (
-    stages.at(-1).afterSolid.faces.length !== item.faces ||
+    evaluateDocument(doc).faces.length !== item.faces ||
     (stages.at(-1).construction?.status ?? null) !== item.constructionStatus
   )
     throw Error(`Manual example differs from manifest: ${item.file}`);
@@ -114,7 +115,7 @@ const renderPage = (page, index) => {
         ${page.question ? `<aside class="question"><b>${locale === "en" ? "Pause and make a design judgment" : "停下来，作一个设计判断"}</b>${page.question}</aside>` : ""}
         ${page.note ? `<aside class="note"><b>${locale === "en" ? "Before you continue" : "继续操作前请知道"}</b>${page.note}</aside>` : ""}
       </main>
-      <footer class="chrome foot"><span>v${version} · ${locale === "en" ? "Learning edition · 7 JSON exercises + 1 rough OBJ" : "教学版 · 配套 7 份 JSON + 1 份原晶 OBJ"}</span><span><b>${String(index + 1).padStart(2, "0")}</b> / ${manualPages.length}</span></footer>
+      <footer class="chrome foot"><span>v${version} · ${locale === "en" ? `Learning edition · ${manifest.examples.length} JSON exercises + 1 rough OBJ` : `教学版 · 配套 ${manifest.examples.length} 份 JSON + 1 份原晶 OBJ`}</span><span><b>${String(index + 1).padStart(2, "0")}</b> / ${manualPages.length}</span></footer>
     </section>
   `;
 };

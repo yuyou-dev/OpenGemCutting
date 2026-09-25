@@ -57,7 +57,7 @@ export function AscTransferDialog({ mode, fileName, result, onClose, onConfirm, 
   }, [onClose]);
 
   const confirmLabel = isImport
-    ? result.status === "warning" ? "仍然导入并替换" : "确认导入并替换"
+    ? result.status === "warning" ? "仍然导入为新项目" : "导入为新项目"
     : result.status === "warning" ? "仍然导出 ASC" : "导出 ASC";
 
   return (
@@ -83,7 +83,7 @@ export function AscTransferDialog({ mode, fileName, result, onClose, onConfirm, 
         <div className="asc-transfer-body">
           <p id={descriptionId} className="asc-file-name" title={t(fileName)}>{t(fileName)}</p>
           <div className="asc-summary-grid" aria-label={t("ASC 兼容摘要")}>
-            <span><small>INDEX GEAR</small><strong>{t(summary.sourceGear ?? 96)} → 96</strong></span>
+            <span><small>INDEX GEAR</small><strong>{t(summary.sourceGear ?? summary.targetGear ?? "—")} → {t(summary.targetGear ?? "—")}</strong></span>
             <span><small>TIERS / FACETS</small><strong>{t(summary.tierCount ?? "—")} / {t(summary.facetCount ?? "—")}</strong></span>
             <span><small>REFRACTIVE INDEX</small><strong>{t(summary.refractiveIndex ?? "—")}</strong></span>
             <span><small>LENGTH / WIDTH</small><strong>{t(formatRatio(summary.dimensions?.lengthToWidth))}</strong></span>
@@ -101,9 +101,9 @@ export function AscTransferDialog({ mode, fileName, result, onClose, onConfirm, 
             <strong>{isImport ? t("确认后的影响") : t("本次导出范围")}</strong>
             <p>{isImport
               ? discardingDraft
-                ? t("当前文档与未保存 CUT 预览会被替换；导入作为一次文档命令写入，可使用撤销恢复。")
-                : t("当前文档会被替换；导入作为一次文档命令写入，可使用撤销恢复。")
-              : t("只写出已提交文档的最终有效 96 齿刻面与当前文档折射率；未保存 CUT / 整体变换预览、被覆盖面及毛坯面不会进入 ASC。JSON 仍是完整主文件。")}</p>
+                ? t("导入为独立项目，原项目保留；切换前会确认如何处理未保存预览。")
+                : t("导入为独立项目，原项目及其底胚保持不变。")
+              : t("按当前分度盘写出已提交文档的最终有效平面与折射率；小数分度保留，不取整。未保存预览、被覆盖面及底胚不进入 ASC；启用凹切时不能导出 ASC。JSON 保留完整项目。")}</p>
           </div>
 
           <div className="asc-diagnostics" aria-label={t("兼容诊断")}>

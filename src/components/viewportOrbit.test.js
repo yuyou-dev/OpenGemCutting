@@ -30,8 +30,8 @@ for (const yaw of [0, -0.72, Math.PI / 2, Math.PI]) {
       }
     }
   });
-  test(`optics front marker follows four screen directions, including inverted views, at yaw ${yaw}`, () => {
-    for (const elevation of [-2, -1.4, -0.42, 0, 0.42, 1.4, 2, 4]) {
+  test(`optics front marker follows four screen directions, within the shared cutting limits, at yaw ${yaw}`, () => {
+    for (const elevation of [-1.4, -0.42, 0, 0.42, 1.4]) {
       const orbit = Object.freeze({ yaw, elevation });
       const marker = opticsCameraFrame(orbit).position.map(value => value / 4.4);
       for (const [h, v, axis, sign] of [[0.01, 0, 0, 1], [-0.01, 0, 0, -1], [0, 0.01, 1, 1], [0, -0.01, 1, -1]]) {
@@ -51,14 +51,32 @@ test('editor exact axial view stays put on outward drag and departs smoothly on 
   }
 });
 
-test('optics crosses both poles continuously without snapping, resizing or mutating input', () => {
+test('optics uses the cutting view pole limits without mutating its input', () => {
   for (const sign of [-1, 1]) {
-    const orbit = Object.freeze({ yaw: 0.6, elevation: sign * (Math.PI / 2 - 0.01), zoom: 1.3, panX: 0.2, panY: -0.1 });
-    const next = opticsOrbitAfterInput(orbit, 0, sign * 0.02);
+    const orbit = Object.freeze({ yaw: .6, elevation: sign * (Math.PI / 2 - .01) });
+    const next = opticsOrbitAfterInput(orbit, 0, sign * .02);
     assert.equal(next.yaw, orbit.yaw);
-    assert.ok(Math.abs(next.elevation - sign * (Math.PI / 2 + 0.01)) < 1e-12);
-    const a = opticsCameraFrame(orbit), b = opticsCameraFrame(next);
-    assert.ok(Math.hypot(...a.position.map((v, i) => v - b.position[i])) < 0.09);
-    assert.deepEqual(Object.keys(next).sort(), ['elevation', 'yaw']);
+    assert.equal(next.elevation, sign * Math.PI / 2);
+    const inward = opticsOrbitAfterInput(next, 0, -sign * .01);
+    assert.ok(Math.abs(inward.elevation) < Math.PI / 2);
   }
+});
+
+test('optical pan converts CSS pixels independently of DPR, zoom and viewport width', async () => {
+ const { opticsCameraFromViewport } = await import('./viewportOrbit.js');
+ const { createViewportCamera, dragViewport, advanceViewportCamera } = await import('./viewportNavigation.js');
+ for (const height of [360,720,1000]) {
+  const camera=createViewportCamera({panY:0,zoom:1.7});dragViewport(camera,24,12,true);
+  while(advanceViewportCamera(camera)) {}
+  const optical=opticsCameraFromViewport(camera,height);
+  assert.equal(optical.panX*height/2,24);assert.equal(-optical.panY*height/2,12);
+  assert.equal(optical.zoom,1.7);
+ }
+});
+
+test('shared navigation comes from the locked laboratory module', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const lock = JSON.parse(await readFile(new URL('../application/labsModuleLock.json', import.meta.url)));
+  const source = await readFile(new URL('./viewportNavigation.js', import.meta.url), 'utf8');
+  assert.ok(source.includes(`../../${lock.directory}/navigation.js`), 'module updates must also move the navigation reference');
 });

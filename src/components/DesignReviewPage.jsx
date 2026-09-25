@@ -3,7 +3,7 @@ import { t } from '../i18n/locale.js';
 import { useEffect, useMemo, useState } from "react";
 import { IconArrowLeft, IconDownload, IconExternalLink, IconFileDescription } from "@tabler/icons-react";
 import { importFacetingJSON, exportFacetingJSON } from "../domain/faceting.js";
-import { createStockSolid } from "../domain/stockGeometry.js";
+import { evaluateDocument } from "../domain/documentGeometry.js";
 import { assertDocumentImportBudget } from "../domain/importBudget.js";
 import { buildConstructionStages } from "../domain/constructionHistory.js";
 import { projectTechnicalPreview } from "../domain/technicalPreview.js";
@@ -43,7 +43,7 @@ export function DesignReviewPage({ manifestPath }) {
         if(manifest.format!=="facet-design-review-v1")throw new Error("此文件不是受支持的琢型试作资料。");
         assertDocumentImportBudget(manifest.document);
         const doc=importFacetingJSON(JSON.stringify(manifest.document));
-        const stages=buildConstructionStages(doc),solid=stages.at(-1)?.afterSolid ?? createStockSolid(doc.stock);
+        const stages=buildConstructionStages(doc),solid=evaluateDocument(doc);
         if(!solid)throw new Error("试作需要至少一个已保存的切割图层。");
         if(!controller.signal.aborted)setData({...manifest,document:doc,stages,solid,base});
       }catch(e){if(!controller.signal.aborted)setError(e.message);}

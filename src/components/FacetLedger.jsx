@@ -59,6 +59,7 @@ export function FacetLedger({
               <th>{t("行业角")}</th>
               <th>{t("几何 β")}</th>
               <th>{t("深度")}</th>
+              <th>{t("分度盘")}</th>
               <th>{t("索引")}</th>
               <th>{t("状态")}</th>
               <th><span className="sr-only">{t("显示")}</span></th>
@@ -84,7 +85,8 @@ export function FacetLedger({
                   <td className="mono-cell">{row.industryAngleDeg.toFixed(2)}°</td>
                   <td className="mono-cell">{row.signedBeta > 0 ? "+" : ""}{row.signedBeta.toFixed(2)}°</td>
                   <td className="mono-cell">{row.depth ? row.depth.toFixed(3) : "—"}</td>
-                  <td className="indices-cell">{t((row.effectiveIndices ?? row.indices).length ? (row.effectiveIndices ?? row.indices).map((value) => String(displayIndex(value)).padStart(2, "0")).join(" ") : "—")}</td>
+                  <td className="mono-cell">{row.region === "rough" ? "—" : t("{0} 齿", [row.indexTeeth ?? 96])}</td>
+                  <td className="indices-cell">{t((row.effectiveIndices ?? row.indices).length ? (row.effectiveIndices ?? row.indices).map((value) => String(displayIndex(value, row.indexTeeth ?? 96)).padStart(2, "0")).join(" ") : "—")}</td>
                   <td>{t(row.status || REGION_LABEL[row.region])}</td>
                   <td>
                     <button

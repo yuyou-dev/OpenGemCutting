@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { APP_VERSION } from "./src/version.js";
+import { labsModulePlugin } from './scripts/labs-vite-plugin.mjs';
 
 export default defineConfig({
   build: {
@@ -18,5 +19,5 @@ export default defineConfig({
   preview: {
     host: "127.0.0.1",
   },
-  plugins: [react(), { name: "release-version", transformIndexHtml: html => html.replaceAll("%APP_VERSION%", APP_VERSION) }],
+  plugins: [react(), labsModulePlugin(), { name: "release-version", transformIndexHtml: html => html.replaceAll("%APP_VERSION%", APP_VERSION) }],
 });

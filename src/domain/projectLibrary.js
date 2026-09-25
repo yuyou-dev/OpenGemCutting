@@ -1,5 +1,6 @@
 import { importFacetingJSON } from "./faceting.js";
 import { createLocalRecoveryStore } from "./localRecovery.js";
+import { assertValidDocumentGeometry } from "./documentGeometry.js";
 
 const PREFIX = "facet96:project:v1:";
 const STARTED_KEY = "facet96:projects-started:v1";
@@ -9,17 +10,25 @@ const legacyProjectId = (id) => `legacy-${encodeURIComponent(id)}`;
 // Only the committed document crosses this boundary; viewport and CUT state do not.
 function projectSnapshot(document) {
   const validated = importFacetingJSON(document);
-  const { $schema, schemaVersion, kind, name, indexGear, stock, facets, metadata } = validated;
+  assertValidDocumentGeometry(validated);
+  const { $schema, schemaVersion, kind, name, indexGear, stock, cuttingReference, facets, concaveCuts, metadata, extensions } = validated;
   if (metadata?.optics) delete metadata.optics.view;
-  return { $schema, schemaVersion, kind, name, indexGear, stock, facets, ...(metadata ? { metadata } : {}) };
+  return { $schema, schemaVersion, kind, name, indexGear, stock,
+    ...(cuttingReference ? { cuttingReference } : {}), facets,
+    ...(schemaVersion === 3 ? { concaveCuts } : {}), ...(metadata ? { metadata } : {}),
+    ...(extensions === undefined ? {} : { extensions }) };
 }
 
 // Callers may edit returned metadata/facets. The cache owns its snapshots;
-// only a validated and deeply frozen mesh stock can cross by reference.
+// only validated and deeply frozen mesh stock/tool arrays cross by reference.
 function copyRecord(record) {
-  const { stock, ...document } = record.document;
+  const { stock, concaveCuts } = record.document;
+  // Replace immutable payloads in place, preserving native JSON field order.
+  const document = { ...record.document, stock: undefined };
+  if (concaveCuts !== undefined) document.concaveCuts = undefined;
   const copy = structuredClone({ ...record, document });
   copy.document.stock = stock.kind === "mesh" ? stock : structuredClone(stock);
+  if (concaveCuts !== undefined) copy.document.concaveCuts = concaveCuts;
   return copy;
 }
 

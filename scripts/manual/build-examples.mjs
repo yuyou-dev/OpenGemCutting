@@ -1,4 +1,4 @@
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, readFile, mkdir } from "node:fs/promises";
 import {
   createFacetingDocument,
   resolveFacetPattern,
@@ -10,6 +10,7 @@ import {
   translateFacetsAlongZ,
 } from "../../src/domain/faceting.js";
 import { buildConstructionStages } from "../../src/domain/constructionHistory.js";
+import { evaluateDocument } from "../../src/domain/documentGeometry.js";
 import {
   enumerateTopologyEdges,
   enumerateTopologyVertices,
@@ -177,6 +178,19 @@ const stale = createFacetingDocument({
     f.patternId === "crown-main" ? translateFacetsAlongZ([f], 0.03)[0] : f,
   ),
 });
+const multiIndexConcave = createFacetingDocument({
+  name: "五重凹切练习", indexGear: 120,
+  facets: [
+    ...resolveFacetPattern({ patternId: "table-facet", label: "T1 台面", region: "crown", industryAngleDeg: 0, depth: 0.65, repeat: 1, metadata: { operationType: "table" } }),
+    ...resolveFacetPattern({ patternId: "g1", label: "G1 五折腰部", region: "girdle", industryAngleDeg: 90, depth: 0.2, repeat: 5, indexTeeth: 120 }),
+    ...resolveFacetPattern({ patternId: "p1", label: "P1 五折亭部", region: "pavilion", industryAngleDeg: 41, depth: 0.85, repeat: 5, indexTeeth: 120 }),
+    ...resolveFacetPattern({ patternId: "c1", label: "C1 五折冠部", region: "crown", industryAngleDeg: 32, depth: 0.8, repeat: 5, indexTeeth: 120 }),
+  ],
+  concaveCuts: [
+    { id: "round-pits", label: "五重球形凹切", type: "sphere", position: [0.8, 0, 0], radius: 0.28, repeat: 5, phaseDeg: 36, segments: 12 },
+    { id: "cylinder-groove", label: "圆柱槽备选（停用）", type: "cylinder", position: [0.85, 0, 0], axis: [0, 0, 1], radius: 0.18, length: 1.4, repeat: 5, phaseDeg: 0, segments: 16, enabled: false },
+  ],
+});
 const examples = [
   ["01-round-start.json", base],
   ["02-edge-third.json", first],
@@ -185,11 +199,12 @@ const examples = [
   ["05-low-crown.json", low],
   ["06-four-accents.json", custom],
   ["07-source-changed.json", stale],
+  ["09-multi-index-concave.json", multiIndexConcave],
 ];
 const stats = [];
 for (const [file, doc] of examples) {
   const stages = buildConstructionStages(doc);
-  const s = stages.at(-1).afterSolid;
+  const s = evaluateDocument(doc);
   await writeFile(new URL(file, out), exportFacetingJSON(doc));
   stats.push({
     file,
@@ -205,7 +220,7 @@ await writeFile(
   new URL("manifest.json", out),
   JSON.stringify(
     {
-      version: "0.7.2",
+      version: JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8")).version,
       purpose: "教学设计练习，不是生产切磨配方",
       examples: stats,
     },

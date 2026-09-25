@@ -46,3 +46,23 @@
 [独立参考](examples/square-reference.json) 在求解前指定：轮廓 ±0.8、台面 ±0.4、台面 Z=0.45、腰边 Z=±0.05、亭尖 Z=-0.85，并声明顶视 8 个节点和 12 条连接。它是工程尺寸练习，不是照片还原或原创审美样本。
 
 在默认项目中把 [操作序列](examples/square-operations.json) 传入 design_plan，返回 13 个最终有效 CUT 面。用 design_projection 传入参考中的 graph / faceMap、view=top、scale=400、center=[400,400]，逐项检查 8 节点和 12 连接，额外可见顶点仍如实列出。用 front 检查冠亭高度及 0.1 腰厚；不单独缩放坐标轴。
+
+## 120 分度与五次对称
+
+起点为默认项目。设计意图：保持现有 96 分度工序，在同一设计中增加五次对称冠面，检查哪些分度盘可执行最终平面。
+
+```json
+[{"kind":"cut","patternId":"five-crown","region":"crown","draft":{"indexTeeth":120,"baseIndex":0,"repeat":5,"industryAngle":35,"depth":0.6}}]
+```
+
+用 `design_inspect.indexCompatibility` 比较全部工序与最终有效面：120 齿五次对称的新层不会被静默取整为 96 齿。若存在原 32 折腰部，最终所有平面未必兼容 120 齿；以真实法线结果为准。JSON 重开后五次对称和各组齿数保持。
+
+## 独立叠加凹面加工
+
+起点为已有平面 CUT 的项目。设计意图：保留平面工序，在侧面加一个半径 0.4 的球形凹槽。
+
+```json
+[{"kind":"replace-parameters","parameterGroup":{"kind":"facet-parameter-group","schemaVersion":1,"group":"concave","concaveCuts":[{"id":"side-scoop","type":"sphere","position":[0.8,0,0],"radius":0.4,"repeat":1,"segments":24}]}}]
+```
+
+在相同正交及立体观察条件下比较凹槽。将同一参数组中的 `concaveCuts` 改为 `[]` 可移除凹面加工；原底胚与平面 CUT 参数不变，撤销恢复凹槽。`group: "stock"` 文件只携带 `stock`，`group: "planar"` 只携带 `facets`，凹切组只携带 `concaveCuts`；不允许混装后暗中替换其他组。球面与柱面按指定段数离散为真实网格，凹切设备需求独立于平面分度兼容结果。

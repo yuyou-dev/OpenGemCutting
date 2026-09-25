@@ -1,3 +1,4 @@
+import { INDEX_GEARS } from '../domain/indexing.js';
 import { t } from '../i18n/locale.js';
 import { assertFileBudget, IMPORT_BUDGET } from "../domain/importBudget.js";
 import { useId, useMemo, useRef, useState } from "react";
@@ -11,7 +12,7 @@ import "./CrystalImportDialog.css";
 const UNITS = { unitless: "未指定单位", mm: "毫米 · mm", cm: "厘米 · cm", m: "米 · m" };
 const dimensions = (values) => values.map((value) => Number(value.toPrecision(5))).join(" × ");
 
-export function CrystalImportDialog({ onClose, onImport, onBack }) {
+export function CrystalImportDialog({ onClose, onImport, onBack, indexTeeth, onIndexTeethChange }) {
   const panelRef = useRef(null);
   const inputRef = useRef(null);
   const readSequence = useRef(0);
@@ -72,6 +73,7 @@ export function CrystalImportDialog({ onClose, onImport, onBack }) {
         </header>
         <div className="crystal-import-body">
           <p className="crystal-import-intro">{t("从自己的原石形状开始设计。最多")} {t(CRYSTAL_IMPORT_FACE_LIMIT)} {t("个面（凹多边形分解后的面片也须在此限内）。先检查闭合、面片和尺寸，再建立新项目。")}</p>
+          <label className="gear-selector project-gear"><span>{t("切磨设备分度盘")}</span><select aria-label={t("切磨设备分度盘")} value={indexTeeth} onChange={event => onIndexTeethChange(Number(event.target.value))}>{INDEX_GEARS.map(teeth => <option key={teeth} value={teeth}>{teeth} {t("齿")}</option>)}</select></label>
           <div className="crystal-file-row">
             <input ref={inputRef} type="file" accept=".obj,text/plain" aria-label={t("选择初始晶体 OBJ 文件")} onChange={selectFile} hidden />
             <button type="button" className="secondary-button modal-button" onClick={() => inputRef.current.click()}><IconFileUpload size={17} />{source || error ? t("重新选择 OBJ") : t("选择 OBJ 文件")}</button>

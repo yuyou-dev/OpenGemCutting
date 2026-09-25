@@ -2,17 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createOpticsRenderScheduler } from './opticsRenderScheduler.js';
 function setup() {
-  let callback, status = 1, fences = 0;
-  const draws = [], errors = [], deleted = [];
+  let callback, status = 1, fences = 0, clock = 0;
+  const draws = [], errors = [], deleted = [], completions = [];
   const gl = {
     TIMEOUT_EXPIRED: 0, WAIT_FAILED: 2, SYNC_GPU_COMMANDS_COMPLETE: 3,
     clientWaitSync(_fence, flags, timeout) { assert.equal(flags, 0); assert.equal(timeout, 0); return status; },
     fenceSync() { return ++fences; }, flush() {}, deleteSync(fence) { deleted.push(fence); },
   };
   const scheduler = createOpticsRenderScheduler({ gl, render: options => draws.push(options), onError: error => errors.push(error),
+    onComplete: ms => completions.push(ms), now: () => clock,
     requestFrame: fn => { assert.equal(callback, undefined); callback = fn; return 1; }, cancelFrame: () => { callback = undefined; },
   });
-  return { scheduler, draws, errors, deleted, busy: () => { status = 0; }, ready: () => { status = 1; }, fail: () => { status = 2; },
+  return { scheduler, draws, errors, deleted, completions, advance: ms => { clock += ms; }, busy: () => { status = 0; }, ready: () => { status = 1; }, fail: () => { status = 2; },
     step() { const fn = callback; callback = undefined; fn?.(); }, pending: () => Boolean(callback),
   };
 }
@@ -45,5 +46,12 @@ test('camera snapshots coalesce before a frame; unmount releases the fence and p
 test('failed GPU wait reports an error and stops submissions', () => {
   const h = setup(); h.scheduler.draw(options(1)); h.step(); h.fail(); h.scheduler.draw(options(2)); h.step();
   assert.equal(h.draws.length, 1); assert.equal(h.errors.length, 1); assert.equal(h.pending(), false);
+  h.scheduler.destroy();
+});
+test('a polled fence reports its frame-quantized completion time', () => {
+  const h = setup(); h.scheduler.draw(options(1)); h.step(); h.busy();
+  h.scheduler.draw(options(2)); h.advance(16); h.step(); h.advance(16); h.ready(); h.step();
+  assert.deepEqual(h.completions, [32]);
+  assert.equal(h.draws.length, 2);
   h.scheduler.destroy();
 });

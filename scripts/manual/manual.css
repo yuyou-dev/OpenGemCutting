@@ -197,13 +197,13 @@ figcaption {
   color: #7c662f;
 }
 .toc {
-  margin-top: 10mm;
+  margin-top: 6mm;
 }
 .toc article {
   display: grid;
   grid-template-columns: 15mm 1fr;
   gap: 6mm;
-  padding: 6mm 0;
+  padding: 3.5mm 0;
   border-bottom: 0.25mm solid #d7dfda;
 }
 .toc span {
@@ -212,8 +212,8 @@ figcaption {
   color: #bf315e;
 }
 .toc h3 {
-  font-size: 13pt;
-  margin: 0 0 2mm;
+  font-size: 12pt;
+  margin: 0 0 1.5mm;
 }
 .toc p {
   margin: 0;
@@ -295,7 +295,7 @@ html[lang="en"] p.intro { line-height: 1.55; }
 html[lang="en"] .step p, html[lang="en"] .block p { line-height: 1.5; }
 html[lang="en"] .steps, html[lang="en"] .blocks { gap: 2.6mm; }
 html[lang="en"] .question, html[lang="en"] .note { line-height: 1.5; margin-top: 3mm; padding-block: 2.5mm; }
-html[lang="en"] .toc article { padding-block: 4mm; }
+html[lang="en"] .toc article { padding-block: 3.5mm; }
 html[lang="en"] figure img { height: 88mm; }
 html[lang="en"] .cover figure img { height: 110mm; }
 html[lang="en"] .controls figure img { height: 96mm; }
@@ -304,4 +304,11 @@ html[lang="en"] .pair figure img { height: 85mm; }
 html[lang="en"] .block p, html[lang="en"] .step p { font-size: 10pt; }
 
 /* Home onboarding copy and its complete project row must fit above the footer. */
-figure img[src$="/home-projects.jpg"] { height: 88mm; }
+figure img[src$="/home-projects.jpg"] { height: 85mm; }
+
+/* Complete workspace and import captions need room above the footer in both languages. */
+figure img[src$="/highlight-workspace.jpg"] { height: 88mm; }
+figure img[src$="/crystal-import.jpg"] { height: 56mm; }
+html[lang="en"] figure img[src$="/crystal-import.jpg"] { height: 48mm; }
+html[lang="zh-CN"] .compact-image figure img[src$="/local-design-bridge.jpg"] { height: 58mm; }
+html[lang="en"] .compact-image .pair figure img { height: 80mm; }

@@ -1,3 +1,7 @@
+import { drawConcaveTools, releaseConcaveToolMeshes } from './concaveToolRenderer.js';
+import { expandConcaveCuts } from '../domain/concaveCuts.js';
+import { createRoundCutter } from '../domain/mesh/boolean.js';
+import { faceColor } from "./faceColor.js";
 import { t, subscribeLocale } from '../i18n/locale.js';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -5,7 +9,7 @@ import {
   IconRotate3d,
   IconZoomIn,
 } from "@tabler/icons-react";
-import { DEGREES_PER_TOOTH, INDEX_TEETH, displayIndex, normalizeIndex as normalizeFacetIndex } from "../domain/faceting.js";
+import { INDEX_TEETH, displayIndex, normalizeIndex as normalizeFacetIndex } from "../domain/faceting.js";
 import {
   addVectors as add,
   averageVectors as average,
@@ -19,7 +23,8 @@ import { getMeshBoundaryEdges } from "../domain/meshDisplay.js";
 import { getMeshBvh, raycastMesh, intersectMeshSegment, isPointInsideMesh } from "../domain/meshRaycast.js";
 import { clamp } from "../utils/format.js";
 import { advanceViewportCamera, createViewportFrames, cuttingCameraPose, startCameraTransition } from "./viewportFrames.js";
-import { editorOrbitAfterInput } from "./viewportOrbit.js";
+import { createViewportCamera, dragViewport, zoomViewport, keyViewport } from "./viewportNavigation.js";
+import { indexRingLayout, ringPoint } from "./viewportIndexRing.js";
 import "./GemViewport.css";
 
 const VIEW_POSES = {
@@ -162,16 +167,16 @@ function normalizeGeometry(polyhedron) {
   return { vertices, faces, edges: [...uniqueEdges.values()], bounds: computeBounds(vertices) };
 }
 
-function normalizeIndex(value) {
+function normalizeIndex(value, indexTeeth) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return null;
-  return normalizeFacetIndex(Math.round(numeric));
+  return normalizeFacetIndex(numeric, indexTeeth);
 }
 
-function isSelectedPlane(plane, selectedIndex) {
+function isSelectedPlane(plane, selectedIndex, indexTeeth) {
   if (plane?.primary) return true;
-  const planeIndex = normalizeIndex(plane?.index);
-  const activeIndex = normalizeIndex(selectedIndex);
+  const planeIndex = normalizeIndex(plane?.index, plane?.indexTeeth ?? indexTeeth);
+  const activeIndex = normalizeIndex(selectedIndex, indexTeeth);
   return planeIndex !== null && activeIndex !== null && planeIndex === activeIndex;
 }
 
@@ -187,19 +192,7 @@ function copyBounds(bounds) {
 
 function createCamera() {
   const pose = VIEW_POSES.perspective;
-  return {
-    yaw: pose.yaw,
-    pitch: pose.pitch,
-    targetYaw: pose.yaw,
-    targetPitch: pose.pitch,
-    zoom: 1,
-    targetZoom: 1,
-    panX: 0,
-    panY: 8,
-    targetPanX: 0,
-    targetPanY: 8,
-    suppressNextPose: false,
-  };
+  return { ...createViewportCamera(VIEW_POSES.perspective), suppressNextPose: false };
 }
 
 function setCameraPose(camera, mode, immediate = false) {
@@ -307,17 +300,17 @@ function planePatch(plane, patchRadius) {
   };
 }
 
-function drawPreviewPlanes(p, planes, selectedIndex, bounds, sceneScale, lineWeight, renderMode) {
+function drawPreviewPlanes(p, planes, selectedIndex, bounds, sceneScale, lineWeight, renderMode, indexTeeth) {
   const patchRadius = Math.max(bounds.radius * 0.56, 0.5);
   const visiblePlanes = renderMode === "xray"
     ? planes
-    : planes.filter((plane) => isSelectedPlane(plane, selectedIndex));
+    : planes.filter((plane) => isSelectedPlane(plane, selectedIndex, indexTeeth));
   const orderedPlanes = [...visiblePlanes].sort((a, b) => (
-    Number(isSelectedPlane(a, selectedIndex)) - Number(isSelectedPlane(b, selectedIndex))
+    Number(isSelectedPlane(a, selectedIndex, indexTeeth)) - Number(isSelectedPlane(b, selectedIndex, indexTeeth))
   ));
 
   orderedPlanes.forEach((plane) => {
-    const primary = isSelectedPlane(plane, selectedIndex);
+    const primary = isSelectedPlane(plane, selectedIndex, indexTeeth);
     const patch = planePatch(plane, patchRadius);
     const color = primary ? [241, 0, 82] : [54, 116, 231];
 
@@ -429,35 +422,6 @@ function drawGroupControlPlane(p, gizmo, sceneScale, lineWeight) {
   gl.depthMask(true);
 }
 
-function faceColor(face, bounds, renderMode, highlightOperationId, activeOperationId, previewOperationId) {
-  const height = Math.max(bounds.span[2], 1e-5);
-  const position = (face.center[2] - bounds.min[2]) / height;
-  const facing = Math.abs(face.normal[2]);
-
-  const alpha = renderMode === "xray" ? 112 : 245;
-
-  if (activeOperationId && face.operationId === activeOperationId) {
-    return [249 + facing * 3, 168 + facing * 16, 198 + facing * 12, renderMode === "xray" ? 155 : 246];
-  }
-
-  if (previewOperationId && face.operationId === previewOperationId) {
-    return [148 + facing * 12, 203 + facing * 12, 240 + facing * 8, renderMode === "xray" ? 150 : 246];
-  }
-
-  if (highlightOperationId && face.operationId === highlightOperationId) {
-    return [237 + facing * 8, 34 + facing * 12, 93 + facing * 20, renderMode === "xray" ? 150 : 246];
-  }
-
-  if (position < 0.42) {
-    return [223 + facing * 12, 205 + facing * 13, 108 + facing * 22, alpha];
-  }
-
-  if (position > 0.59) {
-    return [238 + facing * 11, 225 + facing * 10, 230 + facing * 12, alpha];
-  }
-
-  return [211 + facing * 18, 218 + facing * 16, 220 + facing * 17, alpha];
-}
 
 function edgeKey(a, b) {
   const pointKey = (point) => point.map((value) => value.toFixed(6)).join(",");
@@ -899,7 +863,8 @@ function groupControlsScreenInfo(frame, gizmo) {
         center: [gizmo.center[0], gizmo.center[1], gizmo.shiftZ],
         outerRadius: gizmo.radius * 0.76,
         innerRadius: gizmo.radius * 0.69,
-        baseIndex: normalizeFacetIndex(gizmo.rotationTeeth),
+        indexTeeth: gizmo.indexTeeth ?? INDEX_TEETH,
+        baseIndex: normalizeFacetIndex(gizmo.rotationTeeth, gizmo.indexTeeth ?? INDEX_TEETH),
         repeat: 1,
         mirror: 0,
         locked: false,
@@ -912,9 +877,9 @@ function groupControlsScreenInfo(frame, gizmo) {
 function groupRotationRingHit(x, y, ring, visibility) {
   if (!ring) return false;
   if (!visibility?.isOccluded(ring.outerHandle) && Math.hypot(x - ring.outerHandle.x, y - ring.outerHandle.y) <= 15) return true;
-  return ring.outer.slice(0, INDEX_TEETH).some((point, index) => {
+  return ring.outer.slice(0, -1).some((point, index) => {
     const next = ring.outer[index + 1];
-    const worldMidpoint = ringPoint(ring.worldCenter, ring.outerRadius, index + 0.5);
+    const worldMidpoint = ringPoint(ring.worldCenter, ring.outerRadius, (index + 0.5) * ring.indexTeeth / ring.sampleCount, ring.indexTeeth);
     const projectedMidpoint = ring.projectPoint(worldMidpoint);
     return projectedMidpoint
       && !visibility?.isOccluded(projectedMidpoint)
@@ -988,8 +953,8 @@ function angleArcWorldInfo(gizmo) {
   const radial = normalize(gizmo.radial);
   const ring = gizmo.indexRing;
   const bearing = ring?.center && Number.isFinite(ring.outerRadius)
-    ? ringPoint(ring.center, ring.outerRadius, normalizeFacetIndex(Math.round(ring.baseIndex)))
-    : ringPoint(gizmo.bearingCenter ?? [0, 0, 0], gizmo.bearingRadius, normalizeFacetIndex(Math.round(gizmo.baseIndex)));
+    ? ringPoint(ring.center, ring.outerRadius, ring.baseIndex, ring.indexTeeth ?? gizmo.indexTeeth)
+    : ringPoint(gizmo.bearingCenter ?? [0, 0, 0], gizmo.bearingRadius, gizmo.baseIndex, gizmo.indexTeeth);
   const center = add(bearing, multiply(radial, -gizmo.arcRadius));
   const pointAtAngle = (angle) => {
     return add(center, multiply(angleNormal(gizmo, angle), gizmo.arcRadius));
@@ -1094,47 +1059,43 @@ function angleAtScreenPoint(x, y, arc) {
   return Math.round(closestAngle * 100) / 100;
 }
 
-function ringPoint(center, radius, tooth) {
-  const angle = tooth * DEGREES_PER_TOOTH * Math.PI / 180;
-  return [
-    center[0] + Math.cos(angle) * radius,
-    center[1] + Math.sin(angle) * radius,
-    center[2],
-  ];
-}
+const indexRingLayouts = new WeakMap();
 
 function indexRingScreenInfo(frame, gizmo) {
   const ring = gizmo?.indexRing;
   if (!frame || !ring?.center || !Number.isFinite(ring.outerRadius) || !Number.isFinite(ring.innerRadius)) return null;
   const center = projectDomainPoint(ring.center, frame);
   if (!center) return null;
+  const activeTeeth = ring.indexTeeth ?? gizmo.indexTeeth ?? INDEX_TEETH;
+  let layout = indexRingLayouts.get(ring);
+  if (!layout || layout.indexTeeth !== activeTeeth) {
+    layout = indexRingLayout({ ...ring, indexTeeth: activeTeeth });
+    indexRingLayouts.set(ring, layout);
+  }
+  const { indexTeeth, sampleCount, baseIndex, repeat, mirror, rotationIndices, mirroredIndices, axes } = layout;
   // The index ring intentionally extends beyond the canvas at high zoom.
   // Keep its finite screen coordinates and let the canvas clip them; treating
   // an off-canvas tick as an invalid projection would stop the p5 draw loop.
   const projectRingPoint = (radius, tooth) => projectDomainPoint(
-    ringPoint(ring.center, radius, tooth),
+    ringPoint(ring.center, radius, tooth, indexTeeth),
     frame,
     false,
   );
-  const outer = Array.from({ length: INDEX_TEETH + 1 }, (_, tooth) => projectRingPoint(ring.outerRadius, tooth));
-  const inner = Array.from({ length: INDEX_TEETH + 1 }, (_, tooth) => projectRingPoint(ring.innerRadius, tooth));
+  const outer = Array.from({ length: sampleCount + 1 }, (_, sample) => projectRingPoint(ring.outerRadius, sample * indexTeeth / sampleCount));
+  const inner = Array.from({ length: sampleCount + 1 }, (_, sample) => projectRingPoint(ring.innerRadius, sample * indexTeeth / sampleCount));
   if (outer.some((point) => !point) || inner.some((point) => !point)) return null;
 
-  const baseIndex = normalizeFacetIndex(Math.round(ring.baseIndex));
-  const repeat = Math.max(1, Math.round(ring.repeat));
-  const mirror = clamp(Math.round(ring.mirror), 0, INDEX_TEETH / 2);
-  const rotationStep = INDEX_TEETH / repeat;
-  const axisStep = (INDEX_TEETH / 2) / repeat;
-  const rotationIndices = Array.from({ length: repeat }, (_, ordinal) => normalizeFacetIndex(baseIndex + ordinal * rotationStep));
-  const mirroredIndices = Array.from({ length: repeat }, (_, ordinal) => normalizeFacetIndex(baseIndex + mirror * 2 + ordinal * rotationStep));
-  const axes = Array.from({ length: repeat }, (_, ordinal) => baseIndex + mirror + ordinal * axisStep);
-  const mirrorCandidates = Array.from({ length: INDEX_TEETH / 2 + 1 }, (_, offset) => ({
+  const mirrorCandidates = layout.mirrorOffsets.map((offset) => ({
     offset,
     point: projectRingPoint(ring.innerRadius, baseIndex + offset),
   }));
+  const toothPoints = Array.from({ length: indexTeeth }, (_, tooth) => projectRingPoint(ring.outerRadius, tooth));
 
   return {
     ...ring,
+    indexTeeth,
+    sampleCount,
+    toothPoints,
     worldCenter: ring.center,
     center,
     baseIndex,
@@ -1183,7 +1144,7 @@ function mirrorRingKnobHit(x, y, ring) {
 function indexAtScreenPoint(x, y, ring) {
   if (!ring) return null;
   let best = null;
-  ring.outer.slice(0, INDEX_TEETH).forEach((point, index) => {
+  ring.toothPoints.forEach((point, index) => {
     const distance = Math.hypot(point.x - x, point.y - y);
     if (!best || distance < best.distance) best = { value: index, distance };
   });
@@ -1228,11 +1189,11 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
 
   const drawTrack = (samples, radius, color, active) => {
     const segments = [];
-    samples.slice(0, INDEX_TEETH).forEach((point, index) => {
+    samples.slice(0, -1).forEach((point, index) => {
       const next = samples[index + 1];
       const front = (point.viewZ + next.viewZ) / 2 >= ring.center.viewZ;
       if (!front && index % 2) return;
-      const worldMidpoint = ringPoint(ring.worldCenter, radius, index + 0.5);
+      const worldMidpoint = ringPoint(ring.worldCenter, radius, (index + 0.5) * ring.indexTeeth / ring.sampleCount, ring.indexTeeth);
       const projectedMidpoint = ring.projectPoint(worldMidpoint);
       if (
         !projectedMidpoint
@@ -1249,10 +1210,10 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   drawTrack(ring.inner, ring.innerRadius, warm, activeMirror);
 
   const ticks = [];
-  for (let tooth = 0; tooth < INDEX_TEETH; tooth += 1) {
-    const major = tooth % 12 === 0;
-    const mid = tooth % 6 === 0;
-    const front = ring.outer[tooth].viewZ >= ring.center.viewZ;
+  for (let tooth = 0; tooth < ring.indexTeeth; tooth += 1) {
+    const major = tooth % Math.max(1, Math.round(ring.indexTeeth / 8)) === 0;
+    const mid = tooth % Math.max(1, Math.round(ring.indexTeeth / 16)) === 0;
+    const front = ring.toothPoints[tooth].viewZ >= ring.center.viewZ;
     const outerFrom = ring.projectRingPoint(ring.outerRadius, tooth);
     const outerTo = ring.projectRingPoint(ring.outerRadius + (major ? 0.055 : mid ? 0.038 : 0.022), tooth);
     const outerMidpoint = ring.projectRingPoint(ring.outerRadius + (major ? 0.0275 : mid ? 0.019 : 0.011), tooth);
@@ -1266,7 +1227,7 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
 
   const axisTicks = [];
   ring.axes.forEach((axis) => {
-    [axis, axis + INDEX_TEETH / 2].forEach((tooth) => {
+    [axis, axis + ring.indexTeeth / 2].forEach((tooth) => {
       const from = ring.projectRingPoint(ring.innerRadius - 0.028, tooth);
       const to = ring.projectRingPoint(ring.innerRadius + 0.028, tooth);
       const midpoint = ring.projectRingPoint(ring.innerRadius, tooth);
@@ -1279,8 +1240,8 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   });
   drawScreenSegmentBatch(p, axisTicks);
 
-  const axisWorldA = ringPoint(ring.worldCenter, ring.innerRadius, ring.baseIndex + ring.mirror);
-  const axisWorldB = ringPoint(ring.worldCenter, ring.innerRadius, ring.baseIndex + ring.mirror + INDEX_TEETH / 2);
+  const axisWorldA = ringPoint(ring.worldCenter, ring.innerRadius, ring.baseIndex + ring.mirror, ring.indexTeeth);
+  const axisWorldB = ringPoint(ring.worldCenter, ring.innerRadius, ring.baseIndex + ring.mirror + ring.indexTeeth / 2, ring.indexTeeth);
   p.stroke(warm[0], warm[1], warm[2], 82);
   p.strokeWeight(1);
   const segments = 15;
@@ -1367,17 +1328,20 @@ function drawGroupRotationRing(p, ring, isOccluded) {
   // front while the rear arc remains clipped by the geometric test.
   gl.disable(gl.DEPTH_TEST);
 
-  ring.outer.slice(0, INDEX_TEETH).forEach((point, index) => {
+  ring.outer.slice(0, -1).forEach((point, index) => {
     const next = ring.outer[index + 1];
-    const worldMidpoint = ringPoint(ring.worldCenter, ring.outerRadius, index + 0.5);
+    const worldMidpoint = ringPoint(ring.worldCenter, ring.outerRadius, (index + 0.5) * ring.indexTeeth / ring.sampleCount, ring.indexTeeth);
     const projectedMidpoint = ring.projectPoint(worldMidpoint);
     if (!projectedMidpoint || isOccluded(projectedMidpoint)) return;
     p.stroke(warm[0], warm[1], warm[2], active ? 245 : 180);
     p.strokeWeight(active ? 1.9 : 1.2);
     drawProjectedScreenSegment(p, point, next);
 
-    const inner = ring.inner[index];
-    const major = index % 12 === 0;
+  });
+  ring.toothPoints.forEach((point, tooth) => {
+    if (isOccluded(point)) return;
+    const inner = ring.projectRingPoint(ring.innerRadius, tooth);
+    const major = tooth % Math.max(1, Math.round(ring.indexTeeth / 8)) === 0;
     p.stroke(warm[0], warm[1], warm[2], major ? 205 : 105);
     p.strokeWeight(major ? 1.25 : 0.75);
     drawProjectedScreenSegment(p, inner, point);
@@ -1584,7 +1548,7 @@ function drawPickOverlay(p, scene) {
     p.pop();
 
     // The 90-degree endpoint is the selected index bearing, so the angle bridge
-    // and the 96-tooth wheel are one continuous mechanism with no connector.
+    // and the index wheel are one continuous mechanism with no connector.
     p.noFill();
     p.stroke(142, 181, 239, angleArc.locked ? 38 : active ? 150 : 105);
     p.strokeWeight(active ? 9 : 7.5);
@@ -1679,7 +1643,7 @@ function drawPickOverlay(p, scene) {
 
 function drawCanvasBadge(context, x, y, label, color) {
   context.save();
-  context.font = "600 12px 'IBM Plex Mono', monospace";
+  context.font = "600 12px 'IBM Plex Mono', 'Noto Sans SC Variable', 'Noto Sans SC', monospace";
   context.textBaseline = "middle";
   label = t(label);
   const width = Math.ceil(context.measureText(label).width) + 16;
@@ -1775,7 +1739,7 @@ function drawGizmoLabels(canvas, scene) {
   if (arc) {
     context.save();
     context.fillStyle = arc.locked ? "rgba(47, 111, 228, 0.48)" : "#2f6fe4";
-    context.font = "500 10px 'IBM Plex Mono', monospace";
+    context.font = "500 10px 'IBM Plex Mono', 'Noto Sans SC Variable', 'Noto Sans SC', monospace";
     context.textAlign = "center";
     context.textBaseline = "middle";
     [0, 45, 90].forEach((angle) => {
@@ -1814,7 +1778,7 @@ function drawGizmoLabels(canvas, scene) {
     );
   }
   if (indexRing) {
-    const outerBounds = indexRing.outer.slice(0, INDEX_TEETH).reduce((bounds, point) => ({
+    const outerBounds = indexRing.outer.slice(0, -1).reduce((bounds, point) => ({
       minX: Math.min(bounds.minX, point.x),
       maxX: Math.max(bounds.maxX, point.x),
       minY: Math.min(bounds.minY, point.y),
@@ -1822,14 +1786,15 @@ function drawGizmoLabels(canvas, scene) {
     }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
     context.save();
     context.fillStyle = indexRing.locked ? "rgba(31, 38, 42, 0.38)" : "rgba(31, 38, 42, 0.78)";
-    context.font = "500 10px 'IBM Plex Mono', monospace";
+    context.font = "500 10px 'IBM Plex Mono', 'Noto Sans SC Variable', 'Noto Sans SC', monospace";
     context.textAlign = "center";
     context.textBaseline = "middle";
-    for (let tooth = 0; tooth < INDEX_TEETH; tooth += 12) {
+    for (let ordinal = 0; ordinal < Math.min(8, indexRing.indexTeeth); ordinal += 1) {
+      const tooth = Math.round(ordinal * indexRing.indexTeeth / Math.min(8, indexRing.indexTeeth));
       const labelPoint = indexRing.projectRingPoint(indexRing.outerRadius + 0.105, tooth);
       if (isOccluded(labelPoint)) continue;
       context.globalAlpha = labelPoint.viewZ >= indexRing.center.viewZ ? 1 : 0.42;
-      context.fillText(String(displayIndex(tooth)), labelPoint.x, labelPoint.y);
+      context.fillText(String(displayIndex(tooth, indexRing.indexTeeth)), labelPoint.x, labelPoint.y);
     }
     context.globalAlpha = 1;
     if (width >= 760) {
@@ -1857,7 +1822,7 @@ function drawGizmoLabels(canvas, scene) {
         context,
         indexRing.outerHandle.x + 12,
         indexRing.outerHandle.y + 10,
-        `主切面 · I${String(displayIndex(indexRing.baseIndex)).padStart(2, "0")}`,
+        `主切面 · I${String(displayIndex(indexRing.baseIndex, indexRing.indexTeeth)).padStart(2, "0")}`,
         indexRing.locked ? "rgba(31, 38, 42, 0.45)" : "#1f262a",
       );
     }
@@ -1915,7 +1880,7 @@ function drawPolyhedron(p, geometry, sceneScale, lineWeight, yaw, pitch, renderM
     if (cache.fillMesh) p.freeGeometry(cache.fillMesh);
     const mesh = new p.constructor.Geometry();
     orderedFaces.forEach((face) => {
-      const color = faceColor(face, geometry.bounds, renderMode, highlightOperationId, activeOperationId, previewOperationId)
+      const color = faceColor(face, renderMode, highlightOperationId, activeOperationId, previewOperationId)
         .map((value) => value / 255);
       let vectors = cache.faceVertices.get(face);
       if (!vectors) {
@@ -2030,14 +1995,6 @@ function isStockGeometry(polyhedron, geometry) {
 function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewModeRef, interactionRef, invalidate) {
   let activePointer = null;
   let gizmoDrag = null;
-  const rotateOrbit = (horizontal, vertical) => {
-    const camera = cameraRef.current;
-    const next = editorOrbitAfterInput({ yaw: camera.targetYaw, pitch: camera.targetPitch }, horizontal, vertical);
-    const changed = next.yaw !== camera.targetYaw || next.pitch !== camera.targetPitch;
-    camera.targetYaw = next.yaw;
-    camera.targetPitch = next.pitch;
-    return changed;
-  };
 
   const canvasPoint = (event) => {
     const rect = canvas.getBoundingClientRect();
@@ -2210,14 +2167,10 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       }
 
       const camera = cameraRef.current;
-      if (event.shiftKey) {
-        camera.targetPanX += movedX;
-        camera.targetPanY += movedY;
-      } else {
-        const rotated = rotateOrbit(movedX * 0.008, movedY * 0.008);
-        if (rotated && sceneRef.current.viewMode !== "perspective") {
-          requestViewModeRef.current?.("perspective", true);
-        }
+      const beforeYaw = camera.targetYaw, beforePitch = camera.targetPitch;
+      dragViewport(camera, movedX, movedY, event.shiftKey);
+      if ((beforeYaw !== camera.targetYaw || beforePitch !== camera.targetPitch) && sceneRef.current.viewMode !== "perspective") {
+        requestViewModeRef.current?.("perspective", true);
       }
       invalidate();
       event.preventDefault();
@@ -2277,11 +2230,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
     cameraRef.current.transition = null;
     interactionRef.current?.onCameraInteraction?.();
     const camera = cameraRef.current;
-    camera.targetZoom = clamp(
-      camera.targetZoom * Math.exp(-Number(event.deltaY || 0) * 0.0012),
-      0.48,
-      2.8,
-    );
+    zoomViewport(camera, Number(event.deltaY || 0));
     invalidate();
     event.preventDefault();
   };
@@ -2295,43 +2244,9 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
   const onKeyDown = (event) => {
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "-", "0"].includes(event.key)) { cameraRef.current.transition = null; interactionRef.current?.onCameraInteraction?.(); }
     const camera = cameraRef.current;
-    const isPan = event.shiftKey;
-    let handled = true;
-    let changesOrbit = false;
-
-    switch (event.key) {
-      case "ArrowLeft":
-        if (isPan) camera.targetPanX -= 14;
-        else { changesOrbit = rotateOrbit(-0.12, 0); }
-        break;
-      case "ArrowRight":
-        if (isPan) camera.targetPanX += 14;
-        else { changesOrbit = rotateOrbit(0.12, 0); }
-        break;
-      case "ArrowUp":
-        if (isPan) camera.targetPanY -= 14;
-        else { changesOrbit = rotateOrbit(0, -0.1); }
-        break;
-      case "ArrowDown":
-        if (isPan) camera.targetPanY += 14;
-        else { changesOrbit = rotateOrbit(0, 0.1); }
-        break;
-      case "+":
-      case "=":
-        camera.targetZoom = clamp(camera.targetZoom * 1.12, 0.48, 2.8);
-        break;
-      case "-":
-      case "_":
-        camera.targetZoom = clamp(camera.targetZoom / 1.12, 0.48, 2.8);
-        break;
-      case "0":
-      case "Home":
-        resetCamera(camera, sceneRef.current.viewMode);
-        break;
-      default:
-        handled = false;
-    }
-
+    const beforeYaw = camera.targetYaw, beforePitch = camera.targetPitch;
+    const handled = keyViewport(camera, event.key, event.shiftKey, VIEW_POSES[sceneRef.current.viewMode] ?? VIEW_POSES.perspective);
+    const changesOrbit = beforeYaw !== camera.targetYaw || beforePitch !== camera.targetPitch;
     if (changesOrbit && sceneRef.current.viewMode !== "perspective") {
       requestViewModeRef.current?.("perspective", true);
     }
@@ -2362,9 +2277,12 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
 
 export function GemViewport({
   polyhedron,
+  concaveTool = null,
+  concaveCenter = null,
   meetPolyhedron = null,
   previewPlanes = [],
   selectedIndex = 0,
+  indexTeeth = INDEX_TEETH,
   viewMode = "perspective",
   onViewModeChange,
   renderMode = "solid",
@@ -2392,6 +2310,7 @@ export function GemViewport({
   assistantView = null,
   onCameraInteraction,
 }) {
+  const concaveTools = useMemo(() => concaveTool ? expandConcaveCuts([concaveTool], concaveCenter ?? [0, 0, 0]).map(createRoundCutter) : [], [concaveTool, concaveCenter]);
   const hostRef = useRef(null);
   const cameraRef = useRef(createCamera());
   const editCameraRef = useRef(null);
@@ -2440,10 +2359,12 @@ export function GemViewport({
     // is owned by the interaction handlers and must survive re-renders.
     Object.assign(sceneRef.current, {
       geometry: normalizedGeometry,
+      concaveTools,
       meetGeometry: normalizedMeetGeometry,
       faces: normalizedGeometry.faces,
       previewPlanes: Array.isArray(previewPlanes) ? previewPlanes : [],
       selectedIndex,
+      indexTeeth,
       viewMode: assistantView ? "perspective" : activeViewMode,
       renderMode,
       highlightOperationId,
@@ -2454,8 +2375,8 @@ export function GemViewport({
       meetPickEnabled,
       constructionMarkers,
       nextJumpMarker,
-      cutGizmo,
-      groupGizmo,
+      cutGizmo: cutGizmo ? { ...cutGizmo, indexTeeth: cutGizmo.indexTeeth ?? indexTeeth, indexRing: cutGizmo.indexRing ? { ...cutGizmo.indexRing, indexTeeth: cutGizmo.indexRing.indexTeeth ?? indexTeeth } : null } : null,
+      groupGizmo: groupGizmo ? { ...groupGizmo, indexTeeth: groupGizmo.indexTeeth ?? indexTeeth } : null,
       suspended,
     });
     if (hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
@@ -2463,7 +2384,7 @@ export function GemViewport({
     }
     framesRef.current?.setSuspended(suspended);
     framesRef.current?.invalidate();
-  }, [assistantView, activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
+  }, [concaveTools, assistantView, activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, indexTeeth, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
 
   useEffect(() => {
     const nextMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
@@ -2542,7 +2463,7 @@ export function GemViewport({
         renderer.elt.setAttribute("role", "application");
         renderer.elt.setAttribute(
           "aria-label",
-          t("三维宝石视口。拖拽或方向键旋转，Shift 加拖拽或方向键平移，滚轮或加减键缩放，0 键复位。拖动外分度环调整索引，拖动内环调整镜像轴偏移，拖动蓝色弧形桥架调整行业角，拖动粉色伸缩杆调整深度；群组操纵杆可拖动紫色升降面、青绿色高度比例面和暖金色 96 分度旋转环。"),
+          t("三维宝石视口。拖拽或方向键旋转，Shift 加拖拽或方向键平移，滚轮或加减键缩放，0 键复位。拖动外分度环调整索引，拖动内环调整镜像轴偏移，拖动蓝色弧形桥架调整行业角，拖动粉色伸缩杆调整深度；群组操纵杆可拖动紫色升降面、青绿色高度比例面和暖金色分度旋转环。"),
         );
         renderer.elt.setAttribute("data-testid", "gem-webgl-canvas");
         detachInteractions = attachViewportInteractions(
@@ -2596,7 +2517,8 @@ export function GemViewport({
         // Solid first so preview planes are correctly occluded by geometry;
         // patches never write depth, they only tint what the camera can see.
         drawPolyhedron(p, geometry, sceneScale, lineWeight, camera.yaw, camera.pitch, displayMode, sceneRef.current.highlightOperationId, sceneRef.current.activeOperationId, sceneRef.current.previewOperationId);
-        drawPreviewPlanes(p, planes, index, ghostBounds, sceneScale, lineWeight, displayMode);
+        drawPreviewPlanes(p, planes, index, ghostBounds, sceneScale, lineWeight, displayMode, sceneRef.current.indexTeeth);
+        drawConcaveTools(p, sceneRef.current.concaveTools, sceneScale, transformPoint);
         drawGroupControlPlane(p, sceneRef.current.groupGizmo, sceneScale, lineWeight);
         drawAxis(p, ghostBounds, sceneScale, lineWeight, displayMode);
 
@@ -2656,7 +2578,7 @@ export function GemViewport({
       unsubscribeLanguage();
       resizeObserver?.disconnect();
       detachInteractions();
-      if (instance) releasePolyhedronMeshes(instance);
+      if (instance) { releasePolyhedronMeshes(instance); releaseConcaveToolMeshes(instance); }
       instance?.remove();
     };
   }, []);

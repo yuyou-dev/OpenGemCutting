@@ -51,9 +51,9 @@ export function useProjects(library) {
     records: [record, ...current.records.filter((item) => item.id !== record.id)]
       .sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id)),
   }));
-  const create = useCallback((document) => {
+  const create = useCallback((document, options) => {
     try {
-      const record = getStore().create(document);
+      const record = getStore().create(document, options);
       acceptRecord(record);
       return record;
     } catch {

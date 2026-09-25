@@ -1,16 +1,8 @@
 import { Device } from '@vgpu/core';
 import shader from './opticsShader.wgsl?raw';
-import { backgroundColor } from '../domain/optics.js';
-import { packOpticsPlaneTexture, packOpticsMeshTextures, opticsMeshFraming } from '../domain/opticsGeometry.js';
-import { normalizeVector } from '../utils/vector3.js';
-import { opticsCameraFrame } from './viewportOrbit.js';
+import { packOpticsPlaneTexture, packOpticsMeshTextures } from '../domain/opticsGeometry.js';
+import { opticsViewFrame } from './opticsViewFrame.js';
 import { createWebgpuOpticsScheduler } from './opticsWebgpuScheduler.js';
-
-const hexToRgb = hex => {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
-};
-const environmentIndex = id => id === 'jewelry' ? 1 : id === 'contrast' ? 2 : id === 'hearts' ? 3 : 0;
 
 /** Same framing, material units, one-sample quality and 1100px cap as WebGL2.
  * Only the execution backend and geometry transport change. */
@@ -38,24 +30,17 @@ export async function createWebgpuOpticsRenderer(canvas, onFailure) {
     uniformBuffer?.destroy();
     gpu.destroy();
   }
-  function uniforms(geometry, settings, camera, focusOffset, width, height) {
-    const cameraFrame = opticsCameraFrame(camera);
-    let meshFraming;
-    if (geometry.mesh) {
-      const inspector = focusOffset ? canvas.parentElement?.parentElement?.querySelector('.optics-inspector') : null;
-      const covered = inspector ? Math.max(0, canvas.getBoundingClientRect().right - inspector.getBoundingClientRect().left + 24) : 0;
-      meshFraming = opticsMeshFraming(geometry.mesh, { width: canvas.clientWidth, height: canvas.clientHeight, occludedRight: covered });
-    }
+  function uniforms(geometry, settings, camera, view) {
     return {
-      res: [width, height, geometry.mesh?.nodes.length ?? 0, geometry.mesh ? 1 : 0],
-      position: [...cameraFrame.position, 0], forward: [...cameraFrame.forward, 0],
-      right: [...cameraFrame.right, 0], up: [...cameraFrame.up, 0],
-      body: [...hexToRgb(settings.material.bodyColor), 0],
+      res: [view.width, view.height, geometry.mesh?.nodes.length ?? 0, geometry.mesh ? 1 : 0],
+      position: [...view.frame.position, 0], forward: [...view.frame.forward, 0],
+      right: [...view.frame.right, 0], up: [...view.frame.up, 0],
+      body: [...view.bodyColor, 0],
       optics: [settings.material.ior, settings.material.dispersion, settings.material.absorption, 0],
-      view: [(meshFraming?.cameraScale ?? 0.34) / camera.zoom, settings.view.exposure, settings.view.environmentRotation, environmentIndex(settings.view.environment)],
-      observer: [...normalizeVector(cameraFrame.position), settings.advanced.maxBounces],
-      background: [...hexToRgb(backgroundColor(settings)), 0],
-      framing: [meshFraming?.focusOffset ?? focusOffset, camera.panX, camera.panY, geometry.planes?.length ?? 0],
+      view: [view.cameraScale, settings.view.exposure, settings.view.environmentRotation, view.environment],
+      observer: [...view.observer, settings.advanced.maxBounces],
+      background: [...view.background, 0],
+      framing: [view.focusOffset, camera.panX, camera.panY, geometry.planes?.length ?? 0],
     };
   }
   try {
@@ -76,14 +61,13 @@ export async function createWebgpuOpticsRenderer(canvas, onFailure) {
     if (initError) throw initError;
     scheduler = createWebgpuOpticsScheduler({
       onError: fail,
-      async render({ geometry, settings, camera, focusOffset = 0 }) {
+      async render(options) {
         if (disposed || failed) return;
-        const ratio = Math.min(window.devicePixelRatio || 1, 1.5, 1100 / Math.max(canvas.clientWidth, canvas.clientHeight));
-        const width = Math.max(2, Math.round(canvas.clientWidth * ratio));
-        const height = Math.max(2, Math.round(canvas.clientHeight * ratio));
-        if (canvas.width !== width) canvas.width = width;
-        if (canvas.height !== height) canvas.height = height;
-        const p = uniforms(geometry, settings, camera, focusOffset, width, height);
+        const { geometry, settings, camera } = options;
+        const view = opticsViewFrame(canvas, options);
+        if (canvas.width !== view.width) canvas.width = view.width;
+        if (canvas.height !== view.height) canvas.height = view.height;
+        const p = uniforms(geometry, settings, camera, view);
         gpu.gpu.pushErrorScope('validation');
         try {
           uniformBuffer.write(new Float32Array([
@@ -132,7 +116,7 @@ export async function createWebgpuOpticsRenderer(canvas, onFailure) {
         }
         if (disposed || failed) return;
         uploadedGeometry = geometry;
-        canvas.dataset.renderStage = 'complete';
+        canvas.dataset.renderStage = view.stage;
       },
     });
     return { draw: scheduler.draw, destroy };

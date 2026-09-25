@@ -23,5 +23,16 @@ test('published MCP resource URIs remain readable after documentation moves', as
       if (uri === 'facet://state')
         assert.equal(contents[0].text, await readFile(new URL('../../docs/architecture/state-contract.md', import.meta.url), 'utf8'));
     }
+    const candidates = await client.callTool({ name: 'construction_plane', arguments: { angleDegrees: 72, indexTeeth: 120 } });
+    assert.notEqual(candidates.isError, true);
+    assert.equal(candidates.structuredContent.candidates[0].index, 24);
+    assert.equal(candidates.structuredContent.candidates[0].errorDegrees, 0);
+    const construction = await client.callTool({ name: 'construction_plane', arguments: {
+      index: 5.5, indexTeeth: 77, a: [0, 0, 1], b: [0.5, 0, 0.5], region: 'crown',
+    } });
+    assert.notEqual(construction.isError, true);
+    const normal = construction.structuredContent.plane.normal;
+    assert.ok(Math.abs(Math.atan2(normal[1], normal[0]) * 180 / Math.PI - 5.5 * 360 / 77) < 1e-9);
+    assert.equal(construction.structuredContent.inspection.passed, true);
   } finally { await client.close(); }
 });

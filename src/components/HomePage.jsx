@@ -6,8 +6,7 @@ import { APP_VERSION } from "../version.js";
 import { RenderBoundary } from "./RenderBoundary.jsx";
 import { memo, useMemo, useState } from "react";
 import { IconArrowRight, IconChevronDown, IconChevronUp, IconDots, IconFlask, IconPlus, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
-import { buildConstructionStages } from "../domain/constructionHistory.js";
-import { createStockSolid } from "../domain/stockGeometry.js";
+import { evaluateDocument } from "../domain/documentGeometry.js";
 import { RepositoryLink } from "./RepositoryLink.jsx";
 import { TechnicalPreview } from "./TechnicalPreview.jsx";
 import "./workspace-pages.css";
@@ -16,8 +15,7 @@ const dateFormat = () => new Intl.DateTimeFormat(getLocale(), { month: "2-digit"
 
 const ProjectCard = memo(function ProjectCard({ project, active, onOpen, onDelete }) {
   useLocale();
-  const solid = useMemo(() => buildConstructionStages(project.document).at(-1)?.afterSolid
-    ?? createStockSolid(project.document.stock), [project.document]);
+  const solid = useMemo(() => evaluateDocument(project.document), [project.document]);
   return (
     <div className={`project-card${active ? " is-current" : ""}`}>
       <button type="button" className="project-card-open" onClick={() => onOpen(project.id)} aria-label={t("打开项目 {0}", [project.document.name])}>
@@ -76,26 +74,24 @@ export function HomePage({ projects, activeProjectId, onOpenProject, onNewProjec
         <div className="home-projects-heading">
           <div className="home-projects-label"><h2 id="home-projects-title">{t("我的项目")}</h2><span>{words.length ? `${matchingProjects.length} / ${projects.length}` : projects.length}</span></div>
           <div className="home-projects-actions">
-            <button type="button" className="workspace-page-button" onClick={onOpenLab}><IconFlask size={16} stroke={1.6} />{t("光学实验室")}</button>
+            <button type="button" className="workspace-page-button" onClick={onOpenLab}><IconFlask size={16} stroke={1.6} />{t("实验室")}</button>
             {activeProject && <button type="button" className="workspace-page-button home-resume" onClick={onResume}>{t("继续当前设计")}<IconArrowRight size={15} stroke={1.6} /></button>}
             {projects.length > 3 && !words.length && <button type="button" className="workspace-page-button home-show-all" aria-expanded={showAll} aria-controls="home-project-list" onClick={() => setShowAll((value) => !value)}>{showAll ? t("收起") : t("全部")}{showAll ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}</button>}
           </div>
         </div>
         {error && <div className="workspace-page-error" role="alert"><span>{t(error)}</span><button type="button" onClick={onRetry}>{t("重试")}</button></div>}
-        <div className="home-project-grid" style={{ "--project-columns": Math.max(1, Math.min(3, visibleProjects.length)) }}>
+        <div id="home-project-list" className="home-project-grid" style={{ "--project-columns": Math.max(1, Math.min(3, visibleProjects.length)) }}>
           <button type="button" className="home-create-card" onClick={onNewProject}>
             <span className="home-create-icon"><IconPlus size={26} stroke={1.6} aria-hidden="true" /></span>
             <strong>{t("新建项目")}</strong>
             <span>{t("从新的切型开始")}</span>
           </button>
-          <div id="home-project-list" className="home-saved-projects">
             {visibleProjects.map((project) => <RenderBoundary key={project.id} fallback={<div className="project-card render-recovery"><h3>{project.document.name}</h3><p>{t("预览暂不可用，设计仍保留。")}</p><button onClick={() => onOpenProject(project.id)}>{t("打开设计")}</button></div>}><ProjectCard project={project} active={project.id === activeProjectId} onOpen={onOpenProject} onDelete={onDeleteProject} /></RenderBoundary>)}
             {matchingProjects.length === 0 && <div className="home-empty">
               <h3>{words.length ? t("没有找到匹配的项目") : t("开始你的下一个切型")}</h3>
               <p>{words.length ? t("试试其他名称，或清除搜索查看全部项目。") : t("点击左侧新建项目，开始新的设计。")}</p>
               {words.length > 0 && <button type="button" className="workspace-page-button" onClick={() => setQuery("")}>{t("清除搜索")}</button>}
             </div>}
-          </div>
         </div>
         <p className="home-storage-note">{t("项目保存在此浏览器。重要设计请在文件菜单中导出 JSON 留存。")}</p>
       </section>

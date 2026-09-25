@@ -26,7 +26,8 @@ export function createTranslator(locale) {
         if (!match) continue;
         key = template.key;
         slots = [];
-        template.slots.forEach((slot, index) => { slots[slot] = match[index + 1]; });
+        // Captured messages (e.g. a nested error) are translated when they are keys themselves.
+        template.slots.forEach((slot, index) => { slots[slot] = translate(match[index + 1]); });
         break;
       }
     }

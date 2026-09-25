@@ -1,3 +1,4 @@
+import { getCuttingReference } from './faceting.js';
 import { createStockSolid } from "./stockGeometry.js";
 import { clipPolyhedronByPlanes } from "./geometry.js";
 import { MEET_STATUS, resolvePersistedMeetTarget, solveDualMeet } from "./meetJump.js";
@@ -41,7 +42,7 @@ export function diagnoseSavedConstruction({ facets, beforeSolid, precedingPatter
   const invalid = resolutions.find((resolution) => resolution.status !== MEET_STATUS.VALID);
   if (invalid) return failure(invalid.reason, targets);
   if (construction.type === "dual-meet") {
-    const solved = solveDualMeet({ region: primary.region, baseIndex: primaryIndex, targetA: targets[0], targetB: targets[1], stock });
+    const solved = solveDualMeet({ region: primary.region, baseIndex: primaryIndex, indexTeeth: primary.indexTeeth ?? 96, targetA: targets[0], targetB: targets[1], stock });
     if (solved.status !== MEET_STATUS.VALID) return failure(solved.reason, targets);
   }
   const normal = primary.plane.normal;
@@ -67,7 +68,7 @@ export function buildConstructionStages(document, { hiddenPatternIds = [] } = {}
   let solid = createStockSolid(document.stock);
   return [...groups].map(([id, facets], index) => {
     const beforeSolid = solid;
-    const construction = diagnoseSavedConstruction({ facets, beforeSolid, precedingPatternIds, allPatternIds, hiddenPatternIds, stock: document.stock });
+    const construction = diagnoseSavedConstruction({ facets, beforeSolid, precedingPatternIds, allPatternIds, hiddenPatternIds, stock: getCuttingReference(document) });
     if (!hidden.has(id)) {
       solid = clipPolyhedronByPlanes(beforeSolid, facets.map((facet) => ({
         ...facet.plane, operationId: id, faceId: facet.id, region: facet.region,

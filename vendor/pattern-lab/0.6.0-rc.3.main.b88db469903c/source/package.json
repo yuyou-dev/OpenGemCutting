@@ -1,0 +1,35 @@
+{
+  "name": "suva-facet-pattern-lab",
+  "version": "0.6.0-rc.3.main.b88db469903c",
+  "private": true,
+  "type": "module",
+  "description": "SUVA · FACET 96 — standalone complex-crown pattern, frosted bevel and optical preview laboratory",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/run-vite-local.mjs",
+    "build": "vite build && npm run module:build",
+    "preview": "node scripts/run-vite-local.mjs preview",
+    "test": "node --test tests",
+    "presets:sync": "node scripts/sync-facet96-presets.mjs",
+    "check": "npm run test && npm run build",
+    "labs:verify": "node scripts/verify-labs.mjs",
+    "module:build": "vite build --config vite.module.config.mjs",
+    "module:dev": "node scripts/run-vite-local.mjs",
+    "module:pack": "node scripts/module/pack.mjs",
+    "module:verify": "node scripts/module/self-test.mjs",
+    "module:preview": "node scripts/module/serve.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@tabler/icons-react": "^3.46.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "5.0.4",
+    "vite": "6.4.3"
+  }
+}

@@ -192,14 +192,14 @@ export function solveVertexMeet({ normal: rawNormal, target, stock, tolerance = 
   };
 }
 
-/** Two points constrain angle and depth while the integer machine index stays fixed. */
+/** Two points constrain angle and depth while the machine azimuth stays fixed. */
 export function solveDualMeet({
-  targetA, targetB, baseIndex, region, stock, tolerance = DEFAULT_TOLERANCE,
+  targetA, targetB, baseIndex, indexTeeth = 96, region, stock, tolerance = DEFAULT_TOLERANCE,
 }) {
   if (region !== "crown" && region !== "pavilion") {
     throw new RangeError("dual Meet requires crown or pavilion");
   }
-  const radial = facetNormal(baseIndex, 0);
+  const radial = facetNormal(baseIndex, 0, indexTeeth);
   const start = coordinates(targetA.fallbackWorldPoint ?? targetA.point ?? targetA);
   const end = coordinates(targetB.fallbackWorldPoint ?? targetB.point ?? targetB);
   const delta = { x: end.x - start.x, y: end.y - start.y, z: end.z - start.z };
@@ -218,7 +218,7 @@ export function solveDualMeet({
   if (angle >= Math.PI) angle -= Math.PI;
   if (angle > Math.PI / 2) return failure("angle-out-of-range");
   const industryAngleDeg = angle * 180 / Math.PI;
-  const normal = facetNormal(baseIndex, industryAngleToBetaDeg(region, industryAngleDeg));
+  const normal = facetNormal(baseIndex, industryAngleToBetaDeg(region, industryAngleDeg), indexTeeth);
   const result = solveVertexMeet({ normal, target: targetA, stock, tolerance });
   const residualB = dot(normal, end) - result.offset;
   return {
@@ -235,7 +235,8 @@ export function summarizeEffectiveFacets(solid) {
   const seen = new Set();
 
   solid.faces.forEach((face, index) => {
-    if (face.sourceOperationId == null || face.sourceOperationId === "rough-cube" || face.sourceOperationId === "rough-mesh" || face.region === "rough") return;
+    if (face.sourceOperationId == null || face.sourceOperationId === "rough-cube" || face.sourceOperationId === "rough-mesh"
+      || face.region === "rough" || face.region === "concave" || face.operationType === "concave") return;
     const operationId = String(face.sourceOperationId);
     const entry = byOperation.get(operationId) ?? {
       operationId,
@@ -331,18 +332,10 @@ export function evaluateDraftImpact({ baseSolid, planes, tolerance, preview = fa
 }
 
 /** Resolve the single commit gate shared by ordinary CUT, Jump, and Meet. */
-export function resolveDraftCommitPolicy(impact) {
-  if (impact.error || impact.solidErased || impact.noOp) return "block";
-
-  const fullyRemoved = impact.threats.filter((threat) => threat.fullyRemoved);
-  if (fullyRemoved.some((threat) => (
-    threat.region === "girdle"
-    || threat.operationType === "table"
-    || threat.operationId === "table-facet"
-  ))) return "block";
-  if (fullyRemoved.some((threat) => threat.region === "crown" || threat.region === "pavilion")) {
-    return "confirm";
-  }
+export function resolveDraftCommitPolicy(impact, { allowNoOp = false } = {}) {
+  if (impact.error || impact.solidErased || (impact.noOp && !allowNoOp)) return "block";
+  // Covered faces remain in the parameter stack and return when a later cut
+  // is removed or undone. Coverage is useful feedback, never a commit veto.
   if (impact.threats.length > 0) return "warn";
   return "allow";
 }
@@ -393,6 +386,7 @@ export function generateDualJumpCandidates({
   baseSolid,
   targetA,
   baseIndex,
+  indexTeeth = 96,
   region,
   stock,
   targets = enumerateTopologyVertices(baseSolid),
@@ -400,7 +394,7 @@ export function generateDualJumpCandidates({
 }) {
   const solved = targets.map((target) => ({
     target,
-    ...solveDualMeet({ targetA, targetB: target, baseIndex, region, stock, tolerance }),
+    ...solveDualMeet({ targetA, targetB: target, baseIndex, indexTeeth, region, stock, tolerance }),
   })).filter((entry) => entry.status === MEET_STATUS.VALID)
     .sort((left, right) => left.industryAngleDeg - right.industryAngleDeg
       || compareText(left.target.topologyKey, right.target.topologyKey));

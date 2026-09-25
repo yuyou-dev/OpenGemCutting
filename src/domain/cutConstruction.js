@@ -1,20 +1,20 @@
 import { normalizeIndex, displayIndex, resolveFacet, resolveFacetPattern } from "./faceting.js";
 import { MEET_STATUS, resolvePersistedMeetTarget, solveVertexMeet, solveDualMeet } from "./meetJump.js";
 
-export function parseCustomIndices(value) {
+export function parseCustomIndices(value, indexTeeth = 96) {
   const tokens = value.trim() ? value.trim().split(/[\s,，;；]+/) : [];
-  if (tokens.length === 0) return { indices: [], error: "请输入至少一个 1–96 整数索引。" };
+  if (tokens.length === 0) return { indices: [], error: `请输入至少一个不小于 0、不超过 ${indexTeeth} 的索引。` };
 
   const values = [];
   for (const token of tokens) {
     const number = Number(token);
-    if (!Number.isInteger(number) || number < 1 || number > 96) {
-      return { indices: [], error: `“${token}” 不是 1–96 范围内的整数索引。` };
+    if (!Number.isFinite(number) || number < 0 || number > indexTeeth) {
+      return { indices: [], error: `“${token}” 不是不小于 0、不超过 ${indexTeeth} 的有效索引。` };
     }
-    values.push(normalizeIndex(number));
+    values.push(normalizeIndex(number, indexTeeth));
   }
 
-  const indices = [...new Set(values)].sort((left, right) => displayIndex(left) - displayIndex(right));
+  const indices = [...new Set(values)].sort((left, right) => displayIndex(left, indexTeeth) - displayIndex(right, indexTeeth));
   return { indices, error: "" };
 }
 
@@ -35,6 +35,7 @@ export function resolveDraftGeometry(draft, region, stock) {
         facets: resolveFacetPattern({
           patternId: "draft-symmetric",
           region,
+          indexTeeth: draft.indexTeeth,
           baseIndex: draft.baseIndex,
           repeat: draft.repeat,
           mirror: draft.mirrorOffset,
@@ -44,15 +45,20 @@ export function resolveDraftGeometry(draft, region, stock) {
         error: "",
       };
     }
-    const parsed = parseCustomIndices(draft.customIndices);
+    const parsed = parseCustomIndices(draft.customIndices, draft.indexTeeth);
     if (parsed.error) return { facets: [], error: parsed.error };
-    if (!parsed.indices.includes(normalizeIndex(draft.baseIndex))) return { facets: [], error: "请从自定义索引集合中选择主切面。" };
+    if (!parsed.indices.some((index) => {
+      const teeth = draft.indexTeeth ?? 96;
+      const distance = Math.abs(index - normalizeIndex(draft.baseIndex, teeth));
+      return Math.min(distance, teeth - distance) < 1e-9;
+    })) return { facets: [], error: "请从自定义索引集合中选择主切面。" };
     return {
       facets: parsed.indices.map((index, ordinal) => resolveFacet({
-        id: `draft-arbitrary:${displayIndex(index)}`,
+        id: `draft-arbitrary:${displayIndex(index, draft.indexTeeth)}`,
         patternId: "draft-arbitrary",
         ordinal,
         region,
+        indexTeeth: draft.indexTeeth,
         baseIndex: index,
         repeat: 1,
         mirror: 0,
@@ -76,10 +82,10 @@ export function solveDraftConstruction({ draft, region, stock, meet, baseSolid }
   }
   const [target, secondTarget] = resolutions.map((result) => result.target);
   const resolved = resolveDraftGeometry(draft, region, stock);
-  const primary = resolved.facets.find((facet) => normalizeIndex(facet.index) === normalizeIndex(draft.baseIndex));
+  const primary = resolved.facets.find((facet) => normalizeIndex(facet.index, facet.indexTeeth) === normalizeIndex(draft.baseIndex, draft.indexTeeth));
   if (!primary) return { draft, meet: { ...meet, status: MEET_STATUS.STALE, message: resolved.error || "请选择有效主切面。" } };
   const solved = secondTarget
-    ? solveDualMeet({ targetA: target, targetB: secondTarget, baseIndex: draft.baseIndex, region, stock })
+    ? solveDualMeet({ targetA: target, targetB: secondTarget, baseIndex: draft.baseIndex, indexTeeth: draft.indexTeeth, region, stock })
     : solveVertexMeet({ normal: primary.plane.normal, target, stock });
   const messages = {
     "duplicate-points": "A 与 B 重合；请选择不同的第二点。",

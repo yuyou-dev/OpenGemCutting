@@ -10,19 +10,19 @@ export function CuttingAssistantBar({ name, onExit }) {
   </header>;
 }
 
-export function IndexDial({ index }) {
-  const angle = (index ?? 0) * Math.PI / 48;
+export function IndexDial({ index, indexTeeth = 96 }) {
+  const angle = (index ?? 0) * Math.PI * 2 / indexTeeth;
   const at = (r, a) => [150 + r * Math.sin(a), 150 - r * Math.cos(a)];
   const pointer = at(98, angle);
-  return <svg className="assistant-dial" viewBox="0 0 300 300" role="img" aria-label={index == null ? t("96 齿分度盘，切割已完成") : t("96 齿分度盘，当前分度 {0}", [displayIndex(index)])}>
-    {Array.from({ length: 96 }, (_, i) => {
-      const a = i * Math.PI / 48, from = at(i % 4 === 0 ? 111 : 117, a), to = at(126, a);
-      return <line key={i} x1={from[0]} y1={from[1]} x2={to[0]} y2={to[1]} stroke={i === index ? "#ed225d" : "#777"} strokeWidth={i % 4 === 0 ? 2 : 1.2} />;
+  return <svg className="assistant-dial" viewBox="0 0 300 300" role="img" aria-label={index == null ? t("{0} 齿分度盘，切割已完成", [indexTeeth]) : t("{0} 齿分度盘，当前分度 {1}", [indexTeeth, displayIndex(index, indexTeeth)])}>
+    {Array.from({ length: indexTeeth }, (_, i) => {
+      const a = i * Math.PI * 2 / indexTeeth, from = at(i % Math.max(1, Math.round(indexTeeth / 24)) === 0 ? 111 : 117, a), to = at(126, a);
+      return <line key={i} x1={from[0]} y1={from[1]} x2={to[0]} y2={to[1]} stroke={i === index ? "#ed225d" : "#777"} strokeWidth={i % Math.max(1, Math.round(indexTeeth / 24)) === 0 ? 2 : 1.2} />;
     })}
-    {[0,24,48,72].map(i => { const p = at(141, i * Math.PI / 48); return <text key={i} x={p[0]} y={p[1]} dominantBaseline="central" textAnchor="middle">{displayIndex(i)}</text>; })}
+    {Array.from({ length: Math.min(4, indexTeeth) }, (_, ordinal) => Math.round(ordinal * indexTeeth / Math.min(4, indexTeeth))).map(i => { const p = at(141, i * Math.PI * 2 / indexTeeth); return <text key={i} x={p[0]} y={p[1]} dominantBaseline="central" textAnchor="middle">{displayIndex(i, indexTeeth)}</text>; })}
     {index != null && <g stroke="#ed225d" fill="#ed225d"><line x1={at(68,angle)[0]} y1={at(68,angle)[1]} x2={pointer[0]} y2={pointer[1]} /><circle cx={pointer[0]} cy={pointer[1]} r="4" /></g>}
-    <text x="150" y="130" textAnchor="middle" className="dial-label">{t("分度")}</text>
-    <text x="150" y="180" textAnchor="middle" className="dial-value">{index == null ? "—" : displayIndex(index)}</text>
+    <text x="150" y="130" textAnchor="middle" className="dial-label">{t("{0} 齿 · 分度", [indexTeeth])}</text>
+    <text x="150" y="180" textAnchor="middle" className="dial-value">{index == null ? "—" : displayIndex(index, indexTeeth)}</text>
   </svg>;
 }
 
@@ -33,9 +33,10 @@ export function CuttingAssistantInspector({ replay, position, solid, follow, onF
   const groupSteps = tier ? replay.steps.slice(tier.startPos, tier.startPos + tier.count) : [];
   return <aside className="assistant-inspector" aria-label={t("当前切割参数")}>
     <div className="assistant-operation"><span>{step ? t("下一刀") : t("切割完成")}</span><h2>{step?.patternName ?? (replay.total ? t("全部工序已完成") : t("当前没有切割工序"))}</h2></div>
-    <IndexDial index={step?.index} />
+    {step?.surfaceState === 'frosted' && <div className="assistant-surface-notice" role="status"><strong>{t("磨砂切割 · 无需抛光")}</strong><span>{t("此面保留磨砂表面；按原分度、角度和深度切割。")}</span></div>}
+    <IndexDial index={step?.index} indexTeeth={step?.indexTeeth ?? replay.steps.at(-1)?.indexTeeth ?? 96} />
     <dl className="assistant-readouts"><div><dt>{t("行业角")}</dt><dd>{t(step ? `${step.industryAngleDeg.toFixed(2)}°` : "—")}</dd></div><div><dt>{t("切入深度")}</dt><dd>{t(step?.depth.toFixed(3) ?? "—")}</dd><small>{t("工作台单位")}</small></div></dl>
-    <section className="assistant-tier"><h3>{t("本组刀序")}</h3><div className="assistant-tier-indices">{groupSteps.map(s => <span key={s.seq} className={s.seq === position ? "is-current" : s.seq < position ? "is-complete" : ""} aria-current={s.seq === position ? "step" : undefined}>{displayIndex(s.index)}</span>)}</div><p>{step ? t("本组第 {0} 刀 / 共 {1} 刀", [location.stepInTier + 1, location.tierStepCount]) : t("已到达序列末尾")}</p></section>
+    <section className="assistant-tier"><h3>{t("本组刀序")}</h3><div className="assistant-tier-indices">{groupSteps.map(s => <span key={s.seq} className={s.seq === position ? "is-current" : s.seq < position ? "is-complete" : ""} aria-current={s.seq === position ? "step" : undefined}>{displayIndex(s.index, s.indexTeeth ?? 96)}</span>)}</div><p>{step ? t("本组第 {0} 刀 / 共 {1} 刀", [location.stepInTier + 1, location.tierStepCount]) : t("已到达序列末尾")}</p></section>
     <div className="assistant-side-view"><TechnicalPreview solid={solid} view="side" label={t("当前施工侧视图")} /><span>{t("施工侧视 · 已完成")} {t(position)} {t("刀")}</span></div>
     <div className="assistant-view-settings"><label>{t("跟随当前面")}<input type="checkbox" role="switch" checked={follow} onChange={e => onFollow(e.target.checked)} /></label><label>{t("转场速度")}<select aria-label={t("转场速度")} value={duration} onChange={e => onDuration(Number(e.target.value))}><option value={1000}>{t("舒缓 · 1.0 秒")}</option><option value={600}>{t("标准 · 0.6 秒")}</option><option value={250}>{t("快速 · 0.25 秒")}</option></select></label><small>{follow ? t("45° 斜向观察 · 平滑缓动") : t("自由观察 · 开启跟随回到当前面")}</small></div>
   </aside>;

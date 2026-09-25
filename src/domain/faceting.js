@@ -1,5 +1,8 @@
 import { clipPolyhedronByPlanes } from "./geometry.js";
 import { getMeshStockSolid, normalizeMeshStock } from "./meshStock.js";
+import { normalizeIndexTeeth, normalizeIndexGear, facetOnIndexGear, indexExportSummary } from "./indexing.js";
+import { normalizeConcaveCuts } from "./concaveCuts.js";
+import { validateDocumentHeader, validateDocumentExtensions, refreshLabRecipe } from "./labsContract/validation.js";
 /**
  * Facet-96 domain model.
  *
@@ -13,12 +16,8 @@ import { getMeshStockSolid, normalizeMeshStock } from "./meshStock.js";
  */
 
 export const INDEX_TEETH = 96;
-const INDEX_ZERO_ALIAS = 96;
-export const DEGREES_PER_TOOTH = 360 / INDEX_TEETH;
 export const VALID_REPEAT_COUNTS = Object.freeze(
-  Array.from({ length: INDEX_TEETH }, (_, index) => index + 1).filter(
-    (count) => INDEX_TEETH % count === 0,
-  ),
+  Array.from({ length: 360 }, (_, index) => index + 1),
 );
 
 export const FACET_REGION = Object.freeze({
@@ -47,7 +46,6 @@ const DOCUMENT_SCHEMA_ID =
   "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json";
 // Any edition of the workbench family may use its own schema host; the
 // document-v1 format is identified by this suffix plus schemaVersion/kind.
-const DOCUMENT_SCHEMA_ID_SUFFIX = "/document-v1.schema.json";
 
 export const DEFAULT_STOCK = Object.freeze({
   kind: "cube",
@@ -65,6 +63,14 @@ const COMMAND_TYPE = Object.freeze({
 
 const EPSILON = 1e-9;
 let runtimeId = 0;
+const canonicalCubeStocks = new WeakSet();
+const freezeJSON = value => {
+  if (value && typeof value === 'object') {
+    Object.values(value).forEach(freezeJSON);
+    Object.freeze(value);
+  }
+  return value;
+};
 
 function nextId(prefix) {
   runtimeId += 1;
@@ -72,14 +78,16 @@ function nextId(prefix) {
 }
 
 function clone(value) {
-  // Share only validated, immutable stock; commands still own their CUT data.
-  if (value?.kind === DOCUMENT_KIND && value.stock?.kind === "mesh") {
-    const { stock, ...rest } = value;
-    return { ...clone(rest), stock: normalizeMeshStock(stock) };
+  // Share immutable geometry inputs without changing serialized property order.
+  if (value?.kind === DOCUMENT_KIND && value.stock) {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => {
+      if (key === "stock" || key === "cuttingReference" && entry !== undefined) return [key, normalizeStock(entry)];
+      if (key === "concaveCuts" && entry !== undefined) return [key, normalizeConcaveCuts(entry)];
+      return [key, clone(entry)];
+    }));
   }
-  if (value?.document?.kind === DOCUMENT_KIND && value.document.stock?.kind === "mesh") {
-    const { document, ...rest } = value;
-    return { ...clone(rest), document: clone(document) };
+  if (value?.document?.kind === DOCUMENT_KIND) {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, clone(entry)]));
   }
   if (typeof structuredClone === "function") {
     return structuredClone(value);
@@ -129,37 +137,40 @@ function normalizeString(value, fallback, name) {
   return resolved.trim();
 }
 
-export function normalizeIndex(index) {
-  assertInteger(index, "index");
-  return ((index % INDEX_TEETH) + INDEX_TEETH) % INDEX_TEETH;
+export function normalizeIndex(index, indexTeeth = INDEX_TEETH) {
+  assertFiniteNumber(index, "index");
+  const teeth = normalizeIndexTeeth(indexTeeth);
+  const normalized = cleanNumber(((index % teeth) + teeth) % teeth);
+  return normalized === teeth ? 0 : normalized;
 }
 
-export function displayIndex(index) {
-  const normalized = normalizeIndex(index);
-  return normalized === 0 ? INDEX_ZERO_ALIAS : normalized;
+export function displayIndex(index, indexTeeth = INDEX_TEETH) {
+  const normalized = normalizeIndex(index, indexTeeth);
+  return normalized === 0 ? indexTeeth : normalized;
 }
 
 function isValidRepeatCount(repeat) {
-  return Number.isInteger(repeat) && repeat > 0 && INDEX_TEETH % repeat === 0;
+  return Number.isInteger(repeat) && repeat > 0 && repeat <= 360;
 }
 
 function normalizeRepeatCount(repeat = 1) {
   assertInteger(repeat, "repeat");
   if (!isValidRepeatCount(repeat)) {
     throw new RangeError(
-      `repeat must divide ${INDEX_TEETH}; valid values are ${VALID_REPEAT_COUNTS.join(", ")}.`,
+      "repeat must be an integer from 1 to 360.",
     );
   }
   return repeat;
 }
 
-function normalizeMirrorTeeth(mirror = 0) {
-  assertInteger(mirror, "mirror");
+function normalizeMirrorTeeth(mirror = 0, indexTeeth = INDEX_TEETH) {
+  assertFiniteNumber(mirror, "mirror");
+  const teeth = normalizeIndexTeeth(indexTeeth);
   if (mirror < 0) {
-    throw new RangeError("mirror must be a non-negative integer tooth offset.");
+    throw new RangeError("mirror must be a non-negative tooth offset.");
   }
-  const wrapped = mirror % INDEX_TEETH;
-  return Math.min(wrapped, INDEX_TEETH - wrapped);
+  const wrapped = mirror % teeth;
+  return cleanNumber(Math.min(wrapped, teeth - wrapped));
 }
 
 /** Resolve the N undirected reflection axes of a dihedral tier. */
@@ -169,16 +180,18 @@ export function generateMirrorAxes({
   repeat = 1,
   symmetry,
   mirror = 0,
+  indexTeeth = INDEX_TEETH,
 } = {}) {
-  const resolvedBase = normalizeIndex(base ?? baseIndex);
+  const teeth = normalizeIndexTeeth(indexTeeth);
+  const resolvedBase = normalizeIndex(base ?? baseIndex, teeth);
   const resolvedRepeat = normalizeRepeatCount(symmetry ?? repeat);
-  const resolvedMirror = normalizeMirrorTeeth(mirror);
-  const axisStep = (INDEX_TEETH / 2) / resolvedRepeat;
+  const resolvedMirror = normalizeMirrorTeeth(mirror, teeth);
+  const axisStep = (teeth / 2) / resolvedRepeat;
   const axes = new Set();
 
   for (let ordinal = 0; ordinal < resolvedRepeat; ordinal += 1) {
     const raw = resolvedBase + resolvedMirror + ordinal * axisStep;
-    const axis = cleanNumber(((raw % (INDEX_TEETH / 2)) + (INDEX_TEETH / 2)) % (INDEX_TEETH / 2));
+    const axis = cleanNumber(((raw % (teeth / 2)) + (teeth / 2)) % (teeth / 2));
     axes.add(axis);
   }
 
@@ -188,7 +201,7 @@ export function generateMirrorAxes({
 /**
  * Resolves a dihedral faceting tier.
  *
- * Rotation first creates N faces around the full 96-tooth wheel. Mirroring
+ * Rotation first creates N faces around the selected full wheel. Mirroring
  * then reflects the base face across N undirected axes distributed over a
  * half-turn. `mirror` rotates the whole axis family away from the base face;
  * zero therefore keeps the original N-face orbit, while a non-zero offset can
@@ -200,34 +213,38 @@ export function generateFacetIndices({
   repeat = 1,
   symmetry,
   mirror = 0,
+  indexTeeth = INDEX_TEETH,
 } = {}) {
-  const resolvedBase = normalizeIndex(base ?? baseIndex);
+  const teeth = normalizeIndexTeeth(indexTeeth);
+  const resolvedBase = normalizeIndex(base ?? baseIndex, teeth);
   const resolvedRepeat = normalizeRepeatCount(symmetry ?? repeat);
-  const step = INDEX_TEETH / resolvedRepeat;
+  const step = teeth / resolvedRepeat;
   const values = new Set();
 
   for (let ordinal = 0; ordinal < resolvedRepeat; ordinal += 1) {
-    values.add(normalizeIndex(resolvedBase + ordinal * step));
+    values.add(normalizeIndex(resolvedBase + ordinal * step, teeth));
   }
 
   const axes = generateMirrorAxes({
     baseIndex: resolvedBase,
     repeat: resolvedRepeat,
     mirror,
+    indexTeeth: teeth,
   });
   for (const axis of axes) {
-    values.add(normalizeIndex(Math.round(2 * axis - resolvedBase)));
+    values.add(normalizeIndex(2 * axis - resolvedBase, teeth));
   }
 
-  return [...values].sort((left, right) => displayIndex(left) - displayIndex(right));
+  return [...values].sort((left, right) => displayIndex(left, teeth) - displayIndex(right, teeth))
+    .filter((value, index, sorted) => index === 0 || Math.abs(value - sorted[index - 1]) > EPSILON);
 }
 
-export function indexToAzimuthDeg(index) {
-  return cleanNumber(normalizeIndex(index) * DEGREES_PER_TOOTH);
+export function indexToAzimuthDeg(index, indexTeeth = INDEX_TEETH) {
+  return cleanNumber(normalizeIndex(index, indexTeeth) * 360 / indexTeeth);
 }
 
-function indexToAzimuthRad(index) {
-  return (indexToAzimuthDeg(index) * Math.PI) / 180;
+function indexToAzimuthRad(index, indexTeeth = INDEX_TEETH) {
+  return (indexToAzimuthDeg(index, indexTeeth) * Math.PI) / 180;
 }
 
 export function normalizeRegion(region) {
@@ -290,8 +307,8 @@ export function betaDegToIndustryAngle(region, betaDeg) {
   return cleanNumber(90 - Math.abs(beta));
 }
 
-export function facetNormal(index, betaDeg) {
-  const azimuth = indexToAzimuthRad(index);
+export function facetNormal(index, betaDeg, indexTeeth = INDEX_TEETH) {
+  const azimuth = indexToAzimuthRad(index, indexTeeth);
   const beta = (assertFiniteNumber(betaDeg, "betaDeg") * Math.PI) / 180;
   const radial = Math.cos(beta);
   return {
@@ -302,6 +319,7 @@ export function facetNormal(index, betaDeg) {
 }
 
 export function normalizeStock(stock = DEFAULT_STOCK) {
+  if (canonicalCubeStocks.has(stock)) return stock;
   if (!isPlainObject(stock)) {
     throw new TypeError("stock must be an object.");
   }
@@ -322,11 +340,14 @@ export function normalizeStock(stock = DEFAULT_STOCK) {
   ) {
     throw new TypeError("stock.center must contain three finite numbers.");
   }
-  return {
+  const normalized = Object.freeze({
     kind: "cube",
     size: cleanNumber(size),
-    center: center.map(cleanNumber),
-  };
+    center: Object.freeze(center.map(cleanNumber)),
+    ...(stock.extensions === undefined ? {} : { extensions: freezeJSON(clone(stock.extensions)) }),
+  });
+  canonicalCubeStocks.add(normalized);
+  return normalized;
 }
 
 /**
@@ -369,12 +390,13 @@ export function facetToClippingPlane(facet, { stock = DEFAULT_STOCK } = {}) {
     facet.industryAngleDeg,
   );
   const betaDeg = industryAngleToBetaDeg(region, industryAngleDeg);
-  const index = normalizeIndex(facet.index ?? facet.baseIndex ?? 0);
+  const indexTeeth = normalizeIndexTeeth(facet.indexTeeth);
+  const index = normalizeIndex(facet.index ?? facet.baseIndex ?? 0, indexTeeth);
   const depth = assertFiniteNumber(facet.depth ?? 0, "depth");
   if (depth < 0) {
     throw new RangeError("depth must be greater than or equal to zero.");
   }
-  const normal = facetNormal(index, betaDeg);
+  const normal = facetNormal(index, betaDeg, indexTeeth);
   const supportOffset = rotationalStockSupportOffset(normal, stock);
   const offset = cleanNumber(supportOffset - depth);
   return {
@@ -436,35 +458,35 @@ export function scaleFacetsAlongZ(facets, scale, baseZ, { stock = DEFAULT_STOCK 
   });
 }
 
-/** Rotate a group of resolved cutting planes by whole teeth on the 96 index wheel. */
-export function rotateFacetsByTeeth(facets, teeth, { stock = DEFAULT_STOCK } = {}) {
+/** Rotate by a tooth displacement on the selected wheel, preserving each layer's wheel. */
+export function rotateFacetsByTeeth(facets, teeth, { stock = DEFAULT_STOCK, indexTeeth = INDEX_TEETH } = {}) {
   if (!Array.isArray(facets)) {
     throw new TypeError("facets must be an array.");
   }
   const step = assertFiniteNumber(teeth, "teeth");
-  if (!Number.isInteger(step)) {
-    throw new RangeError("teeth must be an integer.");
-  }
+  normalizeIndexTeeth(indexTeeth);
   return facets.map((facet) => {
+    const facetTeeth = facet.indexTeeth ?? INDEX_TEETH;
+    const facetStep = step * facetTeeth / indexTeeth;
     const metadata = facet.metadata && clone(facet.metadata);
-    if (metadata?.primaryIndex !== undefined) metadata.primaryIndex = normalizeIndex(metadata.primaryIndex + step);
+    if (metadata?.primaryIndex !== undefined) metadata.primaryIndex = normalizeIndex(metadata.primaryIndex + facetStep, facetTeeth);
     if (metadata?.construction?.primaryIndex !== undefined) {
-      metadata.construction.primaryIndex = normalizeIndex(metadata.construction.primaryIndex + step);
+      metadata.construction.primaryIndex = normalizeIndex(metadata.construction.primaryIndex + facetStep, facetTeeth);
     }
     return resolveFacet({
       ...facet,
       ...(metadata ? { metadata } : {}),
-      baseIndex: normalizeIndex(facet.baseIndex + step),
-      index: normalizeIndex(facet.index + step),
+      baseIndex: normalizeIndex(facet.baseIndex + facetStep, facetTeeth),
+      index: normalizeIndex(facet.index + facetStep, facetTeeth),
     }, { stock });
   });
 }
 
-function defaultPatternId({ region, baseIndex, repeat, mirror, industryAngleDeg, depth }) {
+function defaultPatternId({ region, baseIndex, repeat, mirror, industryAngleDeg, depth, indexTeeth = INDEX_TEETH }) {
   return [
     "cut",
     region,
-    displayIndex(baseIndex),
+    displayIndex(baseIndex, indexTeeth),
     `r${repeat}`,
     `m${mirror}`,
     `a${industryAngleDeg}`,
@@ -484,10 +506,11 @@ export function resolveFacet(facet, { stock = DEFAULT_STOCK } = {}) {
     facet.industryAngleDeg,
   );
   const betaDeg = industryAngleToBetaDeg(region, industryAngleDeg);
-  const baseIndex = normalizeIndex(facet.baseIndex ?? facet.index ?? 0);
+  const indexTeeth = normalizeIndexTeeth(facet.indexTeeth);
+  const baseIndex = normalizeIndex(facet.baseIndex ?? facet.index ?? 0, indexTeeth);
   const repeat = normalizeRepeatCount(facet.repeat ?? facet.symmetry ?? 1);
-  const mirror = normalizeMirrorTeeth(facet.mirror ?? 0);
-  const index = normalizeIndex(facet.index ?? baseIndex);
+  const mirror = normalizeMirrorTeeth(facet.mirror ?? 0, indexTeeth);
+  const index = normalizeIndex(facet.index ?? baseIndex, indexTeeth);
   const depth = assertFiniteNumber(facet.depth ?? 0, "depth");
   if (depth < 0) {
     throw new RangeError("depth must be greater than or equal to zero.");
@@ -496,6 +519,7 @@ export function resolveFacet(facet, { stock = DEFAULT_STOCK } = {}) {
     facet.patternId ?? facet.groupId,
     defaultPatternId({
       region,
+      indexTeeth,
       baseIndex,
       repeat,
       mirror,
@@ -506,7 +530,7 @@ export function resolveFacet(facet, { stock = DEFAULT_STOCK } = {}) {
   );
   const id = normalizeString(
     facet.id,
-    `${patternId}:${displayIndex(index)}`,
+    `${patternId}:${displayIndex(index, indexTeeth)}`,
     "facet.id",
   );
   const ordinal = facet.ordinal ?? 0;
@@ -515,7 +539,7 @@ export function resolveFacet(facet, { stock = DEFAULT_STOCK } = {}) {
     throw new RangeError("ordinal must be greater than or equal to zero.");
   }
   const plane = facetToClippingPlane(
-    { region, industryAngleDeg, index, depth },
+    { region, industryAngleDeg, index, indexTeeth, depth },
     { stock: resolvedStock },
   );
 
@@ -524,18 +548,20 @@ export function resolveFacet(facet, { stock = DEFAULT_STOCK } = {}) {
     patternId,
     ordinal,
     region,
+    ...(indexTeeth === INDEX_TEETH ? {} : { indexTeeth }),
     baseIndex,
     repeat,
     mirror,
     index,
-    displayIndex: displayIndex(index),
-    azimuthDeg: indexToAzimuthDeg(index),
+    displayIndex: displayIndex(index, indexTeeth),
+    azimuthDeg: indexToAzimuthDeg(index, indexTeeth),
     industryAngleDeg,
     betaDeg,
     depth: cleanNumber(depth),
     plane,
   };
 
+  if (facet.extensions !== undefined) resolved.extensions = clone(facet.extensions);
   if (facet.label !== undefined) {
     resolved.label = String(facet.label);
   }
@@ -555,9 +581,10 @@ export function resolveFacetPattern(pattern, { stock = DEFAULT_STOCK } = {}) {
     region,
     pattern.industryAngleDeg,
   );
-  const baseIndex = normalizeIndex(pattern.baseIndex ?? pattern.base ?? 0);
+  const indexTeeth = normalizeIndexTeeth(pattern.indexTeeth);
+  const baseIndex = normalizeIndex(pattern.baseIndex ?? pattern.base ?? 0, indexTeeth);
   const repeat = normalizeRepeatCount(pattern.repeat ?? pattern.symmetry ?? 1);
-  const mirror = normalizeMirrorTeeth(pattern.mirror ?? 0);
+  const mirror = normalizeMirrorTeeth(pattern.mirror ?? 0, indexTeeth);
   const depth = assertFiniteNumber(pattern.depth ?? 0, "depth");
   if (depth < 0) {
     throw new RangeError("depth must be greater than or equal to zero.");
@@ -566,6 +593,7 @@ export function resolveFacetPattern(pattern, { stock = DEFAULT_STOCK } = {}) {
     pattern.patternId ?? pattern.groupId ?? pattern.id,
     defaultPatternId({
       region,
+      indexTeeth,
       baseIndex,
       repeat,
       mirror,
@@ -574,15 +602,16 @@ export function resolveFacetPattern(pattern, { stock = DEFAULT_STOCK } = {}) {
     }),
     "patternId",
   );
-  const indices = generateFacetIndices({ baseIndex, repeat, mirror });
+  const indices = generateFacetIndices({ baseIndex, repeat, mirror, indexTeeth });
 
   return indices.map((index, ordinal) =>
     resolveFacet(
       {
-        id: `${patternId}:${displayIndex(index)}`,
+        id: `${patternId}:${displayIndex(index, indexTeeth)}`,
         patternId,
         ordinal,
         region,
+        indexTeeth,
         baseIndex,
         repeat,
         mirror,
@@ -591,6 +620,7 @@ export function resolveFacetPattern(pattern, { stock = DEFAULT_STOCK } = {}) {
         depth,
         label: pattern.label,
         metadata: pattern.metadata,
+        ...(pattern.extensions === undefined ? {} : { extensions: pattern.extensions }),
       },
       { stock: resolvedStock },
     ),
@@ -601,32 +631,72 @@ export function createFacetingDocument({
   name = "Untitled Facet Design",
   stock = DEFAULT_STOCK,
   facets = [],
+  indexGear = INDEX_TEETH,
+  concaveCuts,
+  cuttingReference,
   metadata,
+  extensions,
+  schemaVersion = DOCUMENT_SCHEMA_VERSION,
 } = {}) {
   const resolvedStock = normalizeStock(stock);
   if (!Array.isArray(facets)) {
     throw new TypeError("facets must be an array.");
   }
+  const reference = cuttingReference === undefined ? resolvedStock : normalizeStock(cuttingReference);
+  const resolvedGear = normalizeIndexGear(indexGear);
   const resolvedFacets = facets.map((facet) =>
-    resolveFacet(facet, { stock: resolvedStock }),
+    resolveFacet(facetOnIndexGear(facet, resolvedGear.teeth), { stock: reference }),
   );
   const document = {
-    $schema: resolvedStock.kind === "mesh" ? DOCUMENT_SCHEMA_ID.replace("v1", "v2") : DOCUMENT_SCHEMA_ID,
-    schemaVersion: resolvedStock.kind === "mesh" ? 2 : DOCUMENT_SCHEMA_VERSION,
+    $schema: DOCUMENT_SCHEMA_ID,
+    schemaVersion,
     kind: DOCUMENT_KIND,
     name: normalizeString(name, "Untitled Facet Design", "document.name"),
-    indexGear: {
-      teeth: INDEX_TEETH,
-      zeroAlias: INDEX_ZERO_ALIAS,
-      degreesPerTooth: DEGREES_PER_TOOTH,
-    },
+    indexGear: resolvedGear,
     stock: resolvedStock,
+    ...(cuttingReference === undefined ? {} : { cuttingReference: reference }),
     facets: resolvedFacets,
+    ...(extensions === undefined ? {} : { extensions: clone(extensions) }),
+    ...(concaveCuts === undefined ? {} : { concaveCuts: normalizeConcaveCuts(concaveCuts) }),
   };
   if (isPlainObject(metadata)) {
     document.metadata = clone(metadata);
   }
+  normalizeDocumentSchema(document);
   assertValidFacetingDocument(document);
+  return document;
+}
+
+/** Fixed machine coordinates are independent of the optional physical blank.
+ * Old documents retain their original reference until explicitly recreated. */
+export function getCuttingReference(document) { return document.cuttingReference ?? document.stock; }
+
+/** Canonicalize legacy mixed-wheel records while preserving the authored shape. */
+export function withDocumentIndexGear(document, teeth = document.indexGear.teeth) {
+  if (document.indexGear.teeth === teeth && document.facets.every(f => (f.indexTeeth ?? 96) === teeth)) return document;
+  assertValidFacetingDocument(document);
+  const facets = document.facets.map(facet => {
+    const next = facetOnIndexGear(facet, teeth);
+    return { ...next, displayIndex: displayIndex(next.index, teeth), azimuthDeg: indexToAzimuthDeg(next.index, teeth) };
+  });
+  const result = normalizeDocumentSchema({ ...document, indexGear: normalizeIndexGear(teeth), facets });
+  assertValidFacetingDocument(result);
+  return result;
+}
+
+/** Promote extended documents without rewriting legacy 96-wheel files. */
+export function normalizeDocumentSchema(document) {
+  const extended = document.schemaVersion === 3 || document.cuttingReference !== undefined || document.concaveCuts !== undefined
+    || document.indexGear?.teeth !== INDEX_TEETH
+    || document.facets.some((facet) => (facet.indexTeeth ?? INDEX_TEETH) !== INDEX_TEETH
+      || !Number.isInteger(facet.index) || !Number.isInteger(facet.baseIndex)
+      || !Number.isInteger(facet.mirror) || INDEX_TEETH % facet.repeat !== 0);
+  document.schemaVersion = extended ? 3 : document.stock.kind === "mesh" ? 2 : 1;
+  document.$schema = DOCUMENT_SCHEMA_ID.replace("v1", `v${document.schemaVersion}`);
+  if (extended && document.concaveCuts === undefined) document.concaveCuts = [];
+  // Keep recipe data for recovery, but never claim it still describes edited planes.
+  const refreshed = refreshLabRecipe(document);
+  if (refreshed !== document) document.metadata = refreshed.metadata;
   return document;
 }
 
@@ -711,7 +781,7 @@ function validateMeetTarget(target, path, errors, allowEdge = true) {
   }
 }
 
-function validateMeetConstruction(construction, path, errors) {
+function validateMeetConstruction(construction, path, errors, indexTeeth = INDEX_TEETH) {
   if (!isPlainObject(construction)) {
     addValidationError(errors, path, "must be a Meet construction object");
     return;
@@ -721,8 +791,8 @@ function validateMeetConstruction(construction, path, errors) {
   const types = legacy ? ["vertex-meet"] : ["vertex-meet", "edge-meet", "dual-meet"];
   if (!types.includes(construction.type)) addValidationError(errors, `${path}.type`, "must match the solver version and target kind");
   validateMeetTarget(construction.target, `${path}.target`, errors, !legacy);
-  if (!legacy && (!Number.isInteger(construction.primaryIndex) || construction.primaryIndex < 0 || construction.primaryIndex >= 96)) {
-    addValidationError(errors, `${path}.primaryIndex`, "must be an integer index from 0 to 95");
+  if (!legacy && (!Number.isFinite(construction.primaryIndex) || construction.primaryIndex < 0 || construction.primaryIndex >= indexTeeth)) {
+    addValidationError(errors, `${path}.primaryIndex`, `must be a finite index from 0 up to ${indexTeeth}`);
   }
   if (construction.type === "dual-meet") {
     validateMeetTarget(construction.secondTarget, `${path}.secondTarget`, errors);
@@ -742,6 +812,10 @@ function validateResolvedFacet(facet, path, stock, errors) {
     addValidationError(errors, path, "must be an object");
     return;
   }
+  const indexTeeth = facet.indexTeeth ?? INDEX_TEETH;
+  const validTeeth = Number.isInteger(indexTeeth) && indexTeeth >= 1 && indexTeeth <= 360;
+  if (!validTeeth) addValidationError(errors, `${path}.indexTeeth`, "must be an integer from 1 to 360");
+  const canonicalIndex = (index) => Number.isFinite(index) && index >= 0 && index < indexTeeth;
   const required = [
     "id",
     "patternId",
@@ -775,31 +849,27 @@ function validateResolvedFacet(facet, path, stock, errors) {
   if (!FACET_REGIONS.includes(facet.region)) {
     addValidationError(errors, `${path}.region`, "must be crown, girdle, or pavilion");
   }
-  if (!Number.isInteger(facet.baseIndex) || facet.baseIndex < 0 || facet.baseIndex >= 96) {
-    addValidationError(errors, `${path}.baseIndex`, "must be a canonical index from 0 to 95");
+  if (!canonicalIndex(facet.baseIndex)) {
+    addValidationError(errors, `${path}.baseIndex`, `must be a finite canonical index from 0 up to ${indexTeeth}`);
   }
   if (!isValidRepeatCount(facet.repeat)) {
-    addValidationError(errors, `${path}.repeat`, "must divide 96");
+    addValidationError(errors, `${path}.repeat`, "must be an integer from 1 to 360");
   }
-  if (!Number.isInteger(facet.mirror) || facet.mirror < 0 || facet.mirror > 48) {
-    addValidationError(errors, `${path}.mirror`, "must be an integer from 0 to 48");
+  if (!Number.isFinite(facet.mirror) || facet.mirror < 0 || facet.mirror > indexTeeth / 2) {
+    addValidationError(errors, `${path}.mirror`, `must be finite from 0 to ${indexTeeth / 2}`);
   }
-  if (!Number.isInteger(facet.index) || facet.index < 0 || facet.index >= 96) {
-    addValidationError(errors, `${path}.index`, "must be a canonical index from 0 to 95");
+  if (!canonicalIndex(facet.index)) {
+    addValidationError(errors, `${path}.index`, `must be a finite canonical index from 0 up to ${indexTeeth}`);
   }
   if (
-    Number.isInteger(facet.index) &&
-    facet.index >= 0 &&
-    facet.index < 96 &&
-    facet.displayIndex !== displayIndex(facet.index)
+    validTeeth && canonicalIndex(facet.index) &&
+    !nearlyEqual(facet.displayIndex, displayIndex(facet.index, indexTeeth))
   ) {
     addValidationError(errors, `${path}.displayIndex`, "does not match the resolved index alias");
   }
   if (
-    Number.isInteger(facet.index) &&
-    facet.index >= 0 &&
-    facet.index < 96 &&
-    !nearlyEqual(facet.azimuthDeg, indexToAzimuthDeg(facet.index))
+    validTeeth && canonicalIndex(facet.index) &&
+    !nearlyEqual(facet.azimuthDeg, indexToAzimuthDeg(facet.index, indexTeeth))
   ) {
     addValidationError(errors, `${path}.azimuthDeg`, "does not match the resolved index azimuth");
   }
@@ -807,7 +877,7 @@ function validateResolvedFacet(facet, path, stock, errors) {
     addValidationError(errors, `${path}.depth`, "must be a non-negative finite number");
   }
   if (facet.metadata?.construction !== undefined) {
-    validateMeetConstruction(facet.metadata.construction, `${path}.metadata.construction`, errors);
+    validateMeetConstruction(facet.metadata.construction, `${path}.metadata.construction`, errors, indexTeeth);
     if (facet.region !== FACET_REGION.CROWN && facet.region !== FACET_REGION.PAVILION) {
       addValidationError(errors, `${path}.metadata.construction`, "is supported only on crown or pavilion facets");
     }
@@ -820,9 +890,8 @@ function validateResolvedFacet(facet, path, stock, errors) {
     }
   }
 
-  if (facet.metadata?.primaryIndex !== undefined && (!Number.isInteger(facet.metadata.primaryIndex)
-    || facet.metadata.primaryIndex < 0 || facet.metadata.primaryIndex >= 96)) {
-    addValidationError(errors, `${path}.metadata.primaryIndex`, "must be an integer index from 0 to 95");
+  if (facet.metadata?.primaryIndex !== undefined && (!canonicalIndex(facet.metadata.primaryIndex))) {
+    addValidationError(errors, `${path}.metadata.primaryIndex`, `must be a finite index from 0 up to ${indexTeeth}`);
   }
   if (facet.metadata?.preform !== undefined) {
     if (typeof facet.metadata.preform !== "boolean") addValidationError(errors, `${path}.metadata.preform`, "must be boolean");
@@ -834,16 +903,12 @@ function validateResolvedFacet(facet, path, stock, errors) {
 
   const primitivesValid =
     FACET_REGIONS.includes(facet.region) &&
-    Number.isInteger(facet.baseIndex) &&
-    facet.baseIndex >= 0 &&
-    facet.baseIndex < 96 &&
+    validTeeth && canonicalIndex(facet.baseIndex) &&
     isValidRepeatCount(facet.repeat) &&
-    Number.isInteger(facet.mirror) &&
+    Number.isFinite(facet.mirror) &&
     facet.mirror >= 0 &&
-    facet.mirror <= 48 &&
-    Number.isInteger(facet.index) &&
-    facet.index >= 0 &&
-    facet.index < 96 &&
+    facet.mirror <= indexTeeth / 2 &&
+    validTeeth && canonicalIndex(facet.index) &&
     typeof facet.industryAngleDeg === "number" &&
     Number.isFinite(facet.industryAngleDeg) &&
     typeof facet.depth === "number" &&
@@ -881,11 +946,12 @@ function validateResolvedFacet(facet, path, stock, errors) {
       baseIndex: facet.baseIndex,
       repeat: facet.repeat,
       mirror: facet.mirror,
+      indexTeeth,
     });
   } catch {
     generatedIndices = [];
   }
-  if (!generatedIndices.includes(facet.index)) {
+  if (!generatedIndices.some((index) => nearlyEqual(index, facet.index))) {
     addValidationError(errors, `${path}.index`, "is not produced by baseIndex/repeat/mirror");
   }
   if (!nearlyEqual(facet.betaDeg, expected.betaDeg)) {
@@ -924,25 +990,26 @@ export function validateFacetingDocument(document) {
       errors: [{ path: "$", message: "document must be an object" }],
     };
   }
-  if (typeof document.$schema !== "string" || !document.$schema.endsWith(document.stock?.kind === "mesh" ? "/document-v2.schema.json" : DOCUMENT_SCHEMA_ID_SUFFIX)) {
-    addValidationError(errors, "$.$schema", "schema id must match the stock format (cube v1 or mesh v2)");
+  errors.push(...validateDocumentHeader(document), ...validateDocumentExtensions(document));
+  try {
+    const gear = normalizeIndexGear(document.indexGear);
+    if (!isPlainObject(document.indexGear) || gear.zeroAlias !== document.indexGear.zeroAlias
+      || !nearlyEqual(gear.degreesPerTooth, document.indexGear.degreesPerTooth)
+      || (document.schemaVersion !== 3 && gear.teeth !== INDEX_TEETH)) throw new Error();
+  } catch { addValidationError(errors, "$.indexGear", "must describe a supported integer-tooth gear (legacy documents require 96)"); }
+  if (document.schemaVersion !== 3 && (document.concaveCuts !== undefined || (Array.isArray(document.facets) && document.facets.some((facet) =>
+    facet && ((facet.indexTeeth ?? INDEX_TEETH) !== INDEX_TEETH || !Number.isInteger(facet.index)
+      || !Number.isInteger(facet.baseIndex) || !Number.isInteger(facet.mirror) || INDEX_TEETH % facet.repeat !== 0))))) {
+    addValidationError(errors, "$.schemaVersion", "extended indices and concave cuts require schema version 3");
   }
-  if (document.schemaVersion !== (document.stock?.kind === "mesh" ? 2 : DOCUMENT_SCHEMA_VERSION)) {
-    addValidationError(errors, "$.schemaVersion", "unsupported schema version");
-  }
-  if (document.kind !== DOCUMENT_KIND) {
-    addValidationError(errors, "$.kind", `must equal ${DOCUMENT_KIND}`);
-  }
-  if (typeof document.name !== "string" || document.name.trim() === "") {
-    addValidationError(errors, "$.name", "must be a non-empty string");
-  }
-  if (
-    !isPlainObject(document.indexGear) ||
-    document.indexGear.teeth !== INDEX_TEETH ||
-    document.indexGear.zeroAlias !== INDEX_ZERO_ALIAS ||
-    document.indexGear.degreesPerTooth !== DEGREES_PER_TOOTH
-  ) {
-    addValidationError(errors, "$.indexGear", "must describe the fixed 96-tooth gear");
+  if (document.schemaVersion === 3) {
+    if (!Array.isArray(document.concaveCuts)) {
+      addValidationError(errors, "$.concaveCuts", "must be an independent array in schema version 3");
+    } else {
+      try { normalizeConcaveCuts(document.concaveCuts); } catch (error) {
+        addValidationError(errors, "$.concaveCuts", error.message);
+      }
+    }
   }
   let validatedStock;
   try { validatedStock = normalizeStock(document.stock); } catch { /* reported below */ }
@@ -950,13 +1017,18 @@ export function validateFacetingDocument(document) {
     addValidationError(errors, "$.stock", "must define a valid cube or closed oriented mesh stock");
     validatedStock = null;
   }
+  let validatedReference = validatedStock;
+  if (document.cuttingReference !== undefined) {
+    try { validatedReference = normalizeStock(document.cuttingReference); }
+    catch { addValidationError(errors, "$.cuttingReference", "must define a valid fixed machine reference"); }
+  }
   if (!Array.isArray(document.facets)) {
     addValidationError(errors, "$.facets", "must be an array");
   } else if (validatedStock) {
     const ids = new Set();
     const patternFacets = new Map();
     document.facets.forEach((facet, index) => {
-      validateResolvedFacet(facet, `$.facets[${index}]`, validatedStock, errors);
+      validateResolvedFacet(facet, `$.facets[${index}]`, validatedReference, errors);
       if (isPlainObject(facet) && typeof facet.patternId === "string") {
         if (!patternFacets.has(facet.patternId)) patternFacets.set(facet.patternId, []);
         patternFacets.get(facet.patternId).push({ facet, index });
@@ -968,7 +1040,18 @@ export function validateFacetingDocument(document) {
         ids.add(facet.id);
       }
     });
+    if (Array.isArray(document.concaveCuts)) {
+      document.concaveCuts.forEach((cut, index) => {
+        if (cut && patternFacets.has(cut.id)) {
+          addValidationError(errors, `$.concaveCuts[${index}].id`, "must not collide with a planar pattern id");
+        }
+      });
+    }
     patternFacets.forEach((entries) => {
+      const indexTeeth = entries[0].facet.indexTeeth ?? INDEX_TEETH;
+      entries.forEach(({ facet, index }) => {
+        if ((facet.indexTeeth ?? INDEX_TEETH) !== indexTeeth) addValidationError(errors, `$.facets[${index}].indexTeeth`, "must match every facet in the pattern");
+      });
       const preform = entries[0].facet.metadata?.preform ?? false;
       entries.forEach(({ facet, index }) => {
         if ((facet.metadata?.preform ?? false) !== preform) {
@@ -1046,14 +1129,14 @@ function migrateLegacyFacetGeometry(document) {
   if (!onlyLegacyGeometry) return document;
   return {
     ...document,
-    facets: document.facets.map((facet) => resolveFacet(facet, { stock: document.stock })),
+    facets: document.facets.map((facet) => resolveFacet(facet, { stock: getCuttingReference(document) })),
   };
 }
 
 export function exportFacetingJSON(document, { pretty = true } = {}) {
-  const normalizedDocument = migrateLegacyFacetGeometry(document);
+  const normalizedDocument = refreshLabRecipe(withDocumentIndexGear(migrateLegacyFacetGeometry(document)));
   assertValidFacetingDocument(normalizedDocument);
-  return JSON.stringify(normalizedDocument, null, pretty ? 2 : 0);
+  return JSON.stringify({ ...normalizedDocument, machining: indexExportSummary(normalizedDocument) }, null, pretty ? 2 : 0);
 }
 
 export function importFacetingJSON(json) {
@@ -1066,6 +1149,12 @@ export function importFacetingJSON(json) {
       "Could not parse Facet-96 JSON.",
     );
   }
+  if (isPlainObject(parsed)) {
+    if (parsed.stock === undefined) parsed.stock = DEFAULT_STOCK;
+    if (parsed.indexGear === undefined) parsed.indexGear = normalizeIndexGear(96);
+    if (parsed.schemaVersion === 3 && parsed.concaveCuts === undefined) parsed.concaveCuts = [];
+    delete parsed.machining; // Always derive compatibility from actual planar normals.
+  }
   if (parsed?.stock?.kind === "mesh") {
     try { parsed.stock = normalizeMeshStock(parsed.stock); } catch (error) {
       throw new FacetingDocumentValidationError([{ path: "$.stock", message: error.message }]);
@@ -1073,8 +1162,9 @@ export function importFacetingJSON(json) {
   }
   const normalizedDocument = migrateLegacyFacetGeometry(parsed);
   assertValidFacetingDocument(normalizedDocument);
-  normalizedDocument.$schema = normalizedDocument.stock.kind === "mesh" ? DOCUMENT_SCHEMA_ID.replace("v1", "v2") : DOCUMENT_SCHEMA_ID;
-  const result = clone(normalizedDocument);
+  normalizedDocument.$schema = DOCUMENT_SCHEMA_ID.replace("v1", `v${normalizedDocument.schemaVersion}`);
+  const result = clone(refreshLabRecipe(normalizedDocument));
+  if (result.concaveCuts !== undefined) result.concaveCuts = normalizeConcaveCuts(result.concaveCuts);
   if (result.stock.kind === "mesh") {
     result.stock = normalizeMeshStock(result.stock);
     try {
@@ -1087,7 +1177,7 @@ export function importFacetingJSON(json) {
       throw new FacetingDocumentValidationError([{ path: "$.facets", message: `无法重放晶体切割：${error.message}` }]);
     }
   }
-  return result;
+  return withDocumentIndexGear(result);
 }
 
 function createCommand(type, payload) {
@@ -1163,10 +1253,10 @@ function normalizeCommand(command) {
       if (!isPlainObject(facet)) return facet;
       const patternId =
         facet.patternId ?? facet.groupId ?? `${id}:pattern:${index}`;
-      const resolvedIndex = normalizeIndex(facet.index ?? facet.baseIndex ?? 0);
+      const resolvedIndex = normalizeIndex(facet.index ?? facet.baseIndex ?? 0, facet.indexTeeth);
       return {
         ...facet,
-        id: facet.id ?? `${patternId}:${displayIndex(resolvedIndex)}`,
+        id: facet.id ?? `${patternId}:${displayIndex(resolvedIndex, facet.indexTeeth)}`,
         patternId,
       };
     });
@@ -1174,10 +1264,10 @@ function normalizeCommand(command) {
   if (command.type === COMMAND_TYPE.REPLACE_PATTERN && Array.isArray(payload.facets)) {
     payload.facets = payload.facets.map((facet, index) => {
       if (!isPlainObject(facet)) return facet;
-      const resolvedIndex = normalizeIndex(facet.index ?? facet.baseIndex ?? 0);
+      const resolvedIndex = normalizeIndex(facet.index ?? facet.baseIndex ?? 0, facet.indexTeeth);
       return {
         ...facet,
-        id: facet.id ?? `${payload.patternId}:${displayIndex(resolvedIndex)}`,
+        id: facet.id ?? `${payload.patternId}:${displayIndex(resolvedIndex, facet.indexTeeth)}`,
         patternId: payload.patternId,
       };
     });
@@ -1197,26 +1287,26 @@ export function applyFacetingCommand(document, command) {
 
   if (type === COMMAND_TYPE.REPLACE_DOCUMENT) {
     assertValidFacetingDocument(payload.document);
-    return clone(payload.document);
+    return clone(refreshLabRecipe(withDocumentIndexGear(payload.document)));
   }
   if (type === COMMAND_TYPE.ADD_FACETS) {
     if (!Array.isArray(payload.facets)) {
       throw new TypeError("facets/add payload.facets must be an array.");
     }
     const additions = payload.facets.map((facet) =>
-      resolveFacet(facet, { stock: document.stock }),
+      resolveFacet(facetOnIndexGear(facet, document.indexGear.teeth), { stock: getCuttingReference(document) }),
     );
     return appendFacets(document, additions);
   }
   if (type === COMMAND_TYPE.REPLACE_PATTERN) {
     const firstIndex = document.facets.findIndex((facet) => facet.patternId === payload.patternId);
     if (firstIndex < 0) throw new RangeError(`Unknown pattern id: ${payload.patternId}`);
-    const replacements = payload.facets.map((facet) => resolveFacet({
+    const replacements = payload.facets.map((facet) => resolveFacet(facetOnIndexGear({
       ...facet,
       patternId: payload.patternId,
-    }, { stock: document.stock }));
+    }, document.indexGear.teeth), { stock: getCuttingReference(document) }));
     const facets = replacePatternFacets(document.facets, payload.patternId, replacements);
-    const next = { ...document, facets };
+    const next = normalizeDocumentSchema({ ...document, facets });
     assertValidFacetingDocument(next);
     return next;
   }
@@ -1225,10 +1315,10 @@ export function applyFacetingCommand(document, command) {
       throw new TypeError("facets/remove payload.facetIds must be an array.");
     }
     const ids = new Set(payload.facetIds);
-    return {
+    return normalizeDocumentSchema({
       ...document,
       facets: document.facets.filter((facet) => !ids.has(facet.id)),
-    };
+    });
   }
   throw new RangeError(`Unsupported command type: ${type}`);
 }
@@ -1241,7 +1331,7 @@ function appendFacets(document, additions) {
     }
     ids.add(facet.id);
   }
-  const next = { ...document, facets: [...document.facets, ...additions] };
+  const next = normalizeDocumentSchema({ ...document, facets: [...document.facets, ...additions] });
   assertValidFacetingDocument(next);
   return next;
 }
@@ -1267,6 +1357,7 @@ export function replayFacetingCommands(
 }
 
 export function createCommandHistory(initialDocument = createFacetingDocument()) {
+  initialDocument = withDocumentIndexGear(initialDocument);
   assertValidFacetingDocument(initialDocument);
   const initial = clone(initialDocument);
   if (initial.stock.kind === "mesh") initial.stock = normalizeMeshStock(initial.stock);

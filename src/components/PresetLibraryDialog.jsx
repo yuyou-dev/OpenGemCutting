@@ -1,5 +1,6 @@
 import { t } from '../i18n/locale.js';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDialogFocus } from "./useDialogFocus.js";
 import { IconSearch, IconX } from "@tabler/icons-react";
 import { filterPresetCatalog, PRESET_FACET_RANGES, PRESET_RATIO_RANGES } from "../domain/presetLibrary.js";
 
@@ -9,6 +10,8 @@ const presetKey = (preset) => `${preset.providerId}:${preset.id}`;
 const VIEW_LABELS = { isometric: "45° 轴测", top: "顶视", bottom: "底视", front: "正视" };
 
 export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft = false }) {
+  const panelRef = useRef(null);
+  useDialogFocus(panelRef, onClose);
   const [presets, setPresets] = useState([]);
   const [selectedKey, setSelectedKey] = useState("");
   const [filters, setFilters] = useState({ query: "", shape: "all", facets: "all", ratio: "all" });
@@ -100,7 +103,7 @@ export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft 
 
   return (
     <div className="modal-backdrop preset-library-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="preset-library-panel" role="dialog" aria-modal="true" aria-label={t("预设琢型")} onMouseDown={(event) => event.stopPropagation()}>
+      <section ref={panelRef} tabIndex={-1} className="preset-library-panel" role="dialog" aria-modal="true" aria-label={t("预设琢型")} onMouseDown={(event) => event.stopPropagation()}>
         <header className="preset-library-heading">
           <div><small>PRESET CUTS</small><h2>{t("预设琢型")}</h2></div>
           <span>{presets.length} {t("个可用琢型")}</span>
@@ -150,10 +153,10 @@ export function PresetLibraryDialog({ library, onClose, onLoad, discardingDraft 
               {error ? <p className="preset-load-error">{t(error)}</p> : null}
               <footer>
                 <p>{discardingDraft
-                  ? t("当前未保存 CUT 动作会被放弃；已保存文档仍可用一次撤销恢复。")
-                  : t("载入会替换当前文档，并作为一次命令写入，可用撤销恢复。")}</p>
+                  ? t("载入为独立项目，切换前会确认如何处理未保存预览。")
+                  : t("载入为独立项目，原项目及其底胚保持不变。")}</p>
                 <button type="button" className="primary-action" onClick={loadSelected} disabled={status === "loading-preset"}>
-                  {status === "loading-preset" ? t("正在载入…") : discardingDraft ? t("放弃当前动作并载入") : t("载入此琢型")}
+                  {status === "loading-preset" ? t("正在载入…") : t("以此琢型新建项目")}
                 </button>
               </footer>
             </article> : <div className="preset-library-state">{t("请选择一个预设。")}</div>}

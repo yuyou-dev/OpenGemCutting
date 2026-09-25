@@ -219,7 +219,11 @@ test("dual Meet distinguishes duplicate, nonunique, out of region, and negative 
   approximately(recovered.industryAngleDeg, 45);
   assert.deepEqual(solve([0, 0, 0], [0.5, 0, -0.5], { baseIndex: 96 }),
     solve([0, 0, 0], [0.5, 0, -0.5]));
-  assert.throws(() => solve([0, 0, 0], [0.5, 0, -0.5], { baseIndex: 0.1 }));
+  assert.equal(solve([0, 0, 0], [0.5, 0, -0.5], { baseIndex: 0.1 }).status, MEET_STATUS.VALID);
+  const continuous96 = solve([0, 0, 0], [0.5, 0, -0.5], { baseIndex: 19.2 });
+  const exact120 = solve([0, 0, 0], [0.5, 0, -0.5], { baseIndex: 24, indexTeeth: 120 });
+  approximately(continuous96.industryAngleDeg, exact120.industryAngleDeg);
+  approximately(continuous96.depth, exact120.depth);
   assert.throws(() => solve([0, 0, 0], [0.5, 0, -0.5], { region: "girdle" }));
 });
 
@@ -450,7 +454,7 @@ test("impact reports partial and full operation face removal without erasing the
   assert.equal(fullyRemoved.solidErased, false);
   assert.equal(fullyRemoved.faceRemoval, true);
   assert.equal(fullyRemoved.removedFaceCount, 2);
-  assert.equal(resolveDraftCommitPolicy(fullyRemoved), "confirm");
+  assert.equal(resolveDraftCommitPolicy(fullyRemoved), "warn");
   assert.deepEqual(fullyRemoved.threats, [{
     operationId: "C1",
     region: "crown",
@@ -475,9 +479,11 @@ test("a plane repeated from the base has zero contribution and is an explicit no
   assert.equal(impact.faceRemoval, false);
   assert.equal(impact.impactKind, "no-op");
   assert.deepEqual(impact.threats, []);
+  assert.equal(resolveDraftCommitPolicy(impact), "block");
+  assert.equal(resolveDraftCommitPolicy(impact, { allowNoOp: true }), "allow");
 });
 
-test("commit policy blocks full table and girdle removal and confirms pavilion removal", () => {
+test("commit policy permits fully covered table, girdle and pavilion with feedback", () => {
   const fullThreat = (operationId, region) => ({
     operationId,
     region,
@@ -493,9 +499,9 @@ test("commit policy blocks full table and girdle removal and confirms pavilion r
     threats: [threat],
   });
 
-  assert.equal(resolveDraftCommitPolicy(impact(fullThreat("table-facet", "crown"))), "block");
-  assert.equal(resolveDraftCommitPolicy(impact(fullThreat("G1", "girdle"))), "block");
-  assert.equal(resolveDraftCommitPolicy(impact(fullThreat("P1", "pavilion"))), "confirm");
+  assert.equal(resolveDraftCommitPolicy(impact(fullThreat("table-facet", "crown"))), "warn");
+  assert.equal(resolveDraftCommitPolicy(impact(fullThreat("G1", "girdle"))), "warn");
+  assert.equal(resolveDraftCommitPolicy(impact(fullThreat("P1", "pavilion"))), "warn");
 });
 
 test("commit policy recognizes a custom-id table from propagated geometry metadata", () => {
@@ -528,7 +534,7 @@ test("commit policy recognizes a custom-id table from propagated geometry metada
     fullyRemoved: true,
     faceIds: ["custom-table:96"],
   }]);
-  assert.equal(resolveDraftCommitPolicy(impact), "block");
+  assert.equal(resolveDraftCommitPolicy(impact), "warn");
 });
 
 test("face removal and zero contribution remain disjoint impact states", () => {
@@ -704,4 +710,16 @@ test("persisted vertex targets resolve only while topology and source geometry s
   assert.equal(changed.status, MEET_STATUS.STALE);
   assert.equal(changed.reason, "geometry-changed");
   assert.ok(changed.target);
+});
+
+test("Jump B respects per-draft wheel when enumerating the second Meet constraint", () => {
+  const baseSolid = cutCube();
+  const targetA = createEdgeMeetTarget(enumerateTopologyEdges(baseSolid)[0], 0.5);
+  const settings = { baseSolid, targetA, region: "crown" };
+  const legacy = generateDualJumpCandidates({ ...settings, baseIndex: 33, indexTeeth: 96 });
+  assert.ok(legacy.length > 2);
+  const on120 = generateDualJumpCandidates({ ...settings, baseIndex: 41.25, indexTeeth: 120 });
+  const on360 = generateDualJumpCandidates({ ...settings, baseIndex: 123.75, indexTeeth: 360 });
+  assert.deepEqual(on120, legacy);
+  assert.deepEqual(on360, legacy);
 });

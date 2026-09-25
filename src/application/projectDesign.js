@@ -2,7 +2,7 @@ import {
   createWorkbenchDocument,
   ensureTableFacet,
 } from '../domain/document.js';
-import { importFacetingJSON } from '../domain/faceting.js';
+import { importFacetingJSON, withDocumentIndexGear } from '../domain/faceting.js';
 import { assertFileBudget, assertDocumentImportBudget } from '../domain/importBudget.js';
 import {
   createPresetStockDocument,
@@ -10,6 +10,7 @@ import {
 } from '../domain/stockPresets.js';
 import { inspectCrystalOBJ } from '../domain/stockGeometry.js';
 import { designError } from './designOperations.js';
+import { assertValidDocumentGeometry } from '../domain/documentGeometry.js';
 
 export async function projectDesign(args, library) {
   for (const text of [args.json, args.obj]) if (text !== undefined) assertFileBudget({ size: new TextEncoder().encode(text).length });
@@ -44,6 +45,8 @@ export async function projectDesign(args, library) {
     if (!result.document)
       throw designError('OBJ_INVALID', '初始晶体未通过正式预检。', result);
     document = result.document;
-  } else document = createWorkbenchDocument(args.name);
+  } else document = createWorkbenchDocument(args.name, args.indexTeeth);
+  if (args.indexTeeth !== undefined) document = withDocumentIndexGear(document, args.indexTeeth);
+  assertValidDocumentGeometry(document);
   return { ...document, name: args.name };
 }
