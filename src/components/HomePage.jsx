@@ -5,7 +5,7 @@ import { LanguageSelector } from './LanguageSelector.jsx';
 import { APP_VERSION } from "../version.js";
 import { RenderBoundary } from "./RenderBoundary.jsx";
 import { memo, useMemo, useState } from "react";
-import { IconArrowRight, IconChevronDown, IconChevronUp, IconDots, IconFlask, IconPlus, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
+import { IconArrowRight, IconArrowsExchange, IconChevronDown, IconChevronUp, IconDots, IconFlask, IconPlus, IconSearch, IconTrash, IconX } from "@tabler/icons-react";
 import { evaluateDocument } from "../domain/documentGeometry.js";
 import { RepositoryLink } from "./RepositoryLink.jsx";
 import { TechnicalPreview } from "./TechnicalPreview.jsx";
@@ -38,7 +38,7 @@ const ProjectCard = memo(function ProjectCard({ project, active, onOpen, onDelet
   );
 });
 
-export function HomePage({ projects, activeProjectId, onOpenProject, onNewProject, onDeleteProject, onOpenLab, onResume, error, onRetry, onOpenHelp }) {
+export function HomePage({ projects, activeProjectId, onOpenProject, onNewProject, onDeleteProject, onOpenLab, onOpenFormats, onResume, error, onRetry, onOpenHelp }) {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
@@ -74,6 +74,7 @@ export function HomePage({ projects, activeProjectId, onOpenProject, onNewProjec
         <div className="home-projects-heading">
           <div className="home-projects-label"><h2 id="home-projects-title">{t("我的项目")}</h2><span>{words.length ? `${matchingProjects.length} / ${projects.length}` : projects.length}</span></div>
           <div className="home-projects-actions">
+            <button type="button" className="workspace-page-button" onClick={onOpenFormats}><IconArrowsExchange size={16} stroke={1.6} />{t("格式中心")}</button>
             <button type="button" className="workspace-page-button" onClick={onOpenLab}><IconFlask size={16} stroke={1.6} />{t("实验室")}</button>
             {activeProject && <button type="button" className="workspace-page-button home-resume" onClick={onResume}>{t("继续当前设计")}<IconArrowRight size={15} stroke={1.6} /></button>}
             {projects.length > 3 && !words.length && <button type="button" className="workspace-page-button home-show-all" aria-expanded={showAll} aria-controls="home-project-list" onClick={() => setShowAll((value) => !value)}>{showAll ? t("收起") : t("全部")}{showAll ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}</button>}

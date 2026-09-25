@@ -182,11 +182,11 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_export',
-    'Export the committed design as full editable JSON, vector PDF or preflighted ASC; mesh or active curved-tool geometry requires JSON. PDF surfaceFinish defaults to polished; annotated marks frosted faces in views and facet tables. Does not commit a draft.',
+    'Export the committed design as full editable JSON, vector PDF, or GemCad ASC / Gem Cut Studio GCS with the final effective facets (every loss reported in diagnostics; GCS is read back and returned only when the shape matches, with a kept/approximate/lost report); mesh or active curved-tool geometry requires JSON. PDF surfaceFinish defaults to polished; annotated marks frosted faces in views and facet tables. Does not commit a draft.',
     object(
       {
         ...readScope,
-        format: { type: 'string', enum: ['json', 'asc', 'pdf'] },
+        format: { type: 'string', enum: ['json', 'asc', 'gcs', 'pdf'] },
         locale: { type: 'string', enum: ['zh-CN', 'en'] },
         surfaceFinish: { type: 'string', enum: ['polished', 'annotated'] },
       },

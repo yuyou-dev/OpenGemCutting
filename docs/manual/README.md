@@ -51,6 +51,8 @@ npm run manual:build
 
 `crystal-import` 是“保留原石的凹槽，再安排切割”页使用的真实 L 形 OBJ 导入预检，单位未指定、+Z 朝上；对应 `08-concave-crystal.obj`。
 
+`round-files`（Eight Main Highlight）与 `parameter-groups`（120 盘默认项目加默认五重圆弧槽）在格式中心接入时按原状态重采，仅文件菜单改为“从 GemCAD / Gem Cut Studio 导入…”与“导出到其他软件…”。第 34 页 `format-center` 读取 `src/domain/formats/fixtures/gcs-1.1-resaved.gcs`（Gem Cut Studio 1.1 实际存档）并选中 GemCAD 文本去向，只截取“选择去向”区域（卡片、报告与导出按钮），2× 像素密度以保证 PDF 中可读。采集脚本在被忽略的 `tmp/format-center/`。
+
 不含版本标识且交互未改变的局部图继续使用已核对的真实截图。`recovery-empty` 从“文件 → 恢复本地设计”采集的真实空列表，说明旧版备份与当前项目自动保存的区别。恢复现有备份会创建独立项目，原项目和来源备份保留。
 
 `screenshots/` 仅保留当前手册正文引用的图；旧截图可从 Git 历史查阅，不另设相互覆盖的手册版本。
@@ -73,7 +75,7 @@ npm run manual:build
 
 ## 英文版
 
-顶栏切换 English 后，帮助入口下载英文图解手册。两种语言共用 33 页案例结构与生成器：`npm run manual:build` 生成中文，`npm run manual:build:en` 生成英文。英文截图位于 `screenshots/en/`，来自真实英文界面；练习中的用户名称和图层名称保持原文，操作按 T1 / C1 / C2 等编号定位。术语审核流程见 [双语说明](../i18n/README.md)。
+顶栏切换 English 后，帮助入口下载英文图解手册。两种语言共用 34 页案例结构与生成器：`npm run manual:build` 生成中文，`npm run manual:build:en` 生成英文。英文截图位于 `screenshots/en/`，来自真实英文界面；练习中的用户名称和图层名称保持原文，操作按 T1 / C1 / C2 等编号定位。术语审核流程见 [双语说明](../i18n/README.md)。
 
 ## 旋转方向验收（v1.1.1）
 

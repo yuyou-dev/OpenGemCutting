@@ -30,7 +30,7 @@ Codex 使用 `node setup/cli.mjs install` 完整配置；`mcp/register-codex.mjs
 5. `design_plan` 传入有稳定名称的 CUT 组与参数，或 `replace-parameters` 独立替换平面切割或凹面加工参数组（底胚创建后固定）。预检返回 planId、真实变化、完整几何及覆盖面提示，不改当前项目。
 6. 用 `design_view` 查看 planId 的顶、底、侧和立体真实投影；用 `design_topology`、`design_inspect` 检查指定连接和施工来源。
 7. 在 `design_commit` 中提交同一 planId 和作用域。被覆盖的层继续保留参数，整层覆盖可直接提交；空实体和非法几何仍阻断。提交是一条历史，可从网页或 `design_history` 撤销，撤销后续覆盖工序可恢复早先切面。
-8. `project_save` 等待实际浏览器保存。`design_export` 导出完整 JSON 留档；同一接口也可返回矢量 PDF，网页文件菜单继续提供 PDF 与 ASC，ASC 沿用既有信息损失提示和 mesh 阻断。
+8. `project_save` 等待实际浏览器保存。`design_export` 导出完整 JSON 留档；同一接口也可返回矢量 PDF、GemCad ASC 或 Gem Cut Studio GCS。ASC 与 GCS 沿用格式中心的信息损失说明和 mesh／凹切阻断，GCS 另返回保留／简化／丢失报告与读回核对结果（见[格式中心](../architecture/format-center.md)）；网页从文件菜单进入格式中心。
 
 修改后网页立即显示实际 CUT，可用原有参数区继续编辑。网页有手动 CUT 会话、隐藏层、模态流程或光学/助手模式时，对话写入返回原因；先在网页结束该操作，重新读取再规划。对话不会擅自放弃手动草稿。
 
@@ -66,7 +66,7 @@ PDF 返回本机临时下载链接，避免大型字体嵌入对话消息。服�
 
 ## 中英双语
 
-顶栏语言选项控制界面、帮助及默认 PDF 报告语言；`design_read.locale` 返回当前界面语言。`design_export` 的 PDF 可指定 `locale: "en"` 或 `"zh-CN"`，省略则跟随界面。JSON、ASC、工具名、ID 和参数保持语言无关。对话可用中文或英文提出设计需求；语言切换不清空手动草稿，也不修改设计 revision。术语审核见 [双语维护说明](../i18n/README.md)。
+顶栏语言选项控制界面、帮助及默认 PDF 报告语言；`design_read.locale` 返回当前界面语言。`design_export` 的 PDF 可指定 `locale: "en"` 或 `"zh-CN"`，省略则跟随界面。JSON、ASC、GCS、工具名、ID 和参数保持语言无关。对话可用中文或英文提出设计需求；语言切换不清空手动草稿，也不修改设计 revision。术语审核见 [双语维护说明](../i18n/README.md)。
 
 ## 设备与快捷凹切
 

@@ -3,10 +3,12 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { renderTechnicalMesh } from "./meshTechnicalRenderer.js";
 import { projectTechnicalPreview } from "../domain/technicalPreview.js";
 
-function faceFill(face, activeOperationId, previewOperationId, highlightOperationId) {
+function faceFill(face, activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds) {
   if (activeOperationId && face.sourceOperationId === activeOperationId) return "#f8b5ce";
   if (previewOperationId && face.sourceOperationId === previewOperationId) return "#aad5f4";
   if (highlightOperationId && face.sourceOperationId === highlightOperationId) return "#ee8dac";
+  // Frosted faces use the report's grey fill.
+  if (frostedFaceIds?.has(face.facetId ?? face.id)) return "#c9ccd1";
   return "#f3f4f2";
 }
 
@@ -18,6 +20,7 @@ function VectorTechnicalPreview({
   activeOperationId,
   previewOperationId,
   highlightOperationId,
+  frostedFaceIds,
 }) {
   const projection = useMemo(() => projectTechnicalPreview(solid, view), [solid, view]);
   return (
@@ -34,7 +37,7 @@ function VectorTechnicalPreview({
             const point = projection.points[vertexIndex];
             return `${point.x},${point.y}`;
           }).join(" ")}
-          fill={faceFill(face, activeOperationId, previewOperationId, highlightOperationId)}
+          fill={faceFill(face, activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds)}
         />
       ))}
       <path

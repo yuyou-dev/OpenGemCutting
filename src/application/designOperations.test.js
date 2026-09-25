@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { createWorkbenchDocument } from '../domain/document.js';
 import {
   createCommandHistory,
@@ -175,7 +176,6 @@ test('tool contract validates mandatory scope and refuses undocumented arguments
 });
 
 test('independently dimensioned square reference produces the specified nodes and connections', async () => {
-  const { readFile } = await import('node:fs/promises');
   const { auditProjection } = await import('../domain/projectionAudit.js');
   const reference = JSON.parse(
     await readFile(
@@ -219,6 +219,18 @@ test('PDF export surface finish is optional, defaults to polished and matches th
   const args = { sessionId: 'test-browser', format: 'pdf' };
   for (const surfaceFinish of REPORT_SURFACE_MODES) assert.doesNotThrow(() => validateTool('design_export', { ...args, surfaceFinish }));
   assert.throws(() => validateTool('design_export', { ...args, surfaceFinish: 'matte' }), /expected polished, annotated/);
+});
+
+test('design export offers Gem Cut Studio beside JSON, ASC and PDF', async () => {
+  for (const format of ['json', 'asc', 'gcs', 'pdf']) assert.doesNotThrow(() => validateTool('design_export', { sessionId: 'test-browser', format }));
+  assert.throws(() => validateTool('design_export', { sessionId: 'test-browser', format: 'gem' }), /expected json, asc, gcs, pdf/);
+  const { inspectProjectSource, planTarget } = await import('./formatCenter.js');
+  const unfinished = planTarget(inspectProjectSource(createWorkbenchDocument('gcs export')), 'gcs');
+  assert.equal(unfinished.outcome, 'blocked', 'an unclosed stone is refused rather than guessed');
+  const preset = importFacetingJSON(await readFile(new URL('../../public/presets/documents/100058-pc-07-001c-square-emerald-1-4.json', import.meta.url), 'utf8'));
+  const plan = planTarget(inspectProjectSource(preset), 'gcs');
+  assert.equal(plan.verified, true);
+  assert.match(plan.text, /^<\?xml[\s\S]*<GemCutStudio version="1000">/);
 });
 
 test('covered structural tiers remain editable and return with one-step undo', () => {

@@ -9,7 +9,7 @@
 | 公共文档 | `facet-96-document` schema 1 / 2 / 3 | 主项目已有格式，不另造实验室简化格式 |
 | 公共契约 | `1.0.0` | 本文及样本的交换语义 |
 | 公共规则模块 | `@facet96/labs-contract` `1.0.0` | 无运行依赖的 ESM 分度规则、能力预检、扩展校验 |
-| 主项目产品 | package.json 的 `1.2.0` | 与文档、契约版本独立 |
+| 主项目产品 | package.json 的 `1.3.0` | 与文档、契约版本独立 |
 | 图案功能模块 | 尚未接入、未锁定版本 | 不以公共规则包冒充图案实验室 |
 
 实现单一来源为 [labsContract](../../src/domain/labsContract/index.js)；原 `domain/indexing.js` 只重导出该实现。宿主完整入口为 [readLabDocument](../../src/application/labDocuments.js)，使用正式导入器、领域校验器与实体内核。公共模块不依赖 React、DOM、MCP、几何引擎或相邻仓库。
