@@ -1,9 +1,14 @@
 import { createTranslator } from '../i18n/format.js';
 import { getMeshViewGeometry } from "../domain/meshDisplay.js";
 
-import { displayIndex, FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../domain/faceting.js";
+import { FACET_REGION_LABELS, FACET_REGION_PREFIXES } from "../domain/faceting.js";
 import { MEET_STATUS, summarizeEffectiveFacets } from "../domain/meetJump.js";
 import { buildConstructionStages } from "../domain/constructionHistory.js";
+import { evaluateDocument } from "../domain/documentGeometry.js";
+import { measurePolyhedron } from "../domain/geometry.js";
+import { facetIndexForGear, indexCompatibilityReport, indexExportSummary } from "../domain/indexing.js";
+import { normalizeConcaveCuts } from "../domain/concaveCuts.js";
+import { facetSurfaceState } from "../domain/facetSurface.js";
 import { downloadBlob } from "../utils/download.js";
 import { formatAngle, formatDepth, safeFileStem } from "../utils/format.js";
 
@@ -18,7 +23,10 @@ const REGION_SHORT = FACET_REGION_LABELS;
 const COLOR = {
   accent: [0.937, 0.247, 0.447], ink: [0.094, 0.106, 0.114], muted: [0.43, 0.46, 0.49],
   rule: [0.84, 0.85, 0.86], soft: [0.965, 0.968, 0.97], white: [1, 1, 1],
+  frost: [0.47, 0.5, 0.53], frostRow: [0.992, 0.94, 0.955],
 };
+/** Default output treats every face as polished; `annotated` marks frosted faces. */
+export const REPORT_SURFACE_MODES = Object.freeze(["polished", "annotated"]);
 
 function fixed(value, digits = 3) {
   return Number.isFinite(value) ? Number(value).toFixed(digits) : "-";
@@ -37,7 +45,12 @@ function boundsOf(vertices) {
   return { min, max, size: { x: max.x - min.x, y: max.y - min.y, z: max.z - min.z } };
 }
 
-function groupFacets(facets) {
+function reportIndex(facet, teeth) {
+  const value = Number((facetIndexForGear(facet, teeth) ?? 0).toFixed(10));
+  return value === 0 || value === teeth ? teeth : value;
+}
+
+function groupFacets(facets, teeth) {
   const groups = new Map();
   facets.forEach((facet) => {
     if (!groups.has(facet.patternId)) groups.set(facet.patternId, []);
@@ -54,7 +67,8 @@ function groupFacets(facets) {
       region: first.region,
       repeat: first.repeat,
       mirror: first.mirror,
-      facets: [...group].sort((a, b) => displayIndex(a.index) - displayIndex(b.index)),
+      facets: [...group].sort((a, b) => reportIndex(a, teeth) - reportIndex(b, teeth)),
+      frostedCount: group.filter((facet) => facetSurfaceState(facet) === "frosted").length,
     };
   });
 }
@@ -93,11 +107,26 @@ function attachConstructionSummaries(groups, document, hiddenPatternIds, t) {
   });
 }
 
-export function createFacetReportModel({ document, solid, metrics, generatedAt = new Date(), includeGirdle = true, hiddenPatternIds = [], locale = "zh-CN" }) {
+export function createFacetReportModel({ document, generatedAt = new Date(), includeGirdle = true, hiddenPatternIds = [], locale = "zh-CN", surfaceFinish = "polished" }) {
   const t = createTranslator(locale);
+  if (!REPORT_SURFACE_MODES.includes(surfaceFinish)) throw new Error("不支持的报告表面处理方式。");
+  // Reports always describe the committed document, never a hidden or stale
+  // preview supplied by a caller. Curved tool surfaces stay out of flat rows.
+  const solid = evaluateDocument(document);
+  const metrics = measurePolyhedron(solid);
+  if (!solid.vertices.length || metrics.volume <= 0) throw new Error("无法为没有剩余实体的项目生成加工报告。");
+  const indexTeeth = document.indexGear?.teeth ?? 96;
   const reportFacets = effectiveFacets(document.facets, solid);
+  const compatibility = indexCompatibilityReport(document, { scope: "final", finalFacets: reportFacets, gears: [indexTeeth] })[0];
+  const concaveOperations = normalizeConcaveCuts(document.concaveCuts).map((cut, index) => ({
+    ...cut, code: `NC${index + 1}`,
+    surfacePatchCount: solid.faces.filter((face) => face.concaveCutId === cut.id).length,
+  }));
   const omittedFacetCount = document.facets.length - reportFacets.length;
-  const groups = attachConstructionSummaries(groupFacets(reportFacets), document, hiddenPatternIds, t);
+  const frostedFacetIds = new Set(reportFacets.filter((facet) => facetSurfaceState(facet) === "frosted").map((facet) => facet.id));
+  const surface = { mode: surfaceFinish, frostedCount: frostedFacetIds.size, frostedFacetIds,
+    annotate: surfaceFinish === "annotated" && frostedFacetIds.size > 0 };
+  const groups = attachConstructionSummaries(groupFacets(reportFacets, indexTeeth), document, hiddenPatternIds, t);
   const bounds = boundsOf(solid.vertices);
   const girdleGroups = groups.filter((group) => group.region === "girdle");
   const girdleFacetCount = girdleGroups.reduce((sum, group) => sum + group.facets.length, 0);
@@ -108,12 +137,17 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
       rows: group.facets.map((facet, index) => ({
         group: group.label,
         face: `${index + 1}`,
-        index: String(displayIndex(facet.index)).padStart(2, "0"),
+        index: String(reportIndex(facet, indexTeeth)).padStart(2, "0"),
+        authoredIndexTeeth: facet.indexTeeth ?? 96,
+        authoredIndex: facet.index,
         industryAngle: `${formatAngle(facet.industryAngleDeg)}°`,
         beta: `${facet.betaDeg > 0 ? "+" : ""}${formatAngle(facet.betaDeg)}°`,
         depth: formatDepth(facet.depth),
         azimuth: `${formatAngle(facet.azimuthDeg)}°`,
         plane: `n(${fixed(facet.plane.normal.x, 3)}, ${fixed(facet.plane.normal.y, 3)}, ${fixed(facet.plane.normal.z, 3)}) d=${fixed(facet.plane.offset, 3)}`,
+        frosted: surface.annotate && frostedFacetIds.has(facet.id),
+        finish: !surface.annotate ? undefined : frostedFacetIds.has(facet.id)
+          ? `${t("磨砂")} α ${fixed(facet.metadata.surfaceFinish.alpha, 2)}` : t("抛光"),
       })),
     }));
     return {
@@ -121,12 +155,18 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
       label: locale === "en" ? REGION_ENGLISH[region] : REGION_LABELS[region],
       groups: regionGroups,
       facetCount: regionGroups.reduce((sum, group) => sum + group.facets.length, 0),
+      frostedCount: regionGroups.reduce((sum, group) => sum + group.frostedCount, 0),
       rows: regionGroups.flatMap((group) => group.rows),
     };
   });
   const width = Math.max(bounds.size.y, 1e-9);
   return {
-    name: document.name, stock: document.stock, locale,
+    name: document.name, stock: document.stock, locale, surface,
+    indexTeeth, compatibility, equipment: indexExportSummary(document), concaveOperations,
+    activeConcaveCount: concaveOperations.filter((cut) => cut.enabled).length,
+    hardwareNote: locale === "en"
+      ? "Index compatibility applies to planar operations only. Existing cavities belong to the stock; added concave cuts require suitable tools, setup and equipment. Dimensions use project units, not an assumed millimetre scale."
+      : "整齿兼容仅针对平面工序；底胚已有凹部与新增凹切需分别准备。凹切须使用匹配刀具、装夹与设备；尺寸沿用项目单位，不默认毫米。",
     generatedAt: generatedAt.toLocaleString(locale, { hour12: false }),
     facetCount: document.facets.length,
     storedFacetCount: document.facets.length,
@@ -139,7 +179,7 @@ export function createFacetReportModel({ document, solid, metrics, generatedAt =
     girdleSummary: { groupCount: girdleGroups.length, facetCount: girdleFacetCount },
     volume: metrics.volume, surfaceArea: metrics.surfaceArea, centroid: metrics.centroid,
     bounds, solid, regions,
-    operationCodes: Object.fromEntries(groups.map((group) => [group.id, group.label.split(/\s+/)[0]])),
+    operationCodes: Object.fromEntries([...groups.map((group) => [group.id, group.label.split(/\s+/)[0]]), ...concaveOperations.map((cut) => [cut.id, cut.code])]),
     ratios: {
       lengthWidth: bounds.size.x / width,
       heightWidth: bounds.size.z / width,
@@ -169,6 +209,9 @@ export function buildFacetReportPages(model) {
       }));
     });
   });
+  for (let index = 0; index < model.concaveOperations.length; index += 3) {
+    pages.push({ kind: "concave", operations: model.concaveOperations.slice(index, index + 3), pageNumber: pages.length + 1 });
+  }
   return pages;
 }
 
@@ -276,7 +319,7 @@ function drawHeader(page, model, assets, section, pageNumber) {
   drawTextTop(page, "SUVA  ·  FACET 96", MARGIN + 38, 39, { font: latin, size: 6.2, color: rgbOf(rgb, COLOR.muted) });
   const sectionWidth = font.widthOfTextAtSize(section, 7.2);
   drawTextTop(page, section, A4.width - MARGIN - sectionWidth, 21, { font, size: 7.2, color: rgbOf(rgb, COLOR.ink) });
-  const reportCode = `TECHNICAL REPORT  /  ${String(pageNumber).padStart(2, "0")}`;
+  const reportCode = `${model.indexTeeth} INDEX  /  TECHNICAL REPORT  /  ${String(pageNumber).padStart(2, "0")}`;
   drawTextTop(page, reportCode, A4.width - MARGIN - latin.widthOfTextAtSize(reportCode, 5.7), 41, { font: latin, size: 5.7, color: rgbOf(rgb, COLOR.muted) });
   drawLineTop(page, { x: MARGIN, y: 66 }, { x: A4.width - MARGIN, y: 66 }, { thickness: 0.75, color: rgbOf(rgb, COLOR.ink) });
   drawLineTop(page, { x: MARGIN, y: 802 }, { x: A4.width - MARGIN, y: 802 }, { thickness: 0.35, color: rgbOf(rgb, COLOR.rule) });
@@ -314,39 +357,79 @@ function drawObjectDimension(page, start, end, objectStart, objectEnd, label, ve
   }
 }
 
+function projectedFace(face, model, projection) {
+  const points = face.vertices ? face.vertices.map(projection.project) : face.vertexIndices.map((index) => projection.points[index]);
+  let area = 0, x = 0, y = 0;
+  points.forEach((point, index) => {
+    const next = points[(index + 1) % points.length];
+    const cross = point.x * next.y - next.x * point.y;
+    area += cross; x += (point.x + next.x) * cross; y += (point.y + next.y) * cross;
+  });
+  const center = Math.abs(area) > 1e-9
+    ? { x: x / (3 * area), y: y / (3 * area) }
+    : { x: points.reduce((sum, point) => sum + point.x, 0) / points.length, y: points.reduce((sum, point) => sum + point.y, 0) / points.length };
+  return { points, area: Math.abs(area) / 2, center };
+}
+
+function fillFaces(page, model, projection, faces, style, assets) {
+  faces.forEach((face) => {
+    const { points } = projectedFace(face, model, projection);
+    if (points.length < 3) return;
+    const path = `${points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(2)} ${(A4.height - point.y).toFixed(2)}`).join(" ")} Z`;
+    page.drawSvgPath(path, {
+      y: A4.height, color: rgbOf(assets.rgb, style.color), opacity: style.opacity,
+      ...(style.borderColor ? { borderColor: rgbOf(assets.rgb, style.borderColor), borderWidth: model.solid.kind === "mesh" ? 0 : 0.7, borderOpacity: 0.95 } : {}),
+    });
+  });
+}
+
+const isFrostedFace = (model, face) => model.surface.frostedFacetIds.has(face.facetId ?? face.id);
+const LABEL_SIZE = 5.8;
+
+/** One code per operation at its largest visible face. Larger operations claim
+ * space first; a code that would overlap another, leave the view or not fit its
+ * face is left to the group pages, so dense bevels never print illegible stacks. */
+export function layoutFaceLabels(entries, { measure, height, box }) {
+  const placed = [];
+  let skipped = 0;
+  [...entries].sort((a, b) => b.total - a.total).forEach(({ label, largest }) => {
+    const width = measure(label) + 2;
+    const rect = { x: largest.center.x - width / 2, y: largest.center.y - height / 2, width, height };
+    const inside = rect.x >= box.x - 12 && rect.x + width <= box.x + box.width + 12
+      && rect.y >= box.y - 8 && rect.y + height <= box.y + box.height + 8;
+    const overlaps = placed.some(({ rect: other }) => rect.x < other.x + other.width + 1.5 && other.x < rect.x + width + 1.5
+      && rect.y < other.y + other.height + 1 && other.y < rect.y + height + 1);
+    if (!inside || overlaps || largest.area < width * height * 0.45) skipped += 1;
+    else placed.push({ label, rect });
+  });
+  return { placed, skipped };
+}
+
+function drawFaceLabels(page, model, projection, options, assets) {
+  const { bold, rgb } = assets;
+  const byOperation = new Map();
+  (projection.visibleFaces ?? model.solid.faces).filter((face) => isFaceVisible(face, options.visibility)).forEach((face) => {
+    if (!face.sourceOperationId || face.sourceOperationId === "rough-mesh" || face.sourceOperationId === "rough-cube") return;
+    const projected = projectedFace(face, model, projection);
+    const entry = byOperation.get(face.sourceOperationId)
+      ?? { label: model.operationCodes[face.sourceOperationId] || face.sourceOperationId, total: 0, largest: null };
+    entry.total += projected.area;
+    if (!entry.largest || projected.area > entry.largest.area) entry.largest = projected;
+    byOperation.set(face.sourceOperationId, entry);
+  });
+  const { placed, skipped } = layoutFaceLabels(byOperation.values(), {
+    measure: (label) => bold.widthOfTextAtSize(label, LABEL_SIZE), height: LABEL_SIZE + 1.5, box: options.box,
+  });
+  placed.forEach(({ label, rect }) => {
+    page.drawRectangle({ ...rect, color: rgbOf(rgb, COLOR.white), opacity: 0.72 });
+    page.drawText(label, { x: rect.x + 1, y: rect.y + 1.6, font: bold, size: LABEL_SIZE, color: rgbOf(rgb, COLOR.muted) });
+  });
+  return skipped;
+}
+
 function drawProjectionAnnotations(page, model, projection, axes, options, assets) {
-  const { latin, bold, rgb } = assets;
-  if (options.showFaceLabels) {
-    const facesByOperation = new Map();
-    (projection.visibleFaces ?? model.solid.faces).filter((face) => isFaceVisible(face, options.visibility)).forEach((face) => {
-      if (!face.sourceOperationId || face.sourceOperationId === "rough-mesh") return;
-      const vertices = face.vertices ?? face.vertexIndices.map((index) => model.solid.vertices[index]);
-      const centroid = vertices.reduce((sum, vertex) => ({
-        x: sum.x + vertex.x / vertices.length,
-        y: sum.y + vertex.y / vertices.length,
-        z: sum.z + vertex.z / vertices.length,
-      }), { x: 0, y: 0, z: 0 });
-      const point = projection.project(centroid);
-      const candidate = { point, score: axes[1] === "z" ? -Math.abs(point.x - projection.center.x) : point.y };
-      const existing = facesByOperation.get(face.sourceOperationId);
-      if (!existing || candidate.score > existing.score) facesByOperation.set(face.sourceOperationId, candidate);
-    });
-    let labelIndex = 0;
-    facesByOperation.forEach(({ point }, operationId) => {
-      const label = model.operationCodes[operationId] || operationId;
-      const size = 5.8;
-      const offsetX = axes[1] === "z" ? 0 : [-10, 0, 10][labelIndex % 3];
-      const annotationPoint = axes[1] === "z" ? point : {
-        x: projection.center.x + (point.x - projection.center.x) * 0.76,
-        y: projection.center.y + (point.y - projection.center.y) * 0.76,
-      };
-      page.drawText(label, {
-        x: annotationPoint.x + offsetX - bold.widthOfTextAtSize(label, size) / 2, y: annotationPoint.y - size / 2,
-        font: bold, size, color: rgbOf(rgb, COLOR.muted),
-      });
-      labelIndex += 1;
-    });
-  }
+  const { latin, rgb } = assets;
+  const skipped = options.showFaceLabels ? drawFaceLabels(page, model, projection, options, assets) : 0;
   if (options.showIndices) {
     const source = model.regions.flatMap((region) => region.groups).find((group) => group.facets.length)?.facets || [];
     const labels = source.length > 12 ? source.filter((_, index) => index % Math.ceil(source.length / 12) === 0) : source;
@@ -358,13 +441,14 @@ function drawProjectionAnnotations(page, model, projection, axes, options, asset
       // radially aligned with the facet it labels.
       const x = projection.center.x + Math.cos(radians) * radiusX;
       const y = projection.center.y + Math.sin(radians) * radiusY;
-      const label = String(displayIndex(facet.index));
+      const label = String(reportIndex(facet, model.indexTeeth));
       page.drawText(label, {
         x: x - latin.widthOfTextAtSize(label, 5.1) / 2, y: y - 2.5,
         font: latin, size: 5.1, color: rgbOf(rgb, COLOR.muted),
       });
     });
   }
+  return skipped;
 }
 
 function drawProjection(page, model, config, assets) {
@@ -372,7 +456,7 @@ function drawProjection(page, model, config, assets) {
   const {
     x, top, width, height, title, subtitle, axes, basis, horizontalLabel, verticalLabel,
     showFaceLabels = false, showIndices = false, viewSign = 1, showTableWidth = false,
-    highlightOperationId = null,
+    highlightOperationId = null, showFrost = false,
   } = config;
   drawRectTop(page, x, top, width, height, { borderWidth: 0.6, borderColor: rgbOf(rgb, COLOR.rule), color: rgbOf(rgb, COLOR.white) });
   drawTextTop(page, title, x + 10, top + 8, { font: bold, size: 7, color: rgbOf(rgb, COLOR.ink) });
@@ -380,30 +464,24 @@ function drawProjection(page, model, config, assets) {
   const box = { x: x + 34, y: A4.height - top - height + 30, width: width - 52, height: height - 52 };
   const visibility = basis ? { vector: basis.view } : { axis: viewAxis(axes), sign: viewSign };
   const projection = fitProjection(model.solid, axes, box, visibility, basis);
+  const visibleFaces = (projection.visibleFaces ?? model.solid.faces).filter((face) => isFaceVisible(face, visibility));
+  if (showFrost && model.surface.annotate) {
+    fillFaces(page, model, projection, visibleFaces.filter((face) => isFrostedFace(model, face)), { color: COLOR.frost, opacity: 0.3 }, assets);
+  }
   if (highlightOperationId) {
-    (projection.visibleFaces ?? model.solid.faces)
-      .filter((face) => face.sourceOperationId === highlightOperationId && isFaceVisible(face, visibility))
-      .forEach((face) => {
-        const points = face.vertices ? face.vertices.map(projection.project) : face.vertexIndices.map((index) => projection.points[index]);
-        if (points.length < 3) return;
-        const path = `${points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(2)} ${(A4.height - point.y).toFixed(2)}`).join(" ")} Z`;
-        page.drawSvgPath(path, {
-          y: A4.height,
-          color: rgbOf(rgb, COLOR.accent),
-          borderColor: rgbOf(rgb, COLOR.accent),
-          borderWidth: model.solid.kind === "mesh" ? 0 : 0.7,
-          opacity: 0.24,
-          borderOpacity: 0.95,
-        });
-      });
+    // Within the highlighted group, annotated frosted faces read grey inside a pink outline.
+    const groupFaces = visibleFaces.filter((face) => face.sourceOperationId === highlightOperationId);
+    const frosted = model.surface.annotate ? groupFaces.filter((face) => isFrostedFace(model, face)) : [];
+    fillFaces(page, model, projection, groupFaces.filter((face) => !frosted.includes(face)), { color: COLOR.accent, opacity: 0.24, borderColor: COLOR.accent }, assets);
+    fillFaces(page, model, projection, frosted, { color: COLOR.frost, opacity: 0.42, borderColor: COLOR.accent }, assets);
   }
   projection.edges.forEach(([a, b]) => page.drawLine({ start: projection.points[a], end: projection.points[b], thickness: 0.52, color: rgbOf(rgb, COLOR.ink) }));
   page.drawLine({
     start: { x: box.x + box.width / 2, y: box.y - 5 }, end: { x: box.x + box.width / 2, y: box.y + box.height + 5 },
     thickness: 0.35, color: rgbOf(rgb, COLOR.rule), dashArray: [3, 3],
   });
-  drawProjectionAnnotations(page, model, projection, axes || [], {
-    showFaceLabels, showIndices, visibility,
+  const skippedLabels = drawProjectionAnnotations(page, model, projection, axes || [], {
+    showFaceLabels, showIndices, visibility, box,
     indexRadiusX: box.width / 2 + 2, indexRadiusY: box.height / 2 + 2,
   }, assets);
   if (horizontalLabel) {
@@ -433,6 +511,7 @@ function drawProjection(page, model, config, assets) {
       drawObjectDimension(page, { x: min.x, y }, { x: max.x, y }, min, max, label, false, assets);
     }
   }
+  return skippedLabels;
 }
 
 function drawSpecRow(page, x, top, width, label, value, assets, accent = false) {
@@ -449,55 +528,70 @@ function drawCover(page, model, assets, pageNumber) {
   const t = createTranslator(model.locale);
   const { font, bold, latinBold, rgb } = assets;
   drawHeader(page, model, assets, t("切型技术报告"), pageNumber);
-  drawTextTop(page, "FACETING DESIGN DOSSIER  /  96 INDEX", MARGIN, 88, { font: latinBold, size: 6.8, color: rgbOf(rgb, COLOR.accent) });
+  drawTextTop(page, `FACETING DESIGN DOSSIER  /  ${model.indexTeeth} INDEX`, MARGIN, 88, { font: latinBold, size: 6.8, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, model.name, MARGIN, 106, { font: bold, size: 22, color: rgbOf(rgb, COLOR.ink) });
   drawTextTop(page, t("精密切型技术图谱 · 尺寸比例 · 切面编号 · 逐面参数"), MARGIN, 138, { font, size: 7.2, color: rgbOf(rgb, COLOR.muted) });
+  const compatibilityLabel = model.compatibility.compatible
+    ? (model.locale === "en" ? "Final planar directions match whole teeth." : "最终平面方向符合整齿；此判断不含凹切设备能力。")
+    : (model.locale === "en"
+      ? `${model.compatibility.incompatibleCount} planar directions need fractional indices; geometry is not rounded.`
+      : `${model.compatibility.incompatibleCount} 个平面方向需小数分度；报告保留原方向，不取整。`);
+  drawTextTop(page, compatibilityLabel, MARGIN, 149, { font, size: 5.8, color: rgbOf(rgb, COLOR.accent) });
   drawRectTop(page, MARGIN, 158, 519, 2.4, { color: rgbOf(rgb, COLOR.accent) });
 
   drawTextTop(page, t("ORTHOGRAPHIC STUDY  /  正投影技术图"), MARGIN, 176, { font: bold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
+  let skippedLabels = 0;
   const gap = 8;
   const wideDiagramWidth = (A4.width - MARGIN * 2 - gap) / 2;
   const narrowDiagramWidth = (A4.width - MARGIN * 2 - gap * 2) / 3;
   const sqrt2 = Math.sqrt(2);
   const sqrt6 = Math.sqrt(6);
   const sqrt3 = Math.sqrt(3);
-  drawProjection(page, model, {
+  skippedLabels += drawProjection(page, model, {
     x: MARGIN, top: 190, width: narrowDiagramWidth, height: 158, title: t("斜45°标准视图 / 45°"), subtitle: "OPAQUE",
     basis: {
       horizontal: { x: 1 / sqrt2, y: -1 / sqrt2, z: 0 },
       vertical: { x: -1 / sqrt6, y: -1 / sqrt6, z: 2 / sqrt6 },
       view: { x: 1 / sqrt3, y: 1 / sqrt3, z: 1 / sqrt3 },
     },
-    showFaceLabels: true,
+    showFaceLabels: true, showFrost: true,
   }, assets);
-  drawProjection(page, model, {
+  skippedLabels += drawProjection(page, model, {
     x: MARGIN + narrowDiagramWidth + gap, top: 190, width: narrowDiagramWidth, height: 158, title: t("顶面视图 / TOP"), subtitle: "OPAQUE +Z",
     axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: 1,
+    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: 1, showFrost: true,
   }, assets);
-  drawProjection(page, model, {
+  skippedLabels += drawProjection(page, model, {
     x: MARGIN + (narrowDiagramWidth + gap) * 2, top: 190, width: narrowDiagramWidth, height: 158, title: t("底面视图 / BOTTOM"), subtitle: "OPAQUE -Z",
     axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: -1,
+    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: -1, showFrost: true,
   }, assets);
-  drawProjection(page, model, {
+  skippedLabels += drawProjection(page, model, {
     x: MARGIN, top: 360, width: wideDiagramWidth, height: 158, title: t("正面视图 / FRONT"), subtitle: "OPAQUE +Y",
     axes: ["x", "z"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true,
+    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true, showFrost: true,
   }, assets);
-  drawProjection(page, model, {
+  skippedLabels += drawProjection(page, model, {
     x: MARGIN + wideDiagramWidth + gap, top: 360, width: wideDiagramWidth, height: 158, title: t("侧面视图 / SIDE"), subtitle: "OPAQUE +X",
     axes: ["y", "z"], horizontalLabel: `W ${fixed(model.bounds.size.y, 3)}`,
-    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true,
+    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true, showFrost: true,
   }, assets);
+  const viewNotes = [
+    model.surface.annotate ? t("灰色填充为磨砂面") : "",
+    skippedLabels ? t("细小切面的代号见各组参数页") : "",
+  ].filter(Boolean).join("  ·  ");
+  if (viewNotes) drawTextTop(page, viewNotes, A4.width - MARGIN - font.widthOfTextAtSize(viewNotes, 5.6), 177, { font, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
 
   const specWidth = 250;
   drawTextTop(page, "DESIGN SPECIFICATION", MARGIN, 540, { font: latinBold, size: 6.2, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, model.name, MARGIN, 557, { font: bold, size: 12.5, color: rgbOf(rgb, COLOR.ink) });
   drawTextTop(page, "SUVA FACET 96  /  TECHNICAL CUT", MARGIN, 578, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
-  drawSpecRow(page, MARGIN, 595, specWidth, t("分度系统"), "96 INDEX", assets, true);
+  drawSpecRow(page, MARGIN, 595, specWidth, t("分度系统"), `${model.indexTeeth} INDEX`, assets, true);
   drawSpecRow(page, MARGIN, 614, specWidth, t("存储 / 有效记录"), `${model.storedFacetCount} / ${model.effectiveFacetCount} FACES`, assets);
   drawSpecRow(page, MARGIN, 633, specWidth, t("外包尺寸 L / W / H"), `${fixed(model.bounds.size.x, 3)} / ${fixed(model.bounds.size.y, 3)} / ${fixed(model.bounds.size.z, 3)}`, assets);
+  if (model.surface.frostedCount) drawSpecRow(page, MARGIN, 652, specWidth, t("表面处理"), model.surface.annotate
+    ? t("磨砂 {0} / {1} 面 · 已标注", [model.surface.frostedCount, model.effectiveFacetCount])
+    : t("按全抛光导出 · 设计含 {0} 个磨砂面", [model.surface.frostedCount]), assets, model.surface.annotate);
   const ratioX = 307;
   drawTextTop(page, "MEASURED RATIOS", ratioX, 540, { font: latinBold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
   drawSpecRow(page, ratioX, 557, specWidth, "L / W", fixed(model.ratios.lengthWidth, 3), assets);
@@ -511,7 +605,9 @@ function drawCover(page, model, assets, pageNumber) {
     const x = MARGIN + index * 176;
     drawRectTop(page, x, 690, 166, 53, { color: rgbOf(rgb, index % 2 ? COLOR.white : COLOR.soft), borderColor: rgbOf(rgb, COLOR.rule), borderWidth: 0.35 });
     drawTextTop(page, region.label, x + 10, 700, { font: bold, size: 7, color: rgbOf(rgb, COLOR.ink) });
-    drawTextTop(page, `${region.groups.length} GROUPS`, x + 10, 720, { font: assets.latin, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
+    const groupsLabel = `${region.groups.length} GROUPS`;
+    drawTextTop(page, groupsLabel, x + 10, 720, { font: assets.latin, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
+    if (model.surface.annotate && region.frostedCount) drawTextTop(page, t("磨砂 {0} 面", [region.frostedCount]), x + 10, 731, { font, size: 5.6, color: rgbOf(rgb, COLOR.accent) });
     const faceLabel = `${region.facetCount} FACES`;
     drawTextTop(page, faceLabel, x + 156 - assets.latinBold.widthOfTextAtSize(faceLabel, 8.5), 715, { font: assets.latinBold, size: 8.5, color: rgbOf(rgb, COLOR.ink) });
   });
@@ -521,9 +617,19 @@ function drawCover(page, model, assets, pageNumber) {
     drawTextTop(page, t("腰部 GIRDLE"), noteX + 10, 700, { font: bold, size: 7, color: rgbOf(rgb, COLOR.muted) });
     drawTextTop(page, t("{0} FACES · 逐面表未导出", [model.girdleSummary.facetCount]), noteX + 10, 720, { font, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
   }
-  drawTextTop(page, "DRAWING NOTES", MARGIN, 761, { font: latinBold, size: 5.8, color: rgbOf(rgb, COLOR.ink) });
-  drawTextTop(page, t("所有视图均为不穿透投影；含斜45°标准视图，尺寸线以双向箭头直接标注外包尺寸和台面宽度 T。"), MARGIN, 777, { font, size: 6, color: rgbOf(rgb, COLOR.muted) });
-  if (model.omittedFacetCount > 0) {
+  const equipmentLine = model.locale === 'en'
+    ? `Indices: ${model.indexTeeth} teeth. Compatible wheels (all planar cuts): ${model.equipment.supportedTeeth.join(', ') || 'none'}.`
+    : `读数采用 ${model.indexTeeth} 分度 · 兼容盘（全部平切工序）：${model.equipment.supportedTeeth.join('、') || '无'}`;
+  drawTextTop(page, equipmentLine, MARGIN, 748, { font, size: 6.1, color: rgbOf(rgb, COLOR.ink) });
+  const notice = model.locale === 'en'
+    ? (model.indexTeeth !== 96 ? 'Non-96 indices: do not use these readings on a 96-tooth wheel.' : '') + (!model.equipment.compatibleWith96 ? ' This design cannot be cut on whole 96-wheel teeth.' : '')
+    : model.equipment.notice;
+  drawTextTop(page, notice, MARGIN, 761, { font, size: 6.1, color: rgbOf(rgb, COLOR.accent) });
+  drawTextTop(page, model.hardwareNote, MARGIN, 774, { font, size: 5.8, color: rgbOf(rgb, COLOR.muted) });
+  if (model.concaveOperations.length) drawTextTop(page, model.locale === "en"
+    ? `Concave appendix: ${model.activeConcaveCount} active / ${model.concaveOperations.length} stored operations. Curved surfaces are not flat facet instructions.`
+    : `凹切附录：${model.activeConcaveCount} 个启用 / ${model.concaveOperations.length} 个存储工序；曲面不计入逐面平切指令。`, MARGIN, 785, { font, size: 5.7, color: rgbOf(rgb, COLOR.accent) });
+  if (model.omittedFacetCount > 0 && !model.concaveOperations.length) {
     drawTextTop(page, t("最终实体已省略 {0} 条被后续切割覆盖的存储记录；完整 CUT STACK 请查阅 JSON 主文件。", [model.omittedFacetCount]), MARGIN, 789, {
       font, size: 5.8, color: rgbOf(rgb, COLOR.accent),
     });
@@ -552,6 +658,15 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
     x: MARGIN, top, width: diagramWidth, height: 160,
     ...projection, highlightOperationId: group.id,
   }, assets);
+  if (model.surface.annotate && group.frostedCount) {
+    // Legend in the free bottom-left corner, below the dimension lines.
+    let x = MARGIN + 10;
+    [[COLOR.accent, 0.24, t("本组抛光")], [COLOR.frost, 0.42, t("本组磨砂")]].forEach(([color, opacity, label]) => {
+      drawRectTop(page, x, top + 149, 7, 5, { color: rgbOf(rgb, color), opacity, borderColor: rgbOf(rgb, COLOR.accent), borderWidth: 0.5 });
+      drawTextTop(page, label, x + 10, top + 148.5, { font, size: 5.4, maxWidth: 200, color: rgbOf(rgb, COLOR.muted) });
+      x += 10 + font.widthOfTextAtSize(label, 5.4) + 12;
+    });
+  }
   const panelX = MARGIN + diagramWidth + 17;
   const panelWidth = 276;
   drawRectTop(page, panelX, top, panelWidth, 160, { color: rgbOf(rgb, COLOR.soft) });
@@ -565,8 +680,10 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
   drawSpecRow(page, panelX + 12, top + 70, panelWidth - 24, t("重复 / 镜像"), `${group.repeat} / ${group.mirror ? `+${group.mirror}` : "AXIS"}`, assets);
   drawSpecRow(page, panelX + 12, top + 89, panelWidth - 24, t("行业角范围"), angleRange, assets);
   drawSpecRow(page, panelX + 12, top + 108, panelWidth - 24, t("深度范围"), depthRange, assets);
-  const indices = group.facets.map((facet) => String(displayIndex(facet.index)).padStart(2, "0")).join("-");
-  const indexTop = top + 134;
+  if (model.surface.annotate) drawSpecRow(page, panelX + 12, top + 127, panelWidth - 24, t("表面处理"), group.frostedCount
+    ? t("磨砂 {0} / {1} 面", [group.frostedCount, group.facets.length]) : t("全部抛光"), assets, group.frostedCount > 0);
+  const indices = group.facets.map((facet) => String(reportIndex(facet, model.indexTeeth)).padStart(2, "0")).join("-");
+  const indexTop = model.surface.annotate ? top + 149 : top + 134;
   drawTextTop(page, "INDEX", panelX + 12, indexTop, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, indices.length > 64 ? `${indices.slice(0, 61)}...` : indices, panelX + 50, indexTop - 1, { font: latin, size: 5.4, color: rgbOf(rgb, COLOR.ink) });
 }
@@ -581,30 +698,79 @@ function drawGroupPage(page, model, descriptor, assets) {
   const summary = t("{0} · {1} 面 · {2}/{3}", [region.label, group.facets.length, part, parts]);
   drawTextTop(page, summary, A4.width - MARGIN - font.widthOfTextAtSize(summary, 7), 113, { font, size: 7, color: rgbOf(rgb, COLOR.muted) });
   drawGroupAnalysis(page, model, region, group, 140, assets);
-  const columns = [
+  const columns = model.surface.annotate ? [
+    { x: MARGIN, label: t("组 / 面") }, { x: 133, label: t("索引") }, { x: 170, label: t("行业角") },
+    { x: 222, label: t("几何 β") }, { x: 274, label: t("深度") }, { x: 318, label: t("方位角") },
+    { x: 370, label: t("表面") }, { x: 432, label: t("裁切平面 normal / offset") },
+  ] : [
     { x: MARGIN, label: t("组 / 面") }, { x: 143, label: t("索引") }, { x: 188, label: t("行业角") },
     { x: 249, label: t("几何 β") }, { x: 310, label: t("深度") }, { x: 365, label: t("方位角") },
     { x: 435, label: t("裁切平面 normal / offset") },
   ];
+  const planeColumn = columns.length - 1;
   const intentLines = constructionLines(group);
   intentLines.forEach((line, index) => drawTextTop(page, line, MARGIN, 310 + index * 10, {
     font, size: 7, color: rgbOf(rgb, group.construction.status === MEET_STATUS.VALID ? COLOR.accent : COLOR.muted),
   }));
   const tableTop = 320 + intentLines.length * 10;
   drawRectTop(page, MARGIN, tableTop, 519, 24, { color: rgbOf(rgb, COLOR.ink) });
-  columns.forEach((column) => drawTextTop(page, column.label, column.x + 5, tableTop + 8, { font: bold, size: column.x === 435 ? 5.6 : 6.2, color: rgbOf(rgb, COLOR.white) }));
+  columns.forEach((column, columnIndex) => drawTextTop(page, column.label, column.x + 5, tableTop + 8, { font: bold, size: columnIndex === planeColumn ? 5.6 : 6.2, color: rgbOf(rgb, COLOR.white) }));
   const rowHeight = 22.5;
   rows.forEach((row, index) => {
     const top = tableTop + 24 + index * rowHeight;
-    drawRectTop(page, MARGIN, top, 519, rowHeight, { color: rgbOf(rgb, index % 2 ? COLOR.white : COLOR.soft) });
-    const values = [`${row.group} / ${row.face}`, row.index, row.industryAngle, row.beta, row.depth, row.azimuth, row.plane];
-    columns.forEach((column, columnIndex) => drawTextTop(page, values[columnIndex], column.x + 5, top + 8.5, {
-      font: columnIndex === 0 ? bold : latin, size: columnIndex === 6 ? 5.2 : 6.3, color: rgbOf(rgb, COLOR.ink),
-    }));
+    drawRectTop(page, MARGIN, top, 519, rowHeight, { color: rgbOf(rgb, row.frosted ? COLOR.frostRow : index % 2 ? COLOR.white : COLOR.soft) });
+    const values = [`${row.group} / ${row.face}`, row.index, row.industryAngle, row.beta, row.depth, row.azimuth,
+      ...(model.surface.annotate ? [row.finish] : []), row.plane];
+    columns.forEach((column, columnIndex) => {
+      const finish = model.surface.annotate && columnIndex === planeColumn - 1;
+      drawTextTop(page, values[columnIndex], column.x + 5, top + 8.5, {
+        font: columnIndex === 0 || finish ? bold : latin, size: columnIndex === planeColumn ? 5.2 : 6.3,
+        maxWidth: (columns[columnIndex + 1]?.x ?? A4.width - MARGIN) - column.x - 10,
+        color: rgbOf(rgb, finish && row.frosted ? COLOR.accent : COLOR.ink),
+      });
+    });
   });
   const tableBottom = tableTop + 24 + rows.length * rowHeight;
   drawLineTop(page, { x: MARGIN, y: tableBottom }, { x: A4.width - MARGIN, y: tableBottom }, { thickness: 0.7, color: rgbOf(rgb, COLOR.ink) });
 }
+
+function drawConcavePage(page, model, descriptor, assets) {
+  const { font, bold, latinBold, rgb } = assets;
+  const en = model.locale === "en";
+  drawHeader(page, model, assets, en ? "Concave operations" : "凹切工序附录", descriptor.pageNumber);
+  drawTextTop(page, "CONCAVE TOOL SCHEDULE", MARGIN, 88, { font: latinBold, size: 6.8, color: rgbOf(rgb, COLOR.accent) });
+  drawTextTop(page, en ? "Independent subtractive tools" : "独立凹切刀具参数", MARGIN, 108, { font: bold, size: 20, color: rgbOf(rgb, COLOR.ink) });
+  drawTextTop(page, model.hardwareNote, MARGIN, 144, { font, size: 6.3, color: rgbOf(rgb, COLOR.muted) });
+  drawTextTop(page, en
+    ? "Project coordinates; rotation is around machine Z, independent of the planar index gear. V wheel length is its axial width."
+    : "刀具使用项目坐标，按角度绕机台 Z 轴重复，不套用平切齿数。V 形轮的全长指轴向宽度。", MARGIN, 161, { font, size: 6.3, color: rgbOf(rgb, COLOR.muted) });
+  descriptor.operations.forEach((cut, index) => {
+    const top = 194 + index * 190;
+    drawRectTop(page, MARGIN, top, 519, 175, { color: rgbOf(rgb, COLOR.soft) });
+    drawTextTop(page, `${cut.code} · ${cut.label || cut.id}`, MARGIN + 12, top + 12, { font: bold, size: 11, maxWidth: 330, color: rgbOf(rgb, COLOR.ink) });
+    const status = cut.enabled ? (en ? "ENABLED" : "已启用") : (en ? "DISABLED" : "已停用");
+    drawTextTop(page, status, MARGIN + 429, top + 15, { font, size: 7, color: rgbOf(rgb, cut.enabled ? COLOR.accent : COLOR.muted) });
+    const vector = (value) => value.map((part) => fixed(part, 6)).join(", ");
+    const rows = [
+      [en ? "Tool / ID" : "刀具 / ID", `${cut.type === "sphere" ? (en ? "Sphere" : "球刀") : cut.type === "v-wheel" ? (en ? "V-edged wheel" : "V 形开槽轮") : cut.type === "triangular-prism" ? (en ? "Triangular prism" : "三角柱刀") : (en ? "Cylinder" : "圆柱刀")} / ${cut.id}`],
+      cut.type === "triangular-prism"
+        ? [en ? "Width / length / tip angle" : "宽度 / 长度 / 尖角", `${fixed(cut.width, 6)} / ${fixed(cut.length, 6)} / ${fixed(cut.tipAngle, 2)}°`]
+        : [en ? "Radius / full length" : "半径 / 全长", `${fixed(cut.radius, 6)} / ${cut.type !== "sphere" ? fixed(cut.length, 6) : "-"}`],
+      [en ? "Center (X, Y, Z)" : "中心 (X, Y, Z)", vector(cut.position)],
+      [en ? "Axis (X, Y, Z)" : "轴向 (X, Y, Z)", cut.type !== "sphere" ? vector(cut.axis) : "-"],
+      [en ? "Repeat / phase" : "重复数 / 起始方位", `${cut.repeat} / ${fixed(cut.phaseDeg, 6)}°`],
+      [en ? "Resolution / final patches" : "圆周细分 / 最终面片", `${cut.segments} / ${cut.surfacePatchCount}`],
+    ];
+    rows.forEach(([label, value], row) => drawSpecRow(page, MARGIN + 12, top + 36 + row * 20, 495, label, value, assets));
+  });
+}
+
+/** Noto Serif SC's `locl` swaps Latin digits and punctuation for full-width
+ * glyphs narrowed only by GPOS, which pdf-lib does not apply: every digit would
+ * print 1 em wide. The default glyphs carry their true advance; CJK is unchanged. */
+export const CJK_FONT_FEATURES = Object.freeze({ locl: false });
+// fontkit writes its resolved features back into the object it receives.
+const cjkFontFeatures = () => ({ ...CJK_FONT_FEATURES });
 
 export async function createFacetReportPdfBytes(input, resources) {
   const t = createTranslator(input.locale ?? "zh-CN");
@@ -613,7 +779,7 @@ export async function createFacetReportPdfBytes(input, resources) {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit.default ?? fontkit);
   const [font, bold, latin, latinBold, logo] = await Promise.all([
-    pdf.embedFont(regularBytes), pdf.embedFont(boldBytes), pdf.embedFont(StandardFonts.Helvetica),
+    pdf.embedFont(regularBytes, { features: cjkFontFeatures() }), pdf.embedFont(boldBytes, { features: cjkFontFeatures() }), pdf.embedFont(StandardFonts.Helvetica),
     pdf.embedFont(StandardFonts.HelveticaBold), logoBytes ? pdf.embedPng(logoBytes) : null,
   ]);
   const model = createFacetReportModel(input);
@@ -621,19 +787,25 @@ export async function createFacetReportPdfBytes(input, resources) {
   buildFacetReportPages(model).forEach((descriptor) => {
     const page = pdf.addPage([A4.width, A4.height]);
     if (descriptor.kind === "cover") drawCover(page, model, assets, descriptor.pageNumber);
+    else if (descriptor.kind === "concave") drawConcavePage(page, model, descriptor, assets);
     else drawGroupPage(page, model, descriptor, assets);
   });
   pdf.setTitle(t("{0} - 切磨技术报告", [model.name]));
-  pdf.setSubject("Facet 96 cutting parameters and measured vector drawings");
+  pdf.setSubject(`Facet ${model.indexTeeth} index planar instructions, concave tools and measured vector drawings`);
   pdf.setAuthor(t("SUVA 切磨工作台"));
   pdf.setCreator("SUVA Facet 96");
   return pdf.save({ useObjectStreams: true });
 }
 
+/** Static resources follow the deployment base, e.g. GitHub Pages under /OpenGemCutting/. */
+export function reportAssetUrl(file, base = import.meta.env?.BASE_URL ?? "/") {
+  return `${base.endsWith("/") ? base : `${base}/`}${file}`;
+}
+
 export async function createFacetReportPdf(input) {
   const [regularBytes, boldBytes, logoBytes] = await Promise.all([
-    fetchBytes("/fonts/NotoSerifSC-Light.ttf"), fetchBytes("/fonts/NotoSerifSC-SemiBold.ttf"),
-    fetchBytes("/brand/logo-report.png").catch(() => null),
+    fetchBytes(reportAssetUrl("fonts/NotoSerifSC-Light.ttf")), fetchBytes(reportAssetUrl("fonts/NotoSerifSC-SemiBold.ttf")),
+    fetchBytes(reportAssetUrl("brand/logo-report.png")).catch(() => null),
   ]);
   const bytes = await createFacetReportPdfBytes(input, { regularBytes, boldBytes, logoBytes });
   return new Blob([bytes], { type: "application/pdf" });

@@ -182,11 +182,11 @@ test("batch impact and commit gates match canonical contact, coverage and erase 
     ...[-1e-8, 0, 9.9e-9, 1.01e-8].map((delta) => ({
       name: `girdle contact depth delta ${delta}`, baseSolid: girdle,
       facets: pattern("girdle", 0.55 + delta, { patternId: "new-girdle" }),
-      kind: delta > 1e-8 ? "face-removal" : "no-op", policy: "block",
+      kind: delta > 1e-8 ? "face-removal" : "no-op", policy: delta > 1e-8 ? "warn" : "block",
     })),
     { name: "normal pavilion", baseSolid: girdle, facets: pattern("pavilion", 0.65), kind: "facet", policy: "allow" },
     { name: "partial pavilion coverage", baseSolid: withPavilion, facets: pattern("pavilion", 0.7), kind: "face-removal", policy: "warn" },
-    { name: "complete pavilion coverage", baseSolid: withPavilion, facets: pattern("pavilion", 0.9), kind: "face-removal", policy: "confirm" },
+    { name: "complete pavilion coverage", baseSolid: withPavilion, facets: pattern("pavilion", 0.9), kind: "face-removal", policy: "warn" },
     { name: "erased solid", baseSolid: girdle, facets: pattern("pavilion", 2.5), kind: "solid-erased", policy: "block" },
     { name: "mirrored pavilion", baseSolid: girdle, facets: pattern("pavilion", 0.65, { repeat: 8, mirror: 2 }), kind: "facet", policy: "allow" },
   ];

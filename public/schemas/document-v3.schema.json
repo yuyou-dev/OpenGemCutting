@@ -1,0 +1,710 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+  "title": "OpenGemCutting native document v3",
+  "description": "Independent stock, planar facets and subtractive tools, supporting continuous azimuth with per-layer authoring wheels. This schema describes native persisted data; domain validation additionally checks geometric and cross-field invariants. Legacy v1/v2 documents retain their original formats.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "kind",
+    "name",
+    "facets"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "pattern": "/document-v3\\.schema\\.json$"
+    },
+    "schemaVersion": {
+      "const": 3
+    },
+    "kind": {
+      "const": "facet-96-document"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "indexGear": {
+      "type": "object",
+      "properties": {
+        "teeth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360
+        },
+        "zeroAlias": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360
+        },
+        "degreesPerTooth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "teeth",
+        "zeroAlias",
+        "degreesPerTooth"
+      ],
+      "additionalProperties": true
+    },
+    "stock": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/cubeStock"
+        },
+        {
+          "$ref": "#/$defs/meshStock"
+        }
+      ]
+    },
+    "facets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/facet"
+      }
+    },
+    "concaveCuts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/concaveCut"
+      },
+      "maxItems": 64
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "cuttingReference": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/cubeStock"
+        },
+        {
+          "$ref": "#/$defs/meshStock"
+        }
+      ]
+    },
+    "machining": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "$comment": "Extension keys are allowed for compatibility with the domain importer. No cache, mesh result or BVH belongs to the canonical saved model. Runtime validates gear zeroAlias/degreesPerTooth, per-layer index bounds, normals/angles/depth agreement, pattern membership, Meet provenance, closed mesh topology and unique operation identity.",
+  "$defs": {
+    "vector3": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "point": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "additionalProperties": true
+    },
+    "plane": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "$ref": "#/$defs/point"
+        },
+        "offset": {
+          "type": "number"
+        },
+        "keep": {
+          "const": "less-than-or-equal"
+        }
+      },
+      "required": [
+        "normal",
+        "offset",
+        "keep"
+      ],
+      "additionalProperties": true
+    },
+    "meetTarget": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "vertex",
+            "edge-point"
+          ]
+        },
+        "topologyKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceFaceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "sourceOperationIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "sourceGeometrySignature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fallbackWorldPoint": {
+          "$ref": "#/$defs/vector3"
+        },
+        "edgeTopologyKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/meetTarget"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "topologyKey",
+        "sourceFaceIds",
+        "sourceOperationIds",
+        "sourceGeometrySignature",
+        "fallbackWorldPoint"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "edge-point"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "edgeTopologyKey",
+              "ratio",
+              "endpoints"
+            ],
+            "properties": {
+              "edgeTopologyKey": {},
+              "ratio": {},
+              "endpoints": {}
+            }
+          }
+        }
+      ]
+    },
+    "meetConstruction": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "vertex-meet",
+            "edge-meet",
+            "dual-meet"
+          ]
+        },
+        "solverVersion": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "primaryIndex": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "target": {
+          "$ref": "#/$defs/meetTarget"
+        },
+        "secondTarget": {
+          "$ref": "#/$defs/meetTarget"
+        }
+      },
+      "required": [
+        "type",
+        "solverVersion",
+        "target"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "solverVersion": {
+                "const": 1
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "vertex-meet"
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "primaryIndex"
+            ],
+            "properties": {
+              "primaryIndex": {}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "dual-meet"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "secondTarget"
+            ],
+            "properties": {
+              "secondTarget": {}
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "secondTarget"
+              ],
+              "properties": {
+                "secondTarget": {}
+              }
+            }
+          }
+        }
+      ]
+    },
+    "facetMetadata": {
+      "type": "object",
+      "properties": {
+        "patternMode": {
+          "enum": [
+            "symmetric",
+            "arbitrary"
+          ]
+        },
+        "operationType": {
+          "type": "string"
+        },
+        "primaryIndex": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "preform": {
+          "type": "boolean"
+        },
+        "construction": {
+          "$ref": "#/$defs/meetConstruction"
+        }
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "construction"
+            ],
+            "properties": {
+              "construction": {}
+            }
+          },
+          "then": {
+            "required": [
+              "patternMode"
+            ],
+            "properties": {
+              "patternMode": {}
+            }
+          }
+        }
+      ]
+    },
+    "facet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "patternId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "region": {
+          "enum": [
+            "crown",
+            "girdle",
+            "pavilion"
+          ]
+        },
+        "indexTeeth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360,
+          "default": 96
+        },
+        "baseIndex": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360
+        },
+        "mirror": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 180
+        },
+        "index": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "displayIndex": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 360
+        },
+        "azimuthDeg": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "industryAngleDeg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 90
+        },
+        "betaDeg": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "depth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "plane": {
+          "$ref": "#/$defs/plane"
+        },
+        "label": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/facetMetadata"
+        }
+      },
+      "required": [
+        "id",
+        "patternId",
+        "ordinal",
+        "region",
+        "baseIndex",
+        "repeat",
+        "mirror",
+        "index",
+        "displayIndex",
+        "azimuthDeg",
+        "industryAngleDeg",
+        "betaDeg",
+        "depth",
+        "plane"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "region": {
+                "const": "girdle"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "industryAngleDeg": {
+                "const": 90
+              },
+              "betaDeg": {
+                "const": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "region": {
+                "const": "crown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "betaDeg": {
+                "minimum": 0,
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "region": {
+                "const": "pavilion"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "betaDeg": {
+                "maximum": 0,
+                "type": "number"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "cubeStock": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "cube"
+        },
+        "size": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "center": {
+          "$ref": "#/$defs/vector3"
+        }
+      },
+      "required": [
+        "kind",
+        "size",
+        "center"
+      ],
+      "additionalProperties": true
+    },
+    "meshStock": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "mesh"
+        },
+        "size": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "center": {
+          "$ref": "#/$defs/vector3"
+        },
+        "mesh": {
+          "type": "object",
+          "properties": {
+            "vertices": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/point"
+              },
+              "minItems": 4
+            },
+            "faces": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "minItems": 3
+              },
+              "minItems": 4
+            }
+          },
+          "required": [
+            "vertices",
+            "faces"
+          ],
+          "additionalProperties": true
+        },
+        "envelope": {
+          "type": "object",
+          "properties": {
+            "radius": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "halfHeight": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "radius",
+            "halfHeight"
+          ],
+          "additionalProperties": true
+        },
+        "source": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "kind",
+        "size",
+        "center",
+        "mesh",
+        "envelope"
+      ],
+      "additionalProperties": true
+    },
+    "concaveCut": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "enum": [
+              "rough-cube",
+              "rough-mesh"
+            ]
+          }
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "sphere",
+            "cylinder",
+            "v-wheel",
+            "triangular-prism"
+          ],
+          "default": "sphere"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "position": {
+          "$ref": "#/$defs/vector3",
+          "default": [
+            0.9,
+            0,
+            0
+          ]
+        },
+        "axis": {
+          "$ref": "#/$defs/vector3",
+          "default": [
+            0,
+            0,
+            1
+          ]
+        },
+        "radius": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 0.35
+        },
+        "length": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 2
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120,
+          "default": 1
+        },
+        "phaseDeg": {
+          "type": "number",
+          "default": 0
+        },
+        "segments": {
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 64,
+          "multipleOf": 4,
+          "default": 24
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 0.7
+        },
+        "tipAngle": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 180,
+          "default": 90
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": true,
+      "$comment": "phaseDeg and axis are normalized on import. Axis must be nonzero; operation ids must be unique across planar and concave groups; enabled tool meshes must stay within generated-patch budget. Domain validation enforces these relational/geometric conditions."
+    }
+  }
+}

@@ -27,10 +27,13 @@ test("domain and mesh modules keep their rendering-independent dependency bounda
   for (const [name, dependencies] of graph) {
     if (!name.startsWith("domain/")) continue;
     for (const dependency of dependencies) {
-      assert.ok(dependency.startsWith("domain/") || dependency.startsWith("utils/"),
+      // The mesh Boolean adapter alone may use this renderer-independent
+      // mathematical dependency. Document/application state remains outside it.
+      const booleanMathematics = name === "domain/mesh/boolean.js" && dependency.startsWith("@jscad/modeling/src/");
+      assert.ok(dependency.startsWith("domain/") || dependency.startsWith("utils/") || booleanMathematics,
         `${name} must not depend on the UI, renderer, or a runtime package: ${dependency}`);
       if (name.startsWith("domain/mesh/")) {
-        assert.ok(dependency.startsWith("domain/mesh/"),
+        assert.ok(dependency.startsWith("domain/mesh/") || booleanMathematics,
           `The mesh kernel must not depend on document or CUT state: ${name} → ${dependency}`);
       }
     }

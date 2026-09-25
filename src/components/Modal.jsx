@@ -3,7 +3,7 @@ import { useId, useRef } from "react";
 import { IconX } from "@tabler/icons-react";
 import { useDialogFocus } from "./useDialogFocus.js";
 
-export function Modal({ title, children, confirmLabel, onConfirm, onClose, destructive = false, closeLabel, eyebrow, className = "" }) {
+export function Modal({ title, children, confirmLabel, onConfirm, onClose, destructive = false, closeLabel, eyebrow, className = "", footerActions }) {
   const panelRef = useRef(null);
   const titleId = useId();
   useDialogFocus(panelRef, onClose);
@@ -25,6 +25,7 @@ export function Modal({ title, children, confirmLabel, onConfirm, onClose, destr
         <div className="modal-body">{children}</div>
         <div className="modal-actions">
           <button type="button" className="secondary-button modal-button" onClick={onClose}>{t(closeLabel ?? (onConfirm ? t("取消") : t("知道了")))}</button>
+          {footerActions}
           {onConfirm ? (
             <button
               type="button"

@@ -80,32 +80,27 @@ test("replays the real Astryx Star fixture with proportional geometry", async ()
   assert.equal(solid.faces.filter((face) => face.sourceOperationId).length, 57);
 });
 
-test("maps compatible gears exactly and refuses every inexact source index", () => {
-  for (const [gear, indices, expected] of [
-    [64, [16, 32, 64], [24, 48, 0]],
-    [72, [18, 36, 72], [24, 48, 0]],
-    [80, [20, 40, 80], [24, 48, 0]],
-    [120, [25, 50, 120], [20, 40, 0]],
-  ]) {
+test("retains source wheels and fractional indices without forcing 96", () => {
+  for (const gear of [32, 64, 72, 77, 80, 84, 88, 96, 99, 120, 360]) {
+    const indices = [1, 3.75, gear];
     const result = inspectGemCadAsc(ascFor(gear, indices));
-    assert.notEqual(result.status, "error", `${gear}-tooth exact mapping should pass`);
+    assert.notEqual(result.status, "error", `${gear}-tooth import should preserve directions`);
+    assert.equal(result.document.indexGear.teeth, gear);
+    assert.equal(result.summary.targetGear, gear);
     const tier = result.document.facets.filter((facet) => facet.patternId === "asc-tier-1");
-    assert.deepEqual(tier.map((facet) => facet.index), expected);
-  }
-
-  for (const gear of [64, 72, 80, 120]) {
-    const result = inspectGemCadAsc(ascFor(gear, [1]));
-    assert.equal(result.status, "error");
-    assert.ok(result.diagnostics.some((item) => item.code === "INEXACT_INDEX_MAPPING" && item.line === 6));
+    assert.deepEqual(tier.map((facet) => facet.index), [1, 3.75, 0]);
+    tier.forEach((facet, index) => assert.ok(Math.abs(facet.azimuthDeg - indices[index] % gear * 360 / gear) < 1e-9));
+    assert.ok(result.diagnostics.some((item) => item.code === "FRACTIONAL_INDICES_PRESERVED"));
+    assert.ok(!result.diagnostics.some((item) => item.code === "INEXACT_INDEX_MAPPING"));
   }
 });
 
-test("applies integer and fractional gear locations before exact mapping", () => {
+test("applies integer and fractional gear locations in the source wheel", () => {
   const integerOffset = inspectGemCadAsc(ascFor(64, [17, 33], { offset: 1 }));
   assert.notEqual(integerOffset.status, "error");
   assert.deepEqual(
     integerOffset.document.facets.filter((facet) => facet.patternId === "asc-tier-1").map((facet) => facet.index),
-    [24, 48],
+    [16, 32],
   );
   assert.ok(integerOffset.diagnostics.some((item) => item.code === "GEAR_OFFSET_APPLIED"));
 
@@ -175,7 +170,7 @@ test("supports negative gears as reversed index direction", () => {
   assert.notEqual(result.status, "error");
   assert.deepEqual(
     result.document.facets.filter((facet) => facet.patternId === "asc-tier-1").map((facet) => facet.index),
-    [72, 48, 0],
+    [48, 32, 0],
   );
 });
 
@@ -323,4 +318,64 @@ test("ASC preflight warns about edge and dual intent and preform labels while pr
     assert.ok(result.diagnostics.some((item) => item.code === "MEET_CONSTRUCTION_OMITTED"));
     assert.ok(result.diagnostics.some((item) => item.code === "PREFORM_PURPOSE_OMITTED"));
   }
+});
+
+
+test("exports mixed authored wheels from normals in the selected report wheel", () => {
+  const facets = [
+    ...resolveFacetPattern({ patternId: "left", region: "crown", baseIndex: 1, indexTeeth: 96, repeat: 1, industryAngleDeg: 32, depth: 0.2 }),
+    ...resolveFacetPattern({ patternId: "right", region: "pavilion", baseIndex: 1, indexTeeth: 120, repeat: 1, industryAngleDeg: 41, depth: 0.2 }),
+  ];
+  const document = createFacetingDocument({ facets, indexGear: 360 });
+  const before = JSON.stringify(document);
+  const result = serializeGemCadAsc(document);
+  assert.notEqual(result.status, "error");
+  assert.match(result.text, /^GemCad 5\.0\ng360 0\.0/);
+  const parsed = parseGemCadAsc(result.text);
+  assert.deepEqual(parsed.tiers.find((tier) => tier.angle === 32).indexTokens, ["3.75"]);
+  assert.deepEqual(parsed.tiers.find((tier) => tier.angle === -41).indexTokens, ["3"]);
+  assert.equal(result.summary.compatibility[0].incompatibleCount, 1);
+  assert.equal(JSON.stringify(document), before, "preflight does not quantize source geometry");
+});
+
+test("round trips signed non-96 gear and fractional phase without changing plane normals", async () => {
+  const original = await readFile(fixtureUrl, "utf8");
+  const source = original.replace(/^96 0.0$/m, "g-120 0.25");
+  const imported = inspectGemCadAsc(source);
+  assert.notEqual(imported.status, "error");
+  assert.equal(imported.document.indexGear.teeth, 120);
+  const exported = serializeGemCadAsc(imported.document);
+  const restored = inspectGemCadAsc(exported.text);
+  assert.notEqual(restored.status, "error");
+  const planes = (document) => document.facets.map((facet) => [facet.plane.normal.x, facet.plane.normal.y, facet.plane.normal.z, facet.plane.offset]).sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+  const left = planes(imported.document), right = planes(restored.document);
+  assert.equal(right.length, left.length);
+  left.forEach((plane, index) => plane.forEach((value, axis) => assert.ok(Math.abs(value - right[index][axis]) < 1e-8)));
+});
+
+test("blocks enabled concave tools and reports omitted disabled parameters", () => {
+  const tool = { id: "dimple", type: "sphere", position: [0.9, 0, 0], radius: 0.3 };
+  const active = serializeGemCadAsc(createFacetingDocument({ concaveCuts: [tool] }));
+  assert.equal(active.status, "error");
+  assert.equal(active.text, "");
+  assert.ok(active.diagnostics.some((item) => item.code === "CONCAVE_CUTS_UNSUPPORTED"));
+  const disabled = serializeGemCadAsc(createFacetingDocument({ concaveCuts: [{ ...tool, enabled: false }] }));
+  assert.ok(disabled.diagnostics.some((item) => item.code === "DISABLED_CONCAVE_CUTS_OMITTED"));
+});
+
+
+test("accepts decimal indices with omitted leading or trailing zero", () => {
+  const result = inspectGemCadAsc(ascFor(77, [".5", "11.5", "77."], { offset: 0.5 }));
+  assert.notEqual(result.status, "error");
+  assert.deepEqual(result.document.facets.filter((facet) => facet.patternId === "asc-tier-1").map((facet) => facet.index), [0, 11, 76.5]);
+  assert.ok(!result.diagnostics.some((item) => item.code === "UNKNOWN_TIER_TOKEN"));
+});
+
+test("rejects empty exports and reports surviving rough boundaries", () => {
+  const empty = serializeGemCadAsc(createFacetingDocument({ facets: [] }));
+  assert.equal(empty.status, "error");
+  assert.ok(empty.diagnostics.some((item) => item.code === "NO_EFFECTIVE_FACETS"));
+  const partial = serializeGemCadAsc(createFacetingDocument({ facets: resolveFacetPattern({ patternId: "one", region: "crown", repeat: 1, industryAngleDeg: 32, depth: 0.2 }) }));
+  assert.equal(partial.status, "warning");
+  assert.ok(partial.diagnostics.some((item) => item.code === "ROUGH_STOCK_REMAINS"));
 });

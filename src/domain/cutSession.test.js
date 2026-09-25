@@ -186,6 +186,7 @@ test("region defaults rebuild drafts while index preferences survive", () => {
     industryAngle: 32,
     depth: 0,
     baseIndex: 36,
+    indexTeeth: 96,
     repeat: 8,
     mirrorOffset: 0,
     patternMode: "symmetric",
@@ -769,4 +770,47 @@ test("invalid A cannot start a misleading second-point pick before repair", () =
     assert.equal(resolveCutSession(session).canClearMeetA, true);
     assert.equal(cutSessionReducer(session, { type: CUT_SESSION_EVENT.START_MEET_PICK }), session);
   }
+});
+
+test("changing authoring wheel is idle-only and preserves preferred azimuth", () => {
+  const idle = createCutSession();
+  const switched = cutSessionReducer(idle, { type: CUT_SESSION_EVENT.CHANGE_INDEX_GEAR, indexTeeth: 120 });
+  assert.equal(switched.draft.indexTeeth, 120);
+  assert.equal(switched.draft.baseIndex, idle.draft.baseIndex * 120 / 96);
+  assert.equal(resolveCutSession(switched).canEditParameterGroups, true);
+  for (const mode of [CUT_SESSION_MODE.CREATE, CUT_SESSION_MODE.EDIT, CUT_SESSION_MODE.GROUP]) {
+    const active = createCutSession(mode);
+    assert.equal(resolveCutSession(active).canEditParameterGroups, false);
+    assert.equal(cutSessionReducer(active, { type: CUT_SESSION_EVENT.CHANGE_INDEX_GEAR, indexTeeth: 120 }), active);
+  }
+});
+
+test("new cut adopts document wheel after editing an older wheel without changing saved draft", () => {
+  const old = createCutSession(CUT_SESSION_MODE.EDIT, { draft: { ...defaultDraftForRegion("crown"), indexTeeth: 77, baseIndex: 7 } });
+  const idle = cutSessionReducer(old, { type: CUT_SESSION_EVENT.CANCEL });
+  const next = cutSessionReducer(idle, { type: CUT_SESSION_EVENT.START_CREATE, region: "crown", indexTeeth: 120 });
+  assert.equal(next.draft.indexTeeth, 120);
+  assert.ok(Math.abs(next.draft.baseIndex / 120 - 7 / 77) < 1e-10);
+  assert.equal(old.draft.indexTeeth, 77);
+  assert.equal(old.draft.baseIndex, 7);
+  const patched = cutSessionReducer(next, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { indexTeeth: 96 } });
+  assert.equal(patched, next);
+});
+
+test("initial authoring gear converts complete default index preferences including custom list", () => {
+  for (const mode of [CUT_SESSION_MODE.CREATE, CUT_SESSION_MODE.IDLE]) {
+    for (const payload of [{ indexTeeth: 32 }, { baseDraft: { indexTeeth: 32 } }]) {
+      const session = createCutSession(mode, { region: "crown", ...payload });
+      assert.equal(session.draft.indexTeeth, 32);
+      assert.equal(session.draft.baseIndex, 12);
+      assert.ok(session.draft.customIndices.split(" ").map(Number).every(index => index >= 0 && index <= 32));
+    }
+  }
+  const custom = createCutSession(CUT_SESSION_MODE.EDIT, { region: "crown", draft: {
+    ...defaultDraftForRegion("crown"), patternMode: "arbitrary", indexTeeth: 120, baseIndex: 0, customIndices: "0 24 48",
+  } });
+  assert.equal(resolveCutSession(custom).canUseMeetJump, true);
+  assert.equal(resolveCutSession(createCutSession(CUT_SESSION_MODE.EDIT, { region: "crown", draft: {
+    ...custom.draft, customIndices: "",
+  } })).canUseMeetJump, false);
 });

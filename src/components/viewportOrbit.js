@@ -1,24 +1,23 @@
 import { crossVectors as cross, normalizeVector } from '../utils/vector3.js';
-import { clamp } from '../utils/format.js';
+import { createViewportCamera, orbitViewport } from './viewportNavigation.js';
 
 // Inputs are screen directions in radians: right and down are positive.
 // p5 rotates the model; the optical renderer orbits its camera. Keep their
 // coordinate adapters here so pointer and keyboard navigation agree.
 export function editorOrbitAfterInput({ yaw, pitch }, horizontal, vertical) {
-  return {
-    yaw: yaw + horizontal,
-    pitch: clamp(pitch - vertical, -Math.PI / 2, Math.PI / 2),
-  };
+  const camera = createViewportCamera({ yaw, pitch });
+  orbitViewport(camera, horizontal, vertical);
+  return { yaw: camera.targetYaw, pitch: camera.targetPitch };
 }
 
+// Coordinate adapters only: the common controller uses the cutting view axes.
 export function opticsOrbitAfterInput({ yaw, elevation }, horizontal, vertical) {
-  // Optical navigation can cross a pole. Its horizontal orbit then reverses
-  // relative to screen right; compensate without restricting vertical motion.
-  const facing = Math.cos(elevation) < 0 ? -1 : 1;
-  return {
-    yaw: yaw - horizontal * facing,
-    elevation: elevation + vertical,
-  };
+  const next = editorOrbitAfterInput({ yaw: -yaw, pitch: -elevation }, horizontal, vertical);
+  return { yaw: -next.yaw, elevation: -next.pitch };
+}
+export function opticsCameraFromViewport(camera, height) {
+  return { yaw: -camera.yaw, elevation: -camera.pitch, zoom: camera.zoom,
+    panX: 2 * camera.panX / Math.max(height, 1), panY: -2 * camera.panY / Math.max(height, 1) };
 }
 
 export function opticsCameraFrame(camera) {

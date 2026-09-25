@@ -1,6 +1,10 @@
-import { createStockSolid } from '../domain/stockGeometry.js';
+import { facetMetadataAfterParameterEdit } from '../domain/facetSurface.js';
+import { resolveGroupReference } from '../domain/groupReference.js';
+import { indexExportSummary } from '../domain/indexing.js';
+import { getCuttingReference } from '../domain/faceting.js';
+import { updateConcaveTool } from './concaveTools.js';
+import { evaluatePlanarDocument, evaluateDocument } from '../domain/documentGeometry.js';
 import {
-  clipPolyhedronByPlanes,
   measurePolyhedron,
 } from '../domain/geometry.js';
 import {
@@ -14,7 +18,13 @@ import {
   scaleFacetsAlongZ,
   translateFacetsAlongZ,
   rotateFacetsByTeeth,
+  createFacetingDocument,
+  createReplaceDocumentCommand,
+  normalizeDocumentSchema,
+  normalizeIndex,
 } from '../domain/faceting.js';
+import { assertDocumentImportBudget } from '../domain/importBudget.js';
+import { indexCompatibilityReport } from '../domain/indexing.js';
 import { defaultDraftForRegion } from '../domain/cutSession.js';
 import {
   planeEntry,
@@ -38,18 +48,9 @@ import { OPERATION_SCHEMA, validateInput } from './designContract.js';
 export function designError(code, message, details) {
   return Object.assign(new Error(message), { code, details });
 }
-const solidCache = new WeakMap();
 const inspectionCache = new WeakMap();
 export function solveDocument(document) {
-  if (!solidCache.has(document))
-    solidCache.set(
-      document,
-      clipPolyhedronByPlanes(
-        createStockSolid(document.stock),
-        document.facets.map(planeEntry),
-      ),
-    );
-  return solidCache.get(document);
+  return evaluateDocument(document);
 }
 export function groupFacets(document) {
   const groups = new Map();
@@ -69,15 +70,15 @@ export function preparePatternCommit(
   const baseFacets = document.facets.filter(
     (f) => f.patternId !== editingPatternId,
   );
-  const baseSolid = clipPolyhedronByPlanes(
-    createStockSolid(document.stock),
-    baseFacets.map(planeEntry),
-  );
+  const baseSolid = evaluatePlanarDocument(document, { facets: baseFacets });
   const impact = evaluateDraftImpact({
     baseSolid,
     planes: facets.map(planeEntry),
   });
-  const policy = resolveDraftCommitPolicy(impact);
+  const editingExisting = Boolean(editingPatternId && document.facets.some((f) => f.patternId === editingPatternId));
+  // Editing a saved, fully covered layer still updates useful construction
+  // parameters. Its final contribution may remain zero until later cuts go.
+  const policy = resolveDraftCommitPolicy(impact, { allowNoOp: editingExisting });
   if (policy === 'block')
     throw designError(
       'CUT_BLOCKED',
@@ -86,17 +87,17 @@ export function preparePatternCommit(
           ? '该切割会移除全部材料。'
           : impact.noOp
             ? '当前 CUT 没有形成有效面。'
-            : '该切割会使台面或腰部结构层整体失效。'),
+            : '当前切割无法形成有效实体。'),
       { policy, threats: impact.threats },
     );
   const nextFacets = editingPatternId
     ? replacePatternFacets(document.facets, editingPatternId, facets)
     : [...document.facets, ...facets];
-  const nextDocument = { ...document, facets: nextFacets };
+  const nextDocument = normalizeDocumentSchema({ ...document, facets: nextFacets });
   // Replacing a layer preserves its original sequence position, including on concave mesh stock.
   const solid = solveDocument(nextDocument);
-  const effective = new Set(summarizeEffectiveFacets(solid).effectiveFacetIds);
-  if (!facets.some((f) => effective.has(f.id)))
+  const effective = new Set(summarizeEffectiveFacets(evaluatePlanarDocument(nextDocument)).effectiveFacetIds);
+  if (!editingExisting && !facets.some((f) => effective.has(f.id)))
     throw designError('CUT_BLOCKED', '当前 CUT 在完整工序中没有形成有效面。');
   return {
     document: nextDocument,
@@ -110,7 +111,7 @@ export function preparePatternCommit(
 }
 
 export function constructionPrefix(document, patternId) {
-  if (!patternId) return solveDocument(document);
+  if (!patternId) return evaluatePlanarDocument(document);
   const stage = buildConstructionStages(document).find(
     (item) => item.id === patternId,
   );
@@ -143,11 +144,12 @@ export function draftForPattern(facets) {
   return {
     industryAngle: first.industryAngleDeg,
     depth: first.depth,
+    indexTeeth: first.indexTeeth ?? 96,
     baseIndex: first.metadata?.primaryIndex ?? first.baseIndex,
     repeat: first.repeat,
     mirrorOffset: first.mirror,
     patternMode: first.metadata?.patternMode ?? 'symmetric',
-    customIndices: facets.map((f) => displayIndex(f.index)).join(' '),
+    customIndices: facets.map((f) => displayIndex(f.index, f.indexTeeth ?? 96)).join(' '),
     preform: Boolean(first.metadata?.preform),
   };
 }
@@ -163,9 +165,11 @@ function constructCut(document, operation) {
   if (first && operation.region && first.region !== operation.region)
     throw designError('LOCKED_REGION', '编辑不能更改已保存 CUT 的部位。');
   let draft = {
-    ...(first ? draftForPattern(existing) : defaultDraftForRegion(region)),
+    ...(first ? draftForPattern(existing) : defaultDraftForRegion(region, { indexTeeth: document.indexGear.teeth })),
     ...operation.draft,
   };
+  if (draft.indexTeeth !== document.indexGear.teeth)
+    throw designError('INDEX_GEAR_MISMATCH', '平面切割必须使用项目分度盘。');
   const table = first?.metadata?.operationType === 'table';
   if (
     (table &&
@@ -205,7 +209,7 @@ function constructCut(document, operation) {
     const solved = solveDraftConstruction({
       draft,
       region,
-      stock: document.stock,
+      stock: getCuttingReference(document),
       meet,
       baseSolid: prefix,
     });
@@ -214,13 +218,13 @@ function constructCut(document, operation) {
     draft = solved.draft;
     meet = solved.meet;
   }
-  const resolved = resolveDraftGeometry(draft, region, document.stock);
+  const resolved = resolveDraftGeometry(draft, region, getCuttingReference(document));
   if (resolved.error) throw designError('INVALID_CUT', resolved.error);
   const metadata = {
     ...first?.metadata,
     patternMode: draft.patternMode,
-    primaryIndex: draft.baseIndex,
-    integerIndexOnly: true,
+    primaryIndex: normalizeIndex(draft.baseIndex, draft.indexTeeth),
+    integerIndexOnly: resolved.facets.every((facet) => Number.isInteger(facet.index)),
     preform: draft.preform,
   };
   if (table || region === 'girdle') delete metadata.preform;
@@ -232,7 +236,7 @@ function constructCut(document, operation) {
           ? 'edge-meet'
           : 'vertex-meet',
       solverVersion: 2,
-      primaryIndex: draft.baseIndex,
+      primaryIndex: normalizeIndex(draft.baseIndex, draft.indexTeeth),
       target: snapshotMeetTarget(meet.target),
       ...(meet.secondTarget
         ? { secondTarget: snapshotMeetTarget(meet.secondTarget) }
@@ -241,10 +245,10 @@ function constructCut(document, operation) {
   else delete metadata.construction;
   const facets = resolved.facets.map((f) => ({
     ...f,
-    id: `${operation.patternId}:${displayIndex(f.index)}`,
+    id: `${operation.patternId}:${displayIndex(f.index, f.indexTeeth ?? 96)}`,
     patternId: operation.patternId,
     label: operation.label ?? first?.label ?? operation.patternId,
-    metadata,
+    metadata: facetMetadataAfterParameterEdit(f, document.facets.filter(old => old.patternId === operation.patternId), metadata),
   }));
   return preparePatternCommit(
     document,
@@ -256,7 +260,7 @@ function constructCut(document, operation) {
 export function transformGroup(
   document,
   region,
-  { scale = 1, deltaZ = 0, rotationTeeth = 0 } = {},
+  { scale = 1, deltaZ = 0, rotationTeeth = 0, indexTeeth = document.indexGear.teeth } = {},
 ) {
   if (!['crown', 'pavilion'].includes(region))
     throw designError('INVALID_REGION', '整体变换只适用于冠部或亭部。');
@@ -264,62 +268,143 @@ export function transformGroup(
   const targets = document.facets.filter((f) => f.region === region);
   if (!targets.length)
     throw designError('EMPTY_GROUP', '当前分组没有可变换的 CUT。');
-  const girdleIds = new Set(
-    document.facets
-      .filter((f) => f.region === 'girdle')
-      .map((f) => f.patternId),
-  );
-  const zs = solid.faces
-    .filter((f) => girdleIds.has(f.sourceOperationId))
-    .flatMap((f) => f.vertexIndices.map((i) => solid.vertices[i].z));
-  const center = document.stock.center[2];
-  const half = document.stock.kind === 'mesh' ? 0 : document.stock.size / 2;
-  const top = zs.length ? Math.max(...zs) : center + half;
-  const bottom = zs.length ? Math.min(...zs) : center - half;
-  const waist = Math.max(document.stock.size * 0.01, 0.01);
-  if (zs.length || document.stock.kind !== 'mesh') {
-    if (
-      (region === 'crown' && deltaZ < bottom + waist - top) ||
-      (region === 'pavilion' && deltaZ > top - waist - bottom)
-    )
-      throw designError('GIRDLE_PROTECTED', '该位移会消除腰部。');
-  }
+  const { top, bottom } = resolveGroupReference(document);
   let transformed =
     scale === 1
       ? targets
       : scaleFacetsAlongZ(targets, scale, region === 'crown' ? top : bottom, {
-          stock: document.stock,
+          stock: getCuttingReference(document),
         });
   if (deltaZ)
     transformed = translateFacetsAlongZ(transformed, deltaZ, {
-      stock: document.stock,
+      stock: getCuttingReference(document),
     });
   if (rotationTeeth) {
     const rotated = new Map(
       rotateFacetsByTeeth(
         transformed.filter((f) => f.metadata?.operationType !== 'table'),
         rotationTeeth,
-        { stock: document.stock },
+        { stock: getCuttingReference(document), indexTeeth },
       ).map((f) => [f.id, f]),
     );
     transformed = transformed.map((f) => rotated.get(f.id) ?? f);
   }
   const byId = new Map(transformed.map((f) => [f.id, f]));
-  const next = {
+  const next = normalizeDocumentSchema({
     ...document,
     facets: document.facets.map((f) => byId.get(f.id) ?? f),
-  };
+  });
   const after = solveDocument(next);
   const effective = new Set(summarizeEffectiveFacets(after).effectiveFacetIds);
   const lost = summarizeEffectiveFacets(solid).effectiveFacetIds.filter(
     (id) => !effective.has(id),
   );
-  if (!after.vertices.length || lost.length)
-    throw designError('TRANSFORM_BLOCKED', '整体变换会消除已有切面。', {
+  if (!after.vertices.length || measurePolyhedron(after).volume <= 1e-10)
+    throw designError('TRANSFORM_BLOCKED', '整体变换会移除全部材料。', {
       lost,
     });
   return next;
 }
+
+/** Independent portable parameter groups; no derived mesh or editor state. */
+export const PARAMETER_GROUP_TABLE = Object.freeze({
+  stock: Object.freeze({ field: 'stock', label: '底胚' }),
+  planar: Object.freeze({ field: 'facets', label: '平面切割' }),
+  concave: Object.freeze({ field: 'concaveCuts', label: '凹面加工' }),
+});
+
+export function exportParameterGroup(document, group) {
+  const entry = PARAMETER_GROUP_TABLE[group];
+  if (!entry) throw designError('INVALID_PARAMETER_GROUP', '请选择底胚、平面切割或凹面加工参数组。');
+  return {
+    kind: 'facet-parameter-group', schemaVersion: 1, group,
+    [entry.field]: structuredClone(document[entry.field] ?? []),
+    ...(group === 'planar' ? { indexGear: document.indexGear, cuttingReference: getCuttingReference(document), machining: indexExportSummary(document) } : {}),
+  };
+}
+
+export function prepareParameterGroupReplacement(document, parameterGroup) {
+  const { group } = parameterGroup ?? {};
+  if (group === 'stock') throw designError('STOCK_LOCKED', '底胚只在新建项目时选择，编辑中不能更换或缩放。');
+  const entry = PARAMETER_GROUP_TABLE[group];
+  if (!entry || parameterGroup.kind !== 'facet-parameter-group' || parameterGroup.schemaVersion !== 1)
+    throw designError('INVALID_PARAMETER_GROUP', '参数组文件格式或版本不受支持。');
+  const allowed = new Set(['kind', 'schemaVersion', 'group', entry.field, ...(group === 'planar' ? ['indexGear', 'cuttingReference', 'machining'] : [])]);
+  if (Object.keys(parameterGroup).some((key) => !allowed.has(key)) || parameterGroup[entry.field] === undefined)
+    throw designError('INVALID_PARAMETER_GROUP', '文件必须只包含所选参数组，不可同时替换其他参数。');
+  if (group === 'planar' && parameterGroup.cuttingReference && JSON.stringify(parameterGroup.cuttingReference) !== JSON.stringify(getCuttingReference(document)))
+    throw designError('REFERENCE_MISMATCH', '切割坐标不一致，请将此文件作为新项目打开。');
+  const value = group === 'planar' && Array.isArray(parameterGroup.facets)
+    ? parameterGroup.facets.map(facet => ({ ...facet, indexTeeth: facet.indexTeeth ?? parameterGroup.indexGear?.teeth ?? 96 }))
+    : parameterGroup[entry.field];
+  const input = { ...document, [entry.field]: value };
+  assertDocumentImportBudget(input);
+  // The factory keeps authored parameters while deriving their planes against
+  // the fixed cutting reference. It also upgrades v3 only
+  // when needed and applies the same canonical JSON validation as file import.
+  const next = createFacetingDocument(input);
+  const solid = solveDocument(next);
+  if (!solid.vertices.length || measurePolyhedron(solid).volume <= 1e-10)
+    throw designError('EMPTY_SOLID', '这组参数会移除全部材料；当前设计已保留。');
+  return {
+    document: next,
+    solid,
+    command: createReplaceDocumentCommand(next, { description: `替换${entry.label}参数` }),
+  };
+}
+
+// A drag's final operation is also its commit. Keep only the latest prepared
+// result per immutable base document so pointer-up does not solve it again.
+const concavePreparations = new WeakMap();
+export function prepareConcaveTool(document, operation) {
+  const key = JSON.stringify(operation);
+  const cached = concavePreparations.get(document);
+  if (cached?.key === key) return cached.prepared;
+  const prepared = prepareParameterGroupReplacement(document, { kind: 'facet-parameter-group', schemaVersion: 1, group: 'concave', concaveCuts: updateConcaveTool(document, operation) });
+  concavePreparations.set(document, { key, prepared });
+  return prepared;
+}
+
+function requirePattern(document, patternId) {
+  const facets = document.facets.filter((facet) => facet.patternId === patternId);
+  if (!facets.length) throw designError('PATTERN_NOT_FOUND', '未找到指定图层。');
+  return facets;
+}
+
+/** Same operation dispatch for browser commands, batch plans and MCP. */
+export const DESIGN_OPERATION_TABLE = Object.freeze({
+  cut(document, operation) {
+    const result = constructCut(document, operation);
+    return { document: result.document, change: { patternId: operation.patternId, policy: result.policy, generated: result.impact.generatedFaceCount, threats: result.impact.threats } };
+  },
+  transform(document, operation) {
+    return { document: transformGroup(document, operation.region, operation), change: { kind: operation.kind, region: operation.region } };
+  },
+  'concave-tool'(document, operation) {
+    return { document: prepareConcaveTool(document, operation).document, change: { kind: operation.kind, toolId: operation.toolId } };
+  },
+  'replace-parameters'(document, operation) {
+    return { document: prepareParameterGroupReplacement(document, operation.parameterGroup).document, change: { kind: operation.kind, group: operation.parameterGroup.group } };
+  },
+  remove(document, operation) {
+    const facets = requirePattern(document, operation.patternId);
+    if (facets[0].metadata?.operationType === 'table') throw designError('TABLE_PROTECTED', '固定台面不能删除。');
+    return { document: { ...document, facets: document.facets.filter((f) => f.patternId !== operation.patternId) }, change: { kind: operation.kind, patternId: operation.patternId } };
+  },
+  rename(document, operation) {
+    requirePattern(document, operation.patternId);
+    if (!operation.label) throw designError('INVALID_OPERATION', '重命名需要 label。');
+    return { document: { ...document, facets: document.facets.map((f) => f.patternId === operation.patternId ? { ...f, label: operation.label } : f) }, change: { kind: operation.kind, patternId: operation.patternId } };
+  },
+  reorder(document, operation) {
+    const groups = groupFacets(document);
+    if (operation.order?.length !== groups.length || new Set(operation.order).size !== groups.length || operation.order.some((id) => !groups.some((g) => g.id === id)))
+      throw designError('INVALID_ORDER', '顺序必须恰好包含全部图层各一次。');
+    const table = groups.find((g) => g.facets[0].metadata?.operationType === 'table');
+    if (table && operation.order[0] !== table.id) throw designError('TABLE_PROTECTED', '固定台面必须保持首层。');
+    return { document: { ...document, facets: operation.order.flatMap((id) => groups.find((g) => g.id === id).facets) }, change: { kind: operation.kind } };
+  },
+});
 
 export function planDesign(document, operations) {
   let next = document;
@@ -327,77 +412,10 @@ export function planDesign(document, operations) {
   for (const [step, operation] of operations.entries()) {
     validateInput(OPERATION_SCHEMA, operation, `operations[${step}]`);
     try {
-      if (operation.kind === 'cut') {
-        const result = constructCut(next, operation);
-        next = result.document;
-        changes.push({
-          step,
-          patternId: operation.patternId,
-          policy: result.policy,
-          generated: result.impact.generatedFaceCount,
-          threats: result.impact.threats,
-        });
-      } else if (operation.kind === 'transform') {
-        next = transformGroup(next, operation.region, operation);
-        changes.push({ step, kind: 'transform', region: operation.region });
-      } else {
-        const groups = groupFacets(next);
-        const group = groups.find((g) => g.id === operation.patternId);
-        if (operation.kind !== 'reorder' && !group)
-          throw designError('PATTERN_NOT_FOUND', '未找到指定图层。');
-        if (
-          group?.facets[0].metadata?.operationType === 'table' &&
-          operation.kind === 'remove'
-        )
-          throw designError('TABLE_PROTECTED', '固定台面不能删除。');
-        if (operation.kind === 'remove')
-          next = {
-            ...next,
-            facets: next.facets.filter(
-              (f) => f.patternId !== operation.patternId,
-            ),
-          };
-        if (operation.kind === 'rename') {
-          if (!operation.label)
-            throw designError('INVALID_OPERATION', '重命名需要 label。');
-          next = {
-            ...next,
-            facets: next.facets.map((f) =>
-              f.patternId === operation.patternId
-                ? { ...f, label: operation.label }
-                : f,
-            ),
-          };
-        }
-        if (operation.kind === 'reorder') {
-          if (
-            operation.order?.length !== groups.length ||
-            new Set(operation.order).size !== groups.length ||
-            operation.order.some((id) => !groups.some((g) => g.id === id))
-          )
-            throw designError(
-              'INVALID_ORDER',
-              '顺序必须恰好包含全部图层各一次。',
-            );
-          const table = groups.find(
-            (g) => g.facets[0].metadata?.operationType === 'table',
-          );
-          if (table && operation.order[0] !== table.id)
-            throw designError('TABLE_PROTECTED', '固定台面必须保持首层。');
-          next = {
-            ...next,
-            facets: operation.order.flatMap(
-              (id) => groups.find((g) => g.id === id).facets,
-            ),
-          };
-        }
-        solveDocument(next);
-        changes.push({
-          step,
-          kind: operation.kind,
-          patternId: operation.patternId,
-        });
-      }
+      const result = DESIGN_OPERATION_TABLE[operation.kind](next, operation);
+      next = result.document;
+      solveDocument(next);
+      changes.push({ step, ...result.change });
     } catch (error) {
       error.details = { ...error.details, step, operation };
       throw error;
@@ -416,15 +434,9 @@ export function planDesign(document, operations) {
   return {
     document: next,
     changes,
-    requiredConfirmations: [
-      ...new Set(
-        changes.flatMap((c) =>
-          c.policy === 'confirm'
-            ? c.threats.filter((t) => t.fullyRemoved).map((t) => t.operationId)
-            : [],
-        ),
-      ),
-    ],
+    // Preserved for existing bridge clients; coverage no longer requires a
+    // second approval because every operation remains in undoable history.
+    requiredConfirmations: [],
   };
 }
 export function inspectDesign(document) {
@@ -457,10 +469,17 @@ export function inspectDesign(document) {
   } else geometryIssues = inspectPresetPolyhedron(solid).issues;
   const result = {
     name: document.name,
+    indexGear: { ...document.indexGear },
+    concaveCuts: document.concaveCuts ?? [],
     geometryIssues,
     stockKind: document.stock.kind ?? 'cube',
     logicalCutPlanes: document.facets.length,
-    effectiveCutPlanes: effective.effectiveFacetIds.length,
+    effectiveCutPlanes: document.facets.filter((f) => effective.effectiveFacetIds.includes(f.id)).length,
+    parameterGroups: { stock: document.stock.kind, planar: document.facets.length, concave: document.concaveCuts?.length ?? 0 },
+    indexCompatibility: {
+      all: indexCompatibilityReport(document),
+      final: indexCompatibilityReport(document, { effectiveFacetIds: effective.effectiveFacetIds, scope: 'final' }),
+    },
     stockSurfacePieces: solid.faces.filter((f) => f.region === 'rough').length,
     surfacePieces: solid.faces.length,
     metrics: {

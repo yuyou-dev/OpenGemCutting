@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { compatibleNode, supportsSetup, verifyRegistration, configureCodex, guardUpgrade, run } from './lifecycle.mjs';
@@ -54,4 +54,18 @@ test('subprocess arguments keep spaces and shell punctuation literal', () => {
   const input = 'design folder & draft $(keep)';
   const result = run(process.execPath, ['-e', 'process.stdout.write(process.argv[1])', input], { capture: true });
   assert.equal(result.stdout, input);
+});
+
+test('main installation retains its service and matching plugin identity', () => {
+  const root = path.resolve('.');
+  const read = file => JSON.parse(readFileSync(path.join(root, file), 'utf8'));
+  const product = read('setup/product.json');
+  const market = read('.agents/plugins/marketplace.json');
+  const plugin = read(`plugins/${product.plugin}/.codex-plugin/plugin.json`);
+  assert.equal(product.marketplace, market.name);
+  assert.ok(market.plugins.some(entry => entry.name === product.plugin));
+  assert.equal(product.plugin, plugin.name);
+  // Each edition keeps one consistent identity: private Facet 96 or public OpenGemCutting.
+  const editions = { 'Facet 96': ['facet96-design', 'facet96'], OpenGemCutting: ['opengemcutting-design', 'opengemcutting'] };
+  assert.deepEqual([product.service, product.marketplace], editions[product.name]);
 });

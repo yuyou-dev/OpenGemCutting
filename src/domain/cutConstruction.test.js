@@ -118,3 +118,18 @@ test("custom primary removal is blocked without silently choosing a different me
   assert.equal(invalid.facets.length, 0);
   assert.match(invalid.error, /主切面/);
 });
+
+test("custom and symmetric 120-wheel drafts retain exact primary geometry and fractional indices", () => {
+  const stock = createFacetingDocument().stock;
+  const draft = { patternMode: "arbitrary", customIndices: "120 0.5 24 48", indexTeeth: 120, baseIndex: 0.5,
+    repeat: 5, mirrorOffset: 0, industryAngle: 35, depth: 0.2 };
+  const custom = resolveDraftGeometry(draft, "crown", stock);
+  assert.equal(custom.error, "");
+  assert.deepEqual(custom.facets.map((facet) => facet.displayIndex), [0.5, 24, 48, 120]);
+  assert.equal(custom.facets[0].azimuthDeg, 1.5);
+  assert.deepEqual(parseCustomIndices("120 24.25", 120).indices, [24.25, 0]);
+  assert.ok(parseCustomIndices("121", 120).error);
+  const symmetric = resolveDraftGeometry({ ...draft, patternMode: "symmetric", baseIndex: 0 }, "crown", stock);
+  assert.equal(symmetric.error, "");
+  assert.deepEqual(symmetric.facets.map((facet) => facet.displayIndex), [24, 48, 72, 96, 120]);
+});

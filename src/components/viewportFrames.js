@@ -43,39 +43,7 @@ export function createViewportFrames({ draw, requestFrame = requestAnimationFram
   };
 }
 
-// Stop only once the remaining movement is below a screen-visible amount.
-// Snapping that last fraction also gives fixed orthographic views exact poses.
-export function advanceViewportCamera(camera, now = performance.now()) {
-  let moving = false;
-  const transition = camera.transition;
-  if (transition) {
-    const t = transition.duration > 0 ? Math.min(1, Math.max(0, (now - transition.start) / transition.duration)) : 1;
-    const eased = t * t * (3 - 2 * t);
-    camera.yaw = transition.yaw + (camera.targetYaw - transition.yaw) * eased;
-    camera.pitch = transition.pitch + (camera.targetPitch - transition.pitch) * eased;
-    moving = t < 1;
-    if (!moving) {
-      camera.transition = null;
-      transition.onComplete?.();
-    }
-  }
-  for (const [key, target, rate, tolerance] of [
-    ["yaw", "targetYaw", 0.16, 1e-6],
-    ["pitch", "targetPitch", 0.16, 1e-6],
-    ["zoom", "targetZoom", 0.16, 1e-6],
-    ["panX", "targetPanX", 0.18, 1e-3],
-    ["panY", "targetPanY", 0.18, 1e-3],
-  ]) {
-    if (transition && (key === "yaw" || key === "pitch")) continue;
-    const remaining = camera[target] - camera[key];
-    if (Math.abs(remaining) <= tolerance) camera[key] = camera[target];
-    else {
-      camera[key] += remaining * rate;
-      moving = true;
-    }
-  }
-  return moving;
-}
+export { advanceViewportCamera } from './viewportNavigation.js';
 
 // Keep the gem upright, with the current cut seen obliquely from 45° to its side.
 // A shallow view from above preserves both crown and pavilion proportions.

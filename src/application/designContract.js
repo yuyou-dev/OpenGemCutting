@@ -1,10 +1,11 @@
-import { VALID_REPEAT_COUNTS } from '../domain/faceting.js';
+import { CONCAVE_PRESETS } from './concaveTools.js';
+import { CONCAVE_CUT_LIMITS } from '../domain/concaveCuts.js';
 
 export const DESIGN_API_VERSION = '1.0';
 const string = { type: 'string', minLength: 1, maxLength: 200 };
 const targetKey = { type: 'string', minLength: 1, maxLength: 8192 };
 const number = { type: 'number' };
-const index = { type: 'integer', minimum: 0, maximum: 95 };
+const index = { type: 'number', minimum: 0, maximum: 360 };
 const object = (properties, required = []) => ({
   type: 'object',
   properties,
@@ -16,8 +17,9 @@ export const DRAFT_FIELDS = {
   industryAngle: { ...number, minimum: 0, maximum: 90 },
   depth: { ...number, minimum: 0 },
   baseIndex: index,
-  repeat: { type: 'integer', enum: VALID_REPEAT_COUNTS },
-  mirrorOffset: { type: 'integer', minimum: 0, maximum: 95 },
+  indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
+  repeat: { type: 'integer', minimum: 1, maximum: 360 },
+  mirrorOffset: { type: 'number', minimum: 0, maximum: 360 },
   patternMode: { type: 'string', enum: ['symmetric', 'arbitrary'] },
   customIndices: { type: 'string', maxLength: 400 },
   preform: { type: 'boolean' },
@@ -26,8 +28,16 @@ export const OPERATION_SCHEMA = object(
   {
     kind: {
       type: 'string',
-      enum: ['cut', 'remove', 'rename', 'reorder', 'transform'],
+      enum: ['cut', 'remove', 'rename', 'reorder', 'transform', 'replace-parameters', 'concave-tool'],
     },
+    toolId: string,
+    preset: { type: 'string', enum: CONCAVE_PRESETS.map(p => p.id) },
+    repeat: { type: 'integer', minimum: 1, maximum: 120 },
+    toolDepth: number,
+    phaseDeg: number,
+    width: { ...number, exclusiveMinimum: 0 },
+    length: { ...number, exclusiveMinimum: 0 },
+    tipAngle: { ...number, exclusiveMinimum: 0, exclusiveMaximum: 180 },
     patternId: string,
     label: string,
     region: { type: 'string', enum: ['crown', 'girdle', 'pavilion'] },
@@ -43,7 +53,19 @@ export const OPERATION_SCHEMA = object(
     order: array(string),
     deltaZ: number,
     scale: { ...number, minimum: 0.02 },
-    rotationTeeth: { type: 'integer', minimum: -95, maximum: 95 },
+    rotationTeeth: { type: 'number', minimum: -360, maximum: 360 },
+    indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
+    parameterGroup: object({
+      kind: { type: 'string', enum: ['facet-parameter-group'] },
+      schemaVersion: { type: 'integer', enum: [1] },
+      group: { type: 'string', enum: ['stock', 'planar', 'concave'] },
+      stock: { type: 'object' },
+      indexGear: { type: 'object' },
+      cuttingReference: { type: 'object' },
+      machining: { type: 'object' },
+      facets: array({ type: 'object' }, 4096),
+      concaveCuts: array({ type: 'object' }, CONCAVE_CUT_LIMITS.operations),
+    }, ['kind', 'schemaVersion', 'group']),
   },
   ['kind'],
 );
@@ -58,7 +80,7 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_plan',
-    'Preview an atomic ordered sequence of CUT edits without changing the project. Existing patternId edits in place; a new id adds a group. Returns planId, exact solid diagnostics and removals requiring confirmation. Use design_view with planId to inspect.',
+    'Preview an atomic sequence of CUT edits or independent planar and concave parameter replacement (physical stock is locked after project creation). Existing patternId edits in place; a new id adds a group. Returns planId, exact solid diagnostics and covered-face feedback. Use design_view with planId to inspect.',
     object(
       {
         ...scope,
@@ -70,7 +92,7 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_commit',
-    'Commit a previously inspected plan as ONE undoable command. Confirm only the listed full removals. Stale revisions, manual drafts and unavailable workspaces are rejected.',
+    'Commit a previously inspected plan as ONE undoable command. Covered operations remain in history and need no additional approval. Stale revisions, manual drafts and unavailable workspaces are rejected.',
     object(
       { ...scope, planId: string, confirmedRemovals: array(string) },
       Object.keys(scope).concat('planId'),
@@ -160,12 +182,13 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_export',
-    'Export the committed design as full editable JSON, vector PDF or preflighted ASC; mesh ASC remains blocked. Does not commit a draft.',
+    'Export the committed design as full editable JSON, vector PDF or preflighted ASC; mesh or active curved-tool geometry requires JSON. PDF surfaceFinish defaults to polished; annotated marks frosted faces in views and facet tables. Does not commit a draft.',
     object(
       {
         ...readScope,
         format: { type: 'string', enum: ['json', 'asc', 'pdf'] },
         locale: { type: 'string', enum: ['zh-CN', 'en'] },
+        surfaceFinish: { type: 'string', enum: ['polished', 'annotated'] },
       },
       ['sessionId', 'format'],
     ),
@@ -173,11 +196,12 @@ export const DESIGN_TOOLS = [
   ],
   [
     'project_create',
-    'Create a separate project from the default cube, a stock template, a catalog preset, JSON or preflighted OBJ. Existing projects remain intact. Manual previews block switching.',
+    'Choose indexTeeth for the project equipment (default 96). Create a separate project from the default cube, a stock template, a catalog preset, JSON or preflighted OBJ. Existing projects remain intact. Manual previews block switching.',
     object(
       {
         ...scope,
         name: string,
+        indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
         stockPresetId: string,
         presetId: string,
         json: { type: 'string', maxLength: 20971520 },

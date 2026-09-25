@@ -6,9 +6,9 @@ export function CutComposer({
   patternMode,
   onPatternModeChange,
   baseIndex,
+  indexTeeth = 96,
   onBaseIndexChange,
   repeatCount,
-  repeatOptions,
   onRepeatChange,
   mirrorOffset,
   onMirrorChange,
@@ -59,13 +59,11 @@ export function CutComposer({
 
       {patternMode === "symmetric" ? (
         <div className="composer-symmetry">
-          <IndexTape index={baseIndex} onIndexChange={onBaseIndexChange} disabled={lockedPattern || controlsDisabled} />
+          <IndexTape indexTeeth={indexTeeth} index={baseIndex} onIndexChange={onBaseIndexChange} disabled={lockedPattern || controlsDisabled} />
           <div className="composer-symmetry-row">
             <label>
               <span>{t("旋转重复")}</span>
-              <select value={repeatCount} disabled={lockedPattern || controlsDisabled} onChange={(event) => onRepeatChange(Number(event.target.value))}>
-                {repeatOptions.map((value) => <option value={value} key={value}>{t(value)}</option>)}
-              </select>
+              <input type="number" min="1" max="360" step="1" aria-label={t("旋转重复")} value={repeatCount} disabled={lockedPattern || controlsDisabled} onChange={(event) => onRepeatChange(Number(event.target.value))} />
             </label>
             <label>
               <span>{t("镜像轴偏移")}</span>
@@ -74,7 +72,8 @@ export function CutComposer({
                 <input
                   type="number"
                   min="0"
-                  max="48"
+                  max={indexTeeth / 2}
+                  step="any"
                   aria-label={t("镜像轴偏移")}
                   value={mirrorOffset}
                   disabled={lockedPattern || controlsDisabled}
@@ -87,7 +86,7 @@ export function CutComposer({
       ) : (
         <div className="composer-custom">
         <label className="custom-index-field">
-          <span>{t("整数索引列表")}</span>
+          <span>{t("索引列表（支持小数）")}</span>
           <textarea
             value={customIndices}
             disabled={controlsDisabled}
@@ -101,7 +100,7 @@ export function CutComposer({
           <span>{t("主切面分度")}</span>
           <select aria-label={t("自定义主切面分度")} value={primaryIndices.includes(baseIndex) ? baseIndex : ""} disabled={!primaryIndexEditable} onChange={(event) => onBaseIndexChange(Number(event.target.value))}>
             {!primaryIndices.includes(baseIndex) ? <option value="" disabled>{t("请选择")}</option> : null}
-            {primaryIndices.map((index) => <option key={index} value={index}>{String(displayIndex(index)).padStart(2, "0")}</option>)}
+            {primaryIndices.map((index) => <option key={index} value={index}>{String(displayIndex(index, indexTeeth)).padStart(2, "0")}</option>)}
           </select>
           <small>{t("主切面控制 Meet / Jump 与操纵杆，必须在索引列表内。")}</small>
         </label>
@@ -133,10 +132,10 @@ export function CutComposer({
                   className={`generated-instruction-row${row.active ? " is-active" : ""}${row.hidden ? " is-hidden" : ""}`}
                   key={row.id}
                 >
-                  <strong className="generated-instruction-prefix">{t(row.prefix)}</strong>
+                  <strong className="generated-instruction-prefix" title={t("{0} 齿", [row.indexTeeth ?? 96])}>{t(row.prefix)}</strong>
                   <span className="generated-instruction-angle">{Number(row.angle).toFixed(2)}</span>
-                  <span className="generated-instruction-indexes">
-                    {row.indices.map((value) => String(displayIndex(value)).padStart(2, "0")).join("-")}
+                  <span className="generated-instruction-indexes" title={t("{0} 齿分度", [row.indexTeeth ?? 96])}>
+                    {row.indices.map((value) => String(displayIndex(value, row.indexTeeth ?? 96)).padStart(2, "0")).join("-")}
                   </span>
                 </div>
               ))}

@@ -1,4 +1,5 @@
 import { exportFacetingJSON, importFacetingJSON } from "./faceting.js";
+import { assertValidDocumentGeometry } from "./documentGeometry.js";
 
 const PREFIX = "facet96:recovery:v1:";
 
@@ -11,7 +12,9 @@ export function createLocalRecoveryStore(storage) {
     if (record.schemaVersion !== 1 || !Number.isFinite(record.savedAt)) {
       throw new Error("本地备份格式不受支持。");
     }
-    return { id, savedAt: record.savedAt, document: importFacetingJSON(record.document) };
+    const document = importFacetingJSON(record.document);
+    assertValidDocumentGeometry(document);
+    return { id, savedAt: record.savedAt, document };
   };
   return {
     read,
@@ -29,6 +32,7 @@ export function createLocalRecoveryStore(storage) {
       return { records: records.sort((a, b) => b.savedAt - a.savedAt), unreadableCount };
     },
     save(id, document, savedAt = Date.now()) {
+      assertValidDocumentGeometry(document);
       const snapshot = JSON.parse(exportFacetingJSON(document));
       if (snapshot.metadata?.optics) delete snapshot.metadata.optics.view;
       storage.setItem(`${PREFIX}${id}`, JSON.stringify({

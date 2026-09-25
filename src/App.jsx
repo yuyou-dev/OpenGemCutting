@@ -1,3 +1,4 @@
+import { importFacetingJSON, withDocumentIndexGear } from "./domain/faceting.js";
 import { t, getLocale } from './i18n/locale.js';
 import { useLocale } from './i18n/react.jsx';
 import { flushSync } from 'react-dom';
@@ -11,17 +12,20 @@ import { RenderBoundary } from "./components/RenderBoundary.jsx";
 import { useDismissFloatingMenus } from "./components/useDismissFloatingMenus.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WorkbenchEditor } from "./WorkbenchEditor.jsx";
+import { PresetLibraryDialog } from "./components/PresetLibraryDialog.jsx";
+import { assertValidDocumentGeometry } from "./domain/documentGeometry.js";
 import { HomePage } from "./components/HomePage.jsx";
-import { OpticalLabPage } from "./components/OpticalLabPage.jsx";
+import { LabsPage } from "./components/LabsPage.jsx";
 import { HelpCenterDialog } from "./components/HelpCenterDialog.jsx";
 import { NewProjectDialog } from "./components/NewProjectDialog.jsx";
 import { CrystalImportDialog } from "./components/CrystalImportDialog.jsx";
 import { Modal } from "./components/Modal.jsx";
 import { useProjects } from "./components/useProjects.js";
-import { createWorkbenchDocument } from "./domain/document.js";
+import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
 import { exportFacetingJSON } from "./domain/faceting.js";
 import { downloadBlob } from "./utils/download.js";
 import { safeFileStem } from "./utils/format.js";
+import { readLabDocument } from './application/labDocuments.js';
 
 export function App() {
   useLocale();
@@ -38,7 +42,10 @@ export function App() {
   const [pendingSwitch, setPendingSwitch] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [presetLibraryOpen, setPresetLibraryOpen] = useState(false);
+  const presetSession = useRef(0);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectGear, setNewProjectGear] = useState(96);
   const [crystalReturnToNew, setCrystalReturnToNew] = useState(false);
   const [crystalImportOpen, setCrystalImportOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState({ state: "idle", message: "已保存的切割会自动保存到本机项目" });
@@ -119,12 +126,28 @@ export function App() {
     else action();
   };
   const createProject = () => setNewProjectOpen(true);
-  const createDefaultProject = () => {
+  const createDefaultProject = (indexTeeth = newProjectGear) => {
     setNewProjectOpen(false);
     switchProject(() => {
-    const record = projects.create(createWorkbenchDocument(t("未命名切型 {0}", [String(projects.records.length + 1).padStart(2, "0")])));
-    if (record) activate(record, true);
+    const record = projects.create(createWorkbenchDocument(t("未命名切型 {0}", [String(projects.records.length + 1).padStart(2, "0")]), indexTeeth));
+    if (record) activate(record);
     });
+  };
+  const openPresetLibrary = () => { presetSession.current++; setNewProjectOpen(false); setPresetLibraryOpen(true); };
+  const closePresetLibrary = () => { presetSession.current++; setPresetLibraryOpen(false); };
+  const loadPreset = async (rawDocument) => {
+    const session = presetSession.current;
+    const document = ensureTableFacet(importFacetingJSON(JSON.stringify(rawDocument)));
+    assertValidDocumentGeometry(document);
+    if (!await flush()) throw new Error(t("原项目保存失败；当前设计保留。"));
+    if (!liveApp.current.presetLibraryOpen || session !== presetSession.current) return;
+    closePresetLibrary();
+    const action = () => {
+      const record = projects.create(document);
+      if (record) activate(record);
+    };
+    if (liveApp.current.hasPreview) setPendingSwitch({ action });
+    else action();
   };
   const importCrystal = (document) => {
     setNewProjectOpen(false);
@@ -185,11 +208,24 @@ export function App() {
     if (!latestDocument) return;
     downloadBlob(new Blob([exportFacetingJSON(latestDocument)], { type: "application/json" }), `${safeFileStem(latestDocument.name)}.json`);
   };
+  const prepareLabSource = useCallback(async (fromSource) => {
+    const before = liveApp.current;
+    if (before.hasPreview) throw new Error(t('请先返回编辑，保存或放弃未保存切割，再开始实验。'));
+    if (!await flush()) throw new Error(t('原项目尚未保存，请先重试保存或导出恢复数据。'));
+    const now = liveApp.current;
+    if (now.page !== 'lab' || now.active?.id !== before.active?.id || now.hasPreview)
+      throw new Error(t('保存期间页面或项目已变化，请重新开始实验。'));
+    if (!fromSource) return null;
+    if (!now.active) throw new Error(t('请先选择来源设计。'));
+    const source = projects.read(now.active.id);
+    if (!source || source.revision !== baseRevision.current) throw new Error(t('来源项目已有变化，请返回编辑核对最新版本。'));
+    return { projectId: source.id, revision: source.revision, document: readLabDocument(source.document).document };
+  }, [flush, projects.read]);
   const projectList = projects.records.map((record) => record.id === active?.id && latestDocument
     ? { ...record, document: latestDocument } : record);
   const projectError = projects.error || (projects.unreadableCount ? `${projects.unreadableCount} 份本地设计暂时无法读取，原记录仍保留。` : "");
 
-  liveApp.current = { active, page, hasPreview, pendingDelete, pendingSwitch, confirmReload, helpOpen, crystalImportOpen, newProjectOpen };
+  liveApp.current = { active, page, hasPreview, pendingDelete, pendingSwitch, confirmReload, helpOpen, crystalImportOpen, newProjectOpen, presetLibraryOpen };
   const bridge = useDesignBridge(async (name, args, request) => {
     validateTool(name, args);
     if (name === 'preset_list') {
@@ -202,11 +238,11 @@ export function App() {
     if (name === 'design_read' && !active) return { apiVersion: DESIGN_API_VERSION, projectId: 'none', revision: 'home', locale: getLocale(), canWrite: false, blockedReason: t('请先创建或打开一个设计项目。') };
     if (name === 'project_create') {
       const current = liveApp.current;
-      const getStamp = () => { const state = liveApp.current; return JSON.stringify([state.active?.id, state.active?.mountSeq, state.page, state.hasPreview, Boolean(state.pendingSwitch), Boolean(state.pendingDelete), state.confirmReload, state.helpOpen, state.crystalImportOpen, state.newProjectOpen]); };
+      const getStamp = () => { const state = liveApp.current; return JSON.stringify([state.active?.id, state.active?.mountSeq, state.page, state.hasPreview, Boolean(state.pendingSwitch), Boolean(state.pendingDelete), state.confirmReload, state.helpOpen, state.crystalImportOpen, state.newProjectOpen, state.presetLibraryOpen]); };
       const stamp = getStamp();
       const initialState = designControllerRef.current?.read() ?? { projectId: 'none', revision: 'home' };
       if (args.projectId !== initialState.projectId || args.revision !== initialState.revision) throw designError('STALE_REVISION', '当前项目已变化，请重新读取。');
-      if (current.hasPreview || current.pendingDelete || current.pendingSwitch || current.confirmReload || current.helpOpen || current.crystalImportOpen || current.newProjectOpen || designControllerRef.current?.read().sessionMode && designControllerRef.current.read().sessionMode !== 'idle') throw designError('WORKSPACE_BUSY', '请先在网页结束当前操作，再创建对话设计项目。');
+      if (current.page === 'lab' || current.hasPreview || current.pendingDelete || current.pendingSwitch || current.confirmReload || current.helpOpen || current.crystalImportOpen || current.newProjectOpen || current.presetLibraryOpen || designControllerRef.current?.read().sessionMode && designControllerRef.current.read().sessionMode !== 'idle') throw designError('WORKSPACE_BUSY', '请先在网页结束当前操作，再创建对话设计项目。');
       const revision = designControllerRef.current?.read().revision;
       const document = await projectDesign(args, designLibrary.current);
       if (stamp !== getStamp() || revision !== designControllerRef.current?.read().revision) throw designError('STALE_REVISION', '载入期间页面或项目已变化，请重试。');
@@ -231,10 +267,10 @@ export function App() {
     <>
       {bridge.enabled ? <div className="design-connection" role="status"><strong>{bridge.status === 'connected' ? t("对话设计已连接") : bridge.status === 'connecting' ? t("正在连接对话设计") : t("对话设计已断开")}</strong><span>{bridge.status === 'connected' ? t("AI 操作当前项目；每个方案均可撤销，手动编辑始终可用。") : t("手动设计、撤销和保存仍然可用。")}</span>{bridge.status !== 'off' ? <button onClick={bridge.disconnect}>{t("断开 AI 连接")}</button> : null}</div> : null}
       {page === "home" ? <HomePage projects={projectList} activeProjectId={active?.id} onOpenProject={openProject} onNewProject={createProject} onDeleteProject={requestDeleteProject} onOpenLab={() => navigate("lab")} onResume={() => setPage("editor")} error={projectError} onRetry={projects.refresh} onOpenHelp={() => setHelpOpen(true)} /> : null}
-      {active ? <RenderBoundary key={`${active.id}:${active.mountSeq ?? 0}`} hidden={page !== "editor"} onRetry={() => { setHasPreview(false); setActive(current => ({ ...current, document: latestDocument ?? current.document, startWithDraft: false, mountSeq: ++editorSeq.current })); }} onExport={exportCurrent} onHome={() => navigate("home")}><WorkbenchEditor designControllerRef={designControllerRef} projectId={active.id} initialDocument={active.document} startWithDraft={active.startWithDraft} visible={page === "editor"} interactionPaused={Boolean(pendingSwitch) || confirmReload || helpOpen || crystalImportOpen || newProjectOpen} onDocumentChange={receiveDocument} onPreviewChange={setHasPreview} onHome={() => navigate("home")} onLab={() => navigate("lab")} onNewProject={createProject} onImportCrystal={() => { setCrystalReturnToNew(false); setCrystalImportOpen(true); }} projectStatus={saveStatus} /></RenderBoundary> : null}
-      {page === "lab" ? <OpticalLabPage projectName={latestDocument?.name} hasProject={Boolean(active)} onHome={() => navigate("home")} onEditor={() => setPage("editor")} /> : null}
-      {saveStatus.state === "error" ? <div className="project-save-error" role="alert"><div><strong>{t("项目尚未保存")}</strong><p>{t(saveStatus.code === "PROJECT_DELETED" ? saveStatus.message : projects.error || saveStatus.message)}</p></div><button onClick={flush}>{t("重试保存")}</button>{saveStatus.code === "PROJECT_DELETED" ? <button onClick={() => saveAsNewProject()}>{t("另存为新项目")}</button> : null}<button onClick={exportCurrent}>{t("导出 JSON")}</button><button onClick={() => navigate("home")}>{t("管理本地项目")}</button></div> : null}
-      {saveStatus.state === "conflict" ? <div className="project-save-error" role="alert"><div><strong>{t("该项目已在其他窗口被修改")}</strong><p>{t("自动保存已暂停，本地未保存的设计仍保留在内存中。请选择如何处理，不会自动合并或覆盖。")}</p></div><button onClick={requestReloadLatest}>{t("重新载入最新版本")}</button><button onClick={() => saveAsNewProject("（冲突副本）")}>{t("另存为新项目")}</button><button onClick={exportCurrent}>{t("导出 JSON")}</button></div> : null}
+      {active ? <RenderBoundary key={`${active.id}:${active.mountSeq ?? 0}`} hidden={page !== "editor"} onRetry={() => { setHasPreview(false); setActive(current => ({ ...current, document: latestDocument ?? current.document, startWithDraft: false, mountSeq: ++editorSeq.current })); }} onExport={exportCurrent} onHome={() => navigate("home")}><WorkbenchEditor designControllerRef={designControllerRef} projectId={active.id} initialDocument={active.document} startWithDraft={active.startWithDraft} visible={page === "editor"} interactionPaused={Boolean(pendingSwitch) || confirmReload || helpOpen || crystalImportOpen || newProjectOpen || presetLibraryOpen} onDocumentChange={receiveDocument} onPreviewChange={setHasPreview} onHome={() => navigate("home")} onLab={() => navigate("lab")} onNewProject={createProject} onOpenDocument={importCrystal} onImportCrystal={() => { setCrystalReturnToNew(false); setCrystalImportOpen(true); }} projectStatus={saveStatus} /></RenderBoundary> : null}
+      {page === "lab" ? <LabsPage document={latestDocument} hasPreview={hasPreview} prepareSource={prepareLabSource} readProject={projects.read} createProject={projects.create} onReturned={activate} onHome={() => navigate("home")} onEditor={() => setPage("editor")} /> : null}
+      {page !== "lab" && saveStatus.state === "error" ? <div className="project-save-error" role="alert"><div><strong>{t("项目尚未保存")}</strong><p>{t(saveStatus.code === "PROJECT_DELETED" ? saveStatus.message : projects.error || saveStatus.message)}</p></div><button onClick={flush}>{t("重试保存")}</button>{saveStatus.code === "PROJECT_DELETED" ? <button onClick={() => saveAsNewProject()}>{t("另存为新项目")}</button> : null}<button onClick={exportCurrent}>{t("导出 JSON")}</button><button onClick={() => navigate("home")}>{t("管理本地项目")}</button></div> : null}
+      {page !== "lab" && saveStatus.state === "conflict" ? <div className="project-save-error" role="alert"><div><strong>{t("该项目已在其他窗口被修改")}</strong><p>{t("自动保存已暂停，本地未保存的设计仍保留在内存中。请选择如何处理，不会自动合并或覆盖。")}</p></div><button onClick={requestReloadLatest}>{t("重新载入最新版本")}</button><button onClick={() => saveAsNewProject("（冲突副本）")}>{t("另存为新项目")}</button><button onClick={exportCurrent}>{t("导出 JSON")}</button></div> : null}
       {confirmReload ? <Modal title={t("重新载入最新保存版本")} confirmLabel={t("放弃本地修改并载入")} closeLabel={t("保留本地修改")} destructive onClose={() => setConfirmReload(false)} onConfirm={() => { setConfirmReload(false); reloadLatestVersion(); }}><p>{t("另一窗口保存的版本将替换当前编辑现场；本地未保存的切割与预览会被放弃。如需保留，可先取消并导出 JSON 或另存为新项目。")}</p></Modal> : null}
       {pendingSwitch ? <Modal title={t("切换项目前保留切割预览")} confirmLabel={t("放弃预览并继续")} closeLabel={t("保留当前预览")} destructive onClose={() => setPendingSwitch(null)} onConfirm={() => { const { action } = pendingSwitch; setPendingSwitch(null); action(); }}><p>{t("当前项目还有未保存的切割预览。切换项目会放弃这部分预览；已经保存的图层仍保留在原项目中。")}</p><p>{t("如需继续调整，可保留预览并返回当前项目。")}</p></Modal> : null}
       {pendingDelete ? <Modal title={t("删除本地项目")} confirmLabel={t("确认删除项目")} closeLabel={t("保留项目")} destructive onClose={() => setPendingDelete(null)} onConfirm={confirmDeleteProject}>
@@ -243,8 +279,9 @@ export function App() {
           ? <p>{t("该项目正在编辑中：删除后当前未保存的切割与预览会一并放弃。如需保留，请先取消，回到编辑器从文件菜单导出 JSON。")}</p>
           : <p>{t("如需留存，请先取消，打开项目后从文件菜单导出 JSON 备份。")}</p>}
       </Modal> : null}
-      {newProjectOpen ? <NewProjectDialog onClose={() => setNewProjectOpen(false)} onDefault={createDefaultProject} onPreset={importCrystal} onUpload={() => { setNewProjectOpen(false); setCrystalReturnToNew(true); setCrystalImportOpen(true); }} /> : null}
-      {crystalImportOpen ? <CrystalImportDialog onBack={crystalReturnToNew ? () => { setCrystalImportOpen(false); setNewProjectOpen(true); } : undefined} onClose={() => setCrystalImportOpen(false)} onImport={importCrystal} /> : null}
+      {presetLibraryOpen ? <PresetLibraryDialog library={designLibrary.current} onClose={closePresetLibrary} onLoad={loadPreset} discardingDraft={hasPreview} /> : null}
+      {newProjectOpen ? <NewProjectDialog onStartPreset={openPresetLibrary} indexTeeth={newProjectGear} onIndexTeethChange={setNewProjectGear} onClose={() => setNewProjectOpen(false)} onDefault={createDefaultProject} onPreset={importCrystal} onUpload={() => { setNewProjectOpen(false); setCrystalReturnToNew(true); setCrystalImportOpen(true); }} /> : null}
+      {crystalImportOpen ? <CrystalImportDialog indexTeeth={newProjectGear} onIndexTeethChange={setNewProjectGear} onBack={crystalReturnToNew ? () => { setCrystalImportOpen(false); setNewProjectOpen(true); } : undefined} onClose={() => setCrystalImportOpen(false)} onImport={document => importCrystal(withDocumentIndexGear(document, newProjectGear))} /> : null}
       {helpOpen ? <HelpCenterDialog onClose={() => setHelpOpen(false)} /> : null}
     </>
   );

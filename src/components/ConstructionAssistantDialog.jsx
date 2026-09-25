@@ -48,8 +48,8 @@ export function ConstructionAssistantDialog({
           <dl className="construction-assistant-parameters">
             <div><dt>{t("行业角")}</dt><dd>{Number(primary.industryAngleDeg).toFixed(2)}°</dd></div>
             <div><dt>{t("切入深度")}</dt><dd>{Number(primary.depth).toFixed(3)}</dd></div>
-            <div><dt>{t("主分度")}</dt><dd>{String(displayIndex(primary.index)).padStart(2, "0")}</dd></div>
-            <div className="construction-assistant-indices"><dt>{t("完整分度")}</dt><dd>{stage.facets.map((facet) => String(displayIndex(facet.index)).padStart(2, "0")).join("-")}</dd></div>
+            <div><dt>{t("主分度")}</dt><dd>{String(displayIndex(primary.index, primary.indexTeeth ?? 96)).padStart(2, "0")}</dd></div>
+            <div className="construction-assistant-indices"><dt>{t("完整分度")}</dt><dd>{stage.facets.map((facet) => String(displayIndex(facet.index, facet.indexTeeth ?? 96)).padStart(2, "0")).join("-")}</dd></div>
           </dl>
           {savedTargets.length ? <div className="construction-assistant-sources" aria-label={t("Meet 构造来源")}>
             {savedTargets.map((target, index) => <div key={index}><b>{index === 0 ? "A" : "B"}</b><span><strong>{target.kind === "edge-point" ? t("棱上比例点 · t {0}", [Number(target.ratio).toFixed(3)]) : t("实体顶点")}</strong><small>{sourceLabel(target)}</small></span></div>)}

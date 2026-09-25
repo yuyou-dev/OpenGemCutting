@@ -1,0 +1,111 @@
+{
+  "input": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+    "schemaVersion": 3,
+    "kind": "facet-96-document",
+    "name": "Legacy v2 mesh",
+    "indexGear": {
+      "teeth": 96,
+      "zeroAlias": 96,
+      "degreesPerTooth": 3.75
+    },
+    "stock": {
+      "kind": "mesh",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ],
+      "mesh": {
+        "vertices": [
+          {
+            "x": -1,
+            "y": -1,
+            "z": -1
+          },
+          {
+            "x": 1,
+            "y": -1,
+            "z": -1
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "z": -1
+          },
+          {
+            "x": -1,
+            "y": 1,
+            "z": -1
+          },
+          {
+            "x": -1,
+            "y": -1,
+            "z": 1
+          },
+          {
+            "x": 1,
+            "y": -1,
+            "z": 1
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "z": 1
+          },
+          {
+            "x": -1,
+            "y": 1,
+            "z": 1
+          }
+        ],
+        "faces": [
+          [
+            0,
+            3,
+            2,
+            1
+          ],
+          [
+            4,
+            5,
+            6,
+            7
+          ],
+          [
+            0,
+            4,
+            7,
+            3
+          ],
+          [
+            1,
+            2,
+            6,
+            5
+          ],
+          [
+            0,
+            1,
+            5,
+            4
+          ],
+          [
+            3,
+            7,
+            6,
+            2
+          ]
+        ]
+      },
+      "envelope": {
+        "radius": 1.4142135623730951,
+        "halfHeight": 1
+      }
+    },
+    "facets": [],
+    "concaveCuts": []
+  },
+  "reject": "LAB_UNSUPPORTED_DOCUMENT"
+}

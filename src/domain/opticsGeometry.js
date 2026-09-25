@@ -7,7 +7,7 @@ function vector(value) {
 /** Match the viewport's centered unit bounds without dropping any face plane. */
 export function normalizedOpticsPlanes(polyhedron) {
   const vertices = (polyhedron?.vertices ?? []).map(vector);
-  if (!vertices.length) return { planes: [], faceCount: 0 };
+  if (!vertices.length) return { planes: [], faceIndices: [], faceCount: 0 };
   const minimum = [Infinity, Infinity, Infinity];
   const maximum = [-Infinity, -Infinity, -Infinity];
   for (const vertex of vertices) {
@@ -18,25 +18,26 @@ export function normalizedOpticsPlanes(polyhedron) {
   }
   const center = minimum.map((value, axis) => (value + maximum[axis]) / 2);
   const scale = Math.max(...minimum.map((value, axis) => maximum[axis] - value), 1e-6) / 2;
-  const planes = [];
-  for (const face of polyhedron?.faces ?? []) {
+  const entries = [];
+  (polyhedron?.faces ?? []).forEach((face, faceIndex) => {
     const rawNormal = vector(face.normal);
     const length = Math.hypot(...rawNormal);
     const firstVertex = vertices[face.vertexIndices?.[0]];
-    if (!firstVertex || length < 1e-8) continue;
+    if (!firstVertex || length < 1e-8) return;
     const normal = rawNormal.map((value) => value / length);
     const offset = normal.reduce((sum, value, axis) => sum + value * firstVertex[axis], 0);
     const normalizedOffset = (offset - normal.reduce((sum, value, axis) => sum + value * center[axis], 0)) / scale;
-    planes.push([...normal, normalizedOffset]);
-  }
+    entries.push({ plane: [...normal, normalizedOffset], faceIndex });
+  });
   // A canonical traversal also makes exact boundary ties independent of face order.
-  planes.sort((left, right) => {
+  entries.sort(({ plane: left }, { plane: right }) => {
     for (let axis = 0; axis < 4; axis += 1) {
       if (left[axis] !== right[axis]) return left[axis] - right[axis];
     }
     return 0;
   });
-  return { planes, faceCount: polyhedron?.faces?.length ?? 0 };
+  return { planes: entries.map(entry => entry.plane), faceIndices: entries.map(entry => entry.faceIndex),
+    faceCount: polyhedron?.faces?.length ?? 0 };
 }
 
 /** RGBA32F stores one complete half-space per texel, spanning rows as needed. */

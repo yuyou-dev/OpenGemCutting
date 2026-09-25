@@ -4,6 +4,10 @@ import { createProjectStore } from "./projectLibrary.js";
 import { createLocalRecoveryStore } from "./localRecovery.js";
 import { createWorkbenchDocument } from "./document.js";
 import { applyOpticalPreset, DEFAULT_OPTICS_SETTINGS } from "./optics.js";
+import { createFacetingDocument, exportFacetingJSON, resolveFacetPattern, getCuttingReference } from "./faceting.js";
+import { evaluateDocument } from "./documentGeometry.js";
+import { createCenteredCube, measurePolyhedron } from "./geometry.js";
+import { createMeshDocument } from "./stockGeometry.js";
 
 function memoryStorage() {
   const values = new Map();
@@ -15,6 +19,74 @@ function memoryStorage() {
     removeItem: (key) => values.delete(key),
   };
 }
+
+function referenceProject({ legacy = false } = {}) {
+  const mesh = createMeshDocument({ mesh: createCenteredCube(3), unit: "mm" });
+  delete mesh.metadata.optics.view;
+  const { cuttingReference, concaveCuts, ...oldDocument } = mesh;
+  const blank = legacy ? { ...oldDocument, schemaVersion: 2 } : mesh;
+  return createFacetingDocument({
+    ...blank,
+    facets: resolveFacetPattern({
+      patternId: "C1", region: "crown", baseIndex: 12,
+      industryAngleDeg: 35, depth: 0.3, repeat: 1,
+    }, { stock: getCuttingReference(blank) }),
+  });
+}
+
+function assertSameDesign(actual, expected) {
+  assert.deepEqual(actual.cuttingReference, expected.cuttingReference);
+  assert.deepEqual(actual.stock, expected.stock);
+  assert.deepEqual(actual.facets, expected.facets);
+  assert.ok(Math.abs(measurePolyhedron(evaluateDocument(actual)).volume -
+    measurePolyhedron(evaluateDocument(expected)).volume) < 1e-12);
+  assert.equal(exportFacetingJSON(actual), exportFacetingJSON(expected));
+}
+
+test("fixed cutting coordinates survive create, save and cold project reads without changing planes or volume", () => {
+  const storage = memoryStorage();
+  const store = createProjectStore(storage);
+  const document = referenceProject();
+  assert.notDeepEqual(document.cuttingReference, document.stock);
+  const created = store.create(document, { id: "fixed", now: 100 });
+  assertSameDesign(created.document, document);
+  assertSameDesign(JSON.parse(storage.getItem("facet96:project:v1:fixed")).document, document);
+  // Returned coordinates belong to the caller, never the cache.
+  created.document.cuttingReference.center[0] = 99;
+  assertSameDesign(store.read("fixed").document, document);
+  const updated = { ...document, name: "fixed coordinates after save" };
+  const saved = store.save("fixed", updated, { expectedRevision: 1, updatedAt: 200 });
+  assert.equal(saved.revision, 2);
+  assertSameDesign(saved.document, updated);
+  const cold = createProjectStore(storage);
+  assertSameDesign(cold.read("fixed").document, updated);
+  assertSameDesign(cold.list().records[0].document, updated);
+  assert.equal(cold.list().unreadableCount, 0);
+});
+
+test("fixed coordinates survive starter seeding and legacy recovery migration without modifying the backup", () => {
+  const document = referenceProject();
+  const seeded = memoryStorage();
+  createProjectStore(seeded).seedStarterProjects([document]);
+  assertSameDesign(createProjectStore(seeded).list().records[0].document, document);
+  const storage = memoryStorage();
+  createLocalRecoveryStore(storage).save("fixed", document, 100);
+  const backup = storage.getItem("facet96:recovery:v1:fixed");
+  createProjectStore(storage).migrateLegacy();
+  assertSameDesign(createProjectStore(storage).read("legacy-fixed").document, document);
+  assert.equal(storage.getItem("facet96:recovery:v1:fixed"), backup);
+});
+
+test("old mesh projects without a cutting reference retain their original coordinate interpretation", () => {
+  const document = referenceProject({ legacy: true });
+  assert.equal(document.schemaVersion, 2);
+  assert.equal(document.cuttingReference, undefined);
+  const storage = memoryStorage();
+  const store = createProjectStore(storage);
+  store.create(document, { id: "legacy-mesh" });
+  store.save("legacy-mesh", document);
+  assertSameDesign(createProjectStore(storage).read("legacy-mesh").document, document);
+});
 
 test("projects retain identity, creation time and complete committed design while sorting by latest save", () => {
   const storage = memoryStorage();
@@ -374,4 +446,111 @@ test("starter load failure can retry without creating placeholders", () => {
   assert.equal(store.needsStarterProjects(), true);
   store.seedStarterProjects([createWorkbenchDocument("Example")]);
   assert.equal(store.list().records.length, 1);
+});
+
+function machiningProject() {
+  return createFacetingDocument({
+    name: '五次对称凹切保存', indexGear: 120,
+    facets: resolveFacetPattern({ patternId: 'five', region: 'girdle', industryAngleDeg: 90, depth: 0.1, indexTeeth: 120, baseIndex: 0.5, repeat: 5 }),
+    concaveCuts: [
+      { id: 'scoop', type: 'sphere', position: [0.9, 0, 0], radius: 0.3, segments: 16 },
+      { id: 'disabled-scoop', type: 'sphere', position: [0, 0.9, 0], radius: 0.2, segments: 16, enabled: false },
+    ],
+  });
+}
+
+test('schema v3 autosave and cold startup preserve all three groups, fractional gears and revision safety', () => {
+  const storage = memoryStorage();
+  const first = createProjectStore(storage);
+  const document = machiningProject();
+  const created = first.create(document, { id: 'machining', now: 100 });
+  assert.equal(created.document.schemaVersion, 3);
+  assert.deepEqual(created.document.concaveCuts, document.concaveCuts);
+  assert.ok(Object.isFrozen(created.document.concaveCuts));
+  assert.throws(() => { created.document.concaveCuts[0].radius = 10; }, TypeError);
+  const reopenedStore = createProjectStore(storage);
+  const reopened = reopenedStore.list().records[0];
+  assert.equal(reopenedStore.list().unreadableCount, 0);
+  assert.equal(exportFacetingJSON(reopened.document), exportFacetingJSON(document));
+  assert.equal(reopened.document.indexGear.teeth, 120);
+  assert.equal(reopened.document.facets[0].baseIndex, 0.5);
+  const baselineVolume = measurePolyhedron(evaluateDocument(document)).volume;
+  assert.ok(Math.abs(measurePolyhedron(evaluateDocument(reopened.document)).volume - baselineVolume) < 1e-9);
+
+  const changed = createFacetingDocument({ ...reopened.document, concaveCuts: reopened.document.concaveCuts.map((cut) => cut.id === 'scoop' ? { ...cut, radius: 0.35 } : cut) });
+  const saved = first.save('machining', changed, { expectedRevision: reopened.revision, updatedAt: 200 });
+  assert.equal(saved.revision, 2);
+  const bytes = storage.getItem('facet96:project:v1:machining');
+  assert.throws(() => reopenedStore.save('machining', document, { expectedRevision: reopened.revision }), (error) => error.code === 'PROJECT_CONFLICT');
+  assert.equal(storage.getItem('facet96:project:v1:machining'), bytes);
+  const cold = createProjectStore(storage).read('machining');
+  assert.equal(cold.revision, 2);
+  assert.equal(cold.document.concaveCuts[0].radius, 0.35);
+  assert.equal(cold.document.concaveCuts[1].enabled, false);
+  assert.deepEqual(cold.document.facets, document.facets);
+  assert.deepEqual(cold.document.stock, document.stock);
+  assert.ok(measurePolyhedron(evaluateDocument(cold.document)).volume < baselineVolume);
+
+  const withoutTools = createFacetingDocument({ ...cold.document, concaveCuts: [] });
+  first.save('machining', withoutTools, { expectedRevision: cold.revision, updatedAt: 300 });
+  const emptyGroup = createProjectStore(storage).read('machining');
+  assert.equal(emptyGroup.revision, 3);
+  assert.equal(emptyGroup.document.schemaVersion, 3);
+  assert.deepEqual(emptyGroup.document.concaveCuts, []);
+  assert.equal(exportFacetingJSON(emptyGroup.document), exportFacetingJSON(withoutTools));
+});
+
+test('legacy recovery and migration carry extended groups without altering the source record', () => {
+  const storage = memoryStorage();
+  const recovery = createLocalRecoveryStore(storage);
+  const document = machiningProject();
+  recovery.save('extended', document, 100);
+  const recoveryBytes = storage.getItem('facet96:recovery:v1:extended');
+  assert.equal(exportFacetingJSON(createLocalRecoveryStore(storage).read('extended').document), exportFacetingJSON(document));
+  const projects = createProjectStore(storage);
+  projects.migrateLegacy();
+  const migrated = createProjectStore(storage).read('legacy-extended');
+  assert.equal(exportFacetingJSON(migrated.document), exportFacetingJSON(document));
+  assert.equal(migrated.revision, 1);
+  assert.equal(storage.getItem('facet96:recovery:v1:extended'), recoveryBytes);
+});
+
+test('invalid combined machining is rejected before save and remains unreadable without data deletion at cold startup', () => {
+  const storage = memoryStorage();
+  const store = createProjectStore(storage);
+  store.create(machiningProject(), { id: 'protected', now: 100 });
+  const key = 'facet96:project:v1:protected';
+  const previous = storage.getItem(key);
+  const invalid = createFacetingDocument({
+    facets: resolveFacetPattern({ patternId: 'core', region: 'girdle', industryAngleDeg: 90, depth: 0.9, repeat: 4 }),
+    concaveCuts: [{ id: 'drill', type: 'cylinder', position: [0, 0, 0], axis: [0, 0, 1], radius: 0.3, length: 4, segments: 16 }],
+  });
+  assert.throws(() => store.save('protected', invalid, { expectedRevision: 1 }), { code: 'empty-document-result' });
+  assert.equal(storage.getItem(key), previous);
+  const damaged = JSON.stringify({ ...JSON.parse(previous), document: invalid });
+  storage.setItem(key, damaged);
+  const cold = createProjectStore(storage);
+  assert.throws(() => cold.read('protected'), { code: 'empty-document-result' });
+  assert.equal(cold.list().unreadableCount, 1);
+  assert.equal(storage.getItem(key), damaged);
+  const recoveryKey = 'facet96:recovery:v1:invalid-tools';
+  const recoveryBytes = JSON.stringify({ schemaVersion: 1, savedAt: 100, document: invalid });
+  storage.setItem(recoveryKey, recoveryBytes);
+  assert.equal(createLocalRecoveryStore(storage).list().unreadableCount, 1);
+  assert.equal(storage.getItem(recoveryKey), recoveryBytes);
+});
+
+test('optional surface metadata survives JSON and project reload for every supported gear without changing geometry', () => {
+  for (const teeth of [96, 99, 120, 360]) {
+    const plain = createFacetingDocument({ indexGear:teeth, facets:resolveFacetPattern({patternId:'surface-tier', region:'crown', industryAngleDeg:35, depth:.5, repeat:4, baseIndex:.25, indexTeeth:teeth}) });
+    const document = structuredClone(plain);
+    document.facets[0].metadata = {surfaceFinish:{version:1,model:'ggx-dielectric',state:'frosted',alpha:.28,scatter:.15}};
+    const storage = memoryStorage(), store = createProjectStore(storage);
+    const saved = store.create(document);
+    const reloaded = createProjectStore(storage).read(saved.id).document;
+    assert.deepEqual(reloaded.facets, document.facets);
+    assert.equal(JSON.parse(exportFacetingJSON(reloaded)).facets[0].metadata.surfaceFinish.state, 'frosted');
+    assert.deepEqual(evaluateDocument(reloaded), evaluateDocument(plain));
+    assert.equal(plain.facets[0].metadata?.surfaceFinish, undefined);
+  }
 });

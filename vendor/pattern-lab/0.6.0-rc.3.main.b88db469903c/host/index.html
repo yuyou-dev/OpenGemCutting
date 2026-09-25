@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/webp" href="../assets/logo-header-Bggr2EZY.webp">
+    <title>图案实验室 · 挂载边界验证</title>
+  </head>
+  <body>
+    <style>
+      body { margin:0; font:12px Arial,sans-serif; display:flex; flex-direction:column; height:100dvh; color:#222; }
+      .host-rail { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:9px 12px; border-bottom:1px solid #ddd; }
+      .host-rail button, .host-file { font:inherit; cursor:pointer; background:white; border:1px solid #ddd; border-radius:4px; padding:6px 9px; }
+      .host-project { display:flex; gap:10px; align-items:center; margin-right:auto; min-width:0; }
+      #source-name { max-width:230px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .host-debug { position:relative; }
+      .host-debug > div { position:absolute; z-index:20; top:25px; right:0; background:white; border:1px solid #ddd; padding:10px; width:170px; display:flex; flex-wrap:wrap; gap:6px; }
+      #result { font-size:11px; color:#666; padding:4px 12px; border-bottom:1px solid #eee; }
+      #lab { flex:1; min-height:0; }
+      @media(max-width:600px) { .host-rail { gap:6px; padding:6px; } .host-project { flex-basis:100%; } }
+    </style>
+    <header class="host-rail">
+      <div class="host-project"><strong>宿主验证</strong><span id="source-name">新建实验稿 · 来源由宿主管理</span></div>
+      <label class="host-file">载入来源<input id="source-file" type="file" accept=".json" aria-label="载入来源 JSON" hidden></label>
+      <button id="mount">进入实验室</button>
+      <button id="candidate">检查并带回</button>
+      <button id="save-exit">保存并退出</button>
+      <details class="host-debug"><summary>生命周期</summary><div><button id="pause">暂停</button><button id="resume">继续</button><button id="unmount">卸载</button></div></details>
+    </header>
+    <output id="result">未挂载 · 验证页仅使用内存实验稿</output>
+    <div id="lab"></div>
+    <script type="module" src="./entry.js"></script>
+  </body>
+</html>

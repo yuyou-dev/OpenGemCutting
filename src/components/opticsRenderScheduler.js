@@ -1,8 +1,9 @@
 /** Keep one GPU submission in flight and coalesce updates to the latest camera.
- * This deterministic tracer already produces a complete image per draw: repeating
- * it at idle adds no detail. Preserve the same quality during and after dragging. */
-export function createOpticsRenderScheduler({ gl, render, onError, requestFrame = requestAnimationFrame, cancelFrame = cancelAnimationFrame }) {
-  let latest, frame = 0, fence = null, disposed = false;
+ * The polished tracer submits only on input; a sampling renderer may request
+ * its next batch from render(). Neither queues GPU work ahead of the fence.
+ * onComplete receives the frame-quantized time until a polled fence signaled. */
+export function createOpticsRenderScheduler({ gl, render, onError, onComplete, requestFrame = requestAnimationFrame, cancelFrame = cancelAnimationFrame, now = () => performance.now() }) {
+  let latest, frame = 0, fence = null, submitted = 0, disposed = false;
   const schedule = () => { if (!frame && !disposed) frame = requestFrame(tick); };
   function tick() {
     frame = 0;
@@ -16,6 +17,7 @@ export function createOpticsRenderScheduler({ gl, render, onError, requestFrame 
         onError('光学渲染暂时中断，请退出仿真后重试。');
         return;
       }
+      onComplete?.(now() - submitted);
     }
     if (!latest) return;
     const options = latest;
@@ -27,6 +29,7 @@ export function createOpticsRenderScheduler({ gl, render, onError, requestFrame 
       return;
     }
     fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    submitted = now();
     gl.flush();
     // Poll only while newer input is pending; an idle image needs no extra work.
   }

@@ -2,7 +2,7 @@ export const CRYSTAL_IMPORT_FACE_LIMIT = 1000;
 import { createCenteredCube } from "./geometry.js";
 import { parseMeshOBJ } from "./mesh/index.js";
 import { getMeshStockSolid, normalizeMeshStock } from "./meshStock.js";
-import { createFacetingDocument } from "./faceting.js";
+import { createFacetingDocument, DEFAULT_STOCK } from "./faceting.js";
 import { DEFAULT_OPTICS_SETTINGS, resolveOpticsSettings } from "./optics.js";
 
 export function createStockSolid(stock) {
@@ -37,7 +37,7 @@ export function createMeshDocument({ mesh, name = "导入晶体", unit = "unitle
     mesh: { vertices: points.map(p => ({ x: (p[0] - center[0]) * scale, y: (p[1] - center[1]) * scale, z: (p[2] - center[2]) * scale })), faces: mesh.faces },
     source: { name, unit, upAxis, dimensions: sourceDimensions, orientedDimensions: dimensions, scale, center, ...(unitToMm[unit] ? { millimetersPerModelUnit: unitToMm[unit] / scale } : {}) },
   });
-  return createFacetingDocument({ name, stock, facets: [], metadata: { optics: resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS) } });
+  return createFacetingDocument({ name, stock, cuttingReference: DEFAULT_STOCK, facets: [], metadata: { optics: resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS) } });
 }
 
 export function inspectCrystalOBJ(text, { fileName = "导入晶体.obj", unit = "unitless", upAxis = "z" } = {}) {

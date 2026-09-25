@@ -39,6 +39,7 @@ export function normalizeMeshStock(stock) {
   }
   const result = freeze({
     kind: "mesh", size, center: [...center],
+    ...(stock.extensions === undefined ? {} : { extensions: structuredClone(stock.extensions) }),
     mesh: { vertices: solid.vertices.map(p => ({ ...p })), faces: solid.faces.map(f => [...f.vertexIndices]) },
     envelope: { radius, halfHeight },
     ...(stock.source ? { source: JSON.parse(JSON.stringify(stock.source)) } : {}),

@@ -1,0 +1,484 @@
+{
+  "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+  "schemaVersion": 3,
+  "kind": "facet-96-document",
+  "name": "五重凹切练习",
+  "indexGear": {
+    "teeth": 120,
+    "zeroAlias": 120,
+    "degreesPerTooth": 3
+  },
+  "stock": {
+    "kind": "cube",
+    "size": 2,
+    "center": [
+      0,
+      0,
+      0
+    ]
+  },
+  "facets": [
+    {
+      "id": "table-facet:96",
+      "patternId": "table-facet",
+      "ordinal": 0,
+      "region": "crown",
+      "baseIndex": 0,
+      "repeat": 1,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 96,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 0,
+      "betaDeg": 90,
+      "depth": 0.65,
+      "plane": {
+        "normal": {
+          "x": 0,
+          "y": 0,
+          "z": 1
+        },
+        "offset": 0.35,
+        "keep": "less-than-or-equal"
+      },
+      "label": "T1 台面",
+      "metadata": {
+        "operationType": "table"
+      }
+    },
+    {
+      "id": "g1:24",
+      "patternId": "g1",
+      "ordinal": 0,
+      "region": "girdle",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 72,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.309016994375,
+          "y": 0.951056516295,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 五折腰部"
+    },
+    {
+      "id": "g1:48",
+      "patternId": "g1",
+      "ordinal": 1,
+      "region": "girdle",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 144,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.809016994375,
+          "y": 0.587785252292,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 五折腰部"
+    },
+    {
+      "id": "g1:72",
+      "patternId": "g1",
+      "ordinal": 2,
+      "region": "girdle",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 216,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": -0.809016994375,
+          "y": -0.587785252292,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 五折腰部"
+    },
+    {
+      "id": "g1:96",
+      "patternId": "g1",
+      "ordinal": 3,
+      "region": "girdle",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 96,
+      "displayIndex": 96,
+      "azimuthDeg": 288,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 0.309016994375,
+          "y": -0.951056516295,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 五折腰部"
+    },
+    {
+      "id": "g1:120",
+      "patternId": "g1",
+      "ordinal": 4,
+      "region": "girdle",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 120,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 90,
+      "betaDeg": 0,
+      "depth": 0.2,
+      "plane": {
+        "normal": {
+          "x": 1,
+          "y": 0,
+          "z": 0
+        },
+        "offset": 0.8,
+        "keep": "less-than-or-equal"
+      },
+      "label": "G1 五折腰部"
+    },
+    {
+      "id": "p1:24",
+      "patternId": "p1",
+      "ordinal": 0,
+      "region": "pavilion",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 72,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.85,
+      "plane": {
+        "normal": {
+          "x": 0.202733389271,
+          "y": 0.623949214596,
+          "z": -0.754709580223
+        },
+        "offset": 0.560768609214,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 五折亭部"
+    },
+    {
+      "id": "p1:48",
+      "patternId": "p1",
+      "ordinal": 1,
+      "region": "pavilion",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 144,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.85,
+      "plane": {
+        "normal": {
+          "x": -0.530762903766,
+          "y": 0.385621821874,
+          "z": -0.754709580223
+        },
+        "offset": 0.560768609213,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 五折亭部"
+    },
+    {
+      "id": "p1:72",
+      "patternId": "p1",
+      "ordinal": 2,
+      "region": "pavilion",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 216,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.85,
+      "plane": {
+        "normal": {
+          "x": -0.530762903766,
+          "y": -0.385621821874,
+          "z": -0.754709580223
+        },
+        "offset": 0.560768609213,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 五折亭部"
+    },
+    {
+      "id": "p1:96",
+      "patternId": "p1",
+      "ordinal": 3,
+      "region": "pavilion",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 96,
+      "displayIndex": 96,
+      "azimuthDeg": 288,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.85,
+      "plane": {
+        "normal": {
+          "x": 0.202733389271,
+          "y": -0.623949214596,
+          "z": -0.754709580223
+        },
+        "offset": 0.560768609214,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 五折亭部"
+    },
+    {
+      "id": "p1:120",
+      "patternId": "p1",
+      "ordinal": 4,
+      "region": "pavilion",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 120,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 41,
+      "betaDeg": -49,
+      "depth": 0.85,
+      "plane": {
+        "normal": {
+          "x": 0.656059028991,
+          "y": 0,
+          "z": -0.754709580223
+        },
+        "offset": 0.560768609214,
+        "keep": "less-than-or-equal"
+      },
+      "label": "P1 五折亭部"
+    },
+    {
+      "id": "c1:24",
+      "patternId": "c1",
+      "ordinal": 0,
+      "region": "crown",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 24,
+      "displayIndex": 24,
+      "azimuthDeg": 72,
+      "industryAngleDeg": 32,
+      "betaDeg": 58,
+      "depth": 0.8,
+      "plane": {
+        "normal": {
+          "x": 0.163754058295,
+          "y": 0.503983169359,
+          "z": 0.848048096156
+        },
+        "offset": 0.577967360389,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 五折冠部"
+    },
+    {
+      "id": "c1:48",
+      "patternId": "c1",
+      "ordinal": 1,
+      "region": "crown",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 48,
+      "displayIndex": 48,
+      "azimuthDeg": 144,
+      "industryAngleDeg": 32,
+      "betaDeg": 58,
+      "depth": 0.8,
+      "plane": {
+        "normal": {
+          "x": -0.428713690411,
+          "y": 0.311478728422,
+          "z": 0.848048096156
+        },
+        "offset": 0.577967360389,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 五折冠部"
+    },
+    {
+      "id": "c1:72",
+      "patternId": "c1",
+      "ordinal": 2,
+      "region": "crown",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 72,
+      "displayIndex": 72,
+      "azimuthDeg": 216,
+      "industryAngleDeg": 32,
+      "betaDeg": 58,
+      "depth": 0.8,
+      "plane": {
+        "normal": {
+          "x": -0.428713690411,
+          "y": -0.311478728422,
+          "z": 0.848048096156
+        },
+        "offset": 0.577967360389,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 五折冠部"
+    },
+    {
+      "id": "c1:96",
+      "patternId": "c1",
+      "ordinal": 3,
+      "region": "crown",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 96,
+      "displayIndex": 96,
+      "azimuthDeg": 288,
+      "industryAngleDeg": 32,
+      "betaDeg": 58,
+      "depth": 0.8,
+      "plane": {
+        "normal": {
+          "x": 0.163754058295,
+          "y": -0.503983169359,
+          "z": 0.848048096156
+        },
+        "offset": 0.577967360389,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 五折冠部"
+    },
+    {
+      "id": "c1:120",
+      "patternId": "c1",
+      "ordinal": 4,
+      "region": "crown",
+      "indexTeeth": 120,
+      "baseIndex": 0,
+      "repeat": 5,
+      "mirror": 0,
+      "index": 0,
+      "displayIndex": 120,
+      "azimuthDeg": 0,
+      "industryAngleDeg": 32,
+      "betaDeg": 58,
+      "depth": 0.8,
+      "plane": {
+        "normal": {
+          "x": 0.529919264233,
+          "y": 0,
+          "z": 0.848048096156
+        },
+        "offset": 0.577967360389,
+        "keep": "less-than-or-equal"
+      },
+      "label": "C1 五折冠部"
+    }
+  ],
+  "concaveCuts": [
+    {
+      "id": "round-pits",
+      "type": "sphere",
+      "enabled": true,
+      "label": "五重球形凹切",
+      "position": [
+        0.8,
+        0,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 0.28,
+      "length": 2,
+      "repeat": 5,
+      "phaseDeg": 36,
+      "segments": 12
+    },
+    {
+      "id": "cylinder-groove",
+      "type": "cylinder",
+      "enabled": false,
+      "label": "圆柱槽备选（停用）",
+      "position": [
+        0.85,
+        0,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 0.18,
+      "length": 1.4,
+      "repeat": 5,
+      "phaseDeg": 0,
+      "segments": 16
+    }
+  ]
+}

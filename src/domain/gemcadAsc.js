@@ -1,4 +1,4 @@
-import { createStockSolid } from "./stockGeometry.js";
+import { evaluateDocument } from "./documentGeometry.js";
 import {
   createFacetingDocument,
   displayIndex,
@@ -9,10 +9,11 @@ import {
   rotationalStockSupportOffset,
   validateFacetingDocument,
 } from "./faceting.js";
-import { clipPolyhedronByPlanes } from "./geometry.js";
 import { summarizeEffectiveFacets } from "./meetJump.js";
 
-const TARGET_GEAR = 96;
+import { facetIndexForGear, indexCompatibilityReport } from "./indexing.js";
+
+const DEFAULT_GEAR = 96;
 const EPSILON = 1e-9;
 
 const REGION_LABELS = {
@@ -37,28 +38,20 @@ function statusFor(diagnostics) {
   return "ready";
 }
 
-function decimalFraction(token) {
-  const match = String(token).trim().match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
-  if (!match) return null;
-  const decimals = match[3] ?? "";
-  const denominator = 10n ** BigInt(decimals.length);
-  const numerator = BigInt(`${match[2]}${decimals}`) * (match[1] === "-" ? -1n : 1n);
-  return { numerator, denominator };
+function isDecimalToken(token) {
+  const text = String(token).trim();
+  return /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text) && Number.isFinite(Number(text));
 }
 
-function mapIndexTo96(token, gear, offsetToken = "0") {
-  const fraction = decimalFraction(token);
-  const offset = decimalFraction(offsetToken);
-  if (!fraction || !offset) return null;
-  const commonDenominator = fraction.denominator * offset.denominator;
-  const effectiveNumerator = fraction.numerator * offset.denominator
-    - offset.numerator * fraction.denominator;
-  const gearBigInt = BigInt(gear);
-  const scaledNumerator = effectiveNumerator * 96n;
-  const scaledDenominator = commonDenominator * gearBigInt;
-  if (scaledNumerator % scaledDenominator !== 0n) return null;
-  const mapped = Number(scaledNumerator / scaledDenominator);
-  return normalizeIndex(mapped);
+function sourceIndex(token, gear, offset = 0) {
+  return normalizeIndex((Number(token) - offset) * Math.sign(gear), Math.abs(gear));
+}
+
+// Trim floating-point noise after normal-to-index conversion, never snap a
+// fractional direction to a machine tooth.
+function formatIndex(index, teeth) {
+  const rounded = Number(index.toFixed(10));
+  return rounded === 0 || rounded === teeth ? teeth : rounded;
 }
 
 function appendInstructions(tier, value) {
@@ -117,7 +110,7 @@ function parseTier(line, lineNumber, diagnostics) {
       appendInstructions(tier, tokens.slice(cursor + 1).join(" "));
       break;
     }
-    if (decimalFraction(token)) {
+    if (isDecimalToken(token)) {
       tier.indexTokens.push(token);
       previousIndexToken = token;
     } else {
@@ -225,7 +218,7 @@ export function parseGemCadAsc(source) {
       appendInstructions(currentTier, line.slice(1));
       return;
     }
-    if (currentTier && line.split(/\s+/).every((token) => decimalFraction(token))) {
+    if (currentTier && line.split(/\s+/).every((token) => isDecimalToken(token))) {
       currentTier.indexTokens.push(...line.split(/\s+/));
       return;
     }
@@ -244,8 +237,8 @@ export function parseGemCadAsc(source) {
   if (!parsed.formatVersion) {
     diagnostics.push(diagnostic("error", "MISSING_SIGNATURE", "缺少“GemCad 5.0”文件签名。"));
   }
-  if (!Number.isInteger(parsed.gear) || parsed.gear === 0) {
-    diagnostics.push(diagnostic("error", "INVALID_GEAR", "缺少有效的非零整数齿轮规格。"));
+  if (!Number.isInteger(parsed.gear) || parsed.gear === 0 || Math.abs(parsed.gear) > 360) {
+    diagnostics.push(diagnostic("error", "INVALID_GEAR", "齿轮规格必须为 ±1 到 ±360 的非零整数。"));
   }
   if (!Number.isFinite(parsed.gearOffset)) {
     diagnostics.push(diagnostic("error", "INVALID_GEAR_OFFSET", "齿轮方向偏移不是有效数字。"));
@@ -287,14 +280,7 @@ function tierLabel(tier, region, count) {
 }
 
 function geometrySummary(document) {
-  const stock = createStockSolid(document.stock);
-  const solid = clipPolyhedronByPlanes(stock, document.facets.map((facet) => ({
-    ...facet.plane,
-    operationId: facet.patternId,
-    faceId: facet.id,
-    region: facet.region,
-    operationType: facet.metadata?.operationType,
-  })));
+  const solid = evaluateDocument(document);
   if (solid.vertices.length === 0) return { solid, dimensions: null };
   const xs = solid.vertices.map((point) => point.x);
   const ys = solid.vertices.map((point) => point.y);
@@ -319,7 +305,7 @@ function geometrySummary(document) {
 function baseSummary(parsed) {
   return {
     sourceGear: parsed.gear,
-    targetGear: TARGET_GEAR,
+    targetGear: Math.abs(parsed.gear),
     symmetry: parsed.symmetry,
     mirrorSymmetry: parsed.mirrorSymmetry,
     refractiveIndex: parsed.refractiveIndex,
@@ -339,6 +325,7 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
     return { status: "error", document: null, parsed, diagnostics, summary };
   }
 
+  const indexTeeth = Math.abs(parsed.gear);
   const mappedTiers = parsed.tiers.map((tier) => {
     const sourceIndices = tier.indexTokens.length > 0
       ? tier.indexTokens
@@ -353,12 +340,7 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
         diagnostics.push(diagnostic("error", "INDEX_OUT_OF_RANGE", `索引 ${token} 不在 0–${Math.abs(parsed.gear)} 齿轮范围内。`, tier.line));
         continue;
       }
-      const mapped = mapIndexTo96(token, parsed.gear, parsed.gearOffsetToken ?? "0");
-      if (mapped === null) {
-        diagnostics.push(diagnostic("error", "INEXACT_INDEX_MAPPING", `索引 ${token} × 96 / ${parsed.gear} 不能得到整数齿，拒绝近似取整。`, tier.line));
-        continue;
-      }
-      indices.push(mapped);
+      indices.push(sourceIndex(token, parsed.gear, parsed.gearOffset));
     }
     const uniqueIndices = [...new Set(indices)];
     if (uniqueIndices.length !== indices.length) {
@@ -367,11 +349,8 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
     return { ...tier, indexTokens: sourceIndices, indices: uniqueIndices, region: tierRegion(tier) };
   });
 
-  if (parsed.gear !== TARGET_GEAR && !diagnostics.some((item) => item.code === "INEXACT_INDEX_MAPPING")) {
-    diagnostics.push(diagnostic("warning", "GEAR_CONVERTED", `${parsed.gear} 齿索引将按精确整数关系映射到 96 齿；方位角不变。`));
-  }
-  if (Math.abs(parsed.gearOffset) > EPSILON && !diagnostics.some((item) => item.code === "INEXACT_INDEX_MAPPING")) {
-    diagnostics.push(diagnostic("warning", "GEAR_OFFSET_APPLIED", `已按 (索引 − ${parsed.gearOffset}) × 96 / ${parsed.gear} 应用齿轮方位偏移。`));
+  if (Math.abs(parsed.gearOffset) > EPSILON || parsed.gear < 0) {
+    diagnostics.push(diagnostic("info", "GEAR_OFFSET_APPLIED", `按源 ${parsed.gear} 齿盘应用方位偏移 ${parsed.gearOffset}，保留精确方向与小数分度；文档使用 ${indexTeeth} 齿正向标记。`));
   }
   if (diagnostics.some((item) => item.severity === "error")) {
     return { status: "error", document: null, parsed, diagnostics, summary };
@@ -382,7 +361,7 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
     const industryAngleDeg = Math.abs(tier.angle);
     const betaDeg = industryAngleToBetaDeg(tier.region, industryAngleDeg);
     for (const index of tier.indices) {
-      const support = rotationalStockSupportOffset(facetNormal(index, betaDeg));
+      const support = rotationalStockSupportOffset(facetNormal(index, betaDeg, indexTeeth));
       const distance = Math.abs(tier.centerDistance);
       if (distance > EPSILON) scale = Math.min(scale, support / distance);
     }
@@ -435,15 +414,16 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
       },
     };
     const facets = tier.indices.map((index, ordinal) => {
-      const support = rotationalStockSupportOffset(facetNormal(index, betaDeg));
+      const support = rotationalStockSupportOffset(facetNormal(index, betaDeg, indexTeeth));
       const depth = Math.max(0, support - Math.abs(tier.centerDistance) * scale);
       const sourceIndex = tier.indexTokens[ordinal];
       return resolveFacet({
-        id: `${patternId}:${displayIndex(index)}`,
+        id: `${patternId}:${displayIndex(index, indexTeeth)}`,
         patternId,
         ordinal,
         region: tier.region,
         baseIndex: index,
+        indexTeeth,
         repeat: 1,
         mirror: 0,
         index,
@@ -469,6 +449,7 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
   const rawName = parsed.headings.find(Boolean) || fileName.replace(/\.asc$/i, "") || "Imported GemCad Design";
   const document = createFacetingDocument({
     name: rawName,
+    indexGear: indexTeeth,
     facets,
     metadata: {
       optics: { refractiveIndex: parsed.refractiveIndex },
@@ -501,6 +482,11 @@ export function inspectGemCadAsc(source, { fileName = "Imported GemCad Design.as
     if (survivingPatterns.has("rough-cube")) {
       diagnostics.push(diagnostic("warning", "ROUGH_STOCK_REMAINS", "最终实体仍包含毛坯原始面；请检查源 ASC 是否依赖未编码的预形。"));
     }
+  }
+  summary.compatibility = indexCompatibilityReport(document, { gears: [indexTeeth, ...(indexTeeth === DEFAULT_GEAR ? [] : [DEFAULT_GEAR])] });
+  const nativeCompatibility = summary.compatibility[0];
+  if (!nativeCompatibility.compatible) {
+    diagnostics.push(diagnostic("warning", "FRACTIONAL_INDICES_PRESERVED", `${nativeCompatibility.incompatibleCount} 个方向在 ${indexTeeth} 齿盘上需要小数分度；几何已原样保留，未取整。`));
   }
   summary.dimensions = geometry.dimensions;
   summary.tierCount = facetGroups.length;
@@ -549,6 +535,13 @@ function operationRank(group) {
 
 export function serializeGemCadAsc(document) {
   const diagnostics = [];
+  if (document.concaveCuts?.some((cut) => cut.enabled !== false)) {
+    diagnostics.push(diagnostic("error", "CONCAVE_CUTS_UNSUPPORTED", "ASC 不能表达凹切刀具与曲面；请用 JSON 保存完整项目，或导出 PDF 查看独立凹切工序。"));
+    return { status: "error", text: "", diagnostics, summary: null };
+  }
+  if (document.concaveCuts?.length) {
+    diagnostics.push(diagnostic("warning", "DISABLED_CONCAVE_CUTS_OMITTED", "已停用的凹切参数不会写入 ASC；它们只保留在 JSON 完整项目中。"));
+  }
   if (document.stock?.kind === "mesh") {
     diagnostics.push(diagnostic("error", "MESH_STOCK_UNSUPPORTED", "ASC 无法保存导入晶体的凹部、孔洞与原始表面；请使用 JSON 完整保存，或导出 PDF 查看切割指令。"));
     return { status: "error", text: "", diagnostics, summary: null };
@@ -559,8 +552,16 @@ export function serializeGemCadAsc(document) {
     return { status: "error", text: "", diagnostics, summary: null };
   }
 
+  const indexTeeth = document.indexGear?.teeth ?? DEFAULT_GEAR;
   const geometry = geometrySummary(document);
   const exportedFacets = effectiveFacets(document.facets, geometry.solid);
+  if (!geometry.solid.vertices.length) {
+    diagnostics.push(diagnostic("error", "EMPTY_GEOMETRY", "当前切割已移除全部底胚，没有可导出的实体。"));
+  } else if (!exportedFacets.length) {
+    diagnostics.push(diagnostic("error", "NO_EFFECTIVE_FACETS", "当前没有最终有效的平面工序可写入 ASC，请用 JSON 保存底胚与完整项目。"));
+  } else if (geometry.solid.faces.some((face) => face.sourceOperationId === "rough-cube")) {
+    diagnostics.push(diagnostic("warning", "ROUGH_STOCK_REMAINS", "当前实体保留部分初始底胚面；ASC 只写切割平面，不包含这些底胚边界，不能独立还原完整外形。"));
+  }
   const omittedFacetCount = document.facets.length - exportedFacets.length;
   const groups = groupFacets(exportedFacets).sort((left, right) => operationRank(left) - operationRank(right));
   const ascMetadata = document.metadata?.asc ?? {};
@@ -603,7 +604,7 @@ export function serializeGemCadAsc(document) {
     const indexEntries = [];
     const seenIndices = new Set();
     group.forEach((facet) => {
-      const index = displayIndex(facet.index);
+      const index = formatIndex(facetIndexForGear(facet, indexTeeth) ?? 0, indexTeeth);
       if (seenIndices.has(index)) return;
       seenIndices.add(index);
       indexEntries.push({ index, facetName: facet.metadata?.asc?.facetName ?? "" });
@@ -641,9 +642,14 @@ export function serializeGemCadAsc(document) {
   }
   diagnostics.push(diagnostic("warning", "EDITOR_STATE_OMITTED", "ASC 不包含撤销历史、隐藏状态、毛坯定义或编辑器会话；请同时保留 JSON 作为完整主文件。"));
 
+  const compatibility = indexCompatibilityReport(document, { scope: "final", finalFacets: exportedFacets, gears: [indexTeeth] });
+  if (!compatibility[0].compatible) {
+    diagnostics.push(diagnostic("warning", "FRACTIONAL_INDICES_PRESERVED", `${compatibility[0].incompatibleCount} 个最终平面在 ${indexTeeth} 齿盘上需要小数分度；ASC 保留这些方向，未取整。整齿最大偏差 ${compatibility[0].maxErrorDeg.toFixed(6)}°。`));
+  }
   const summary = {
-    sourceGear: TARGET_GEAR,
-    targetGear: TARGET_GEAR,
+    sourceGear: indexTeeth,
+    targetGear: indexTeeth,
+    compatibility,
     symmetry,
     mirrorSymmetry: mirror === "y",
     refractiveIndex,
@@ -659,7 +665,7 @@ export function serializeGemCadAsc(document) {
   }
   const text = [
     "GemCad 5.0",
-    "g96 0.0",
+    `g${indexTeeth} 0.0`,
     `y ${symmetry} ${mirror}`,
     `I ${refractiveIndex}`,
     ...headings.map((line) => `H ${line}`),

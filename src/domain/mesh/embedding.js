@@ -6,7 +6,9 @@ const bounds = points => ({
   min: Object.fromEntries(axes.map(axis => [axis, Math.min(...points.map(p => p[axis]))])),
   max: Object.fromEntries(axes.map(axis => [axis, Math.max(...points.map(p => p[axis]))])),
 });
-const overlaps = (a, b, eps) => axes.every(axis => a.min[axis] <= b.max[axis] + eps && b.min[axis] <= a.max[axis] + eps);
+const overlaps = (a, b, eps) => a.min.x <= b.max.x + eps && b.min.x <= a.max.x + eps
+  && a.min.y <= b.max.y + eps && b.min.y <= a.max.y + eps
+  && a.min.z <= b.max.z + eps && b.min.z <= a.max.z + eps;
 
 /** Triangles retain patch ownership; collinear fan triangles have no surface area. */
 export function meshTriangles(solid) {
@@ -14,12 +16,19 @@ export function meshTriangles(solid) {
   const eps = polyhedronTolerance(solid.vertices);
   solid.faces.forEach((face, faceIndex) => {
     const ids = face.vertexIndices;
+    const facePoints = ids.map(id => solid.vertices[id]);
+    // All fan triangles belong to one validated planar patch. A very thin
+    // fan wedge has an ill-conditioned cross product; use the full boundary
+    // normal so it cannot invent a plane crossing its neighboring patch.
+    const faceArea = facePoints.slice(1, -1).reduce((sum, p, i) => add(sum,
+      cross(sub(p, facePoints[0]), sub(facePoints[i + 2], facePoints[0]))), { x: 0, y: 0, z: 0 });
+    const normal = normalize(faceArea);
     for (let i = 1; i + 1 < ids.length; i++) {
       const vertexIndices = [ids[0], ids[i], ids[i + 1]];
       const points = vertexIndices.map(id => solid.vertices[id]);
       const area = cross(sub(points[1], points[0]), sub(points[2], points[0]));
       if (length(area) <= eps * Math.max(length(sub(points[1], points[0])), length(sub(points[2], points[0])))) continue;
-      triangles.push({ vertexIndices, points, face, facePoints: ids.map(id => solid.vertices[id]), faceIndex, normal: normalize(area), bounds: bounds(points) });
+      triangles.push({ vertexIndices, points, face, facePoints, faceIndex, normal, bounds: bounds(points) });
     }
   });
   return triangles;
@@ -55,12 +64,23 @@ function pointOnCommonBoundary(point, common, eps) {
 function pointInTriangle(point, triangle, eps) {
   for (let i = 0; i < 3; i++) {
     const a = triangle.points[i], b = triangle.points[(i + 1) % 3];
-    if (dot(cross(sub(b, a), sub(point, a)), triangle.normal) < -eps * length(sub(b, a))) return false;
+    const edge = sub(b, a), relative = sub(point, a);
+    const side = dot(cross(edge, relative), triangle.normal);
+    if (side < -eps * length(edge)) return false;
+    if (side < 0) {
+      // Distance to an infinite supporting line admits points far beyond an
+      // acute triangle tip. A tolerance contact must reach the finite edge.
+      const t = Math.max(0, Math.min(1, dot(relative, edge) / dot(edge, edge)));
+      if (length(sub(relative, scale(edge, t))) > eps) return false;
+    }
   }
   return true;
 }
 
 function intersectingBeyondSharedBoundary(a, b, eps) {
+  const da = a.points.map(p => dot(b.normal, sub(p, b.points[0])));
+  const db = b.points.map(p => dot(a.normal, sub(p, a.points[0])));
+  if (da.every(d => d > eps) || da.every(d => d < -eps) || db.every(d => d > eps) || db.every(d => d < -eps)) return false;
   const aIds = a.face.vertexIndices, bIds = b.face.vertexIndices;
   const commonIds = aIds.filter(id => bIds.includes(id));
   const position = id => a.facePoints[aIds.indexOf(id)];
@@ -70,9 +90,6 @@ function intersectingBeyondSharedBoundary(a, b, eps) {
     const j = bIds.indexOf(second);
     if (j >= 0 && bIds[(j + 1) % bIds.length] === first) common.edges.push([position(first), position(second)]);
   }
-  const da = a.points.map(p => dot(b.normal, sub(p, b.points[0])));
-  const db = b.points.map(p => dot(a.normal, sub(p, a.points[0])));
-  if (da.every(d => d > eps) || da.every(d => d < -eps) || db.every(d => d > eps) || db.every(d => d < -eps)) return false;
   if (da.every(d => Math.abs(d) <= eps) && db.every(d => Math.abs(d) <= eps)) {
     // Clip the projected triangle intersection. A positive area is overlap,
     // even if the triangles happen to share a legitimate vertex or edge.
@@ -89,7 +106,14 @@ function intersectingBeyondSharedBoundary(a, b, eps) {
       }
       polygon = clipped;
     }
-    if (polygon.some(p => !pointOnCommonBoundary(p, common, eps))) return true;
+    // A positive-area intersection must extend into every triangle edge's
+    // interior halfspace. Without this separation check, clipping near an
+    // acute corner amplifies roundoff into a spurious long, zero-width sliver.
+    const interiorOverlap = [[a, b], [b, a]].every(([source, target]) => target.points.every((origin, i) => {
+      const edge = sub(target.points[(i + 1) % 3], origin);
+      return source.points.some(p => dot(cross(edge, sub(p, origin)), target.normal) > eps * length(edge));
+    }));
+    if (interiorOverlap && polygon.some(p => !pointOnCommonBoundary(p, common, eps))) return true;
     // Collinear touching may collapse under clipping; inspect original vertices.
     return a.points.some(p => pointInTriangle(p, b, eps) && !pointOnCommonBoundary(p, common, eps))
       || b.points.some(p => pointInTriangle(p, a, eps) && !pointOnCommonBoundary(p, common, eps));
@@ -99,7 +123,10 @@ function intersectingBeyondSharedBoundary(a, b, eps) {
       const p = source.points[i], q = source.points[(i + 1) % 3];
       const dp = distances[i], dq = distances[(i + 1) % 3];
       if (Math.abs(dp) <= eps && pointInTriangle(p, target, eps) && !pointOnCommonBoundary(p, common, eps)) return true;
-      if (dp * dq < 0) {
+      // Endpoints within the plane tolerance are already handled above.
+      // Interpolating their roundoff sign along a nearly coplanar edge can
+      // turn a shared endpoint into a spurious distant intersection.
+      if (dp > eps && dq < -eps || dp < -eps && dq > eps) {
         const point = add(p, scale(sub(q, p), dp / (dp - dq)));
         if (pointInTriangle(point, target, eps) && !pointOnCommonBoundary(point, common, eps)) return true;
       }
@@ -122,21 +149,31 @@ function containsPoint(triangles, point) {
 export function validateMeshEmbedding(solid) {
   const triangles = meshTriangles(solid), tree = buildTriangleBVH(triangles);
   const eps = polyhedronTolerance(solid.vertices);
-  triangles.forEach((triangle, index) => { triangle.index = index; });
   let candidatePairs = 0;
-  for (const triangle of triangles) {
-    const stack = tree ? [tree] : [];
-    while (stack.length) {
-      const node = stack.pop();
-      if (!overlaps(triangle.bounds, node, eps)) continue;
-      if (!node.triangles) { stack.push(node.left, node.right); continue; }
-      for (const other of node.triangles) {
-        if (other.index <= triangle.index || other.faceIndex === triangle.faceIndex || !overlaps(triangle.bounds, other.bounds, eps)) continue;
-        candidatePairs++;
-        if (intersectingBeyondSharedBoundary(triangle, other, eps)) {
-          throw new PolyhedronError('invalid-mesh', `Faces ${triangle.faceIndex + 1} and ${other.faceIndex + 1}: self-intersection or overlapping shells`);
+  // Traverse pairs of BVH nodes once. Querying the full tree separately for
+  // every triangle repeated the same box comparisons in both directions.
+  const pairs = tree ? [[tree, tree]] : [];
+  while (pairs.length) {
+    const [a, b] = pairs.pop();
+    if (!overlaps(a, b, eps)) continue;
+    if (a.triangles && b.triangles) {
+      for (let i = 0; i < a.triangles.length; i++) {
+        const triangle = a.triangles[i];
+        for (let j = a === b ? i + 1 : 0; j < b.triangles.length; j++) {
+          const other = b.triangles[j];
+          if (other.faceIndex === triangle.faceIndex || !overlaps(triangle.bounds, other.bounds, eps)) continue;
+          candidatePairs++;
+          if (intersectingBeyondSharedBoundary(triangle, other, eps)) {
+            throw new PolyhedronError('invalid-mesh', `Faces ${triangle.faceIndex + 1} and ${other.faceIndex + 1}: self-intersection or overlapping shells`);
+          }
         }
       }
+    } else if (a === b) {
+      pairs.push([a.left, a.left], [a.left, a.right], [a.right, a.right]);
+    } else if (!a.triangles) {
+      pairs.push([a.left, b], [a.right, b]);
+    } else {
+      pairs.push([a, b.left], [a, b.right]);
     }
   }
   const parent = solid.vertices.map((_, index) => index);

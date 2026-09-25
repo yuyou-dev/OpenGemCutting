@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createMeshDocument, createStockSolid, inspectCrystalMesh, inspectCrystalOBJ } from './stockGeometry.js';
 import { createWorkbenchDocument, ensureTableFacet } from './document.js';
-import { applyFacetingCommand, createAddFacetsCommand, createCommandHistory, createFacetingDocument, createRemoveFacetsCommand, createReplaceDocumentCommand, executeFacetingCommand, exportFacetingJSON, importFacetingJSON, redoFacetingCommand, resolveFacetPattern, undoFacetingCommand, validateFacetingDocument } from './faceting.js';
+import { getCuttingReference, applyFacetingCommand, createAddFacetsCommand, createCommandHistory, createFacetingDocument, createRemoveFacetsCommand, createReplaceDocumentCommand, executeFacetingCommand, exportFacetingJSON, importFacetingJSON, redoFacetingCommand, resolveFacetPattern, undoFacetingCommand, validateFacetingDocument } from './faceting.js';
 import { clipPolyhedronByPlanes, clipPolyhedronPreview, createCenteredCube, polyhedronVolume } from './geometry.js';
 import { uRough } from './mesh/fixtures.js';
 import { parseMeshOBJ, validateMeshSolid } from './mesh/index.js';
@@ -16,13 +16,13 @@ function initial() {
   const mesh = uRough();
   return createMeshDocument({ mesh: { vertices: mesh.vertices, faces: mesh.faces.map(face => face.vertexIndices) }, name: '凹晶体 U', unit: 'mm', upAxis: 'z' });
 }
-const pattern = (document, id, { region = 'crown', depth = 0.2, industryAngleDeg = 0, repeat = 1, baseIndex = 0, metadata } = {}) => resolveFacetPattern({
+const pattern = (document, id, { region = 'crown', depth = 0.8, industryAngleDeg = 0, repeat = 1, baseIndex = 0, metadata } = {}) => resolveFacetPattern({
   patternId: id, region, depth, industryAngleDeg, repeat, baseIndex, mirror: 0, metadata,
-}, { stock: document.stock });
+}, { stock: getCuttingReference(document) });
 
 test('mesh project preserves original stock independently from zero initial CUTs and normalized source units', () => {
   const document = initial();
-  assert.equal(document.schemaVersion, 2); assert.equal(document.facets.length, 0);
+  assert.equal(document.schemaVersion, 3); assert.equal(document.facets.length, 0);
   assert.equal(ensureTableFacet(document), document);
   assert.deepEqual(document.stock.source.dimensions, [3, 3, 1]);
   assert.equal(document.stock.source.millimetersPerModelUnit, 1.5);
@@ -106,7 +106,7 @@ test('mesh vertex and edge Meet snapshots roundtrip and report hidden/reordered 
   const prefix = clipPolyhedronByPlanes(createStockSolid(document.stock), source.map(planeEntry));
   const target = createEdgeMeetTarget(enumerateTopologyEdges(prefix).find(edge => edge.sourceOperationIds.includes('C1')), 0.7);
   const primary = pattern(document, 'P1', { region: 'pavilion', industryAngleDeg: 30 })[0];
-  const solved = solveVertexMeet({ normal: primary.plane.normal, target, stock: document.stock });
+  const solved = solveVertexMeet({ normal: primary.plane.normal, target, stock: getCuttingReference(document) });
   assert.equal(solved.status, 'valid');
   const follower = pattern(document, 'P1', { region: 'pavilion', industryAngleDeg: 30, depth: solved.depth,
     metadata: { patternMode: 'symmetric', construction: { type: 'edge-meet', solverVersion: 2, primaryIndex: 0, target } } });
@@ -141,7 +141,7 @@ test('stock canonicalizes face records before creating Meet identities that surv
   assert.ok(solid.faces.every((face, index) => face.id === `rough:patch:${index}` && face.facetId === undefined));
   const target = enumerateTopologyVertices(solid).find(point => point.fallbackWorldPoint[0] < 0 && point.fallbackWorldPoint[2] > 0);
   const primary = pattern(document, 'C1', { industryAngleDeg: 30 })[0];
-  const solved = solveVertexMeet({ normal: primary.plane.normal, target, stock: document.stock });
+  const solved = solveVertexMeet({ normal: primary.plane.normal, target, stock: getCuttingReference(document) });
   const facets = pattern(document, 'C1', { industryAngleDeg: 30, depth: solved.depth,
     metadata: { patternMode: 'symmetric', construction: { type: 'vertex-meet', solverVersion: 1, target } } });
   const saved = createFacetingDocument({ ...document, facets });

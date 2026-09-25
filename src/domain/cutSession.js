@@ -1,4 +1,6 @@
 import { adjacentJumpCandidateIndex } from "./meetJump.js";
+import { normalizeIndex, displayIndex } from "./faceting.js";
+import { normalizeIndexTeeth, compatibleRepeat } from "./indexing.js";
 
 export const CUT_SESSION_MODE = Object.freeze({
   IDLE: "idle",
@@ -13,6 +15,7 @@ export const CUT_SESSION_EVENT = Object.freeze({
   SELECT_LAYER: "select-layer",
   START_GROUP: "start-group",
   CHANGE_DRAFT: "change-draft",
+  CHANGE_INDEX_GEAR: "change-index-gear",
   CHANGE_GROUP: "change-group",
   START_MEET_PICK: "start-meet-pick",
   CANCEL_CONSTRUCTION_TOOL: "cancel-construction-tool",
@@ -62,14 +65,16 @@ function normalizeConstruction(construction) {
 // Region defaults rebuild a draft; baseIndex and customIndices are index
 // preferences that survive region switches and new actions.
 export function defaultDraftForRegion(region, previous = null) {
+  const gearedDefaults = draftForIndexGear(undefined, previous?.indexTeeth);
   return {
     industryAngle: DEFAULT_DRAFT_ANGLES[region] ?? DEFAULT_DRAFT_ANGLES.crown,
     depth: DEFAULT_DRAFT_DEPTHS[region] ?? DEFAULT_DRAFT_DEPTHS.crown,
-    baseIndex: previous?.baseIndex ?? DEFAULT_BASE_INDEX,
-    repeat: region === "girdle" ? 16 : 8,
+    baseIndex: previous?.baseIndex ?? Math.round(gearedDefaults?.baseIndex ?? DEFAULT_BASE_INDEX),
+    indexTeeth: previous?.indexTeeth ?? 96,
+    repeat: compatibleRepeat(previous?.indexTeeth ?? 96, region === "girdle" ? 16 : 8),
     mirrorOffset: 0,
     patternMode: "symmetric",
-    customIndices: previous?.customIndices ?? DEFAULT_CUSTOM_INDICES,
+    customIndices: previous?.customIndices ?? gearedDefaults?.customIndices ?? DEFAULT_CUSTOM_INDICES,
     preform: false,
   };
 }
@@ -85,6 +90,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canPickLayer: true,
     canChangeRegion: true,
     canMutateStack: true,
+    canEditParameterGroups: true,
     canStartGroup: true,
     canUseMeetJump: false,
     canJumpPrevious: false,
@@ -112,6 +118,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canPickLayer: false,
     canChangeRegion: true,
     canMutateStack: false,
+    canEditParameterGroups: false,
     canStartGroup: false,
     canUseMeetJump: false,
     canJumpPrevious: false,
@@ -139,6 +146,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canPickLayer: false,
     canChangeRegion: true,
     canMutateStack: false,
+    canEditParameterGroups: false,
     canStartGroup: false,
     canUseMeetJump: false,
     canJumpPrevious: false,
@@ -166,6 +174,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canPickLayer: false,
     canChangeRegion: false,
     canMutateStack: false,
+    canEditParameterGroups: false,
     canStartGroup: false,
     canUseMeetJump: false,
     canJumpPrevious: false,
@@ -192,7 +201,7 @@ export function createCutSession(mode = CUT_SESSION_MODE.IDLE, payload = {}) {
       mode,
       region,
       dirty: true,
-      draft: defaultDraftForRegion(region, payload.baseDraft),
+      draft: defaultDraftForRegion(region, draftForIndexGear(payload.baseDraft, payload.indexTeeth)),
       construction: normalizeConstruction(payload.construction),
     };
   }
@@ -227,7 +236,7 @@ export function createCutSession(mode = CUT_SESSION_MODE.IDLE, payload = {}) {
     mode: CUT_SESSION_MODE.IDLE,
     region,
     dirty: false,
-    draft: defaultDraftForRegion(region, payload.baseDraft),
+    draft: defaultDraftForRegion(region, draftForIndexGear(payload.baseDraft, payload.indexTeeth)),
     construction: emptyConstruction(),
   };
 }
@@ -240,9 +249,13 @@ function groupIsDirty(group) {
 
 function hasCustomPrimary(draft) {
   if (draft.patternMode !== "arbitrary") return true;
-  const indices = String(draft.customIndices ?? "").trim().split(/[\s,，;；]+/).map(Number);
-  return indices.every((index) => Number.isInteger(index) && index >= 1 && index <= 96)
-    && indices.some((index) => index % 96 === draft.baseIndex % 96);
+  const teeth = draft.indexTeeth ?? 96;
+  const indices = String(draft.customIndices ?? "").trim().split(/[\s,，;；]+/).filter(Boolean).map(Number);
+  return indices.length > 0 && indices.every((index) => Number.isFinite(index) && index >= 0 && index <= teeth)
+    && indices.some((index) => {
+      const distance = Math.abs(normalizeIndex(index, teeth) - normalizeIndex(draft.baseIndex, teeth));
+      return Math.min(distance, teeth - distance) < 1e-9;
+    });
 }
 
 function usableCandidate(candidate) {
@@ -278,11 +291,30 @@ function selectMeetCandidate(session, event) {
   };
 }
 
+/** Retarget idle authoring preferences while preserving their azimuth. */
+function draftForIndexGear(draft, indexTeeth) {
+  if (indexTeeth === undefined || indexTeeth === (draft?.indexTeeth ?? 96)) return draft;
+  const teeth = normalizeIndexTeeth(indexTeeth);
+  const source = draft?.indexTeeth ?? 96;
+  const customIndices = String(draft?.customIndices ?? DEFAULT_CUSTOM_INDICES).trim().split(/[\s,，;；]+/);
+  const customSource = draft?.customIndices === undefined ? 96 : source;
+  return {
+    ...draft,
+    indexTeeth: teeth,
+    baseIndex: draft?.baseIndex === undefined ? Math.round(DEFAULT_BASE_INDEX * teeth / 96) % teeth : normalizeIndex(draft.baseIndex * teeth / source, teeth),
+    customIndices: customIndices.map((token) => Number.isFinite(Number(token))
+      ? displayIndex(normalizeIndex(Number(token) * teeth / customSource, teeth), teeth) : token).join(" "),
+  };
+}
+
 export function cutSessionReducer(session, event) {
   switch (event.type) {
+    case CUT_SESSION_EVENT.CHANGE_INDEX_GEAR:
+      return CUT_SESSION_TABLE[session.mode].canEditParameterGroups
+        ? { ...session, draft: draftForIndexGear(session.draft, event.indexTeeth) } : session;
     case CUT_SESSION_EVENT.START_CREATE:
       return CUT_SESSION_TABLE[session.mode].showNewButton
-        ? createCutSession(CUT_SESSION_MODE.CREATE, { region: event.region, baseDraft: session.draft })
+        ? createCutSession(CUT_SESSION_MODE.CREATE, { region: event.region, baseDraft: draftForIndexGear(session.draft, event.indexTeeth) })
         : session;
     case CUT_SESSION_EVENT.CHANGE_REGION:
       if (!CUT_SESSION_TABLE[session.mode].canChangeRegion) return session;
@@ -290,12 +322,12 @@ export function cutSessionReducer(session, event) {
       // the new region's defaults.
       return createCutSession(
         session.mode === CUT_SESSION_MODE.IDLE ? CUT_SESSION_MODE.IDLE : CUT_SESSION_MODE.CREATE,
-        { region: event.region, baseDraft: session.draft },
+        { region: event.region, baseDraft: draftForIndexGear(session.draft, event.indexTeeth) },
       );
     case CUT_SESSION_EVENT.DOCUMENT_CREATE:
       return createCutSession(CUT_SESSION_MODE.CREATE, {
         region: event.region,
-        baseDraft: { customIndices: session.draft?.customIndices },
+        baseDraft: draftForIndexGear({ customIndices: session.draft?.customIndices, indexTeeth: session.draft?.indexTeeth }, event.indexTeeth),
       });
     case CUT_SESSION_EVENT.SELECT_LAYER:
       return CUT_SESSION_TABLE[session.mode].canPickLayer
@@ -314,6 +346,7 @@ export function cutSessionReducer(session, event) {
     case CUT_SESSION_EVENT.CHANGE_DRAFT: {
       if (session.mode !== CUT_SESSION_MODE.CREATE && session.mode !== CUT_SESSION_MODE.EDIT) return session;
       const patch = { ...event.patch };
+      delete patch.indexTeeth; // A wheel change belongs to the idle parameter-group event.
       if (session.region === "girdle" && "industryAngle" in patch) patch.industryAngle = 90;
       if (session.lockedLayer && "industryAngle" in patch) patch.industryAngle = 0;
       if (!resolveCutSession(session).canMarkPreform) delete patch.preform;

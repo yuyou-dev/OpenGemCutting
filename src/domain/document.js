@@ -1,17 +1,19 @@
 /**
- * Default cube initialization adds a fixed 0° table and editable 32-fold
+ * Default cube initialization adds a fixed 0° table and editable equipment-compatible
  * girdle. Imported mesh projects retain their original stock and zero CUTs;
  * their initialization belongs to stockGeometry.js.
  */
 
 import { createFacetingDocument, resolveFacetPattern } from "./faceting.js";
+import { compatibleRepeat, normalizeIndexTeeth } from "./indexing.js";
 import { DEFAULT_OPTICS_SETTINGS, resolveOpticsSettings } from "./optics.js";
 
 const TABLE_PATTERN_ID = "table-facet";
 
-function tableFacets(stock) {
+function tableFacets(stock, indexTeeth = 96) {
   return resolveFacetPattern({
     patternId: TABLE_PATTERN_ID,
+    indexTeeth,
     label: "T1 台面",
     region: "crown",
     baseIndex: 0,
@@ -28,21 +30,22 @@ function tableFacets(stock) {
 }
 
 export function ensureTableFacet(document) {
-  if (document.stock.kind === "mesh") return document;
+  if (document.stock.kind === "mesh" || document.schemaVersion >= 3) return document;
   if (document.facets.some((facet) => facet.patternId === TABLE_PATTERN_ID || facet.metadata?.operationType === "table")) {
     return document;
   }
   return { ...document, facets: [...tableFacets(document.stock), ...document.facets] };
 }
 
-/** Default 32-fold girdle preform: turns the cube stock into a prism blank. */
-function girdlePreformFacets(stock) {
+/** The default girdle is a planar CUT on the project equipment wheel. */
+function girdlePreformFacets(stock, indexTeeth) {
   return resolveFacetPattern({
     patternId: "girdle-preform",
+    indexTeeth,
     label: "G1 腰部",
     region: "girdle",
     baseIndex: 0,
-    repeat: 32,
+    repeat: compatibleRepeat(indexTeeth),
     mirror: 0,
     industryAngleDeg: 90,
     depth: 0.2,
@@ -50,10 +53,12 @@ function girdlePreformFacets(stock) {
   }, { stock });
 }
 
-export function createWorkbenchDocument(name) {
-  const withTable = ensureTableFacet(createFacetingDocument({
-    name,
+export function createWorkbenchDocument(name, indexTeeth = 96) {
+  normalizeIndexTeeth(indexTeeth);
+  const document = createFacetingDocument({ name, indexGear: indexTeeth,
     metadata: { optics: resolveOpticsSettings(DEFAULT_OPTICS_SETTINGS) },
-  }));
-  return { ...withTable, facets: [...withTable.facets, ...girdlePreformFacets(withTable.stock)] };
+  });
+  return createFacetingDocument({ ...document, facets: [
+    ...tableFacets(document.stock, indexTeeth), ...girdlePreformFacets(document.stock, indexTeeth),
+  ] });
 }

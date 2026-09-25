@@ -4,27 +4,26 @@ import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { INDEX_TEETH, displayIndex, indexToAzimuthDeg, normalizeIndex } from "../domain/faceting.js";
 
 /**
- * Horizontal 96-tooth index tape: a flat ruler strip the height of a form row.
+ * Horizontal index tape: a flat ruler strip the height of a form row.
  * Drag or click the tape to snap to the nearest tooth; steppers nudge ±1;
- * click the readout to type an exact display index (1–96, 96 aliases 0).
+ * click the readout to type an exact index, including fractions (the final tooth aliases 0).
  */
-export function IndexTape({ index, onIndexChange, disabled = false }) {
+export function IndexTape({ index, indexTeeth = INDEX_TEETH, onIndexChange, disabled = false }) {
   const tapeRef = useRef(null);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const cancelEditRef = useRef(false);
   const draggingRef = useRef(false);
 
-  const shown = displayIndex(index);
-  const azimuth = indexToAzimuthDeg(index);
+  const shown = displayIndex(index, indexTeeth);
+  const azimuth = indexToAzimuthDeg(index, indexTeeth);
 
   const emitFromClientX = (clientX) => {
     const rect = tapeRef.current?.getBoundingClientRect();
     if (!rect || rect.width === 0) return;
     const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    // Tape runs 3 o'clock (index 0/96) at the left to just before one full turn
-    // at the right, i.e. linear in azimuth: index = round(ratio * 96) % 96.
-    onIndexChange(normalizeIndex(Math.round(ratio * INDEX_TEETH)));
+    // Dragging snaps to whole teeth; typing preserves a fractional setting.
+    onIndexChange(normalizeIndex(Math.round(ratio * indexTeeth), indexTeeth));
   };
 
   const onPointerDown = (event) => {
@@ -48,22 +47,22 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
       setEditing(false);
       return;
     }
-    const numeric = Math.round(Number(editValue));
-    if (Number.isFinite(numeric)) {
-      onIndexChange(normalizeIndex(Math.min(INDEX_TEETH, Math.max(1, numeric)) % INDEX_TEETH));
+    const numeric = Number(editValue);
+    if (editValue.trim() !== "" && Number.isFinite(numeric) && numeric >= 0 && numeric <= indexTeeth) {
+      onIndexChange(normalizeIndex(numeric, indexTeeth));
     }
     setEditing(false);
   };
 
   const ticks = [];
-  for (let tooth = 0; tooth < INDEX_TEETH; tooth += 1) {
-    const major = tooth % 24 === 0;
-    const mid = !major && tooth % 8 === 0;
+  for (let tooth = 0; tooth < indexTeeth; tooth += 1) {
+    const major = tooth % Math.max(1, Math.round(indexTeeth / 4)) === 0;
+    const mid = !major && tooth % Math.max(1, Math.round(indexTeeth / 12)) === 0;
     ticks.push(
       <i
         key={tooth}
         className={major ? "is-major" : mid ? "is-mid" : ""}
-        style={{ left: `${(tooth / INDEX_TEETH) * 100}%` }}
+        style={{ left: `${(tooth / indexTeeth) * 100}%` }}
       />,
     );
   }
@@ -72,9 +71,9 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
     <div
       className={disabled ? "index-tape is-disabled" : "index-tape"}
       role="slider"
-      aria-label={t("96 齿索引")}
-      aria-valuemin={1}
-      aria-valuemax={96}
+      aria-label={t("{0} 齿索引", [indexTeeth])}
+      aria-valuemin={0}
+      aria-valuemax={indexTeeth}
       aria-valuenow={shown}
       aria-valuetext={`索引 ${shown}，方位角 ${azimuth.toFixed(2)}°`}
       aria-disabled={disabled}
@@ -82,11 +81,11 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
       onKeyDown={(event) => {
         if (editing || disabled) return;
         if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-          onIndexChange(normalizeIndex(index - 1));
+          onIndexChange(normalizeIndex(index - 1, indexTeeth));
           event.preventDefault();
         }
         if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-          onIndexChange(normalizeIndex(index + 1));
+          onIndexChange(normalizeIndex(index + 1, indexTeeth));
           event.preventDefault();
         }
       }}
@@ -94,7 +93,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
       <button
         type="button"
         className="index-tape-step"
-        onClick={() => onIndexChange(normalizeIndex(index - 1))}
+        onClick={() => onIndexChange(normalizeIndex(index - 1, indexTeeth))}
         disabled={disabled}
         aria-label={t("索引减一")}
         tabIndex={-1}
@@ -111,18 +110,18 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
         onPointerCancel={onPointerUp}
       >
         <div className="index-tape-ticks" aria-hidden="true">{t(ticks)}</div>
-        {["96", "24", "48", "72"].map((label, labelIndex) => (
-          <span key={label} className="index-tape-label" style={{ left: `${(labelIndex * 24 / INDEX_TEETH) * 100}%` }} aria-hidden="true">
-            {t(label)}
+        {Array.from({ length: Math.min(4, indexTeeth) }, (_, ordinal) => Math.round(ordinal * indexTeeth / Math.min(4, indexTeeth))).map((tooth) => (
+          <span key={tooth} className="index-tape-label" style={{ left: `${(tooth / indexTeeth) * 100}%` }} aria-hidden="true">
+            {displayIndex(tooth, indexTeeth)}
           </span>
         ))}
-        <span className="index-tape-handle" style={{ left: `${(index / INDEX_TEETH) * 100}%` }} aria-hidden="true" />
+        <span className="index-tape-handle" style={{ left: `${(normalizeIndex(index, indexTeeth) / indexTeeth) * 100}%` }} aria-hidden="true" />
       </div>
 
       <button
         type="button"
         className="index-tape-step"
-        onClick={() => onIndexChange(normalizeIndex(index + 1))}
+        onClick={() => onIndexChange(normalizeIndex(index + 1, indexTeeth))}
         disabled={disabled}
         aria-label={t("索引加一")}
         tabIndex={-1}
@@ -136,8 +135,9 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
           value={editValue}
           autoFocus
           type="number"
-          min="1"
-          max="96"
+          min="0"
+          max={indexTeeth}
+          step="any"
           onChange={(event) => setEditValue(event.target.value)}
           onBlur={commitEdit}
           onKeyDown={(event) => {
@@ -148,7 +148,7 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
               setEditing(false);
             }
           }}
-          aria-label={t("输入索引 1 到 96")}
+          aria-label={t("输入索引 0 到 {0}（支持小数）", [indexTeeth])}
         />
       ) : (
         <button
@@ -156,11 +156,12 @@ export function IndexTape({ index, onIndexChange, disabled = false }) {
           className="index-tape-readout"
           onClick={() => {
             if (disabled) return;
+            cancelEditRef.current = false;
             setEditValue(String(shown));
             setEditing(true);
           }}
           disabled={disabled}
-          title={t("点击输入精确索引")}
+          title={t("{0} 齿 · 拖动吸附整齿，点击输入小数索引", [indexTeeth])}
         >
           <strong>{String(shown).padStart(2, "0")}</strong>
           <small>{azimuth.toFixed(1)}°</small>

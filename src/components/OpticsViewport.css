@@ -85,3 +85,12 @@
   letter-spacing: 0.08em;
   pointer-events: none;
 }
+
+.optics-surface-control { position: absolute; top: 66px; left: 18px; max-width: calc(100% - 36px); }
+.optics-surface-tabs { width: max-content; }
+.optics-surface-tabs button:focus-visible { outline: 2px solid var(--pink, #ec1964); outline-offset: 1px; }
+.optics-surface-control p { margin: 6px 0 0; font-size: 11px; color: #5b6161; padding: 4px 6px; background: #ffffffdb; border-radius: 3px; }
+
+@media (max-width: 700px) {
+  .optics-surface-control { top: 58px; left: 12px; max-width: calc(100% - 24px); }
+}

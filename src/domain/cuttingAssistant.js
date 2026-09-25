@@ -1,3 +1,5 @@
+import { facetSurfaceState } from './facetSurface.js';
+import { applyConcaveCuts } from "./documentGeometry.js";
 import { createStockSolid } from "./stockGeometry.js";
 /**
  * Cutting Assistant: expands a faceting document into a linear per-facet
@@ -83,7 +85,7 @@ export function buildCuttingSequence(document, { hiddenPatternIds = [] } = {}) {
       : table
         ? [first]
         : [...facets].sort(
-            (left, right) => normalizeIndex(left.index) - normalizeIndex(right.index),
+            (left, right) => normalizeIndex(left.index, left.indexTeeth ?? 96) - normalizeIndex(right.index, right.indexTeeth ?? 96),
           );
     const startPos = steps.length;
 
@@ -95,13 +97,15 @@ export function buildCuttingSequence(document, { hiddenPatternIds = [] } = {}) {
         region: facet.region,
         industryAngleDeg: facet.industryAngleDeg,
         depth: facet.depth,
-        index: normalizeIndex(facet.index),
+        index: normalizeIndex(facet.index, facet.indexTeeth ?? 96),
+        indexTeeth: facet.indexTeeth ?? 96,
         plane: {
           normal: { ...facet.plane.normal },
           offset: facet.plane.offset,
           keep: facet.plane.keep,
         },
         facetId: facet.id,
+        surfaceState: facetSurfaceState(facet),
         operationType: facet.metadata?.operationType,
       });
     }
@@ -275,8 +279,8 @@ export function makeCuttingStepper(sequence) {
  *
  * `solidAt(p)` returns the stock cube for p = 0 and the stock clipped by the
  * first p step planes for p > 0, using the same geometry path as the
- * workbench construction stages (createStockSolid from the document stock
- * + clipPolyhedronByPlanes with per-plane operation provenance). Positions
+ * planar construction stages (stock + per-plane clipping). Concave tools
+ * are applied only to the displayed result, never fed back into clipping. Positions
  * clamp into [0, total]. Computed solids are cached, so forward stepping
  * costs one clip per step and backward/jump access replays from the nearest
  * cached position; the cache is internal and invisible to callers.
@@ -291,7 +295,8 @@ export function createCuttingReplay(document, { hiddenPatternIds = [] } = {}) {
     ],
   ]);
 
-  function solidAt(p) {
+  const displayed = new Map();
+  function planarAt(p) {
     const position = clampPosition(stepper.total, p);
     const hit = cache.get(position);
     if (hit) return hit;
@@ -319,6 +324,10 @@ export function createCuttingReplay(document, { hiddenPatternIds = [] } = {}) {
     tiers: sequence.tiers,
     stepper,
     total: stepper.total,
-    solidAt,
+    solidAt(p) {
+      const position = clampPosition(stepper.total, p);
+      if (!displayed.has(position)) displayed.set(position, applyConcaveCuts(document, planarAt(position)));
+      return displayed.get(position);
+    },
   };
 }

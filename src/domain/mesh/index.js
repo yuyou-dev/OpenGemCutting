@@ -6,6 +6,13 @@ import { validateMeshEmbedding } from './embedding.js';
 import { importRoughObj } from './import-obj.js';
 
 const validatedSolids = new WeakSet();
+const lastClips = new WeakMap();
+
+// Internal worker transport only: the bundled solver already performed the full
+// topology and embedding checks. External mesh/OBJ/JSON imports never call this.
+export function adoptValidatedWorkerMesh(solid) {
+  if (solid.kind === 'mesh') validatedSolids.add(solid);
+}
 
 function faceNormal(vertices, ids) {
   let area = { x: 0, y: 0, z: 0 };
@@ -68,10 +75,18 @@ export function parseMeshOBJ(text, options) {
 /** Geometry facade supplies its existing normalization, tolerance and metadata. */
 export function clipMeshSolid(solid, plane, { tolerance, facetId, convexCaps = false, ...faceMetadata }) {
   if (!validatedSolids.has(solid)) validateMeshSolid(solid);
+  // Shared immutable prefixes are replayed by the viewport, saved-document
+  // evaluation and construction diagnostics. Reuse exactly the same cut,
+  // including cap provenance and tolerance, without retaining a drag history.
+  const key = JSON.stringify([plane.normal.x, plane.normal.y, plane.normal.z, plane.d,
+    tolerance, facetId, convexCaps, faceMetadata]);
+  const cached = lastClips.get(solid);
+  if (cached?.key === key) return cached.result;
   const result = cutPolyhedron(solid, { normal: plane.normal, offset: plane.d }, {
     trustedInput: true, tolerance, facetId, faceMetadata, convexCaps,
   }).solid;
   validatedSolids.add(result);
+  lastClips.set(solid, { key, result });
   return result;
 }
 

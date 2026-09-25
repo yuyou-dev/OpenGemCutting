@@ -576,6 +576,8 @@ export function clipPolyhedron(polyhedron, planeInput, options = {}) {
       id: uniqueFaceId(polyhedron.faces, requestedFaceId),
       points: capPoints,
       normal: plane.normal,
+      planeOffset: plane.d,
+      planeNormal: plane.normal,
     };
     if (sourceOperationId !== undefined) cap.sourceOperationId = sourceOperationId;
     if (region !== undefined) cap.region = region;
@@ -810,7 +812,7 @@ function clipPolyhedronBatchPreview(polyhedron, inputs, options = {}) {
     const region = perOptions.region ?? record?.region ?? descriptor.region;
     const operationType = perOptions.operationType ?? record?.operationType ?? descriptor.operationType;
     const requestedFaceId = perOptions.faceId ?? record?.faceId ?? descriptor.faceId;
-    const cap = { id: requestedFaceId, points, normal: plane.normal };
+    const cap = { id: requestedFaceId, points, normal: plane.normal, planeOffset: plane.d, planeNormal: plane.normal };
     if (sourceOperationId !== undefined) cap.sourceOperationId = sourceOperationId;
     if (region !== undefined) cap.region = region;
     if (operationType !== undefined) cap.operationType = operationType;
@@ -889,4 +891,32 @@ export function clipPolyhedronIndexedPreview(polyhedron, inputs, options = {}) {
 /** Live preview uses indexed edges; canonical persistence stays ordered above. */
 export function clipPolyhedronPreview(polyhedron, inputs, options = {}) {
   return clipPolyhedronIndexedPreview(polyhedron, inputs, options);
+}
+
+const booleanConvexSources = new WeakMap();
+
+/** Legacy convex faces may omit a collinear junction on one incident face.
+ * Reconstruct their existing halfspaces with shared edges before CSG. This is
+ * restricted to the convex solver's output; imported/nonconvex mesh boundaries
+ * are already indexed and must never be replaced by a convex approximation. */
+export function indexedBooleanSource(polyhedron) {
+  if (polyhedron.kind === "mesh" || !polyhedron.vertices.length) return polyhedron;
+  const cached = booleanConvexSources.get(polyhedron);
+  if (cached) return cached;
+  const axes = ["x", "y", "z"];
+  const minimum = axes.map(axis => Math.min(...polyhedron.vertices.map(point => point[axis])));
+  const maximum = axes.map(axis => Math.max(...polyhedron.vertices.map(point => point[axis])));
+  const extent = Math.max(...maximum.map((value, i) => value - minimum[i]));
+  const center = minimum.map((value, i) => (value + maximum[i]) / 2);
+  let source = createMeshSolid(createCenteredCube(extent * 2, { center }), { convex: true });
+  for (const face of polyhedron.faces) {
+    const normal = face.planeNormal ?? face.normal;
+    source = clipMeshSolid(source, { normal, d: face.planeOffset ?? dot(normal, polyhedron.vertices[face.vertexIndices[0]]) }, {
+      convexCaps: true, tolerance: extent * 1e-13, facetId: face.facetId ?? face.id,
+      sourceOperationId: face.sourceOperationId, region: face.region, operationType: face.operationType,
+    });
+  }
+  const result = { ...polyhedron, vertices: source.vertices, faces: source.faces };
+  booleanConvexSources.set(polyhedron, result);
+  return result;
 }

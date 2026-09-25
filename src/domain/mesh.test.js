@@ -13,6 +13,18 @@ const combine = (...solids) => solids.reduce((result, solid) => ({
   faces: [...result.faces, ...solid.faces.map(face => ({ ...face, id: `part:${result.vertices.length}:${face.id}`, vertexIndices: face.vertexIndices.map(id => id + result.vertices.length) }))],
 }), { vertices: [], faces: [] });
 
+test('embedding still rejects shared-plane overlap and unjoined shell contact at multiple scales', () => {
+  for (const size of [.002, 2, 2000]) {
+    const cube = createCenteredCube(size);
+    for (const shift of [.75, 1]) {
+      const adjacent = { ...cube, vertices: cube.vertices.map(p => ({ ...p, x: p.x + size * shift })) };
+      assert.throws(() => createMeshSolid(combine(cube, adjacent)), /self-intersection|overlapping/);
+    }
+    const separated = { ...cube, vertices: cube.vertices.map(p => ({ ...p, x: p.x + size * 1.01 })) };
+    assert.equal(validateMeshSolid(createMeshSolid(combine(cube, separated))).shells, 2);
+  }
+});
+
 test('mesh cutting retains concavity, all disconnected material, holes and cavity shells', () => {
   const u = cut(createMeshSolid(uRough()), [0, -1, 0], -1.25);
   assert.equal(validateMeshSolid(u).shells, 2); near(polyhedronVolume(u), 3.5);
@@ -171,4 +183,20 @@ test('mesh impact shares preview and commit scale-aware precision, including sha
     assert.deepEqual(impact.resultSolid, clipPolyhedronPreview(source, planes));
     assert.deepEqual(impact.resultSolid, clipPolyhedronByPlanes(source, planes));
   }
+});
+
+test('repeated immutable mesh prefixes reuse geometry while every cut input invalidates the result', () => {
+  const solid = createMeshSolid(uRough());
+  const plane = { normal: [0, 0, 1], offset: .5, faceId: 'cached', operationId: 'C1', region: 'crown', operationType: 'symmetric' };
+  const result = clipPolyhedron(solid, plane);
+  assert.equal(clipPolyhedron(solid, { ...plane }), result);
+  for (const patch of [{ offset: .6 }, { normal: [0, 1, 0] }, { faceId: 'other' }, { operationId: 'C2' }, { region: 'pavilion' }, { operationType: 'custom' }]) {
+    assert.notEqual(clipPolyhedron(solid, { ...plane, ...patch }), result);
+  }
+  assert.notEqual(clipPolyhedron(solid, plane, { tolerance: 1e-8 }), result);
+  assert.notEqual(clipPolyhedron(createMeshSolid(uRough()), plane), result);
+  const again = clipPolyhedron(solid, plane);
+  assert.equal(clipPolyhedron(solid, plane), again);
+  assert.deepEqual(again, result);
+  assert.equal(validateMeshSolid(again).shells, 1);
 });
