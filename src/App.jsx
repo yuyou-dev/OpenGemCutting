@@ -215,7 +215,7 @@ export function App() {
     if (!latestDocument) return;
     downloadBlob(new Blob([exportFacetingJSON(latestDocument)], { type: "application/json" }), `${safeFileStem(latestDocument.name)}.json`);
   };
-  const prepareLabSource = useCallback(async (fromSource) => {
+  const prepareLabSource = useCallback(async (fromSource, profile = 'pattern') => {
     const before = liveApp.current;
     if (before.hasPreview) throw new Error(t('请先返回编辑，保存或放弃未保存切割，再开始实验。'));
     if (!await flush()) throw new Error(t('原项目尚未保存，请先重试保存或导出恢复数据。'));
@@ -226,7 +226,7 @@ export function App() {
     if (!now.active) throw new Error(t('请先选择来源设计。'));
     const source = projects.read(now.active.id);
     if (!source || source.revision !== baseRevision.current) throw new Error(t('来源项目已有变化，请返回编辑核对最新版本。'));
-    return { projectId: source.id, revision: source.revision, document: readLabDocument(source.document).document };
+    return { projectId: source.id, revision: source.revision, document: readLabDocument(source.document, { profile }).document };
   }, [flush, projects.read]);
   const projectList = projects.records.map((record) => record.id === active?.id && latestDocument
     ? { ...record, document: latestDocument } : record);

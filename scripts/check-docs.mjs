@@ -2,7 +2,8 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const excluded = new Set(['.git', 'node_modules', 'dist', 'tmp', 'output', '.runtime']);
+// Fixed delivery packages retain upstream documentation verbatim; their bytes are checked by labs:module.
+const excluded = new Set(['.git', 'node_modules', 'dist', 'tmp', 'output', '.runtime', 'vendor']);
 export async function markdownFiles(root) {
   const files = [];
   async function walk(dir) {

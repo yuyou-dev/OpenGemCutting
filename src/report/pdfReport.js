@@ -11,6 +11,7 @@ import { normalizeConcaveCuts } from "../domain/concaveCuts.js";
 import { facetSurfaceState } from "../domain/facetSurface.js";
 import { downloadBlob } from "../utils/download.js";
 import { formatAngle, formatDepth, safeFileStem } from "../utils/format.js";
+import { physicalMeasures } from "../domain/physicalScale.js";
 
 const A4 = { width: 595.28, height: 841.89 };
 const MARGIN = 38;
@@ -160,13 +161,23 @@ export function createFacetReportModel({ document, generatedAt = new Date(), inc
     };
   });
   const width = Math.max(bounds.size.y, 1e-9);
+  // Millimetres only when the document says how big a model unit is.
+  const physical = physicalMeasures(document, { vertices: solid.vertices, volume: metrics.volume });
+  const unitNote = physical
+    ? t("外包尺寸为 mm，体积为 mm³；视图尺寸、质心及工序参数为模型单位 u（1 u = {0} mm）。", [fixed(physical.millimetersPerModelUnit, 4)])
+    : "";
   return {
     name: document.name, stock: document.stock, locale, surface,
     indexTeeth, compatibility, equipment: indexExportSummary(document), concaveOperations,
     activeConcaveCount: concaveOperations.filter((cut) => cut.enabled).length,
-    hardwareNote: locale === "en"
-      ? "Index compatibility applies to planar operations only. Existing cavities belong to the stock; added concave cuts require suitable tools, setup and equipment. Dimensions use project units, not an assumed millimetre scale."
-      : "整齿兼容仅针对平面工序；底胚已有凹部与新增凹切需分别准备。凹切须使用匹配刀具、装夹与设备；尺寸沿用项目单位，不默认毫米。",
+    hardwareNote: physical
+      ? (locale === "en"
+        ? "Index compatibility applies to planar operations only. Existing cavities belong to the stock; added concave cuts require suitable tools, setup and equipment. "
+        : "整齿兼容仅针对平面工序；底胚已有凹部与新增凹切需分别准备。凹切须使用匹配刀具、装夹与设备。")
+      : locale === "en"
+        ? "Index compatibility applies to planar operations only. Existing cavities belong to the stock; added concave cuts require suitable tools, setup and equipment. Dimensions use project units, not an assumed millimetre scale."
+        : "整齿兼容仅针对平面工序；底胚已有凹部与新增凹切需分别准备。凹切须使用匹配刀具、装夹与设备；尺寸沿用项目单位，不默认毫米。",
+    physical, unitNote,
     generatedAt: generatedAt.toLocaleString(locale, { hour12: false }),
     facetCount: document.facets.length,
     storedFacetCount: document.facets.length,
@@ -506,7 +517,7 @@ function drawProjection(page, model, config, assets) {
       const max = tablePoints.reduce((best, point) => point.x > best.x ? point : best, tablePoints[0]);
       const horizontalAxis = axes[0];
       const values = tableFace.vertexIndices.map((index) => model.solid.vertices[index][horizontalAxis]);
-      const label = `T ${fixed(Math.max(...values) - Math.min(...values), 3)}`;
+      const label = `T ${fixed(Math.max(...values) - Math.min(...values), 3)}${model.physical ? " u" : ""}`;
       const y = Math.max(...tablePoints.map((point) => point.y)) + 10;
       drawObjectDimension(page, { x: min.x, y }, { x: max.x, y }, min, max, label, false, assets);
     }
@@ -558,23 +569,23 @@ function drawCover(page, model, assets, pageNumber) {
   }, assets);
   skippedLabels += drawProjection(page, model, {
     x: MARGIN + narrowDiagramWidth + gap, top: 190, width: narrowDiagramWidth, height: 158, title: t("顶面视图 / TOP"), subtitle: "OPAQUE +Z",
-    axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: 1, showFrost: true,
+    axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}${model.physical ? " u" : ""}`,
+    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}${model.physical ? " u" : ""}`, showIndices: true, showFaceLabels: true, viewSign: 1, showFrost: true,
   }, assets);
   skippedLabels += drawProjection(page, model, {
     x: MARGIN + (narrowDiagramWidth + gap) * 2, top: 190, width: narrowDiagramWidth, height: 158, title: t("底面视图 / BOTTOM"), subtitle: "OPAQUE -Z",
-    axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`, showIndices: true, showFaceLabels: true, viewSign: -1, showFrost: true,
+    axes: ["x", "y"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}${model.physical ? " u" : ""}`,
+    verticalLabel: `W ${fixed(model.bounds.size.y, 3)}${model.physical ? " u" : ""}`, showIndices: true, showFaceLabels: true, viewSign: -1, showFrost: true,
   }, assets);
   skippedLabels += drawProjection(page, model, {
     x: MARGIN, top: 360, width: wideDiagramWidth, height: 158, title: t("正面视图 / FRONT"), subtitle: "OPAQUE +Y",
-    axes: ["x", "z"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true, showFrost: true,
+    axes: ["x", "z"], horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}${model.physical ? " u" : ""}`,
+    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}${model.physical ? " u" : ""}`, showFaceLabels: true, viewSign: 1, showTableWidth: true, showFrost: true,
   }, assets);
   skippedLabels += drawProjection(page, model, {
     x: MARGIN + wideDiagramWidth + gap, top: 360, width: wideDiagramWidth, height: 158, title: t("侧面视图 / SIDE"), subtitle: "OPAQUE +X",
-    axes: ["y", "z"], horizontalLabel: `W ${fixed(model.bounds.size.y, 3)}`,
-    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`, showFaceLabels: true, viewSign: 1, showTableWidth: true, showFrost: true,
+    axes: ["y", "z"], horizontalLabel: `W ${fixed(model.bounds.size.y, 3)}${model.physical ? " u" : ""}`,
+    verticalLabel: `H ${fixed(model.bounds.size.z, 3)}${model.physical ? " u" : ""}`, showFaceLabels: true, viewSign: 1, showTableWidth: true, showFrost: true,
   }, assets);
   const viewNotes = [
     model.surface.annotate ? t("灰色填充为磨砂面") : "",
@@ -588,7 +599,12 @@ function drawCover(page, model, assets, pageNumber) {
   drawTextTop(page, "SUVA FACET 96  /  TECHNICAL CUT", MARGIN, 578, { font: latinBold, size: 5.6, color: rgbOf(rgb, COLOR.muted) });
   drawSpecRow(page, MARGIN, 595, specWidth, t("分度系统"), `${model.indexTeeth} INDEX`, assets, true);
   drawSpecRow(page, MARGIN, 614, specWidth, t("存储 / 有效记录"), `${model.storedFacetCount} / ${model.effectiveFacetCount} FACES`, assets);
-  drawSpecRow(page, MARGIN, 633, specWidth, t("外包尺寸 L / W / H"), `${fixed(model.bounds.size.x, 3)} / ${fixed(model.bounds.size.y, 3)} / ${fixed(model.bounds.size.z, 3)}`, assets);
+  if (model.physical) {
+    const mm = model.physical.size;
+    drawSpecRow(page, MARGIN, 633, specWidth, t("外包尺寸 L / W / H（mm）"), `${fixed(mm.x, 2)} / ${fixed(mm.y, 2)} / ${fixed(mm.z, 2)}`, assets);
+  } else {
+    drawSpecRow(page, MARGIN, 633, specWidth, t("外包尺寸 L / W / H"), `${fixed(model.bounds.size.x, 3)} / ${fixed(model.bounds.size.y, 3)} / ${fixed(model.bounds.size.z, 3)}${model.physical ? " u" : ""}`, assets);
+  }
   if (model.surface.frostedCount) drawSpecRow(page, MARGIN, 652, specWidth, t("表面处理"), model.surface.annotate
     ? t("磨砂 {0} / {1} 面 · 已标注", [model.surface.frostedCount, model.effectiveFacetCount])
     : t("按全抛光导出 · 设计含 {0} 个磨砂面", [model.surface.frostedCount]), assets, model.surface.annotate);
@@ -598,7 +614,8 @@ function drawCover(page, model, assets, pageNumber) {
   drawSpecRow(page, ratioX, 576, specWidth, "H / W", fixed(model.ratios.heightWidth, 3), assets);
   drawSpecRow(page, ratioX, 595, specWidth, "VOL / W³", fixed(model.ratios.volumeWidth3, 3), assets);
   drawSpecRow(page, ratioX, 614, specWidth, "AREA / W²", fixed(model.ratios.areaWidth2, 3), assets);
-  drawSpecRow(page, ratioX, 633, specWidth, "CENTROID Z", fixed(model.centroid.z, 3), assets);
+  drawSpecRow(page, ratioX, 633, specWidth, model.physical ? "CENTROID Z (u)" : "CENTROID Z", fixed(model.centroid.z, 3), assets);
+  if (model.physical) drawSpecRow(page, ratioX, 652, specWidth, "VOLUME mm³", fixed(model.physical.volume, 2), assets);
 
   drawTextTop(page, t("FACET STRUCTURE  /  切面结构"), MARGIN, 674, { font: bold, size: 6.2, color: rgbOf(rgb, COLOR.ink) });
   model.regions.forEach((region, index) => {
@@ -625,6 +642,7 @@ function drawCover(page, model, assets, pageNumber) {
     ? (model.indexTeeth !== 96 ? 'Non-96 indices: do not use these readings on a 96-tooth wheel.' : '') + (!model.equipment.compatibleWith96 ? ' This design cannot be cut on whole 96-wheel teeth.' : '')
     : model.equipment.notice;
   drawTextTop(page, notice, MARGIN, 761, { font, size: 6.1, color: rgbOf(rgb, COLOR.accent) });
+  if (model.unitNote) drawTextTop(page, model.unitNote, MARGIN, 762, { font, size: 5.8, color: rgbOf(rgb, COLOR.muted) });
   drawTextTop(page, model.hardwareNote, MARGIN, 774, { font, size: 5.8, color: rgbOf(rgb, COLOR.muted) });
   if (model.concaveOperations.length) drawTextTop(page, model.locale === "en"
     ? `Concave appendix: ${model.activeConcaveCount} active / ${model.concaveOperations.length} stored operations. Curved surfaces are not flat facet instructions.`
@@ -644,15 +662,15 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
     ? {
       axes: ["x", "z"], viewSign: 1,
       title: t("腰部正视 / GIRDLE FRONT"), subtitle: "OPAQUE +Y",
-      horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-      verticalLabel: `H ${fixed(model.bounds.size.z, 3)}`,
+      horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}${model.physical ? " u" : ""}`,
+      verticalLabel: `H ${fixed(model.bounds.size.z, 3)}${model.physical ? " u" : ""}`,
     }
     : {
       axes: ["x", "y"], viewSign: region.id === "crown" ? 1 : -1,
       title: region.id === "crown" ? t("冠部顶视 / CROWN TOP") : t("亭部底视 / PAVILION BOTTOM"),
       subtitle: region.id === "crown" ? "OPAQUE +Z" : "OPAQUE -Z",
-      horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}`,
-      verticalLabel: `W ${fixed(model.bounds.size.y, 3)}`,
+      horizontalLabel: `L ${fixed(model.bounds.size.x, 3)}${model.physical ? " u" : ""}`,
+      verticalLabel: `W ${fixed(model.bounds.size.y, 3)}${model.physical ? " u" : ""}`,
     };
   drawProjection(page, model, {
     x: MARGIN, top, width: diagramWidth, height: 160,
@@ -679,7 +697,7 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
   drawSpecRow(page, panelX + 12, top + 51, panelWidth - 24, t("记录面"), `${group.facets.length} FACES`, assets);
   drawSpecRow(page, panelX + 12, top + 70, panelWidth - 24, t("重复 / 镜像"), `${group.repeat} / ${group.mirror ? `+${group.mirror}` : "AXIS"}`, assets);
   drawSpecRow(page, panelX + 12, top + 89, panelWidth - 24, t("行业角范围"), angleRange, assets);
-  drawSpecRow(page, panelX + 12, top + 108, panelWidth - 24, t("深度范围"), depthRange, assets);
+  drawSpecRow(page, panelX + 12, top + 108, panelWidth - 24, t(model.physical ? "深度范围（u）" : "深度范围"), depthRange, assets);
   if (model.surface.annotate) drawSpecRow(page, panelX + 12, top + 127, panelWidth - 24, t("表面处理"), group.frostedCount
     ? t("磨砂 {0} / {1} 面", [group.frostedCount, group.facets.length]) : t("全部抛光"), assets, group.frostedCount > 0);
   const indices = group.facets.map((facet) => String(reportIndex(facet, model.indexTeeth)).padStart(2, "0")).join("-");
@@ -700,12 +718,12 @@ function drawGroupPage(page, model, descriptor, assets) {
   drawGroupAnalysis(page, model, region, group, 140, assets);
   const columns = model.surface.annotate ? [
     { x: MARGIN, label: t("组 / 面") }, { x: 133, label: t("索引") }, { x: 170, label: t("行业角") },
-    { x: 222, label: t("几何 β") }, { x: 274, label: t("深度") }, { x: 318, label: t("方位角") },
-    { x: 370, label: t("表面") }, { x: 432, label: t("裁切平面 normal / offset") },
+    { x: 222, label: t("几何 β") }, { x: 274, label: t(model.physical ? "深度 u" : "深度") }, { x: 318, label: t("方位角") },
+    { x: 370, label: t("表面") }, { x: 432, label: t(model.physical ? "法向 / 偏移（u）" : "裁切平面 normal / offset") },
   ] : [
     { x: MARGIN, label: t("组 / 面") }, { x: 143, label: t("索引") }, { x: 188, label: t("行业角") },
-    { x: 249, label: t("几何 β") }, { x: 310, label: t("深度") }, { x: 365, label: t("方位角") },
-    { x: 435, label: t("裁切平面 normal / offset") },
+    { x: 249, label: t("几何 β") }, { x: 310, label: t(model.physical ? "深度 u" : "深度") }, { x: 365, label: t("方位角") },
+    { x: 435, label: t(model.physical ? "法向 / 偏移（u）" : "裁切平面 normal / offset") },
   ];
   const planeColumn = columns.length - 1;
   const intentLines = constructionLines(group);
@@ -740,6 +758,7 @@ function drawConcavePage(page, model, descriptor, assets) {
   drawHeader(page, model, assets, en ? "Concave operations" : "凹切工序附录", descriptor.pageNumber);
   drawTextTop(page, "CONCAVE TOOL SCHEDULE", MARGIN, 88, { font: latinBold, size: 6.8, color: rgbOf(rgb, COLOR.accent) });
   drawTextTop(page, en ? "Independent subtractive tools" : "独立凹切刀具参数", MARGIN, 108, { font: bold, size: 20, color: rgbOf(rgb, COLOR.ink) });
+  if (model.unitNote) drawTextTop(page, model.unitNote, MARGIN, 153, { font, size: 5.8, color: rgbOf(rgb, COLOR.muted) });
   drawTextTop(page, model.hardwareNote, MARGIN, 144, { font, size: 6.3, color: rgbOf(rgb, COLOR.muted) });
   drawTextTop(page, en
     ? "Project coordinates; rotation is around machine Z, independent of the planar index gear. V wheel length is its axial width."

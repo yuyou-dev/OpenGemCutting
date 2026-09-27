@@ -6,9 +6,10 @@ import { designFromDocument, designSummary, documentFromDesign, planeDesignSolid
 import { formatById, isQuietDiagnostic, presentConcepts, transferReport } from "../domain/formats/capabilities.js";
 import { exportFacetingJSON, importFacetingJSON } from "../domain/faceting.js";
 import { assertValidDocumentGeometry, evaluateDocument } from "../domain/documentGeometry.js";
-import { assertDocumentImportBudget } from "../domain/importBudget.js";
+import { assertFileBudget, assertDocumentImportBudget } from "../domain/importBudget.js";
 import { ensureTableFacet } from "../domain/document.js";
 import { facetSurfaceState } from "../domain/facetSurface.js";
+import { summarizeEffectiveFacets } from "../domain/meetJump.js";
 import { safeFileStem } from "../utils/format.js";
 
 /*
@@ -45,7 +46,11 @@ function documentFacts(document) {
 function documentSource({ origin, format, fileName, document, diagnostics = [], hasPreview = false }) {
   const { design, facts } = documentFacts(document);
   const solid = evaluateDocument(document);
-  const frosted = document.facets.filter((facet) => facetSurfaceState(facet) === "frosted");
+  // Source facts describe the actual document even when every foreign writer
+  // rejects it. Export compatibility must not determine the visible CUT count.
+  const effective = new Set(summarizeEffectiveFacets(solid).effectiveFacetIds);
+  const effectiveFacets = document.facets.filter((facet) => effective.has(facet.id));
+  const frosted = effectiveFacets.filter((facet) => facetSurfaceState(facet) === "frosted");
   return {
     origin,
     format,
@@ -62,7 +67,8 @@ function documentSource({ origin, format, fileName, document, diagnostics = [], 
     summary: {
       gear: document.indexGear?.teeth ?? 96,
       storedFacetCount: document.facets.length,
-      effectiveFacetCount: facts.effectiveFacetCount ?? 0,
+      effectiveFacetCount: effective.size,
+      tierCount: new Set(effectiveFacets.map((facet) => facet.patternId)).size,
       ...(design ? designSummary(design) : {}),
       frostedCount: frosted.length,
       dimensions: solidDimensions(solid),
@@ -106,6 +112,17 @@ function designSource({ format, fileName, design, diagnostics }) {
 function failedSource(fileName, format, diagnostics) {
   return { origin: "file", format, fileName, name: fileName, status: "error", diagnostics, document: null, design: null,
     facts: {}, present: new Map(), preview: null, summary: null, workbench: null };
+}
+
+/** Check the shared byte budget before allocating file contents. Read failures
+ * use the same source diagnostics as parse failures, leaving the project intact. */
+export async function readFormatFile(file) {
+  try {
+    assertFileBudget(file);
+    return inspectFormatFile(await file.arrayBuffer(), file.name);
+  } catch (error) {
+    return failedSource(file.name, null, [diagnosticFromError(error)]);
+  }
 }
 
 /** Read a dropped or chosen file. Content decides the format, not the name. */

@@ -14,6 +14,7 @@ import { createStockSolid } from "./domain/stockGeometry.js";
 import { IndexCompatibilityPanel } from "./components/IndexCompatibilityPanel.jsx";
 import { ConcavePanel } from "./components/ConcavePanel.jsx";
 import { indexExportSummary } from "./domain/indexing.js";
+import { physicalMeasures } from "./domain/physicalScale.js";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight, IconHistory, IconHome, IconFlask } from "@tabler/icons-react";
 import { RepositoryLink } from "./components/RepositoryLink.jsx";
@@ -1282,7 +1283,10 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     return editingPatternId ? replacePatternFacets(document.facets, editingPatternId, draftFacets) : [...document.facets, ...draftFacets];
   }, [document.facets, draftFacets, editingPatternId, groupEditRegion, groupPreview.facets, previewEnabled]);
   const visibleEffectiveCount = useMemo(() => summarizeEffectiveFacets(displaySolid).effectiveFacetIds.length, [displaySolid]);
-  const composerStatus = t("有效刻面 {0} · {1} {2} · 体积 {3}", [visibleEffectiveCount, t(document.stock.kind === "mesh" ? "原石面片" : "毛坯面"), displaySolid.faces.filter(face => face.region === "rough").length, metrics.volume.toFixed(3)]);
+  // With a physical scale the status line also reads in millimetres; without one it stays in model units.
+  const physical = useMemo(() => physicalMeasures(document, { vertices: displaySolid.vertices, volume: metrics.volume }), [document, displaySolid, metrics.volume]);
+  const composerStatus = t("有效刻面 {0} · {1} {2} · 体积 {3}", [visibleEffectiveCount, t(document.stock.kind === "mesh" ? "原石面片" : "毛坯面"), displaySolid.faces.filter(face => face.region === "rough").length, metrics.volume.toFixed(3)])
+    + (physical ? t(" · {0} × {1} × {2} mm · {3} mm³", [physical.size.x.toFixed(2), physical.size.y.toFixed(2), physical.size.z.toFixed(2), physical.volume.toFixed(2)]) : "");
   const composerValidationMessage = groupEditRegion
     ? `正在整体变换${groupEditRegion === "crown" ? "冠部与台面" : "亭部"}；请先应用或取消。`
     : cutSession.active ? validationMessage : "";

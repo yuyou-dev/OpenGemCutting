@@ -10,13 +10,13 @@
 | 公共契约 | `1.0.0` | 本文及样本的交换语义 |
 | 公共规则模块 | `@facet96/labs-contract` `1.0.0` | 无运行依赖的 ESM 分度规则、能力预检、扩展校验 |
 | 主项目产品 | package.json 的 `1.3.0` | 与文档、契约版本独立 |
-| 图案功能模块 | 尚未接入、未锁定版本 | 不以公共规则包冒充图案实验室 |
+| 图案功能模块 | 已原生接入；版本由 `src/application/labsModuleLock.json` 锁定 | 固定交付模块与公共规则包分别管理，操作与草稿恢复见 [使用指南](USER-GUIDE.md) |
 
 实现单一来源为 [labsContract](../../src/domain/labsContract/index.js)；原 `domain/indexing.js` 只重导出该实现。宿主完整入口为 [readLabDocument](../../src/application/labDocuments.js)，使用正式导入器、领域校验器与实体内核。公共模块不依赖 React、DOM、MCP、几何引擎或相邻仓库。
 
 ## 文档与几何能力
 
-主项目继续读取历史 v1 cube、v2 mesh 和 v3 多分度／独立凹切文档。实验室第一阶段交换范围是 **v1 / v3、cube stock、空凹切数组、显式平面 CUT**；允许非默认 cube 大小、中心和独立 cube `cuttingReference`。v2 mesh、v3 mesh、mesh reference 和任何非空 `concaveCuts`（包括禁用工具）必须拒绝进入此实验室，不得删除后再接受。主项目自身的 mesh／凹切能力不受影响。
+主项目继续读取历史 v1 cube、v2 mesh 和 v3 多分度／独立凹切文档。当前固定图案模块沿用第一阶段交换范围： **v1 / v3、cube stock、空凹切数组、显式平面 CUT**；允许非默认 cube 大小、中心和独立 cube `cuttingReference`。v2 mesh、v3 mesh、mesh reference 和任何非空 `concaveCuts`（包括禁用工具）必须拒绝进入此实验室，不得删除后再接受。主项目自身的 mesh／凹切能力不受影响。
 
 `importFacetingJSON` 负责历史兼容：缺失 stock 补默认 cube，缺失设备盘补 96，v3 缺失 concaveCuts 补空数组；facets 必须存在。旧角度快照仅按既有迁移条件重建，不能将任意错误平面当成旧格式自动修复。新版本 schema、未知 stock 或必需几何扩展明确拒绝。固定样本同时提供原始输入和宿主规范化结果，历史迁移不属于逐字节保留承诺。
 
@@ -28,7 +28,7 @@
 
 stock 是不可变毛坯；切深参考为 `cuttingReference ?? stock` 的固定旋转包络。cube 的半径和半高均为 size/2，含 center 的投影；depth 是支撑偏移减实际 offset。不能把实验室归一化坐标当宿主坐标，也不能由当前成品边界重新确定毛坯／深度零位。
 
-几何长度沿用模型单位。已知毫米尺度使用 `metadata.physicalScale.millimetersPerModelUnit`（有限正数），兼容既有 `stock.source.millimetersPerModelUnit`；两者同时存在必须一致。`millimetersPerModelUnit(document)` 未知时返回 null，禁止默认猜成 1 mm 或 10 mm 成品。坐标、深度和 offset 均乘此值换算毫米，体积乘其三次方；改变索引盘不改此比例。历史 `metadata.patternStudy.finalWidthMm` 仍作为来源信息保留，实验室须根据其真实成品宽度显式适配，不能把宽度直接当单位比例。此阶段记录尺度，不改写现有光学标定。
+几何长度沿用模型单位。已知毫米尺度使用 `metadata.physicalScale.millimetersPerModelUnit`（有限正数），兼容既有 `stock.source.millimetersPerModelUnit`；两者同时存在必须一致。`millimetersPerModelUnit(document)` 未知时返回 null，禁止默认猜成 1 mm 或 10 mm 成品。坐标、深度和 offset 均乘此值换算毫米，体积乘其三次方；改变索引盘不改此比例。历史 `metadata.patternStudy.finalWidthMm` 仍作为来源信息保留，实验室须根据其真实成品宽度显式适配，不能把宽度直接当单位比例。此阶段记录尺度，不改写现有光学标定。存在尺度时，主编辑器状态栏与 PDF 报告封面同时给出毫米外包尺寸与体积（`physicalMeasures()`）；工序参数仍为模型单位。
 
 ## 分度与兼容性
 
@@ -53,7 +53,7 @@ stock 是不可变毛坯；切深参考为 `cuttingReference ?? stock` 的固定
 
 已保存 Meet 使用既有 `metadata.construction`，不编辑须保留目标、来源身份和签名。宿主 `buildConstructionStages` 对真实前序实体诊断 valid/stale；来源删除、变形、重排或主面不再通过目标时明确 stale，显式平面不自动跟随。实验室不支持继续编辑约束时，应保留原约束作为来源并报告诊断；不能伪造新的来源身份或声称旧约束仍有效。共同样本包含真实 valid 和 source-missing 的 stale Meet。
 
-## 第二阶段最小宿主边界（约定，尚未接线）
+## 原生接入的宿主边界
 
 | 边界 | 宿主职责 | 实验室职责 |
 | --- | --- | --- |
@@ -63,7 +63,7 @@ stock 是不可变毛坯；切深参考为 `cuttingReference ?? stock` 的固定
 | 暂停 | 页面隐藏时发出暂停信号 | 停止求解、光学循环、拾取和快捷键，不提交编辑 |
 | 释放 | 离开／卸载时结束此实例 | 取消任务、释放 Worker／GPU／事件资源，迟到结果不得回写 |
 
-第一阶段没有图案模块 mount、运行时下载、iframe、实验稿数据库或结果接收按钮。登记表只记录身份、顺序、准备状态与能力声明；新增第二项不需插件框架。现有主页／CUT／Meet／Jump／撤销及光学生命周期沿原路径。
+原生接入通过 `application/laboratories` 登记固定模块，`application/labHost` 校验候选，`domain/labDrafts` 独立保存实验稿；不使用 iframe 或远程运行时代码。宿主只提供单份实验的保存能力，带回创建独立项目，不覆盖来源或建立平行 CUT 会话。当前生命周期与存储边界见 [状态契约](../architecture/state-contract.md#项目与页面)；第一阶段未接入 UI 的描述仅适用于历史交接包。
 
 ## 固定交接包与使用
 

@@ -65,7 +65,7 @@ export function createLabHost({ record: initial, lab, drafts, readProject, creat
       reviewing = true; error = ''; notify();
       try {
         // Full host import + geometry recomputation, not the portable preflight.
-        const { document, summary } = readLabDocument(candidate.document);
+        const { document, summary } = readLabDocument(candidate.document, { profile: lab.profile ?? 'pattern' });
         alive(context);
         const sourceState = labSourceState(record.source, readProject);
         const existing = record.candidate;
@@ -101,7 +101,7 @@ export function createLabHost({ record: initial, lab, drafts, readProject, creat
             // the receipt fails after creation, retry finds that exact project.
             project = readProject(candidate.projectId);
             if (!project) {
-              const validated = readLabDocument(candidate.document).document;
+              const validated = readLabDocument(candidate.document, { profile: lab.profile ?? 'pattern' }).document;
               const document = { ...validated, name: name?.trim() || `${validated.name} · 实验结果`, metadata: { ...validated.metadata,
                 labReturn: { labId: lab.id, experimentId: record.id, candidateId: candidate.id, moduleVersion: lab.moduleVersion,
                   source: record.source ? { projectId: record.source.projectId, revision: record.source.revision } : null, sourceState } } };

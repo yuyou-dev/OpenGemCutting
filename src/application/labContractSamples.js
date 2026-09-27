@@ -17,7 +17,7 @@ function meetSample() {
 }
 
 /** Fixed authored parameters resolved by the real host API, never a demo solver. */
-export function createLabContractSamples() {
+export function createLabContractSamples(profile = 'pattern') {
   const make = (teeth, repeat, baseIndex = 0, extra = {}) => {
     const reference = extra.cuttingReference ?? extra.stock;
     const tier = (patternId, region, industryAngleDeg, depth, count = repeat) => resolveFacetPattern({
@@ -67,8 +67,8 @@ export function createLabContractSamples() {
     { id: 'meet-current', document: meet }, { id: 'meet-stale', document: staleMeet },
     { id: 'fixed-reference', document: make(120, 10, 0, { stock: { kind: 'cube', size: 3, center: [.1, -.2, 0] },
       cuttingReference: { kind: 'cube', size: 2, center: [0, 0, 0] }, metadata: { physicalScale: { millimetersPerModelUnit: 3.5 } } }) },
-    { id: 'v2-mesh-rejected', document: mesh, reject: 'LAB_UNSUPPORTED_DOCUMENT' },
-    { id: 'v3-mesh-rejected', document: createFacetingDocument({ ...mesh, concaveCuts: [] }), reject: 'LAB_UNSUPPORTED_DOCUMENT' },
+    { id: 'v2-mesh-rejected', document: mesh, ...(profile === 'preset' ? {} : { reject: 'LAB_UNSUPPORTED_DOCUMENT' }) },
+    { id: 'v3-mesh-rejected', document: createFacetingDocument({ ...mesh, concaveCuts: [] }), ...(profile === 'preset' ? {} : { reject: 'LAB_UNSUPPORTED_DOCUMENT' }) },
     { id: 'v3-concave-rejected', document: concave, reject: 'LAB_UNSUPPORTED_DOCUMENT' },
     { id: 'v3-active-concave-rejected', document: createFacetingDocument({ concaveCuts: [{ id: 'active-tool', type: 'sphere' }] }), reject: 'LAB_UNSUPPORTED_DOCUMENT' },
     { id: 'required-extension-rejected', document: critical, reject: 'validation' },

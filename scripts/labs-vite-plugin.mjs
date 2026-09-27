@@ -5,16 +5,26 @@ import { readJSON, verifyModule, runtimeFiles } from './labs-module-files.mjs';
 export function labsModulePlugin() {
   let root, base, lock, files;
   const load = async () => {
-    lock = await readJSON(path.join(root, 'src/application/labsModuleLock.json'));
-    files = null;
-    if (!lock.enabled) return;
-    const directory = path.join(root, lock.directory), manifest = await verifyModule(directory, lock);
-    files = new Map(await Promise.all(runtimeFiles(manifest).map(async file => [lock.publicPath + file, await readFile(path.join(directory, file))])));
+    const next = new Map();
+    for (const lockFile of ['labsModuleLock.json', 'presetModuleLock.json']) {
+      lock = await readJSON(path.join(root, 'src/application', lockFile));
+      if (!lock.enabled) continue;
+      const directory = path.join(root, lock.directory), manifest = await verifyModule(directory, lock);
+      for (const file of runtimeFiles(manifest)) next.set(lock.publicPath + file, await readFile(path.join(directory, file)));
+    }
+    files = next;
   };
   return { name: 'fixed-laboratory-module',
     configResolved(config) { root = config.root; base = config.base; },
     async configureServer(server) {
       await load();
+      const locks = ['labsModuleLock.json', 'presetModuleLock.json'].map(f => path.join(root, 'src/application', f));
+      server.watcher.add(locks);
+      server.watcher.on('change', async file => {
+        if (!locks.includes(file)) return;
+        try { await load(); server.ws.send({type:'full-reload'}); }
+        catch (error) { server.config.logger.error(error.message); }
+      });
       server.middlewares.use((req, res, next) => {
         const pathname = decodeURI((req.url ?? '').split('?')[0]);
         const file = pathname.startsWith(base) ? pathname.slice(base.length) : pathname.replace(/^\//, '');

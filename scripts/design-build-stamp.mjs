@@ -3,6 +3,13 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { DESIGN_API_VERSION } from '../src/application/designContract.js';
+
+export const DESIGN_BUILD_INPUTS = Object.freeze([
+  'package.json', 'package-lock.json', 'index.html', 'vite.config.mjs',
+  'mcp/server.mjs', 'mcp/host.mjs', 'mcp/package-lock.json',
+  'scripts/design-build-stamp.mjs', 'scripts/labs-vite-plugin.mjs',
+  'scripts/labs-module-files.mjs', 'scripts/prepare-sites-build.mjs',
+]);
 export async function designSourceHash(root) {
   const hash = createHash('sha256');
   async function visit(relative) {
@@ -22,7 +29,7 @@ export async function designSourceHash(root) {
   }
   await visit('src');
   // Changes to the adapter or build entry must invalidate an already running host too.
-  for (const name of ['package.json', 'package-lock.json', 'index.html', 'vite.config.mjs', 'mcp/server.mjs', 'mcp/host.mjs', 'mcp/package-lock.json']) {
+  for (const name of DESIGN_BUILD_INPUTS) {
     hash.update(name);
     hash.update(await readFile(path.join(root, name)));
   }

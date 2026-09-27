@@ -1,3 +1,4 @@
+import { createMeshSolid } from '../domain/mesh/index.js';
 import { importFacetingJSON } from '../domain/faceting.js';
 import { assertValidDocumentGeometry } from '../domain/documentGeometry.js';
 import { polyhedronVolume } from '../domain/geometry.js';
@@ -7,14 +8,18 @@ import { inspectLabDocument, indexCompatibilityReport, millimetersPerModelUnit }
 /** Full host boundary for fixtures and future source/candidate exchange.
  * Pure: never saves, replaces a project, commits a CUT, or executes a recipe.
  */
-export function readLabDocument(input) {
+export function readLabDocument(input, { profile = 'pattern' } = {}) {
   const document = importFacetingJSON(input);
-  const inspection = inspectLabDocument(document);
+  const inspection = inspectLabDocument(document, { profile });
   if (!inspection.supported) {
     const error = new Error(inspection.errors.map(e => `${e.path}: ${e.message}`).join('\n'));
     error.code = 'LAB_UNSUPPORTED_DOCUMENT';
     error.errors = inspection.errors;
     throw error;
+  }
+  if (profile === 'preset' && document.stock.kind === 'mesh') {
+    // Validate convexity against the actual input, never replace it by a hull.
+    createMeshSolid(document.stock.mesh, { convex: true });
   }
   const solid = assertValidDocumentGeometry(document);
   const ids = new Set(document.facets.map(f => f.id));

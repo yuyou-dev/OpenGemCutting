@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { checkLinks, anchors } from '../scripts/check-docs.mjs';
@@ -19,4 +19,19 @@ test('document links catch missing files and retired anchors without following e
 test('anchors preserve Chinese and explicit ids, and disambiguate repeated headings', () => {
   const ids = anchors('# 开始\n# 开始\n<a id="install"></a>\n');
   assert.ok(ids.has('开始')); assert.ok(ids.has('开始-1')); assert.ok(ids.has('install'));
+});
+
+test('clean checkouts allow local evidence notes without silently accepting broken links', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'gem-docs-'));
+  try {
+    await mkdir(path.join(root, 'docs'));
+    const document = path.join(root, 'docs', 'run.md');
+    await writeFile(document, '# Run\nLocal-only evidence: `tmp/run/check.log`, `output/archive/README.md`.\n');
+    assert.deepEqual((await checkLinks(root)).issues, []);
+    await writeFile(document, '# Run\n[missing evidence](../tmp/run/check.log)\n[missing guide](../tmpfile.md)\n');
+    assert.deepEqual((await checkLinks(root)).issues, [
+      `${path.join('docs', 'run.md')}: missing ../tmp/run/check.log`,
+      `${path.join('docs', 'run.md')}: missing ../tmpfile.md`,
+    ]);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });

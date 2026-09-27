@@ -1,9 +1,11 @@
+import { IMPORT_BUDGET } from '../importBudget.js';
+
 /** Bounded reading shared by every foreign design format. Files are data: no
  * format may evaluate, fetch or expand anything it reads. */
 export const FORMAT_LIMITS = Object.freeze({
-  bytes: 20 * 1024 * 1024,
+  bytes: IMPORT_BUDGET.bytes,
   tiers: 4096,
-  facets: 4096,
+  facets: IMPORT_BUDGET.cuts,
   xmlNodes: 250000,
   xmlDepth: 64,
   xmlAttributes: 64,

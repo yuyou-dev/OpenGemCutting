@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { ensureTableFacet } from "../domain/document.js";
 import { createFacetingDocument, resolveFacetPattern } from "../domain/faceting.js";
 import { clipPolyhedronByPlanes, createCenteredCube, measurePolyhedron } from "../domain/geometry.js";
 import { enumerateTopologyVertices, solveVertexMeet } from "../domain/meetJump.js";
@@ -59,6 +60,22 @@ test("builds grouped report data with dimensions and every facet value", () => {
   assert.match(model.regions[0].rows[0].plane, /^n\(.+\) d=/);
   assert.match(model.regions[0].rows[0].industryAngle, /°$/);
   assert.deepEqual(model.regions[2].groups.map((group) => group.id), ["c1", "c2"]);
+});
+
+test("reports millimetre size and volume only when the document carries a physical scale", async () => {
+  const plain = createFacetReportModel(makeInput());
+  assert.equal(plain.physical, null);
+  assert.match(plain.hardwareNote, /不默认毫米/);
+
+  const input = makeInput();
+  input.document = { ...input.document, metadata: { ...input.document.metadata, physicalScale: { millimetersPerModelUnit: 3.2 } } };
+  const scaled = createFacetReportModel(input);
+  assert.ok(Math.abs(scaled.physical.size.x - scaled.bounds.size.x * 3.2) < 1e-9);
+  assert.ok(Math.abs(scaled.physical.volume - scaled.volume * 3.2 ** 3) < 1e-9);
+  assert.match(scaled.unitNote, /1 u = 3\.2000 mm/);
+  assert.match(createFacetReportModel({ ...input, locale: "en" }).unitNote, /1 u = 3\.2000 mm/);
+  // Geometry and facet values stay in model units.
+  assert.deepEqual(scaled.regions.map((region) => region.rows.map((row) => row.depth)), plain.regions.map((region) => region.rows.map((row) => row.depth)));
 });
 
 test("reports stored and effective counts while omitting overwritten facet records", () => {
@@ -226,6 +243,35 @@ test('PDF renders Chinese-only operation labels with embedded CJK fonts', async 
   assert.equal(new TextDecoder().decode(bytes.slice(0, 5)), '%PDF-');
 });
 
+
+test('PDF renders the millimetre rows of a physically scaled document in both languages', async (t) => {
+  const { readFile } = await import('node:fs/promises');
+  const { createFacetReportPdfBytes } = await import('./pdfReport.js');
+  const [regularBytes, boldBytes] = await Promise.all([
+    readFile(new URL('../../public/fonts/NotoSerifSC-Light.ttf', import.meta.url)),
+    readFile(new URL('../../public/fonts/NotoSerifSC-SemiBold.ttf', import.meta.url)),
+  ]);
+  const { PDFPage } = await import('pdf-lib');
+  const rendered = [];
+  const drawText = PDFPage.prototype.drawText;
+  t.mock.method(PDFPage.prototype, 'drawText', function(text, options) { rendered.push(text); return drawText.call(this, text, options); });
+  for (const locale of ['zh-CN', 'en']) {
+    const input = makeInput();
+    rendered.length = 0;
+    input.document = ensureTableFacet(input.document);
+    input.locale = locale;
+    input.document = { ...input.document, metadata: { ...input.document.metadata, physicalScale: { millimetersPerModelUnit: 3.2 } } };
+    const bytes = await createFacetReportPdfBytes(input, { regularBytes, boldBytes });
+    assert.equal(new TextDecoder().decode(bytes.slice(0, 5)), '%PDF-');
+    assert.ok(rendered.some(text => /^L .* u$/.test(text)), 'projection length is explicitly in model units');
+    assert.ok(rendered.some(text => /^T .* u$/.test(text)), 'table width is explicitly in model units');
+    assert.ok(rendered.includes('CENTROID Z (u)'));
+    assert.ok(rendered.includes(locale === 'en' ? 'Depth u' : '深度 u'));
+    assert.ok(rendered.includes(locale === 'en' ? 'normal / offset (u)' : '法向 / 偏移（u）'));
+    assert.ok(rendered.includes('VOLUME mm³'));
+    assert.ok(rendered.some(text => text.includes('1 u = 3.2000 mm')));
+  }
+});
 
 test("reports real directions on the chosen wheel across mixed authored wheels", () => {
   const facets = [

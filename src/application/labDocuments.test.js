@@ -97,3 +97,12 @@ test('extension validation rejects unsafe data, critical features and invalid ph
     assert.equal(shared.inspectLabDocument(doc).supported, false);
   }
 });
+
+test('preset convex mesh capability does not broaden the pattern laboratory', () => {
+  for (const { document, reject } of createLabContractSamples('preset')) {
+    if (reject) continue;
+    const result=readLabDocument(document,{profile:'preset'});
+    assert.ok(result.summary.volumeModelUnits>0);
+    if(result.document.stock.kind==='mesh') assert.throws(()=>readLabDocument(document),{code:'LAB_UNSUPPORTED_DOCUMENT'});
+  }
+});

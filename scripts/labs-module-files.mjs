@@ -19,11 +19,13 @@ export async function walkFiles(root, prefix = '') {
 /** Verify data before importing any candidate code. No writes or external paths. */
 export async function verifyModule(root, expected = {}) {
   const manifest = await readJSON(path.join(root, 'MANIFEST.json'));
-  assert.equal(manifest.packageName, '@facet96/pattern-lab');
-  assert.equal(manifest.contractVersion, '1.0.0');
+  const preset = manifest.packageName === '@facet96/preset-studio';
+  assert.ok(preset || manifest.packageName === '@facet96/pattern-lab', 'Unregistered module');
+  if (expected.packageName) assert.equal(manifest.packageName, expected.packageName);
+  assert.equal(manifest.contractVersion, preset ? '1.1.0' : '1.0.0');
   assert.ok([1, 2].includes(manifest.entryApiVersion), "Unsupported module API");
   assert.match(manifest.moduleVersion, /^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/);
-  assert.equal(manifest.publicContractArchiveSha256, 'b1c99bb91600bfc47d9f8fc8eda2f4fdf89372df98e40ee823e41399a2ac3f8c');
+  assert.equal(manifest.publicContractArchiveSha256, preset ? 'ae958888f68046b498aca040f7a69b0a18a29166561967a854980252000b1b1a' : 'b1c99bb91600bfc47d9f8fc8eda2f4fdf89372df98e40ee823e41399a2ac3f8c');
   if (expected.moduleVersion) assert.equal(manifest.moduleVersion, expected.moduleVersion);
   if (expected.manifestSha256) assert.equal(sha256(await readFile(path.join(root, 'MANIFEST.json'))), expected.manifestSha256);
   const checksums = {};

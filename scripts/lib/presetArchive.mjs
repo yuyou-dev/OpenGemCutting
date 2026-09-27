@@ -4,6 +4,18 @@ import path from 'node:path';
 
 export const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
+/** Public distribution omits contact details from source notes, retaining
+ * authorship/provenance and all geometry. The private source stays untouched. */
+export function publicPresetDocument(source) {
+  const asc = source.metadata?.asc;
+  if (!asc) return source;
+  const email = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+  const notes = (lines = []) => lines.filter(line => !email.test(line) && !/contact me at email/i.test(line));
+  return { ...source, metadata: { ...source.metadata, asc: { ...asc,
+    headings: notes(asc.headings), footnotes: notes(asc.footnotes), comments: notes(asc.comments),
+  } } };
+}
+
 /** New portable attachment archive, or the original download manifest. */
 export async function readPresetArchive(root) {
   let manifest;
