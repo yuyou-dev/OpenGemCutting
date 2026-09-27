@@ -36,9 +36,11 @@
 
 [document-v3.schema.json](../../public/schemas/document-v3.schema.json) 是自包含的 JSON Schema 2020-12。它检查数据类型、必需字段、范围、结构与有限枚举，并允许扩展字段／元数据，以保持导入器既有兼容策略；规范化输出保存正式参数字段以及声明的 metadata／extensions，安全未知可选扩展不得在项目保存或换盘时丢失。实验室公共范围、表面、毫米尺度、必需扩展拒绝规则见 [公共契约](../labs/CONTRACT.md)。图层分度上界与原盘的关联、派生法线一致性、齿数与零位别名的关联、同层主成员、Meet 来源、闭合网格拓扑及工具计算预算由 `validateFacetingDocument()` 与实体边界校验共同执行，不能用单独通过 JSON Schema 代替领域校验。旧版 schema 链接继续作为格式标识，不在本轮重写旧文件格式。
 
+外部规划软件交付的成品设计同样使用 v3：每个切面按连续分度、行业角度与深度写出（`repeat` 为 1），平面由这些参数派生，导入仍按上方规则复核；已知成品尺寸写入 `metadata.physicalScale`。存在该比例时，工作台状态栏与 PDF 报告封面在模型单位之外给出毫米外包尺寸与体积（`physicalMeasures()`，`src/domain/physicalScale.js`）；刻面深度、平面 offset 等工序参数仍按模型单位显示与保存。没有比例时不显示毫米，也不猜测。
+
 凹切工具 `id` 必须唯一，不能与任一平面 `patternId` 冲突，也不能使用保留的 `rough-cube`／`rough-mesh`；实体表面来源身份跨参数组保持无歧义。不可变的底胚和凹切数组在普通平面命令、撤销／重做中保持共享引用，避免无输入变化的渲染重复布尔计算；命令自己的平面快照仍独立保存。固定 cuttingReference 与 stock 一样在命令快照中共享不可变引用。缓存与中间网格不进入 JSON。
 
-回归入口：`indexing.test.js` 覆盖各预设盘、1–360 折、五折等几何、两种检测范围、混合盘旋转、格式升级与撤销恢复；`documentSchema.test.js` 使用 Ajv 实际编译公开 schema，并对合法 cube／mesh、多盘样本、无效字段、跨字段不变量和扩展元数据分别验证；`cutSession.test.js`、`cutConstruction.test.js`、`sharedPlanes.test.js` 覆盖会话与构造入口。Ajv 只作为开发测试依赖，不进入网页运行时。
+回归入口：`physicalScale.test.js` 与 `pdfReport.test.js` 覆盖有／无物理比例时的毫米尺寸、体积与报告说明；`indexing.test.js` 覆盖各预设盘、1–360 折、五折等几何、两种检测范围、混合盘旋转、格式升级与撤销恢复；`documentSchema.test.js` 使用 Ajv 实际编译公开 schema，并对合法 cube／mesh、多盘样本、无效字段、跨字段不变量和扩展元数据分别验证；`cutSession.test.js`、`cutConstruction.test.js`、`sharedPlanes.test.js` 覆盖会话与构造入口。Ajv 只作为开发测试依赖，不进入网页运行时。
 
 ## 独立凹切与实体组合
 

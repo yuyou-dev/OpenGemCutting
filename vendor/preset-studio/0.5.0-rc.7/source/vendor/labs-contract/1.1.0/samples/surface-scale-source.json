@@ -1,0 +1,6471 @@
+{
+  "input": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+    "schemaVersion": 3,
+    "kind": "facet-96-document",
+    "name": "Contract 120 / 10",
+    "indexGear": {
+      "teeth": 120,
+      "zeroAlias": 120,
+      "degreesPerTooth": 3
+    },
+    "stock": {
+      "kind": "cube",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ]
+    },
+    "facets": [
+      {
+        "id": "table:120",
+        "patternId": "table",
+        "ordinal": 0,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 1,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 0,
+        "betaDeg": 90,
+        "depth": 0.55,
+        "plane": {
+          "normal": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "offset": 0.45,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "table"
+          }
+        }
+      },
+      {
+        "id": "girdle:12",
+        "patternId": "girdle",
+        "ordinal": 0,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 12,
+        "displayIndex": 12,
+        "azimuthDeg": 36,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.809016994375,
+            "y": 0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:24",
+        "patternId": "girdle",
+        "ordinal": 1,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 72,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.309016994375,
+            "y": 0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:36",
+        "patternId": "girdle",
+        "ordinal": 2,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 36,
+        "displayIndex": 36,
+        "azimuthDeg": 108,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.309016994375,
+            "y": 0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:48",
+        "patternId": "girdle",
+        "ordinal": 3,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 144,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.809016994375,
+            "y": 0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:60",
+        "patternId": "girdle",
+        "ordinal": 4,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 60,
+        "displayIndex": 60,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:72",
+        "patternId": "girdle",
+        "ordinal": 5,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 216,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.809016994375,
+            "y": -0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:84",
+        "patternId": "girdle",
+        "ordinal": 6,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 84,
+        "displayIndex": 84,
+        "azimuthDeg": 252,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.309016994375,
+            "y": -0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:96",
+        "patternId": "girdle",
+        "ordinal": 7,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 96,
+        "displayIndex": 96,
+        "azimuthDeg": 288,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.309016994375,
+            "y": -0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:108",
+        "patternId": "girdle",
+        "ordinal": 8,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 108,
+        "displayIndex": 108,
+        "azimuthDeg": 324,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.809016994375,
+            "y": -0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:120",
+        "patternId": "girdle",
+        "ordinal": 9,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "crown:12",
+        "patternId": "crown",
+        "ordinal": 0,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 12,
+        "displayIndex": 12,
+        "azimuthDeg": 36,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.464033084581,
+            "y": 0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:24",
+        "patternId": "crown",
+        "ordinal": 1,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 72,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.177244866405,
+            "y": 0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:36",
+        "patternId": "crown",
+        "ordinal": 2,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 36,
+        "displayIndex": 36,
+        "azimuthDeg": 108,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.177244866405,
+            "y": 0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:48",
+        "patternId": "crown",
+        "ordinal": 3,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 144,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.464033084581,
+            "y": 0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:60",
+        "patternId": "crown",
+        "ordinal": 4,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 60,
+        "displayIndex": 60,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.573576436351,
+            "y": 0,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:72",
+        "patternId": "crown",
+        "ordinal": 5,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 216,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.464033084581,
+            "y": -0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:84",
+        "patternId": "crown",
+        "ordinal": 6,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 84,
+        "displayIndex": 84,
+        "azimuthDeg": 252,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.177244866405,
+            "y": -0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:96",
+        "patternId": "crown",
+        "ordinal": 7,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 96,
+        "displayIndex": 96,
+        "azimuthDeg": 288,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.177244866405,
+            "y": -0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:108",
+        "patternId": "crown",
+        "ordinal": 8,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 108,
+        "displayIndex": 108,
+        "azimuthDeg": 324,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.464033084581,
+            "y": -0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:120",
+        "patternId": "crown",
+        "ordinal": 9,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.573576436351,
+            "y": 0,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "pavilion:12",
+        "patternId": "pavilion",
+        "ordinal": 0,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 12,
+        "displayIndex": 12,
+        "azimuthDeg": 36,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.541338032001,
+            "y": 0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:24",
+        "patternId": "pavilion",
+        "ordinal": 1,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 72,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.206772728821,
+            "y": 0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:36",
+        "patternId": "pavilion",
+        "ordinal": 2,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 36,
+        "displayIndex": 36,
+        "azimuthDeg": 108,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.206772728821,
+            "y": 0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:48",
+        "patternId": "pavilion",
+        "ordinal": 3,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 144,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.541338032001,
+            "y": 0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:60",
+        "patternId": "pavilion",
+        "ordinal": 4,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 60,
+        "displayIndex": 60,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.669130606359,
+            "y": 0,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:72",
+        "patternId": "pavilion",
+        "ordinal": 5,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 216,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.541338032001,
+            "y": -0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:84",
+        "patternId": "pavilion",
+        "ordinal": 6,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 84,
+        "displayIndex": 84,
+        "azimuthDeg": 252,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.206772728821,
+            "y": -0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:96",
+        "patternId": "pavilion",
+        "ordinal": 7,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 96,
+        "displayIndex": 96,
+        "azimuthDeg": 288,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.206772728821,
+            "y": -0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:108",
+        "patternId": "pavilion",
+        "ordinal": 8,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 108,
+        "displayIndex": 108,
+        "azimuthDeg": 324,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.541338032001,
+            "y": -0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:120",
+        "patternId": "pavilion",
+        "ordinal": 9,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.669130606359,
+            "y": 0,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "fine-face:0",
+        "patternId": "fine-face",
+        "ordinal": 0,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 3,
+        "repeat": 1,
+        "mirror": 0,
+        "index": 3,
+        "displayIndex": 3,
+        "azimuthDeg": 9,
+        "industryAngleDeg": 55,
+        "betaDeg": 35,
+        "depth": 0.625,
+        "plane": {
+          "normal": {
+            "x": 0.809066923319,
+            "y": 0.128143611835,
+            "z": 0.573576436351
+          },
+          "offset": 0.76772848064,
+          "keep": "less-than-or-equal"
+        },
+        "extensions": {
+          "example.facet-note": {
+            "version": 1,
+            "required": false,
+            "data": [
+              "fine planar cut"
+            ]
+          }
+        },
+        "metadata": {
+          "patternMode": "arbitrary",
+          "surfaceFinish": {
+            "version": 1,
+            "model": "ggx-dielectric",
+            "state": "frosted",
+            "alpha": 0.28,
+            "scatter": 0.15
+          },
+          "source": {
+            "generated": true,
+            "parents": [
+              "crown:120",
+              "crown:12"
+            ],
+            "generator": "host-explicit-plane-fixture"
+          }
+        }
+      }
+    ],
+    "extensions": {
+      "example.notes": {
+        "version": 2,
+        "required": false,
+        "data": {
+          "text": "preserve without interpreting"
+        }
+      }
+    },
+    "metadata": {
+      "physicalScale": {
+        "millimetersPerModelUnit": 7.125
+      },
+      "source": {
+        "projectId": "contract-source",
+        "revision": 4,
+        "author": "Host fixture",
+        "license": "fixture"
+      },
+      "labRecipe": {
+        "version": 1,
+        "labId": "pattern",
+        "moduleVersion": "fixture-only",
+        "status": "current",
+        "geometryKey": "{\"concaveCuts\":[],\"facets\":[{\"id\":\"table:120\",\"ordinal\":0,\"patternId\":\"table\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0,\"y\":0,\"z\":1},\"offset\":0.45}},{\"id\":\"girdle:12\",\"ordinal\":0,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.809016994375,\"y\":0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:24\",\"ordinal\":1,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.309016994375,\"y\":0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:36\",\"ordinal\":2,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.309016994375,\"y\":0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:48\",\"ordinal\":3,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.809016994375,\"y\":0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:60\",\"ordinal\":4,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-1,\"y\":0,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:72\",\"ordinal\":5,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.809016994375,\"y\":-0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:84\",\"ordinal\":6,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.309016994375,\"y\":-0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:96\",\"ordinal\":7,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.309016994375,\"y\":-0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:108\",\"ordinal\":8,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.809016994375,\"y\":-0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:120\",\"ordinal\":9,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":1,\"y\":0,\"z\":0},\"offset\":0.75}},{\"id\":\"crown:12\",\"ordinal\":0,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.464033084581,\"y\":0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:24\",\"ordinal\":1,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.177244866405,\"y\":0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:36\",\"ordinal\":2,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.177244866405,\"y\":0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:48\",\"ordinal\":3,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.464033084581,\"y\":0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:60\",\"ordinal\":4,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.573576436351,\"y\":0,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:72\",\"ordinal\":5,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.464033084581,\"y\":-0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:84\",\"ordinal\":6,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.177244866405,\"y\":-0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:96\",\"ordinal\":7,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.177244866405,\"y\":-0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:108\",\"ordinal\":8,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.464033084581,\"y\":-0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:120\",\"ordinal\":9,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.573576436351,\"y\":0,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"pavilion:12\",\"ordinal\":0,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.541338032001,\"y\":0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:24\",\"ordinal\":1,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.206772728821,\"y\":0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:36\",\"ordinal\":2,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.206772728821,\"y\":0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:48\",\"ordinal\":3,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.541338032001,\"y\":0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:60\",\"ordinal\":4,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.669130606359,\"y\":0,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:72\",\"ordinal\":5,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.541338032001,\"y\":-0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:84\",\"ordinal\":6,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.206772728821,\"y\":-0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:96\",\"ordinal\":7,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.206772728821,\"y\":-0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:108\",\"ordinal\":8,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.541338032001,\"y\":-0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:120\",\"ordinal\":9,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.669130606359,\"y\":0,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"fine-face:0\",\"ordinal\":0,\"patternId\":\"fine-face\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.809066923319,\"y\":0.128143611835,\"z\":0.573576436351},\"offset\":0.76772848064}}],\"reference\":{\"center\":[0,0,0],\"kind\":\"cube\",\"size\":2},\"scale\":7.125,\"stock\":{\"center\":[0,0,0],\"kind\":\"cube\",\"size\":2}}",
+        "data": {
+          "purpose": "preservation fixture, not a generator"
+        }
+      }
+    },
+    "concaveCuts": []
+  },
+  "normalized": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+    "schemaVersion": 3,
+    "kind": "facet-96-document",
+    "name": "Contract 120 / 10",
+    "indexGear": {
+      "teeth": 120,
+      "zeroAlias": 120,
+      "degreesPerTooth": 3
+    },
+    "stock": {
+      "kind": "cube",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ]
+    },
+    "facets": [
+      {
+        "id": "table:120",
+        "patternId": "table",
+        "ordinal": 0,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 1,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 0,
+        "betaDeg": 90,
+        "depth": 0.55,
+        "plane": {
+          "normal": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "offset": 0.45,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "table"
+          }
+        }
+      },
+      {
+        "id": "girdle:12",
+        "patternId": "girdle",
+        "ordinal": 0,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 12,
+        "displayIndex": 12,
+        "azimuthDeg": 36,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.809016994375,
+            "y": 0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:24",
+        "patternId": "girdle",
+        "ordinal": 1,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 72,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.309016994375,
+            "y": 0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:36",
+        "patternId": "girdle",
+        "ordinal": 2,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 36,
+        "displayIndex": 36,
+        "azimuthDeg": 108,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.309016994375,
+            "y": 0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:48",
+        "patternId": "girdle",
+        "ordinal": 3,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 144,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.809016994375,
+            "y": 0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:60",
+        "patternId": "girdle",
+        "ordinal": 4,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 60,
+        "displayIndex": 60,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -1,
+            "y": 0,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:72",
+        "patternId": "girdle",
+        "ordinal": 5,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 216,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.809016994375,
+            "y": -0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:84",
+        "patternId": "girdle",
+        "ordinal": 6,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 84,
+        "displayIndex": 84,
+        "azimuthDeg": 252,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": -0.309016994375,
+            "y": -0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:96",
+        "patternId": "girdle",
+        "ordinal": 7,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 96,
+        "displayIndex": 96,
+        "azimuthDeg": 288,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.309016994375,
+            "y": -0.951056516295,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:108",
+        "patternId": "girdle",
+        "ordinal": 8,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 108,
+        "displayIndex": 108,
+        "azimuthDeg": 324,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 0.809016994375,
+            "y": -0.587785252292,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "girdle:120",
+        "patternId": "girdle",
+        "ordinal": 9,
+        "region": "girdle",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 90,
+        "betaDeg": 0,
+        "depth": 0.25,
+        "plane": {
+          "normal": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "offset": 0.75,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "girdle"
+          }
+        }
+      },
+      {
+        "id": "crown:12",
+        "patternId": "crown",
+        "ordinal": 0,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 12,
+        "displayIndex": 12,
+        "azimuthDeg": 36,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.464033084581,
+            "y": 0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:24",
+        "patternId": "crown",
+        "ordinal": 1,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 72,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.177244866405,
+            "y": 0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:36",
+        "patternId": "crown",
+        "ordinal": 2,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 36,
+        "displayIndex": 36,
+        "azimuthDeg": 108,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.177244866405,
+            "y": 0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:48",
+        "patternId": "crown",
+        "ordinal": 3,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 144,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.464033084581,
+            "y": 0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:60",
+        "patternId": "crown",
+        "ordinal": 4,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 60,
+        "displayIndex": 60,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.573576436351,
+            "y": 0,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:72",
+        "patternId": "crown",
+        "ordinal": 5,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 216,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.464033084581,
+            "y": -0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:84",
+        "patternId": "crown",
+        "ordinal": 6,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 84,
+        "displayIndex": 84,
+        "azimuthDeg": 252,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": -0.177244866405,
+            "y": -0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:96",
+        "patternId": "crown",
+        "ordinal": 7,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 96,
+        "displayIndex": 96,
+        "azimuthDeg": 288,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.177244866405,
+            "y": -0.545503607385,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:108",
+        "patternId": "crown",
+        "ordinal": 8,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 108,
+        "displayIndex": 108,
+        "azimuthDeg": 324,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.464033084581,
+            "y": -0.33713977035,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "crown:120",
+        "patternId": "crown",
+        "ordinal": 9,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 35,
+        "betaDeg": 55,
+        "depth": 0.65,
+        "plane": {
+          "normal": {
+            "x": 0.573576436351,
+            "y": 0,
+            "z": 0.819152044289
+          },
+          "offset": 0.74272848064,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "crown"
+          }
+        }
+      },
+      {
+        "id": "pavilion:12",
+        "patternId": "pavilion",
+        "ordinal": 0,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 12,
+        "displayIndex": 12,
+        "azimuthDeg": 36,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.541338032001,
+            "y": 0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:24",
+        "patternId": "pavilion",
+        "ordinal": 1,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 72,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.206772728821,
+            "y": 0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:36",
+        "patternId": "pavilion",
+        "ordinal": 2,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 36,
+        "displayIndex": 36,
+        "azimuthDeg": 108,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.206772728821,
+            "y": 0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:48",
+        "patternId": "pavilion",
+        "ordinal": 3,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 144,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.541338032001,
+            "y": 0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:60",
+        "patternId": "pavilion",
+        "ordinal": 4,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 60,
+        "displayIndex": 60,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.669130606359,
+            "y": 0,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:72",
+        "patternId": "pavilion",
+        "ordinal": 5,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 216,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.541338032001,
+            "y": -0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:84",
+        "patternId": "pavilion",
+        "ordinal": 6,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 84,
+        "displayIndex": 84,
+        "azimuthDeg": 252,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": -0.206772728821,
+            "y": -0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:96",
+        "patternId": "pavilion",
+        "ordinal": 7,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 96,
+        "displayIndex": 96,
+        "azimuthDeg": 288,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.206772728821,
+            "y": -0.63638102343,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:108",
+        "patternId": "pavilion",
+        "ordinal": 8,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 108,
+        "displayIndex": 108,
+        "azimuthDeg": 324,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.541338032001,
+            "y": -0.393305102275,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "pavilion:120",
+        "patternId": "pavilion",
+        "ordinal": 9,
+        "region": "pavilion",
+        "indexTeeth": 120,
+        "baseIndex": 0,
+        "repeat": 10,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 120,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 42,
+        "betaDeg": -48,
+        "depth": 0.73,
+        "plane": {
+          "normal": {
+            "x": 0.669130606359,
+            "y": 0,
+            "z": -0.743144825477
+          },
+          "offset": 0.682275431836,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "source": {
+            "author": "Facet host contract fixture",
+            "role": "pavilion"
+          }
+        }
+      },
+      {
+        "id": "fine-face:0",
+        "patternId": "fine-face",
+        "ordinal": 0,
+        "region": "crown",
+        "indexTeeth": 120,
+        "baseIndex": 3,
+        "repeat": 1,
+        "mirror": 0,
+        "index": 3,
+        "displayIndex": 3,
+        "azimuthDeg": 9,
+        "industryAngleDeg": 55,
+        "betaDeg": 35,
+        "depth": 0.625,
+        "plane": {
+          "normal": {
+            "x": 0.809066923319,
+            "y": 0.128143611835,
+            "z": 0.573576436351
+          },
+          "offset": 0.76772848064,
+          "keep": "less-than-or-equal"
+        },
+        "extensions": {
+          "example.facet-note": {
+            "version": 1,
+            "required": false,
+            "data": [
+              "fine planar cut"
+            ]
+          }
+        },
+        "metadata": {
+          "patternMode": "arbitrary",
+          "surfaceFinish": {
+            "version": 1,
+            "model": "ggx-dielectric",
+            "state": "frosted",
+            "alpha": 0.28,
+            "scatter": 0.15
+          },
+          "source": {
+            "generated": true,
+            "parents": [
+              "crown:120",
+              "crown:12"
+            ],
+            "generator": "host-explicit-plane-fixture"
+          }
+        }
+      }
+    ],
+    "extensions": {
+      "example.notes": {
+        "version": 2,
+        "required": false,
+        "data": {
+          "text": "preserve without interpreting"
+        }
+      }
+    },
+    "metadata": {
+      "physicalScale": {
+        "millimetersPerModelUnit": 7.125
+      },
+      "source": {
+        "projectId": "contract-source",
+        "revision": 4,
+        "author": "Host fixture",
+        "license": "fixture"
+      },
+      "labRecipe": {
+        "version": 1,
+        "labId": "pattern",
+        "moduleVersion": "fixture-only",
+        "status": "current",
+        "geometryKey": "{\"concaveCuts\":[],\"facets\":[{\"id\":\"table:120\",\"ordinal\":0,\"patternId\":\"table\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0,\"y\":0,\"z\":1},\"offset\":0.45}},{\"id\":\"girdle:12\",\"ordinal\":0,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.809016994375,\"y\":0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:24\",\"ordinal\":1,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.309016994375,\"y\":0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:36\",\"ordinal\":2,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.309016994375,\"y\":0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:48\",\"ordinal\":3,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.809016994375,\"y\":0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:60\",\"ordinal\":4,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-1,\"y\":0,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:72\",\"ordinal\":5,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.809016994375,\"y\":-0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:84\",\"ordinal\":6,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.309016994375,\"y\":-0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:96\",\"ordinal\":7,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.309016994375,\"y\":-0.951056516295,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:108\",\"ordinal\":8,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.809016994375,\"y\":-0.587785252292,\"z\":0},\"offset\":0.75}},{\"id\":\"girdle:120\",\"ordinal\":9,\"patternId\":\"girdle\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":1,\"y\":0,\"z\":0},\"offset\":0.75}},{\"id\":\"crown:12\",\"ordinal\":0,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.464033084581,\"y\":0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:24\",\"ordinal\":1,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.177244866405,\"y\":0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:36\",\"ordinal\":2,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.177244866405,\"y\":0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:48\",\"ordinal\":3,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.464033084581,\"y\":0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:60\",\"ordinal\":4,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.573576436351,\"y\":0,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:72\",\"ordinal\":5,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.464033084581,\"y\":-0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:84\",\"ordinal\":6,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.177244866405,\"y\":-0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:96\",\"ordinal\":7,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.177244866405,\"y\":-0.545503607385,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:108\",\"ordinal\":8,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.464033084581,\"y\":-0.33713977035,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"crown:120\",\"ordinal\":9,\"patternId\":\"crown\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.573576436351,\"y\":0,\"z\":0.819152044289},\"offset\":0.74272848064}},{\"id\":\"pavilion:12\",\"ordinal\":0,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.541338032001,\"y\":0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:24\",\"ordinal\":1,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.206772728821,\"y\":0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:36\",\"ordinal\":2,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.206772728821,\"y\":0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:48\",\"ordinal\":3,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.541338032001,\"y\":0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:60\",\"ordinal\":4,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.669130606359,\"y\":0,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:72\",\"ordinal\":5,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.541338032001,\"y\":-0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:84\",\"ordinal\":6,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":-0.206772728821,\"y\":-0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:96\",\"ordinal\":7,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.206772728821,\"y\":-0.63638102343,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:108\",\"ordinal\":8,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.541338032001,\"y\":-0.393305102275,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"pavilion:120\",\"ordinal\":9,\"patternId\":\"pavilion\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.669130606359,\"y\":0,\"z\":-0.743144825477},\"offset\":0.682275431836}},{\"id\":\"fine-face:0\",\"ordinal\":0,\"patternId\":\"fine-face\",\"plane\":{\"keep\":\"less-than-or-equal\",\"normal\":{\"x\":0.809066923319,\"y\":0.128143611835,\"z\":0.573576436351},\"offset\":0.76772848064}}],\"reference\":{\"center\":[0,0,0],\"kind\":\"cube\",\"size\":2},\"scale\":7.125,\"stock\":{\"center\":[0,0,0],\"kind\":\"cube\",\"size\":2}}",
+        "data": {
+          "purpose": "preservation fixture, not a generator"
+        }
+      }
+    },
+    "concaveCuts": []
+  },
+  "expected": {
+    "schemaVersion": 3,
+    "millimetersPerModelUnit": 7.125,
+    "volumeModelUnits": 1.6575834920905712,
+    "vertices": [
+      [
+        -0.7500000000000001,
+        -0.24368977217480892,
+        -0.24278911846145138
+      ],
+      [
+        -0.7500000000000001,
+        -0.24368977217480892,
+        0.3815484018574732
+      ],
+      [
+        -0.75,
+        0.24368977217480872,
+        -0.24278911846133755
+      ],
+      [
+        -0.75,
+        0.24368977217480875,
+        0.38154840185727923
+      ],
+      [
+        -0.6522409865544291,
+        -0.21192594322161895,
+        0.4499999999999999
+      ],
+      [
+        -0.6522409865544291,
+        0.21192594322161862,
+        0.4499999999999999
+      ],
+      [
+        -0.46352549156279677,
+        -0.6379881062639853,
+        0.3815484018569478
+      ],
+      [
+        -0.4635254915627967,
+        -0.6379881062639853,
+        -0.24278911846139645
+      ],
+      [
+        -0.4635254915627966,
+        0.6379881062639853,
+        0.38154840185767
+      ],
+      [
+        -0.46352549156279654,
+        0.6379881062639855,
+        -0.24278911846181803
+      ],
+      [
+        -0.40310709854542703,
+        0.5548293224534978,
+        0.45
+      ],
+      [
+        -0.4031070985454267,
+        -0.554829322453498,
+        0.44999999999999996
+      ],
+      [
+        -5.81317215874767e-17,
+        0.7885966681788277,
+        0.3815484018573603
+      ],
+      [
+        -5.551115123125783e-17,
+        -0.685806758461845,
+        0.45
+      ],
+      [
+        -5.551115123125783e-17,
+        0.685806758461845,
+        0.45
+      ],
+      [
+        -3.9503949365459546e-17,
+        0.7885966681788277,
+        -0.2427891184616121
+      ],
+      [
+        5.241140712437741e-18,
+        -0.7885966681788277,
+        0.3815484018573603
+      ],
+      [
+        1.0515226773024024e-17,
+        -0.7885966681788277,
+        -0.2427891184616121
+      ],
+      [
+        4.460876112943879e-13,
+        -1.4463662841017155e-13,
+        -0.918092151684931
+      ],
+      [
+        0.4031070985454267,
+        -0.5548293224534979,
+        0.45
+      ],
+      [
+        0.40310709854542687,
+        0.5548293224534977,
+        0.45
+      ],
+      [
+        0.4635254915624304,
+        -0.6379881062641042,
+        -0.24278911846181805
+      ],
+      [
+        0.46352549156279643,
+        0.6379881062639853,
+        -0.2427891184613966
+      ],
+      [
+        0.46352549156279643,
+        0.6379881062639853,
+        0.38154840185694794
+      ],
+      [
+        0.46352549156279654,
+        -0.6379881062639853,
+        0.38154840185767
+      ],
+      [
+        0.5807299620414023,
+        0.31035242447560424,
+        0.4499999999999999
+      ],
+      [
+        0.6091002896621377,
+        0.4376215860836362,
+        0.38154840185711625
+      ],
+      [
+        0.6522409865544291,
+        -0.21192594322161845,
+        0.4499999999999999
+      ],
+      [
+        0.6522409865544292,
+        -0.1411504148593923,
+        0.44999999999999996
+      ],
+      [
+        0.6770338613619342,
+        -0.21998163657292172,
+        0.4326398421658478
+      ],
+      [
+        0.7229140718998115,
+        -0.28097035391112296,
+        0.38154840185731626
+      ],
+      [
+        0.7499999999998437,
+        -0.24368977217502394,
+        -0.24278911846133755
+      ],
+      [
+        0.7499999999999883,
+        -0.2436897721748249,
+        0.3350130227576158
+      ],
+      [
+        0.75,
+        0.24368977217480864,
+        -0.24278911846133755
+      ],
+      [
+        0.75,
+        0.24368977217480864,
+        0.2261267938448769
+      ]
+    ],
+    "effectiveFacetIds": [
+      "crown:108",
+      "crown:12",
+      "crown:120",
+      "crown:24",
+      "crown:36",
+      "crown:48",
+      "crown:60",
+      "crown:72",
+      "crown:84",
+      "crown:96",
+      "fine-face:0",
+      "girdle:108",
+      "girdle:12",
+      "girdle:120",
+      "girdle:24",
+      "girdle:36",
+      "girdle:48",
+      "girdle:60",
+      "girdle:72",
+      "girdle:84",
+      "girdle:96",
+      "pavilion:108",
+      "pavilion:12",
+      "pavilion:120",
+      "pavilion:24",
+      "pavilion:36",
+      "pavilion:48",
+      "pavilion:60",
+      "pavilion:72",
+      "pavilion:84",
+      "pavilion:96",
+      "table:120"
+    ],
+    "construction": [],
+    "all": [
+      {
+        "teeth": 32,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 4.500000000046437,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 3.199999999997893,
+            "nearestIndex": 3,
+            "errorDeg": 2.249999999976296,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 6.399999999999505,
+            "nearestIndex": 6,
+            "errorDeg": 4.4999999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 9.600000000000495,
+            "nearestIndex": 10,
+            "errorDeg": 4.4999999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 12.800000000002113,
+            "nearestIndex": 13,
+            "errorDeg": 2.249999999976231,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 19.19999999999789,
+            "nearestIndex": 19,
+            "errorDeg": 2.249999999976251,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 22.3999999999995,
+            "nearestIndex": 22,
+            "errorDeg": 4.4999999999943885,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 25.600000000000495,
+            "nearestIndex": 26,
+            "errorDeg": 4.4999999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 28.800000000002107,
+            "nearestIndex": 29,
+            "errorDeg": 2.249999999976291,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 3.200000000002835,
+            "nearestIndex": 3,
+            "errorDeg": 2.2500000000318914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 6.400000000004128,
+            "nearestIndex": 6,
+            "errorDeg": 4.500000000046437,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 9.599999999995877,
+            "nearestIndex": 10,
+            "errorDeg": 4.500000000046387,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 12.799999999997166,
+            "nearestIndex": 13,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 19.200000000002834,
+            "nearestIndex": 19,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 22.400000000004127,
+            "nearestIndex": 22,
+            "errorDeg": 4.500000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 25.599999999995873,
+            "nearestIndex": 26,
+            "errorDeg": 4.500000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 28.799999999997166,
+            "nearestIndex": 29,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 3.199999999997206,
+            "nearestIndex": 3,
+            "errorDeg": 2.2499999999685674,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 6.400000000001895,
+            "nearestIndex": 6,
+            "errorDeg": 4.500000000021317,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 9.599999999998106,
+            "nearestIndex": 10,
+            "errorDeg": 4.500000000021307,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 12.800000000002795,
+            "nearestIndex": 13,
+            "errorDeg": 2.249999999968557,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 19.199999999997207,
+            "nearestIndex": 19,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 22.400000000001896,
+            "nearestIndex": 22,
+            "errorDeg": 4.500000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 25.599999999998104,
+            "nearestIndex": 26,
+            "errorDeg": 4.500000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 28.800000000002793,
+            "nearestIndex": 29,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 0.8000000000001566,
+            "nearestIndex": 1,
+            "errorDeg": 2.2499999999982383,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 64,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 2.2500000000318914,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 6.399999999995786,
+            "nearestIndex": 6,
+            "errorDeg": 2.249999999976296,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 12.79999999999901,
+            "nearestIndex": 13,
+            "errorDeg": 1.1250000000055715,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 19.20000000000099,
+            "nearestIndex": 19,
+            "errorDeg": 1.1250000000055715,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 25.600000000004226,
+            "nearestIndex": 26,
+            "errorDeg": 2.249999999976231,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 38.39999999999578,
+            "nearestIndex": 38,
+            "errorDeg": 2.249999999976251,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 44.799999999999,
+            "nearestIndex": 45,
+            "errorDeg": 1.1250000000056115,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 51.20000000000099,
+            "nearestIndex": 51,
+            "errorDeg": 1.1250000000055715,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 57.600000000004215,
+            "nearestIndex": 58,
+            "errorDeg": 2.249999999976291,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 6.40000000000567,
+            "nearestIndex": 6,
+            "errorDeg": 2.2500000000318914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 12.800000000008255,
+            "nearestIndex": 13,
+            "errorDeg": 1.1249999999535631,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 19.199999999991753,
+            "nearestIndex": 19,
+            "errorDeg": 1.124999999953613,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 25.59999999999433,
+            "nearestIndex": 26,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 38.40000000000567,
+            "nearestIndex": 38,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 44.800000000008254,
+            "nearestIndex": 45,
+            "errorDeg": 1.1249999999535731,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 51.199999999991746,
+            "nearestIndex": 51,
+            "errorDeg": 1.1249999999535731,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 57.59999999999433,
+            "nearestIndex": 58,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 6.399999999994412,
+            "nearestIndex": 6,
+            "errorDeg": 2.2499999999685674,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 12.80000000000379,
+            "nearestIndex": 13,
+            "errorDeg": 1.124999999978683,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 19.199999999996212,
+            "nearestIndex": 19,
+            "errorDeg": 1.124999999978693,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 25.60000000000559,
+            "nearestIndex": 26,
+            "errorDeg": 2.249999999968557,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 38.399999999994414,
+            "nearestIndex": 38,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 44.80000000000379,
+            "nearestIndex": 45,
+            "errorDeg": 1.124999999978673,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 51.19999999999621,
+            "nearestIndex": 51,
+            "errorDeg": 1.124999999978673,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 57.600000000005586,
+            "nearestIndex": 58,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 1.6000000000003132,
+            "nearestIndex": 2,
+            "errorDeg": 2.2499999999982383,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 72,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 2.0000000000464357,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 7.199999999995259,
+            "nearestIndex": 7,
+            "errorDeg": 0.9999999999762955,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 14.399999999998887,
+            "nearestIndex": 14,
+            "errorDeg": 1.999999999994433,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 21.600000000001113,
+            "nearestIndex": 22,
+            "errorDeg": 1.999999999994433,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 28.80000000000475,
+            "nearestIndex": 29,
+            "errorDeg": 0.9999999999762466,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 43.199999999995256,
+            "nearestIndex": 43,
+            "errorDeg": 0.9999999999762821,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 50.399999999998876,
+            "nearestIndex": 50,
+            "errorDeg": 1.9999999999943796,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 57.60000000000111,
+            "nearestIndex": 58,
+            "errorDeg": 1.9999999999944507,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 64.80000000000474,
+            "nearestIndex": 65,
+            "errorDeg": 0.9999999999762821,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 7.200000000006378,
+            "nearestIndex": 7,
+            "errorDeg": 1.000000000031891,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 14.400000000009287,
+            "nearestIndex": 14,
+            "errorDeg": 2.0000000000464357,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 21.59999999999072,
+            "nearestIndex": 22,
+            "errorDeg": 2.0000000000463913,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 28.799999999993624,
+            "nearestIndex": 29,
+            "errorDeg": 1.000000000031882,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 43.200000000006376,
+            "nearestIndex": 43,
+            "errorDeg": 1.000000000031882,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 50.400000000009285,
+            "nearestIndex": 50,
+            "errorDeg": 2.000000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 57.599999999990715,
+            "nearestIndex": 58,
+            "errorDeg": 2.000000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 64.79999999999362,
+            "nearestIndex": 65,
+            "errorDeg": 1.0000000000319176,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 7.199999999993713,
+            "nearestIndex": 7,
+            "errorDeg": 0.9999999999685638,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 14.400000000004265,
+            "nearestIndex": 14,
+            "errorDeg": 2.000000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 21.599999999995735,
+            "nearestIndex": 22,
+            "errorDeg": 2.000000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 28.800000000006285,
+            "nearestIndex": 29,
+            "errorDeg": 0.9999999999685727,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 43.199999999993715,
+            "nearestIndex": 43,
+            "errorDeg": 0.9999999999685727,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 50.40000000000426,
+            "nearestIndex": 50,
+            "errorDeg": 2.000000000021309,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 57.59999999999574,
+            "nearestIndex": 58,
+            "errorDeg": 2.000000000021309,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 64.80000000000629,
+            "nearestIndex": 65,
+            "errorDeg": 0.9999999999685372,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 1.8000000000003524,
+            "nearestIndex": 2,
+            "errorDeg": 0.9999999999982379,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 77,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 3,
+        "incompatibleCount": 28,
+        "coverage": 0.0967741935483871,
+        "maxErrorDeg": 2.3376623376623376,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 7.69999999999493,
+            "nearestIndex": 8,
+            "errorDeg": 1.4025974026211085,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 15.399999999998808,
+            "nearestIndex": 15,
+            "errorDeg": 1.8701298701242992,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 23.10000000000119,
+            "nearestIndex": 23,
+            "errorDeg": 0.46753246753803857,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 30.800000000005085,
+            "nearestIndex": 31,
+            "errorDeg": 0.9350649350411627,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:60",
+            "patternId": "girdle",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 46.19999999999493,
+            "nearestIndex": 46,
+            "errorDeg": 0.9350649350412291,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 53.8999999999988,
+            "nearestIndex": 54,
+            "errorDeg": 0.4675324675380884,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 61.600000000001195,
+            "nearestIndex": 62,
+            "errorDeg": 1.8701298701242826,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 69.30000000000507,
+            "nearestIndex": 69,
+            "errorDeg": 1.4025974026211085,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 7.700000000006821,
+            "nearestIndex": 8,
+            "errorDeg": 1.4025974025655106,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 15.400000000009934,
+            "nearestIndex": 15,
+            "errorDeg": 1.8701298701763134,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 23.099999999990075,
+            "nearestIndex": 23,
+            "errorDeg": 0.4675324674860656,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 30.79999999999318,
+            "nearestIndex": 31,
+            "errorDeg": 0.9350649350968231,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:60",
+            "patternId": "crown",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 46.200000000006824,
+            "nearestIndex": 46,
+            "errorDeg": 0.9350649350968397,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 53.900000000009925,
+            "nearestIndex": 54,
+            "errorDeg": 0.4675324674860656,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 61.59999999999007,
+            "nearestIndex": 62,
+            "errorDeg": 1.8701298701763054,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 69.29999999999318,
+            "nearestIndex": 69,
+            "errorDeg": 1.402597402565498,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 7.699999999993276,
+            "nearestIndex": 8,
+            "errorDeg": 1.4025974026288406,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 15.40000000000456,
+            "nearestIndex": 15,
+            "errorDeg": 1.8701298701511908,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 23.099999999995443,
+            "nearestIndex": 23,
+            "errorDeg": 0.46753246751116345,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 30.800000000006726,
+            "nearestIndex": 31,
+            "errorDeg": 0.9350649350334889,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:60",
+            "patternId": "pavilion",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 46.19999999999328,
+            "nearestIndex": 46,
+            "errorDeg": 0.9350649350335221,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 53.90000000000456,
+            "nearestIndex": 54,
+            "errorDeg": 0.4675324675111468,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 61.59999999999544,
+            "nearestIndex": 62,
+            "errorDeg": 1.8701298701511908,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 69.30000000000672,
+            "nearestIndex": 69,
+            "errorDeg": 1.4025974026288155,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 1.925000000000377,
+            "nearestIndex": 2,
+            "errorDeg": 0.3506493506475877,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 80,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 31,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 4.644284956611955e-11,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 84,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 1.7142857143176218,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 8.39999999999447,
+            "nearestIndex": 8,
+            "errorDeg": 1.7142857142620167,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 16.7999999999987,
+            "nearestIndex": 17,
+            "errorDeg": 0.8571428571484268,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 25.2000000000013,
+            "nearestIndex": 25,
+            "errorDeg": 0.8571428571484268,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 33.600000000005544,
+            "nearestIndex": 34,
+            "errorDeg": 1.7142857142619559,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 50.39999999999446,
+            "nearestIndex": 50,
+            "errorDeg": 1.7142857142619863,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 58.7999999999987,
+            "nearestIndex": 59,
+            "errorDeg": 0.857142857148442,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 67.20000000000131,
+            "nearestIndex": 67,
+            "errorDeg": 0.8571428571484725,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 75.60000000000552,
+            "nearestIndex": 76,
+            "errorDeg": 1.7142857142620471,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 8.40000000000744,
+            "nearestIndex": 8,
+            "errorDeg": 1.7142857143175987,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 16.800000000010836,
+            "nearestIndex": 17,
+            "errorDeg": 0.857142857096415,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 25.199999999989178,
+            "nearestIndex": 25,
+            "errorDeg": 0.857142857096476,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 33.599999999992555,
+            "nearestIndex": 34,
+            "errorDeg": 1.7142857143176218,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 50.40000000000744,
+            "nearestIndex": 50,
+            "errorDeg": 1.7142857143175914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 58.80000000001083,
+            "nearestIndex": 59,
+            "errorDeg": 0.8571428570964302,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 67.19999999998916,
+            "nearestIndex": 67,
+            "errorDeg": 0.8571428570963998,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 75.59999999999256,
+            "nearestIndex": 76,
+            "errorDeg": 1.7142857143175914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 8.399999999992666,
+            "nearestIndex": 8,
+            "errorDeg": 1.714285714254282,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 16.800000000004975,
+            "nearestIndex": 17,
+            "errorDeg": 0.8571428571215378,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 25.19999999999503,
+            "nearestIndex": 25,
+            "errorDeg": 0.857142857121553,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 33.600000000007334,
+            "nearestIndex": 34,
+            "errorDeg": 1.714285714254282,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 50.399999999992666,
+            "nearestIndex": 50,
+            "errorDeg": 1.714285714254282,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 58.80000000000497,
+            "nearestIndex": 59,
+            "errorDeg": 0.857142857121553,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 67.19999999999503,
+            "nearestIndex": 67,
+            "errorDeg": 0.857142857121553,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 75.60000000000734,
+            "nearestIndex": 76,
+            "errorDeg": 1.7142857142542514,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.1000000000004113,
+            "nearestIndex": 2,
+            "errorDeg": 0.4285714285731914,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 88,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 1.6363636363692406,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 8.799999999994206,
+            "nearestIndex": 9,
+            "errorDeg": 0.8181818182055199,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 17.599999999998637,
+            "nearestIndex": 18,
+            "errorDeg": 1.6363636363692116,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 26.400000000001363,
+            "nearestIndex": 26,
+            "errorDeg": 1.6363636363692116,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 35.20000000000581,
+            "nearestIndex": 35,
+            "errorDeg": 0.8181818182055781,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 52.7999999999942,
+            "nearestIndex": 53,
+            "errorDeg": 0.818181818205549,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 61.59999999999864,
+            "nearestIndex": 62,
+            "errorDeg": 1.6363636363692116,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 70.40000000000137,
+            "nearestIndex": 70,
+            "errorDeg": 1.6363636363692406,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 79.20000000000579,
+            "nearestIndex": 79,
+            "errorDeg": 0.8181818182054909,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 8.800000000007795,
+            "nearestIndex": 9,
+            "errorDeg": 0.8181818181499281,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 17.600000000011352,
+            "nearestIndex": 18,
+            "errorDeg": 1.636363636317195,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 26.399999999988662,
+            "nearestIndex": 26,
+            "errorDeg": 1.6363636363172531,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 35.1999999999922,
+            "nearestIndex": 35,
+            "errorDeg": 0.8181818181499135,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 52.80000000000779,
+            "nearestIndex": 53,
+            "errorDeg": 0.8181818181499426,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 61.60000000001135,
+            "nearestIndex": 62,
+            "errorDeg": 1.6363636363172096,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 70.39999999998865,
+            "nearestIndex": 70,
+            "errorDeg": 1.6363636363172096,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 79.19999999999222,
+            "nearestIndex": 79,
+            "errorDeg": 0.8181818181499717,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 8.799999999992316,
+            "nearestIndex": 9,
+            "errorDeg": 0.818181818213252,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 17.60000000000521,
+            "nearestIndex": 18,
+            "errorDeg": 1.636363636342324,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 26.39999999999479,
+            "nearestIndex": 26,
+            "errorDeg": 1.636363636342324,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 35.200000000007684,
+            "nearestIndex": 35,
+            "errorDeg": 0.818181818213252,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 52.79999999999232,
+            "nearestIndex": 53,
+            "errorDeg": 0.8181818182132229,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 61.60000000000522,
+            "nearestIndex": 62,
+            "errorDeg": 1.6363636363422949,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 70.39999999999479,
+            "nearestIndex": 70,
+            "errorDeg": 1.636363636342324,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 79.20000000000768,
+            "nearestIndex": 79,
+            "errorDeg": 0.8181818182132229,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.200000000000431,
+            "nearestIndex": 2,
+            "errorDeg": 0.8181818181835812,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 96,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 1.5000000000314628,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 9.59999999999368,
+            "nearestIndex": 10,
+            "errorDeg": 1.5000000000237026,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 19.199999999998514,
+            "nearestIndex": 19,
+            "errorDeg": 0.7499999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 28.800000000001486,
+            "nearestIndex": 29,
+            "errorDeg": 0.7499999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 38.40000000000634,
+            "nearestIndex": 38,
+            "errorDeg": 1.5000000000237623,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 57.59999999999367,
+            "nearestIndex": 58,
+            "errorDeg": 1.5000000000237357,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 67.19999999999851,
+            "nearestIndex": 67,
+            "errorDeg": 0.7499999999944151,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 76.80000000000149,
+            "nearestIndex": 77,
+            "errorDeg": 0.7499999999944151,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 86.40000000000633,
+            "nearestIndex": 86,
+            "errorDeg": 1.5000000000237357,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 9.600000000008503,
+            "nearestIndex": 10,
+            "errorDeg": 1.4999999999681135,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 19.200000000012384,
+            "nearestIndex": 19,
+            "errorDeg": 0.7500000000464402,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 28.79999999998763,
+            "nearestIndex": 29,
+            "errorDeg": 0.7500000000463869,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 38.39999999999149,
+            "nearestIndex": 38,
+            "errorDeg": 1.4999999999681002,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 57.60000000000851,
+            "nearestIndex": 58,
+            "errorDeg": 1.4999999999681002,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 67.20000000001238,
+            "nearestIndex": 67,
+            "errorDeg": 0.7500000000464269,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 76.7999999999876,
+            "nearestIndex": 77,
+            "errorDeg": 0.7500000000464802,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 86.3999999999915,
+            "nearestIndex": 86,
+            "errorDeg": 1.4999999999681002,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 9.599999999991617,
+            "nearestIndex": 10,
+            "errorDeg": 1.5000000000314362,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 19.200000000005684,
+            "nearestIndex": 19,
+            "errorDeg": 0.7500000000213136,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 28.799999999994316,
+            "nearestIndex": 29,
+            "errorDeg": 0.7500000000213136,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 38.40000000000838,
+            "nearestIndex": 38,
+            "errorDeg": 1.5000000000314362,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 57.59999999999161,
+            "nearestIndex": 58,
+            "errorDeg": 1.5000000000314628,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 67.20000000000567,
+            "nearestIndex": 67,
+            "errorDeg": 0.7500000000212736,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 76.79999999999433,
+            "nearestIndex": 77,
+            "errorDeg": 0.7500000000212736,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 86.40000000000839,
+            "nearestIndex": 86,
+            "errorDeg": 1.5000000000314628,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.4000000000004698,
+            "nearestIndex": 2,
+            "errorDeg": 1.5000000000017615,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 99,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 3,
+        "incompatibleCount": 28,
+        "coverage": 0.0967741935483871,
+        "maxErrorDeg": 1.8181818181818181,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 9.899999999993481,
+            "nearestIndex": 10,
+            "errorDeg": 0.36363636366006863,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 19.79999999999847,
+            "nearestIndex": 20,
+            "errorDeg": 0.7272727272782927,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 29.70000000000153,
+            "nearestIndex": 30,
+            "errorDeg": 1.0909090909035255,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 39.60000000000653,
+            "nearestIndex": 40,
+            "errorDeg": 1.4545454545217043,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:60",
+            "patternId": "girdle",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 59.39999999999347,
+            "nearestIndex": 59,
+            "errorDeg": 1.4545454545217043,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 69.29999999999846,
+            "nearestIndex": 69,
+            "errorDeg": 1.0909090909034995,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 79.20000000000154,
+            "nearestIndex": 79,
+            "errorDeg": 0.7272727272783186,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 89.10000000000652,
+            "nearestIndex": 89,
+            "errorDeg": 0.3636363636600622,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 9.900000000008768,
+            "nearestIndex": 10,
+            "errorDeg": 0.3636363636044784,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 19.80000000001277,
+            "nearestIndex": 20,
+            "errorDeg": 0.727272727226294,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 29.69999999998725,
+            "nearestIndex": 30,
+            "errorDeg": 1.0909090909554597,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 39.599999999991226,
+            "nearestIndex": 40,
+            "errorDeg": 1.4545454545773593,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:60",
+            "patternId": "crown",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 59.400000000008774,
+            "nearestIndex": 59,
+            "errorDeg": 1.4545454545773593,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 69.30000000001276,
+            "nearestIndex": 69,
+            "errorDeg": 1.0909090909554855,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 79.19999999998723,
+            "nearestIndex": 79,
+            "errorDeg": 0.727272727226281,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 89.09999999999123,
+            "nearestIndex": 89,
+            "errorDeg": 0.363636363604459,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 9.899999999991357,
+            "nearestIndex": 10,
+            "errorDeg": 0.36363636366779417,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 19.800000000005863,
+            "nearestIndex": 20,
+            "errorDeg": 0.7272727272514085,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 29.699999999994137,
+            "nearestIndex": 30,
+            "errorDeg": 1.0909090909304098,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 39.60000000000865,
+            "nearestIndex": 40,
+            "errorDeg": 1.4545454545140046,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:60",
+            "patternId": "pavilion",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 59.39999999999136,
+            "nearestIndex": 59,
+            "errorDeg": 1.4545454545140304,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 69.30000000000587,
+            "nearestIndex": 69,
+            "errorDeg": 1.0909090909304227,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 79.19999999999413,
+            "nearestIndex": 79,
+            "errorDeg": 0.7272727272513955,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 89.10000000000863,
+            "nearestIndex": 89,
+            "errorDeg": 0.36363636366776186,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.4750000000004846,
+            "nearestIndex": 2,
+            "errorDeg": 1.7272727272744894,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 120,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 31,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 4.644817863663775e-11,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 360,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 31,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 4.644107320928015e-11,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      }
+    ],
+    "final": [
+      {
+        "teeth": 32,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 4.500000000046437,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 3.199999999997893,
+            "nearestIndex": 3,
+            "errorDeg": 2.249999999976296,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 6.399999999999505,
+            "nearestIndex": 6,
+            "errorDeg": 4.4999999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 9.600000000000495,
+            "nearestIndex": 10,
+            "errorDeg": 4.4999999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 12.800000000002113,
+            "nearestIndex": 13,
+            "errorDeg": 2.249999999976231,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 19.19999999999789,
+            "nearestIndex": 19,
+            "errorDeg": 2.249999999976251,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 22.3999999999995,
+            "nearestIndex": 22,
+            "errorDeg": 4.4999999999943885,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 25.600000000000495,
+            "nearestIndex": 26,
+            "errorDeg": 4.4999999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 28.800000000002107,
+            "nearestIndex": 29,
+            "errorDeg": 2.249999999976291,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 3.200000000002835,
+            "nearestIndex": 3,
+            "errorDeg": 2.2500000000318914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 6.400000000004128,
+            "nearestIndex": 6,
+            "errorDeg": 4.500000000046437,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 9.599999999995877,
+            "nearestIndex": 10,
+            "errorDeg": 4.500000000046387,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 12.799999999997166,
+            "nearestIndex": 13,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 19.200000000002834,
+            "nearestIndex": 19,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 22.400000000004127,
+            "nearestIndex": 22,
+            "errorDeg": 4.500000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 25.599999999995873,
+            "nearestIndex": 26,
+            "errorDeg": 4.500000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 28.799999999997166,
+            "nearestIndex": 29,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 3.199999999997206,
+            "nearestIndex": 3,
+            "errorDeg": 2.2499999999685674,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 6.400000000001895,
+            "nearestIndex": 6,
+            "errorDeg": 4.500000000021317,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 9.599999999998106,
+            "nearestIndex": 10,
+            "errorDeg": 4.500000000021307,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 12.800000000002795,
+            "nearestIndex": 13,
+            "errorDeg": 2.249999999968557,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 19.199999999997207,
+            "nearestIndex": 19,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 22.400000000001896,
+            "nearestIndex": 22,
+            "errorDeg": 4.500000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 25.599999999998104,
+            "nearestIndex": 26,
+            "errorDeg": 4.500000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 28.800000000002793,
+            "nearestIndex": 29,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 0.8000000000001566,
+            "nearestIndex": 1,
+            "errorDeg": 2.2499999999982383,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 64,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 2.2500000000318914,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 6.399999999995786,
+            "nearestIndex": 6,
+            "errorDeg": 2.249999999976296,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 12.79999999999901,
+            "nearestIndex": 13,
+            "errorDeg": 1.1250000000055715,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 19.20000000000099,
+            "nearestIndex": 19,
+            "errorDeg": 1.1250000000055715,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 25.600000000004226,
+            "nearestIndex": 26,
+            "errorDeg": 2.249999999976231,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 38.39999999999578,
+            "nearestIndex": 38,
+            "errorDeg": 2.249999999976251,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 44.799999999999,
+            "nearestIndex": 45,
+            "errorDeg": 1.1250000000056115,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 51.20000000000099,
+            "nearestIndex": 51,
+            "errorDeg": 1.1250000000055715,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 57.600000000004215,
+            "nearestIndex": 58,
+            "errorDeg": 2.249999999976291,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 6.40000000000567,
+            "nearestIndex": 6,
+            "errorDeg": 2.2500000000318914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 12.800000000008255,
+            "nearestIndex": 13,
+            "errorDeg": 1.1249999999535631,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 19.199999999991753,
+            "nearestIndex": 19,
+            "errorDeg": 1.124999999953613,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 25.59999999999433,
+            "nearestIndex": 26,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 38.40000000000567,
+            "nearestIndex": 38,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 44.800000000008254,
+            "nearestIndex": 45,
+            "errorDeg": 1.1249999999535731,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 51.199999999991746,
+            "nearestIndex": 51,
+            "errorDeg": 1.1249999999535731,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 57.59999999999433,
+            "nearestIndex": 58,
+            "errorDeg": 2.2500000000318865,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 6.399999999994412,
+            "nearestIndex": 6,
+            "errorDeg": 2.2499999999685674,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 12.80000000000379,
+            "nearestIndex": 13,
+            "errorDeg": 1.124999999978683,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 19.199999999996212,
+            "nearestIndex": 19,
+            "errorDeg": 1.124999999978693,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 25.60000000000559,
+            "nearestIndex": 26,
+            "errorDeg": 2.249999999968557,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 38.399999999994414,
+            "nearestIndex": 38,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 44.80000000000379,
+            "nearestIndex": 45,
+            "errorDeg": 1.124999999978673,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 51.19999999999621,
+            "nearestIndex": 51,
+            "errorDeg": 1.124999999978673,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 57.600000000005586,
+            "nearestIndex": 58,
+            "errorDeg": 2.249999999968577,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 1.6000000000003132,
+            "nearestIndex": 2,
+            "errorDeg": 2.2499999999982383,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 72,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 2.0000000000464357,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 7.199999999995259,
+            "nearestIndex": 7,
+            "errorDeg": 0.9999999999762955,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 14.399999999998887,
+            "nearestIndex": 14,
+            "errorDeg": 1.999999999994433,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 21.600000000001113,
+            "nearestIndex": 22,
+            "errorDeg": 1.999999999994433,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 28.80000000000475,
+            "nearestIndex": 29,
+            "errorDeg": 0.9999999999762466,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 43.199999999995256,
+            "nearestIndex": 43,
+            "errorDeg": 0.9999999999762821,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 50.399999999998876,
+            "nearestIndex": 50,
+            "errorDeg": 1.9999999999943796,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 57.60000000000111,
+            "nearestIndex": 58,
+            "errorDeg": 1.9999999999944507,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 64.80000000000474,
+            "nearestIndex": 65,
+            "errorDeg": 0.9999999999762821,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 7.200000000006378,
+            "nearestIndex": 7,
+            "errorDeg": 1.000000000031891,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 14.400000000009287,
+            "nearestIndex": 14,
+            "errorDeg": 2.0000000000464357,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 21.59999999999072,
+            "nearestIndex": 22,
+            "errorDeg": 2.0000000000463913,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 28.799999999993624,
+            "nearestIndex": 29,
+            "errorDeg": 1.000000000031882,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 43.200000000006376,
+            "nearestIndex": 43,
+            "errorDeg": 1.000000000031882,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 50.400000000009285,
+            "nearestIndex": 50,
+            "errorDeg": 2.000000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 57.599999999990715,
+            "nearestIndex": 58,
+            "errorDeg": 2.000000000046427,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 64.79999999999362,
+            "nearestIndex": 65,
+            "errorDeg": 1.0000000000319176,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 7.199999999993713,
+            "nearestIndex": 7,
+            "errorDeg": 0.9999999999685638,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 14.400000000004265,
+            "nearestIndex": 14,
+            "errorDeg": 2.000000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 21.599999999995735,
+            "nearestIndex": 22,
+            "errorDeg": 2.000000000021327,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 28.800000000006285,
+            "nearestIndex": 29,
+            "errorDeg": 0.9999999999685727,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 43.199999999993715,
+            "nearestIndex": 43,
+            "errorDeg": 0.9999999999685727,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 50.40000000000426,
+            "nearestIndex": 50,
+            "errorDeg": 2.000000000021309,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 57.59999999999574,
+            "nearestIndex": 58,
+            "errorDeg": 2.000000000021309,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 64.80000000000629,
+            "nearestIndex": 65,
+            "errorDeg": 0.9999999999685372,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 1.8000000000003524,
+            "nearestIndex": 2,
+            "errorDeg": 0.9999999999982379,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 77,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 3,
+        "incompatibleCount": 28,
+        "coverage": 0.0967741935483871,
+        "maxErrorDeg": 2.3376623376623376,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 7.69999999999493,
+            "nearestIndex": 8,
+            "errorDeg": 1.4025974026211085,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 15.399999999998808,
+            "nearestIndex": 15,
+            "errorDeg": 1.8701298701242992,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 23.10000000000119,
+            "nearestIndex": 23,
+            "errorDeg": 0.46753246753803857,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 30.800000000005085,
+            "nearestIndex": 31,
+            "errorDeg": 0.9350649350411627,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:60",
+            "patternId": "girdle",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 46.19999999999493,
+            "nearestIndex": 46,
+            "errorDeg": 0.9350649350412291,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 53.8999999999988,
+            "nearestIndex": 54,
+            "errorDeg": 0.4675324675380884,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 61.600000000001195,
+            "nearestIndex": 62,
+            "errorDeg": 1.8701298701242826,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 69.30000000000507,
+            "nearestIndex": 69,
+            "errorDeg": 1.4025974026211085,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 7.700000000006821,
+            "nearestIndex": 8,
+            "errorDeg": 1.4025974025655106,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 15.400000000009934,
+            "nearestIndex": 15,
+            "errorDeg": 1.8701298701763134,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 23.099999999990075,
+            "nearestIndex": 23,
+            "errorDeg": 0.4675324674860656,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 30.79999999999318,
+            "nearestIndex": 31,
+            "errorDeg": 0.9350649350968231,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:60",
+            "patternId": "crown",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 46.200000000006824,
+            "nearestIndex": 46,
+            "errorDeg": 0.9350649350968397,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 53.900000000009925,
+            "nearestIndex": 54,
+            "errorDeg": 0.4675324674860656,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 61.59999999999007,
+            "nearestIndex": 62,
+            "errorDeg": 1.8701298701763054,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 69.29999999999318,
+            "nearestIndex": 69,
+            "errorDeg": 1.402597402565498,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 7.699999999993276,
+            "nearestIndex": 8,
+            "errorDeg": 1.4025974026288406,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 15.40000000000456,
+            "nearestIndex": 15,
+            "errorDeg": 1.8701298701511908,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 23.099999999995443,
+            "nearestIndex": 23,
+            "errorDeg": 0.46753246751116345,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 30.800000000006726,
+            "nearestIndex": 31,
+            "errorDeg": 0.9350649350334889,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:60",
+            "patternId": "pavilion",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 46.19999999999328,
+            "nearestIndex": 46,
+            "errorDeg": 0.9350649350335221,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 53.90000000000456,
+            "nearestIndex": 54,
+            "errorDeg": 0.4675324675111468,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 61.59999999999544,
+            "nearestIndex": 62,
+            "errorDeg": 1.8701298701511908,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 69.30000000000672,
+            "nearestIndex": 69,
+            "errorDeg": 1.4025974026288155,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 1.925000000000377,
+            "nearestIndex": 2,
+            "errorDeg": 0.3506493506475877,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 80,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 31,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 4.644284956611955e-11,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 84,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 1.7142857143176218,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 8.39999999999447,
+            "nearestIndex": 8,
+            "errorDeg": 1.7142857142620167,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 16.7999999999987,
+            "nearestIndex": 17,
+            "errorDeg": 0.8571428571484268,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 25.2000000000013,
+            "nearestIndex": 25,
+            "errorDeg": 0.8571428571484268,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 33.600000000005544,
+            "nearestIndex": 34,
+            "errorDeg": 1.7142857142619559,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 50.39999999999446,
+            "nearestIndex": 50,
+            "errorDeg": 1.7142857142619863,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 58.7999999999987,
+            "nearestIndex": 59,
+            "errorDeg": 0.857142857148442,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 67.20000000000131,
+            "nearestIndex": 67,
+            "errorDeg": 0.8571428571484725,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 75.60000000000552,
+            "nearestIndex": 76,
+            "errorDeg": 1.7142857142620471,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 8.40000000000744,
+            "nearestIndex": 8,
+            "errorDeg": 1.7142857143175987,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 16.800000000010836,
+            "nearestIndex": 17,
+            "errorDeg": 0.857142857096415,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 25.199999999989178,
+            "nearestIndex": 25,
+            "errorDeg": 0.857142857096476,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 33.599999999992555,
+            "nearestIndex": 34,
+            "errorDeg": 1.7142857143176218,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 50.40000000000744,
+            "nearestIndex": 50,
+            "errorDeg": 1.7142857143175914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 58.80000000001083,
+            "nearestIndex": 59,
+            "errorDeg": 0.8571428570964302,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 67.19999999998916,
+            "nearestIndex": 67,
+            "errorDeg": 0.8571428570963998,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 75.59999999999256,
+            "nearestIndex": 76,
+            "errorDeg": 1.7142857143175914,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 8.399999999992666,
+            "nearestIndex": 8,
+            "errorDeg": 1.714285714254282,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 16.800000000004975,
+            "nearestIndex": 17,
+            "errorDeg": 0.8571428571215378,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 25.19999999999503,
+            "nearestIndex": 25,
+            "errorDeg": 0.857142857121553,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 33.600000000007334,
+            "nearestIndex": 34,
+            "errorDeg": 1.714285714254282,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 50.399999999992666,
+            "nearestIndex": 50,
+            "errorDeg": 1.714285714254282,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 58.80000000000497,
+            "nearestIndex": 59,
+            "errorDeg": 0.857142857121553,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 67.19999999999503,
+            "nearestIndex": 67,
+            "errorDeg": 0.857142857121553,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 75.60000000000734,
+            "nearestIndex": 76,
+            "errorDeg": 1.7142857142542514,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.1000000000004113,
+            "nearestIndex": 2,
+            "errorDeg": 0.4285714285731914,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 88,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 1.6363636363692406,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 8.799999999994206,
+            "nearestIndex": 9,
+            "errorDeg": 0.8181818182055199,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 17.599999999998637,
+            "nearestIndex": 18,
+            "errorDeg": 1.6363636363692116,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 26.400000000001363,
+            "nearestIndex": 26,
+            "errorDeg": 1.6363636363692116,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 35.20000000000581,
+            "nearestIndex": 35,
+            "errorDeg": 0.8181818182055781,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 52.7999999999942,
+            "nearestIndex": 53,
+            "errorDeg": 0.818181818205549,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 61.59999999999864,
+            "nearestIndex": 62,
+            "errorDeg": 1.6363636363692116,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 70.40000000000137,
+            "nearestIndex": 70,
+            "errorDeg": 1.6363636363692406,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 79.20000000000579,
+            "nearestIndex": 79,
+            "errorDeg": 0.8181818182054909,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 8.800000000007795,
+            "nearestIndex": 9,
+            "errorDeg": 0.8181818181499281,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 17.600000000011352,
+            "nearestIndex": 18,
+            "errorDeg": 1.636363636317195,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 26.399999999988662,
+            "nearestIndex": 26,
+            "errorDeg": 1.6363636363172531,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 35.1999999999922,
+            "nearestIndex": 35,
+            "errorDeg": 0.8181818181499135,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 52.80000000000779,
+            "nearestIndex": 53,
+            "errorDeg": 0.8181818181499426,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 61.60000000001135,
+            "nearestIndex": 62,
+            "errorDeg": 1.6363636363172096,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 70.39999999998865,
+            "nearestIndex": 70,
+            "errorDeg": 1.6363636363172096,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 79.19999999999222,
+            "nearestIndex": 79,
+            "errorDeg": 0.8181818181499717,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 8.799999999992316,
+            "nearestIndex": 9,
+            "errorDeg": 0.818181818213252,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 17.60000000000521,
+            "nearestIndex": 18,
+            "errorDeg": 1.636363636342324,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 26.39999999999479,
+            "nearestIndex": 26,
+            "errorDeg": 1.636363636342324,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 35.200000000007684,
+            "nearestIndex": 35,
+            "errorDeg": 0.818181818213252,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 52.79999999999232,
+            "nearestIndex": 53,
+            "errorDeg": 0.8181818182132229,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 61.60000000000522,
+            "nearestIndex": 62,
+            "errorDeg": 1.6363636363422949,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 70.39999999999479,
+            "nearestIndex": 70,
+            "errorDeg": 1.636363636342324,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 79.20000000000768,
+            "nearestIndex": 79,
+            "errorDeg": 0.8181818182132229,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.200000000000431,
+            "nearestIndex": 2,
+            "errorDeg": 0.8181818181835812,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 96,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 6,
+        "incompatibleCount": 25,
+        "coverage": 0.1935483870967742,
+        "maxErrorDeg": 1.5000000000314628,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 9.59999999999368,
+            "nearestIndex": 10,
+            "errorDeg": 1.5000000000237026,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 19.199999999998514,
+            "nearestIndex": 19,
+            "errorDeg": 0.7499999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 28.800000000001486,
+            "nearestIndex": 29,
+            "errorDeg": 0.7499999999944285,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 38.40000000000634,
+            "nearestIndex": 38,
+            "errorDeg": 1.5000000000237623,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 57.59999999999367,
+            "nearestIndex": 58,
+            "errorDeg": 1.5000000000237357,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 67.19999999999851,
+            "nearestIndex": 67,
+            "errorDeg": 0.7499999999944151,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 76.80000000000149,
+            "nearestIndex": 77,
+            "errorDeg": 0.7499999999944151,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 86.40000000000633,
+            "nearestIndex": 86,
+            "errorDeg": 1.5000000000237357,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 9.600000000008503,
+            "nearestIndex": 10,
+            "errorDeg": 1.4999999999681135,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 19.200000000012384,
+            "nearestIndex": 19,
+            "errorDeg": 0.7500000000464402,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 28.79999999998763,
+            "nearestIndex": 29,
+            "errorDeg": 0.7500000000463869,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 38.39999999999149,
+            "nearestIndex": 38,
+            "errorDeg": 1.4999999999681002,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 57.60000000000851,
+            "nearestIndex": 58,
+            "errorDeg": 1.4999999999681002,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 67.20000000001238,
+            "nearestIndex": 67,
+            "errorDeg": 0.7500000000464269,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 76.7999999999876,
+            "nearestIndex": 77,
+            "errorDeg": 0.7500000000464802,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 86.3999999999915,
+            "nearestIndex": 86,
+            "errorDeg": 1.4999999999681002,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 9.599999999991617,
+            "nearestIndex": 10,
+            "errorDeg": 1.5000000000314362,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 19.200000000005684,
+            "nearestIndex": 19,
+            "errorDeg": 0.7500000000213136,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 28.799999999994316,
+            "nearestIndex": 29,
+            "errorDeg": 0.7500000000213136,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 38.40000000000838,
+            "nearestIndex": 38,
+            "errorDeg": 1.5000000000314362,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 57.59999999999161,
+            "nearestIndex": 58,
+            "errorDeg": 1.5000000000314628,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 67.20000000000567,
+            "nearestIndex": 67,
+            "errorDeg": 0.7500000000212736,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 76.79999999999433,
+            "nearestIndex": 77,
+            "errorDeg": 0.7500000000212736,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 86.40000000000839,
+            "nearestIndex": 86,
+            "errorDeg": 1.5000000000314628,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.4000000000004698,
+            "nearestIndex": 2,
+            "errorDeg": 1.5000000000017615,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 99,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 3,
+        "incompatibleCount": 28,
+        "coverage": 0.0967741935483871,
+        "maxErrorDeg": 1.8181818181818181,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "girdle:12",
+            "patternId": "girdle",
+            "index": 9.899999999993481,
+            "nearestIndex": 10,
+            "errorDeg": 0.36363636366006863,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:24",
+            "patternId": "girdle",
+            "index": 19.79999999999847,
+            "nearestIndex": 20,
+            "errorDeg": 0.7272727272782927,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:36",
+            "patternId": "girdle",
+            "index": 29.70000000000153,
+            "nearestIndex": 30,
+            "errorDeg": 1.0909090909035255,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:48",
+            "patternId": "girdle",
+            "index": 39.60000000000653,
+            "nearestIndex": 40,
+            "errorDeg": 1.4545454545217043,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:60",
+            "patternId": "girdle",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:72",
+            "patternId": "girdle",
+            "index": 59.39999999999347,
+            "nearestIndex": 59,
+            "errorDeg": 1.4545454545217043,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:84",
+            "patternId": "girdle",
+            "index": 69.29999999999846,
+            "nearestIndex": 69,
+            "errorDeg": 1.0909090909034995,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:96",
+            "patternId": "girdle",
+            "index": 79.20000000000154,
+            "nearestIndex": 79,
+            "errorDeg": 0.7272727272783186,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "girdle:108",
+            "patternId": "girdle",
+            "index": 89.10000000000652,
+            "nearestIndex": 89,
+            "errorDeg": 0.3636363636600622,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:12",
+            "patternId": "crown",
+            "index": 9.900000000008768,
+            "nearestIndex": 10,
+            "errorDeg": 0.3636363636044784,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:24",
+            "patternId": "crown",
+            "index": 19.80000000001277,
+            "nearestIndex": 20,
+            "errorDeg": 0.727272727226294,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:36",
+            "patternId": "crown",
+            "index": 29.69999999998725,
+            "nearestIndex": 30,
+            "errorDeg": 1.0909090909554597,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:48",
+            "patternId": "crown",
+            "index": 39.599999999991226,
+            "nearestIndex": 40,
+            "errorDeg": 1.4545454545773593,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:60",
+            "patternId": "crown",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:72",
+            "patternId": "crown",
+            "index": 59.400000000008774,
+            "nearestIndex": 59,
+            "errorDeg": 1.4545454545773593,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:84",
+            "patternId": "crown",
+            "index": 69.30000000001276,
+            "nearestIndex": 69,
+            "errorDeg": 1.0909090909554855,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:96",
+            "patternId": "crown",
+            "index": 79.19999999998723,
+            "nearestIndex": 79,
+            "errorDeg": 0.727272727226281,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "crown:108",
+            "patternId": "crown",
+            "index": 89.09999999999123,
+            "nearestIndex": 89,
+            "errorDeg": 0.363636363604459,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:12",
+            "patternId": "pavilion",
+            "index": 9.899999999991357,
+            "nearestIndex": 10,
+            "errorDeg": 0.36363636366779417,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:24",
+            "patternId": "pavilion",
+            "index": 19.800000000005863,
+            "nearestIndex": 20,
+            "errorDeg": 0.7272727272514085,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:36",
+            "patternId": "pavilion",
+            "index": 29.699999999994137,
+            "nearestIndex": 30,
+            "errorDeg": 1.0909090909304098,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:48",
+            "patternId": "pavilion",
+            "index": 39.60000000000865,
+            "nearestIndex": 40,
+            "errorDeg": 1.4545454545140046,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:60",
+            "patternId": "pavilion",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:72",
+            "patternId": "pavilion",
+            "index": 59.39999999999136,
+            "nearestIndex": 59,
+            "errorDeg": 1.4545454545140304,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:84",
+            "patternId": "pavilion",
+            "index": 69.30000000000587,
+            "nearestIndex": 69,
+            "errorDeg": 1.0909090909304227,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:96",
+            "patternId": "pavilion",
+            "index": 79.19999999999413,
+            "nearestIndex": 79,
+            "errorDeg": 0.7272727272513955,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "pavilion:108",
+            "patternId": "pavilion",
+            "index": 89.10000000000863,
+            "nearestIndex": 89,
+            "errorDeg": 0.36363636366776186,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "fine-face:0",
+            "patternId": "fine-face",
+            "index": 2.4750000000004846,
+            "nearestIndex": 2,
+            "errorDeg": 1.7272727272744894,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 120,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 31,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 4.644817863663775e-11,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 360,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 32,
+        "checkedCount": 31,
+        "exemptCount": 1,
+        "compatibleCount": 31,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 4.644107320928015e-11,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      }
+    ]
+  }
+}

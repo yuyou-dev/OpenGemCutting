@@ -6,10 +6,9 @@ import { inspectGemCadAsc } from "../src/domain/gemcadAsc.js";
 import { CURATION_EXCLUSIONS, CURATION_EXCLUSION_HASHES } from "../src/domain/presetLibrary.js";
 import { inspectPresetSolid } from "../src/domain/presetQuality.js";
 import { TECHNICAL_PREVIEW_VIEWS, technicalPreviewSvg } from "../src/domain/technicalPreview.js";
-import { readPresetArchive, sha256, validatePresetProvenance } from "./lib/presetArchive.mjs";
+import { readPresetArchive, sha256, validatePresetProvenance, publicPresetDocument } from "./lib/presetArchive.mjs";
 
 const REJECTED_WARNINGS = new Set(["ROUGH_STOCK_REMAINS", "UNKNOWN_RECORD", "UNKNOWN_TIER_TOKEN"]);
-const EMAIL_ADDRESS = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 const SHAPE_NAMES = {
   round: "Round 圆形", oval: "Oval 椭圆", "navette-marquise": "Navette Marquise 马眼",
   emerald: "Emerald 祖母绿", pear: "Pear 水滴", rectangle: "Rectangle 长方形",
@@ -50,29 +49,10 @@ const shapeKey = (value = "") => value.replace(/^shape-diagram-\d+-/, "") || "un
 const slug = (value) => value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 54) || "preset";
 const counts = (items, key) => Object.fromEntries([...new Set(items.map(key))].sort().map((value) => [value, items.filter((item) => key(item) === value).length]));
 
-function publicDocument(source) {
-  const asc = source.metadata?.asc;
-  if (!asc) return source;
-  const sanitizeNotes = (lines = []) => lines.filter((line) => (
-    !EMAIL_ADDRESS.test(line) && !/contact me at email/i.test(line)
-  ));
-  return {
-    ...source,
-    metadata: {
-      ...source.metadata,
-      asc: {
-        ...asc,
-        headings: sanitizeNotes(asc.headings),
-        footnotes: sanitizeNotes(asc.footnotes),
-        comments: sanitizeNotes(asc.comments),
-      },
-    },
-  };
-}
-
 async function main() {
   const options = optionsFrom(process.argv.slice(2));
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const publicRelease = JSON.parse(await readFile(path.join(repoRoot, 'package.json'), 'utf8')).name === 'opengemcutting';
   const outputRoot = path.join(repoRoot, "public/presets");
   const rows = await readPresetArchive(path.resolve(options.archive));
   const audit = [];
@@ -157,7 +137,7 @@ async function main() {
       ...(row.associations ?? []).map((entry) => ({ name: entry.title, sourcePageUrl: entry.url, sourceSha256: row.sha256 })),
     ]).filter((entry) => entry.sourcePageUrl !== item.row.page_url || entry.sourceSha256 !== item.row.sha256);
     const duplicateSources = [...new Map(aliases.map((entry) => [`${entry.sourcePageUrl}:${entry.sourceSha256}`, entry])).values()];
-    const sourceDocument = publicDocument(item.inspection.document);
+    const sourceDocument = publicRelease ? publicPresetDocument(item.inspection.document) : item.inspection.document;
     const document = { ...sourceDocument,
       name: item.inspection.document.name === path.parse(item.row.original_filename).name ? item.row.title : item.inspection.document.name,
       metadata: { ...sourceDocument.metadata,

@@ -1,0 +1,46 @@
+{
+  "input": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+    "schemaVersion": 3,
+    "kind": "facet-96-document",
+    "name": "Disabled tool still carries data",
+    "indexGear": {
+      "teeth": 96,
+      "zeroAlias": 96,
+      "degreesPerTooth": 3.75
+    },
+    "stock": {
+      "kind": "cube",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ]
+    },
+    "facets": [],
+    "concaveCuts": [
+      {
+        "id": "saved-tool",
+        "type": "sphere",
+        "enabled": false,
+        "position": [
+          0.9,
+          0,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 0.35,
+        "length": 2,
+        "repeat": 1,
+        "phaseDeg": 0,
+        "segments": 24
+      }
+    ]
+  },
+  "reject": "LAB_UNSUPPORTED_DOCUMENT"
+}

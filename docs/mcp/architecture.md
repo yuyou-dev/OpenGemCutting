@@ -15,7 +15,7 @@ MCP 只处理协议、静态服务和请求关联，不拥有当前文档、不�
 
 - 参数与工具语义的唯一注册表是 `src/application/designContract.js`。服务端直接导入，不复制工具描述或参数 schema。
 - `designOperations.js` 负责批量构造和提交计算；手动 CUT 保存也使用 `preparePatternCommit`，手动整体变换使用同一 `transformGroup`。底层继续复用既有状态机、Meet 求解、命令历史及几何内核。
-- `DESIGN_OPERATION_TABLE` 分派 CUT、变换、删除、改名、排序和 `replace-parameters`。参数组 envelope 仅允许一种 `stock / facets / concaveCuts` 载荷，按领域工厂与完整实体预检后成为一次文档替换；不维护另一份持久化状态。`documentGeometry.evaluateDocument` 是最终几何入口；施工前缀与平面助手从 `createMachiningStock` 开始，凹切面保留独立工具来源。
+- `DESIGN_OPERATION_TABLE` 分派 CUT、变换、删除、改名、排序、`replace-parameters` 和 `concave-tool`。参数组 envelope 区分 `stock / facets / concaveCuts`；编辑中只允许替换平切／凹切组，底胚仅可导出或新建时选用。按领域工厂与完整实体预检后成为一次文档命令，不维护另一份持久化状态。`documentGeometry.evaluateDocument` 是最终几何入口；Meet／Jump 与施工前缀从不可变 stock 重放纯平切，助手再叠加凹切供显示。`createMachiningStock` 仅用于显式查看无平切的凹切底胚，不能用作构造来源。
 - 外部 JSON、项目创建、工作台文档替换、本地项目读写和旧恢复入口调用 `assertValidDocumentGeometry`，检查三组组合后的真实实体；各组单独合法不代表组合仍有材料。失败不覆盖原设计或删除损坏记录。`summarizeEffectiveFacets` 只统计逻辑平面 CUT，凹切工具面片始终独立，不混入平面计数与指令。
 - 原 skill 的共享平面、拓扑和投影审计迁入 `src/domain/`，skill 脚本仅保留重导出。改进在正式模块中完成。
 - 新增或变更设计功能必须更新操作契约、网页接线、接口说明和对应回归。纯视图/导航等无需自动化的功能也要在维护记录中明确范围，不要求将每个 UI 按钮机械映射成工具。
@@ -38,10 +38,10 @@ MCP 只处理协议、静态服务和请求关联，不拥有当前文档、不�
 
 未来扩展优先新增明确设计操作与测试，避免通用执行代码工具、动态插件平台或第二套持久化数据库。
 
-构建生成 `dist/client/design-build.json`，包含源代码摘要和 API 版本。摘要覆盖 src、产品元数据与锁文件、启动页和 Vite 配置，以及 MCP 服务/宿主实现和锁文件。MCP 启动与每次工具调用都核对构建；更新但未重建时拒绝启动，运行中的旧服务返回 RESTART_REQUIRED。这个摘要不包含本机路径、密钥或私有 Git 历史。
+构建生成 `dist/client/design-build.json`，包含源代码摘要和 API 版本。摘要覆盖 src、产品元数据与锁文件、启动页和 Vite 配置、MCP 服务/宿主实现和锁文件，以及指纹生成、固定实验室打包校验和 Sites 产物准备脚本；静态清单唯一声明在 `scripts/design-build-stamp.mjs`。MCP 启动与每次工具调用都核对构建；更新但未重建时拒绝启动，运行中的旧服务返回 RESTART_REQUIRED。这个摘要不包含本机路径、密钥或私有 Git 历史。
 
 ## 安装与发布维护
 
 安装生命周期归 setup；插件只编排服务器资源，不复制设计算法。macOS 与 Windows 引导共用 Node 安装模块，发行差异留在 product.json。源模块同步后运行两边的完整检查；公开版本保留独立 Git 历史与社区插件。Windows CI 检查不能代替实际桌面和首次无环境安装的人工验收。
 
-共享手册源、示例、截图与 PDF 随同一里程碑发行；README 与手册引用同一组当前截图。公开同步须检查多余的遗留文件，不能只覆盖新增或修改文件。文档链接与锚点由 `npm run test:docs` 检查并纳入常规验收。
+共享手册源、示例、截图与 PDF 随同一里程碑发行；README 与手册引用同一组当前截图。公开同步须检查多余的遗留文件，不能只覆盖新增或修改文件。启动脚本、预设／底胚构建器及 scripts/lib、Sites worker／配置／打包器／产物测试也属于同源清单；发行差异留在产品配置与预设联系信息过滤策略，不维护另一份实现。文档链接与锚点由 `npm run test:docs` 检查并纳入常规验收。

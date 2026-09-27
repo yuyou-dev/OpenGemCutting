@@ -1,14 +1,53 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { inspectFormatFile, inspectProjectSource, planTarget, planTargets, targetsFor } from "./formatCenter.js";
-import { createFacetingDocument, exportFacetingJSON, importFacetingJSON } from "../domain/faceting.js";
+import { readFormatFile, inspectFormatFile, inspectProjectSource, planTarget, planTargets, targetsFor } from "./formatCenter.js";
+import { IMPORT_BUDGET } from "../domain/importBudget.js";
+import { createFacetingDocument, exportFacetingJSON, importFacetingJSON, resolveFacetPattern } from "../domain/faceting.js";
 import { assertValidDocumentGeometry } from "../domain/documentGeometry.js";
+import { createCenteredCube } from "../domain/geometry.js";
+import { createMeshDocument } from "../domain/stockGeometry.js";
 
 const bytes = (text) => new TextEncoder().encode(text);
 const fixture = async (name) => new Uint8Array(await readFile(new URL(`../domain/formats/fixtures/${name}`, import.meta.url)));
 const preset = async () => importFacetingJSON(await readFile(new URL("../../public/presets/documents/100058-pc-07-001c-square-emerald-1-4.json", import.meta.url), "utf8"));
 const labels = (items) => items.map((item) => item.id);
+
+test("source counts use final CUT faces even when mesh exports are blocked or frosted cuts are covered", () => {
+  const cut = (id, depth, frosted = false) => resolveFacetPattern({ patternId: id, region: 'crown',
+    industryAngleDeg: 0, depth, repeat: 1, baseIndex: 0,
+    ...(frosted ? { metadata: { surfaceFinish: { version: 1, model: 'ggx-dielectric', state: 'frosted', alpha: 0.25 } } } : {}),
+  });
+  const mesh = createFacetingDocument({ ...createMeshDocument({ mesh: createCenteredCube(2) }), facets: cut('top', 0.3, true) });
+  const source = inspectProjectSource(mesh);
+  assert.equal(source.summary.effectiveFacetCount, 1);
+  assert.equal(source.summary.tierCount, 1);
+  assert.equal(source.summary.frostedCount, 1);
+  assert.equal(planTarget(source, 'gcs').outcome, 'blocked');
+  const covered = inspectProjectSource(createFacetingDocument({ facets: [...cut('old', 0.2, true), ...cut('new', 0.4)] }));
+  assert.equal(covered.summary.storedFacetCount, 2);
+  assert.equal(covered.summary.effectiveFacetCount, 1);
+  assert.equal(covered.summary.frostedCount, 0);
+});
+
+test("file reading checks the byte budget before I/O and reports read failures without a destination", async () => {
+  let reads = 0;
+  const oversized = await readFormatFile({ name: "large.gcs", size: IMPORT_BUDGET.bytes + 1,
+    arrayBuffer() { reads++; throw new Error("must not read"); } });
+  assert.equal(reads, 0);
+  assert.equal(oversized.status, "error");
+  assert.match(oversized.diagnostics[0].message, /20 MiB/);
+  assert.deepEqual(targetsFor(oversized), []);
+  const failed = await readFormatFile({ name: "unreadable.gcs", size: 10,
+    async arrayBuffer() { throw new Error("read denied"); } });
+  assert.equal(failed.status, "error");
+  assert.match(failed.diagnostics[0].message, /read denied/);
+  assert.deepEqual(targetsFor(failed), []);
+  const data = await fixture("gcs-1.1-resaved.gcs");
+  const valid = await readFormatFile(new File([data], "square.gcs"));
+  assert.equal(valid.format, "gcs");
+  assert.notEqual(valid.status, "error");
+});
 
 test("files are recognised by content, and each offers only real destinations", async () => {
   const gcs = inspectFormatFile(await fixture("gcs-1.1-resaved.gcs"), "square.asc");

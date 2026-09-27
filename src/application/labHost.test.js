@@ -149,3 +149,50 @@ for (const oldVersion of ['0.6.0-rc.1', '0.6.0-rc.3', '0.6.0-rc.3.main.92ee082cc
   assert.deepEqual(f.drafts.read(original.id).versionBackups,[original]);
  }finally{next.dispose();}
 });
+
+test('real preset module returns convex mesh as an independent project and detects changed source',async()=>{
+  const presetLock=JSON.parse(await readFile(new URL('./presetModuleLock.json',import.meta.url)));
+  const api=await import(new URL(`../../${presetLock.directory}/index.js`,import.meta.url));
+  const preset={id:'preset',profile:'preset',moduleId:api.moduleInfo.id,moduleVersion:api.moduleInfo.moduleVersion,contractVersion:api.moduleInfo.contractVersion};
+  const storage=memoryStorage(),projects=createProjectStore(storage),drafts=createLabDraftStore(storage),signal=new AbortController();
+  const doc=createLabContractSamples('preset').find(s=>s.id==='v2-mesh-rejected').document;
+  const original=projects.create(doc,{id:'mesh-source'}),source={projectId:original.id,revision:original.revision,document:readLabDocument(doc,{profile:'preset'}).document};
+  const record=drafts.create({labId:preset.id,moduleVersion:preset.moduleVersion,contractVersion:preset.contractVersion,source});
+  const host=createLabHost({record,lab:preset,drafts,readProject:projects.read,createProject:projects.create,signal:signal.signal});
+  const session=await api.createPresetStudioSession(host.options);
+  try {
+    await session.returnResult();
+    const checked=host.state().sourceState;
+    const save=await projects.save(original.id,{...source.document,name:'Changed elsewhere'},{expectedRevision:original.revision});assert.equal(save.revision,original.revision+1);
+    await assert.rejects(host.accept({expectedSourceState:checked}),{code:'SOURCE_CHANGED'});
+    const changed=projects.read(original.id),returned=await host.accept({expectedSourceState:host.state().sourceState});
+    assert.notEqual(returned.id,original.id);assert.deepEqual(projects.read(original.id),changed);
+    assert.deepEqual(returned.document.facets,source.document.facets);
+    assert.deepEqual(returned.document.stock,source.document.stock);
+    assert.equal(returned.document.metadata.labReturn.sourceState.status,'changed');
+  } finally {session.dispose();signal.abort();}
+});
+
+test('rc.6 preset drafts upgrade with a full backup and preserve unapplied work', async t => {
+  const oldPath=new URL('../../vendor/preset-studio/0.5.0-rc.6/index.js',import.meta.url);
+  if(!existsSync(oldPath)) return t.skip('Private retained rc.6 delivery is not part of public releases');
+  const old=await import(oldPath), presetLock=JSON.parse(await readFile(new URL('./presetModuleLock.json',import.meta.url)));
+  const next=await import(new URL(`../../${presetLock.directory}/index.js`,import.meta.url));
+  const storage=memoryStorage(),drafts=createLabDraftStore(storage),signal=new AbortController();
+  const newDesign={name:'rc6 recovery',teeth:96,sizeMm:10};
+  let saved;
+  const previous=await old.createPresetStudioSession({newDesign,persistence:{save:value=>{saved=structuredClone(value);}}});
+  await previous.flush();previous.dispose();
+  const record=drafts.create({labId:'preset',moduleVersion:old.moduleInfo.moduleVersion,contractVersion:old.moduleInfo.contractVersion,newDesign,draft:saved});
+  const lab={id:'preset',profile:'preset',moduleId:next.moduleInfo.id,moduleVersion:next.moduleInfo.moduleVersion,contractVersion:next.moduleInfo.contractVersion};
+  const host=createLabHost({record,lab,drafts,readProject:()=>null,createProject:()=>{throw Error('Recovery must not create a project');},signal:signal.signal});
+  const session=await next.createPresetStudioSession(host.options);
+  try {
+    await session.flush();
+    const upgraded=drafts.read(record.id);
+    assert.equal(upgraded.moduleVersion,next.moduleInfo.moduleVersion);
+    assert.deepEqual(upgraded.draft.workspace,saved.workspace);
+    assert.deepEqual(upgraded.versionBackups,[record]);
+    await session.flush();assert.equal(drafts.read(record.id).versionBackups.length,1);
+  } finally {session.dispose();signal.abort();}
+});

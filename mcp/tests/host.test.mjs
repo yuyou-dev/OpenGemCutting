@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { readFile, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { designSourceHash } from '../../scripts/design-build-stamp.mjs';
+import { DESIGN_BUILD_INPUTS, designSourceHash } from '../../scripts/design-build-stamp.mjs';
 import { once } from 'node:events';
 import WebSocket from 'ws';
 import { startHost } from '../host.mjs';
@@ -17,16 +17,21 @@ test('a running host detects an upgraded build before offering its link', async 
     await mkdir(path.join(directory, 'src'));
     await mkdir(path.join(directory, 'dist/client'), { recursive: true });
     await writeFile(path.join(directory, 'src/app.js'), 'old');
-    await mkdir(path.join(directory, 'mcp'));
-    for (const file of ['package.json', 'package-lock.json', 'index.html', 'vite.config.mjs', 'mcp/server.mjs', 'mcp/host.mjs', 'mcp/package-lock.json'])
+    for (const file of DESIGN_BUILD_INPUTS) {
+      await mkdir(path.dirname(path.join(directory, file)), { recursive: true });
       await writeFile(path.join(directory, file), '{}');
+    }
     await writeFile(path.join(directory, 'dist/client/index.html'), '<html></html>');
     const stampFile = path.join(directory, 'dist/client/design-build.json');
     await writeFile(stampFile, JSON.stringify({ apiVersion: DESIGN_API_VERSION, sourceHash: await designSourceHash(directory) }));
     host = await startHost({ root: directory });
     await host.assertCurrentBuild();
-    await writeFile(path.join(directory, 'mcp/server.mjs'), 'new adapter');
-    await assert.rejects(host.assertCurrentBuild(), { code: 'RESTART_REQUIRED' });
+    for (const file of ['mcp/server.mjs', 'scripts/labs-vite-plugin.mjs', 'scripts/labs-module-files.mjs', 'scripts/design-build-stamp.mjs', 'scripts/prepare-sites-build.mjs']) {
+      await writeFile(path.join(directory, file), 'updated implementation');
+      await assert.rejects(host.assertCurrentBuild(), { code: 'RESTART_REQUIRED' });
+      await writeFile(path.join(directory, file), '{}');
+      await host.assertCurrentBuild();
+    }
     await writeFile(path.join(directory, 'src/app.js'), 'new');
     await writeFile(stampFile, JSON.stringify({ apiVersion: DESIGN_API_VERSION, sourceHash: await designSourceHash(directory) }));
     await assert.rejects(host.assertCurrentBuild(), { code: 'RESTART_REQUIRED' });

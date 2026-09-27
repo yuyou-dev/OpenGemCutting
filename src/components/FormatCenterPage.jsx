@@ -3,7 +3,7 @@ import { IconAlertTriangle, IconArrowLeft, IconArrowRight, IconCircleCheck, Icon
 import { t } from '../i18n/locale.js';
 import { APP_VERSION } from '../version.js';
 import { CONCEPTS, FORMATS, formatById } from '../domain/formats/capabilities.js';
-import { inspectFormatFile, inspectProjectSource, planTargets, targetsFor } from '../application/formatCenter.js';
+import { readFormatFile, inspectProjectSource, planTargets, targetsFor } from '../application/formatCenter.js';
 import { downloadBlob } from '../utils/download.js';
 import { LanguageSelector } from './LanguageSelector.jsx';
 import { RepositoryLink } from './RepositoryLink.jsx';
@@ -162,11 +162,13 @@ export function FormatCenterPage({ document: projectDocument, hasPreview, intent
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const fileInput = useRef(null);
+  const readSequence = useRef(0);
   const plans = useMemo(() => (source ? planTargets(source) : {}), [source]);
   const targets = targetsFor(source);
   // A new source starts on its first destination that can actually be written.
   const active = targets.includes(selected) ? selected : targets.find((target) => plans[target]?.outcome !== 'blocked') ?? targets[0] ?? null;
-  const choose = (next) => { setSelected(null); setMessage(''); setSource(next); };
+  const choose = (next) => { readSequence.current++; setBusy(false); setSelected(null); setMessage(''); setSource(next); };
+  useEffect(() => () => { readSequence.current++; }, []);
   // "Import from GemCAD / Gem Cut Studio" keeps its one-click file chooser; if
   // the browser refuses without a fresh click, the drop area stays in view.
   useEffect(() => { if (intent === 'file') fileInput.current?.click(); }, [intent]);
@@ -176,13 +178,11 @@ export function FormatCenterPage({ document: projectDocument, hasPreview, intent
   };
   const readFile = async (file) => {
     if (!file) return;
+    const sequence = ++readSequence.current;
     setBusy(true);
-    try {
-      choose(inspectFormatFile(new Uint8Array(await file.arrayBuffer()), file.name));
-    } finally {
-      setBusy(false);
-      if (fileInput.current) fileInput.current.value = '';
-    }
+    if (fileInput.current) fileInput.current.value = '';
+    const next = await readFormatFile(file);
+    if (sequence === readSequence.current) choose(next);
   };
   const run = (plan) => {
     if (plan.outcome === 'blocked') return;
