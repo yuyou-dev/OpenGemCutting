@@ -289,9 +289,17 @@ function convexHullOnPlane(points, normal, tolerance) {
   const areaTolerance = tolerance * coordinateSpan;
   const turn = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 
+  // A small positive turn is only removable when the middle point lies
+  // between its neighbors. Near-vertical roundoff must not erase a y extreme.
+  const removable = (a, b, c) => {
+    const area = turn(a, b, c);
+    const between = (b.x - a.x) * (b.x - c.x) + (b.y - a.y) * (b.y - c.y) <= tolerance ** 2;
+    return area <= 0 || (area <= areaTolerance && between);
+  };
+
   const lower = [];
   for (const point of projected) {
-    while (lower.length >= 2 && turn(lower.at(-2), lower.at(-1), point) <= areaTolerance) {
+    while (lower.length >= 2 && removable(lower.at(-2), lower.at(-1), point)) {
       lower.pop();
     }
     lower.push(point);
@@ -299,7 +307,7 @@ function convexHullOnPlane(points, normal, tolerance) {
 
   const upper = [];
   for (const point of [...projected].reverse()) {
-    while (upper.length >= 2 && turn(upper.at(-2), upper.at(-1), point) <= areaTolerance) {
+    while (upper.length >= 2 && removable(upper.at(-2), upper.at(-1), point)) {
       upper.pop();
     }
     upper.push(point);

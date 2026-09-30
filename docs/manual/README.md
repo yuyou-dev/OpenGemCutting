@@ -31,31 +31,39 @@
 
 ## 更新手册
 
-正文在 `scripts/manual/content.mjs`；分页生成器是 `scripts/generate-user-manual.mjs`。`screenshots/` 保存真实工作台截图，主截图为 1600 × 1000 桌面视口、1× 或 2× 像素密度；预设浏览器图等完整功能区单独截图。用于同视角造型比较的局部图仅截取完整宝石，不截断控件，不改变几何或材质。
+正文在 `scripts/manual/content.mjs`，按设计任务排列 38 页；分页生成器是 `scripts/generate-user-manual.mjs`。`screenshots/` 保存真实工作台截图，只保留正文引用的图，旧截图从 Git 历史查阅。
 
-更新 UI 或规则时重新采集受影响的图；不得使用占位图、旧控件图或绘制的假界面。临时采集及审查记录放在被忽略的 `tmp/`。
+截图由 `scripts/manual/capture-screenshots.mjs` 从正在运行的工作台逐页复现：每张图一个场景、独立浏览器配置，中英文各跑一次。仓库不保留浏览器自动化依赖，采集前临时安装：
+
+```bash
+npm i --no-save puppeteer-core
+npm run dev
+node scripts/manual/capture-screenshots.mjs http://127.0.0.1:<端口>/ --locale=zh-CN
+node scripts/manual/capture-screenshots.mjs http://127.0.0.1:<端口>/ --locale=en
+```
+
+`--only=名称1,名称2` 只重采指定图。`local-design-bridge` 需要先运行 `npm run build` 与 `npm ci --prefix mcp`；`design-review` 由脚本调用 `scripts/create-design-review.mjs` 生成试作页。不得使用占位图、旧控件图或绘制的假界面；临时采集与审查记录放在被忽略的 `tmp/`。
 
 ```bash
 npm run manual:build
+npm run manual:build:en
 ```
 
-生成器使用 Chrome / Chromium 与项目内 Noto Sans SC 字体，输出固定的 `public/manual/facet-96-operation-manual.pdf`，版本号来自 `package.json`。生成时校验图片存在、清单内 8 份 JSON 练习可以导入且面数／构造状态吻合；OBJ 练习由晶体导入领域回归验证，不在 JSON 清单中。打印前应逐页检查正文、图像和页脚，确保文本可搜索。
+生成器使用 Chrome / Chromium 与项目内 Noto Sans SC 字体，输出固定的 `public/manual/facet-96-operation-manual.pdf` 与 `-en.pdf`，版本号来自 `package.json`。生成时校验图片存在、清单内 8 份 JSON 练习可以导入且面数／构造状态吻合；OBJ 练习由晶体导入领域回归验证。打印前应逐页检查正文、图像和页脚，确保文本可搜索。
 
 8 份 JSON 案例源由 `node scripts/manual/build-examples.mjs` 重建；修改案例源后，应重采对比图、更新正文与 `examples/manifest.json`，不要仅替换 JSON。
 
 ## 当前截图基准
 
-`round-optics` 与 `round-optics-top` 使用预设 PC 01.338 Eight Main Highlight（97 个有效面），分别为透视与台面观察位；材质为石英（水晶）、折射率 1.544、色散 0.013、中性吸收 0，观察环境为柔光摄影棚／雾白、曝光 0。两图只改变观察位。
+2.0.0-rc.1 全部截图按当前界面重采，版本标识为 2.0.0-rc.1。主截图为 1600 × 1000 桌面视口，全屏工作台图使用 2× 像素密度；同视角造型比较的局部图（`*-detail`）只截取完整宝石，1080 × 1080。场景以采集脚本为准，关键条件如下：
 
-`assistant-stepping` 与 `assistant-finished` 使用同一 Eight Main Highlight，分别完成 86／97 刀与 97／97 刀，由当前切面的斜向跟随相机观察。中间步骤的粉色平面提示下一刀；完成图无切割平面。1.0.0 发布准备时，受版本标识影响的完整界面统一从 Codex 内置 Chromium 重新采集，视口 1600 × 1000、2× 像素密度。
-
-`crystal-import` 是“保留原石的凹槽，再安排切割”页使用的真实 L 形 OBJ 导入预检，单位未指定、+Z 朝上；对应 `08-concave-crystal.obj`。
-
-`round-files`（Eight Main Highlight）与 `parameter-groups`（120 盘默认项目加默认五重圆弧槽）在格式中心接入时按原状态重采，仅文件菜单改为“从 GemCAD / Gem Cut Studio 导入…”与“导出到其他软件…”。第 34 页 `format-center` 读取 `src/domain/formats/fixtures/gcs-1.1-resaved.gcs`（Gem Cut Studio 1.1 实际存档）并选中 GemCAD 文本去向，只截取“选择去向”区域（卡片、报告与导出按钮），2× 像素密度以保证 PDF 中可读。采集脚本在被忽略的 `tmp/format-center/`。
-
-不含版本标识且交互未改变的局部图继续使用已核对的真实截图。`recovery-empty` 从“文件 → 恢复本地设计”采集的真实空列表，说明旧版备份与当前项目自动保存的区别。恢复现有备份会创建独立项目，原项目和来源备份保留。
-
-`screenshots/` 仅保留当前手册正文引用的图；旧截图可从 Git 历史查阅，不另设相互覆盖的手册版本。
+- 成品与光学：`round-optics`、`round-optics-top`、`highlight-workspace`、`assistant-*`、`round-files` 使用预设 PC 01.338 Eight Main Highlight（97 个有效面）。光学图材质为石英（折射率 1.544、色散 0.013、中性吸收 0），柔光摄影棚／雾白、曝光 0，两图只改变观察位；助手两图分别完成 86／97 与 97／97 刀。
+- 练习：`round-*`、`01-workspace`、`third-*`、`two-thirds-*`、`four-*`、`dual-*`、`meet-single-current`、`stale-*`、`low-front-detail` 分别导入对应练习 JSON，见上表。
+- 起点：`home-projects` 为首次访问主页；`new-project-start` 为 96 齿默认起点选“正方形 · 四次对称”；`stock-presets` 为 A 形底胚；`crystal-import` 为练习 08 的 L 形 OBJ 预检（未指定单位、+Z 朝上）。
+- 设备与凹切：`multi-index` 为 120 齿默认起点的分度区；`concave-tools` 与 `parameter-groups` 为同一 120 齿项目加默认五重圆弧槽（深度 0.34），后者打开文件菜单。
+- 环切：`ring-cut` 为 96 齿默认起点腰部环切 L3×3、间距 25°、深度 0.450；`arc-cut` 为弧形 L3、每弧 3 段、凸度 0.55、深度 0.450（摘要 9 面、2 级深度）。两图均为未加入序列的真实预览。
+- 格式中心：`format-center` 读取 `src/domain/formats/fixtures/gcs-1.1-resaved.gcs` 并选中 GemCAD 文本去向，只截取“选择去向”区域，2× 像素密度。
+- 其他：`optical-lab` 带入 Eight Main Highlight 进入图案实验室；`recovery-empty` 为“文件 → 恢复本地设计”的空列表；`design-review` 与 `local-design-bridge` 见下文。
 
 ## 异形底胚练习
 
@@ -63,7 +71,7 @@ npm run manual:build
 
 ## 参考图试作
 
-第 29–30 页演示 Codex 参数化设计流程。配图来自 Eight Main Highlight 预设的同实体对照，不作为照片还原精度证据。使用 `design:review` 生成器创建新的试作目录，下载 JSON 后在新项目继续编辑。
+第 36–37 页演示 Codex 参数化设计流程。配图来自 Eight Main Highlight 预设的同实体对照，不作为照片还原精度证据。使用 `design:review` 生成器创建新的试作目录，下载 JSON 后在新项目继续编辑。
 
 ## 正式成品配图的复现与来源
 
@@ -71,13 +79,13 @@ npm run manual:build
 
 ## 可选对话设计
 
-手册第 30 页以 97 面 Eight Main Highlight 预设演示“对话改型 → 手动续改 → 保存重开”。真实截图为 `local-design-bridge.jpg`；安装与工具契约归 [本地设计接口](../mcp/README.md)。没有 MCP/Codex 的静态网页仍可完成全部手动设计任务。
+手册第 37 页以 97 面 Eight Main Highlight 预设演示“对话改型 → 手动续改 → 保存重开”。真实截图为 `local-design-bridge.jpg`；安装与工具契约归 [本地设计接口](../mcp/README.md)。没有 MCP/Codex 的静态网页仍可完成全部手动设计任务。
 
 ## 英文版
 
-顶栏切换 English 后，帮助入口下载英文图解手册。两种语言共用 34 页案例结构与生成器：`npm run manual:build` 生成中文，`npm run manual:build:en` 生成英文。英文截图位于 `screenshots/en/`，来自真实英文界面；练习中的用户名称和图层名称保持原文，操作按 T1 / C1 / C2 等编号定位。术语审核流程见 [双语说明](../i18n/README.md)。
+顶栏切换 English 后，帮助入口下载英文图解手册。两种语言共用 38 页案例结构与生成器：`npm run manual:build` 生成中文，`npm run manual:build:en` 生成英文。英文截图位于 `screenshots/en/`，来自真实英文界面；练习中的用户名称和图层名称保持原文，操作按 T1 / C1 / C2 等编号定位。术语审核流程见 [双语说明](../i18n/README.md)。
 
-## 旋转方向验收（v1.1.1）
+## 旋转方向复测
 
 目的：编辑形状和观察光学效果时，不必重新适应相反的转动方向。由设计师在同一个项目中判断手感，不以工程测试代填结果。
 
@@ -88,14 +96,6 @@ npm run manual:build
 
 请记录：哪些视角仍需要想一想才能操作、是否有突然跳动、能否顺利观察背面。用户已完成本轮手感验收；公开用户仍可按本流程复测。最终发布状态以 CHANGELOG / Release 为准。
 
-多分度探索更新重新采集了受新参数侧栏影响的中英文工作台全图、编辑与 Meet 案例、CUT STACK、文件菜单及逐层试切助理。光学、导入预检、独立底胚选择和对话连接等未改变流程的已核对截图沿用原采集基线；操作规则以当前正文为准。
+## 三角柱尖槽练习
 
-多分度与凹切练习 `09-multi-index-concave.json` 使用 120 齿五次对称平切、球形凹坑与停用的圆柱备选。配套手册第 31–33 页；现行第 31–33 页使用新建 120 盘默认项目、五重圆弧槽（固定坐标深度 0.34）的真实操作；截图 `multi-index`、`concave-tools`、`parameter-groups` 对应设备状态、简化刀具与统一文件菜单。练习 09 仍作为旧设计换算案例。
-
-2026-09-22 更新：凹切面板实图按 1280×720 工作区重新采集，转盘 138px；第 10 页说明平切群组参考独立，第 22 页说明光学拖动后自动恢复清晰。两种语言重新生成同版 PDF。
-
-2026-09-24 更新：预设从首页建立独立项目；新增图层入口固定在区域标签下方；实验室使用独立页面容器。平切 Meet 来源不再依赖凹切，显隐仅供临时比较。三角柱提供独立尖角、宽度与长度，保持切深；中英文手册及受影响截图同步更新。
-
-三角柱验收案例：从首页预设库新建 PC 08.024 Columbia-Willamette，保持默认透视与缩放。切到凹切，添加“三角柱尖槽”，设尖角 60°、宽度 0.8、长度 1.6、深度 0.65、重复 5、旋转 17.5°。目标是给已有成品叠加五向直线尖槽；回到平切，用“凹切已显示 / 已隐藏”比较原外轮廓和叠加轮廓，判断槽宽和端部是否符合设计意图。逐步撤销尺寸和位置，再重做并导出 JSON、重开对照；平切参数应保持原值，显隐不写入设计文件。数值是可复现的造型研究案例，不是生产切磨配方。
-
-首页布局更新：新建卡与项目共用从左向右的逐行网格；预设琢型入口统一放在新建项目弹窗，与默认起点、预设底胚和上传底胚并列。已验证多行、搜索、预设创建与窄屏排版。
+从首页预设库新建 PC 08.024 Columbia-Willamette，保持默认透视与缩放。切到凹切，添加“三角柱尖槽”，设尖角 60°、宽度 0.8、长度 1.6、深度 0.65、重复 5、旋转 17.5°。目标是给已有成品叠加五向直线尖槽；回到平切，用“凹切已显示 / 已隐藏”比较原外轮廓和叠加轮廓，判断槽宽和端部是否符合设计意图。逐步撤销尺寸和位置，再重做并导出 JSON、重开对照；平切参数应保持原值，显隐不写入设计文件。数值是可复现的造型研究案例，不是生产切磨配方。

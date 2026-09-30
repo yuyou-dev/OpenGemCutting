@@ -1,3 +1,4 @@
+import { validateRingCutMetadata } from "./ringCut.js";
 import { clipPolyhedronByPlanes } from "./geometry.js";
 import { getMeshStockSolid, normalizeMeshStock } from "./meshStock.js";
 import { normalizeIndexTeeth, normalizeIndexGear, facetOnIndexGear, indexExportSummary } from "./indexing.js";
@@ -125,7 +126,7 @@ function nearlyEqual(left, right, epsilon = EPSILON) {
   );
 }
 
-function isPlainObject(value) {
+export function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
@@ -470,6 +471,11 @@ export function rotateFacetsByTeeth(facets, teeth, { stock = DEFAULT_STOCK, inde
     const facetStep = step * facetTeeth / indexTeeth;
     const metadata = facet.metadata && clone(facet.metadata);
     if (metadata?.primaryIndex !== undefined) metadata.primaryIndex = normalizeIndex(metadata.primaryIndex + facetStep, facetTeeth);
+    if (metadata?.ring !== undefined) {
+      // Whole-tooth rotation keeps the ring editable; anything else leaves an ordinary layer.
+      const rotation = normalizeIndex(metadata.ring.rotation + facetStep, facetTeeth);
+      if (Number.isInteger(rotation)) metadata.ring.rotation = rotation; else delete metadata.ring;
+    }
     if (metadata?.construction?.primaryIndex !== undefined) {
       metadata.construction.primaryIndex = normalizeIndex(metadata.construction.primaryIndex + facetStep, facetTeeth);
     }
@@ -669,6 +675,15 @@ export function createFacetingDocument({
 
 /** Fixed machine coordinates are independent of the optional physical blank.
  * Old documents retain their original reference until explicitly recreated. */
+/** A layer's primary facet: the saved primary index, else the first facet. */
+export function primaryFacetOf(facets) {
+  const first = facets[0];
+  const primary = first?.metadata?.primaryIndex ?? first?.metadata?.construction?.primaryIndex;
+  if (primary === undefined) return first;
+  const teeth = first.indexTeeth ?? INDEX_TEETH;
+  return facets.find((facet) => Math.abs(normalizeIndex(facet.index, teeth) - normalizeIndex(primary, teeth)) < 1e-9) ?? first;
+}
+
 export function getCuttingReference(document) { return document.cuttingReference ?? document.stock; }
 
 /** Canonicalize legacy mixed-wheel records while preserving the authored shape. */
@@ -892,6 +907,10 @@ function validateResolvedFacet(facet, path, stock, errors) {
 
   if (facet.metadata?.primaryIndex !== undefined && (!canonicalIndex(facet.metadata.primaryIndex))) {
     addValidationError(errors, `${path}.metadata.primaryIndex`, `must be a finite index from 0 up to ${indexTeeth}`);
+  }
+  validateRingCutMetadata(facet.metadata?.ring, `${path}.metadata.ring`, (at, message) => addValidationError(errors, at, message));
+  if (facet.metadata?.ring !== undefined && facet.metadata?.patternMode !== "arbitrary") {
+    addValidationError(errors, `${path}.metadata.patternMode`, "must be arbitrary for a ring cut");
   }
   if (facet.metadata?.preform !== undefined) {
     if (typeof facet.metadata.preform !== "boolean") addValidationError(errors, `${path}.metadata.preform`, "must be boolean");

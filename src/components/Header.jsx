@@ -73,6 +73,7 @@ export function Header({
   onOpenSettings,
   onOpenHelp,
   onOpenAssistant,
+  onOpenMeetAudit,
   canUndo,
   canRedo,
   projectName,
@@ -274,6 +275,10 @@ export function Header({
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenAssistant)}>
             <IconHistory size={15} />
             <span>{t("逐层试切助理")}</span>
+          </button>
+          <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenMeetAudit)}>
+            <IconEye size={15} />
+            <span>{t("交点检查")}</span>
           </button>
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onOpenHelp)}>
             <IconHelpCircle size={15} />

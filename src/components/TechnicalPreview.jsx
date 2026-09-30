@@ -83,7 +83,8 @@ function MeshTechnicalPreview(props) {
     return () => observer.disconnect();
   }, [fallback]);
   if (fallback) return <VectorTechnicalPreview {...props} />;
-  return <canvas ref={canvasRef} className={`technical-preview ${className}`.trim()} role="img" aria-label={t(label || t("{0} · 宝石正交预览", [view]))} style={{ display: "block", width: "100%", height: "100%" }} />;
+  // No inline size: each context's stylesheet sets the box (styles.css has the default).
+  return <canvas ref={canvasRef} className={`technical-preview ${className}`.trim()} role="img" aria-label={t(label || t("{0} · 宝石正交预览", [view]))} />;
 }
 
 export function TechnicalPreview(props) {

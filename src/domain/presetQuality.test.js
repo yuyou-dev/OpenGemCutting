@@ -129,3 +129,26 @@ test("numerical topology repair does not accept an actual open seam", () => {
   face.vertexIndices[0] = solid.vertices.length - 1;
   assert.ok(codes(inspectPresetPolyhedron(solid)).includes("NON_MANIFOLD_EDGES"));
 });
+
+
+test("table changes preserve closed caps at nearly collinear projected vertices", async () => {
+  const source = JSON.parse(await readFile(new URL("../../public/presets/documents/99478-pc-04-232-ideal-emerald-133-quartz.json", import.meta.url), "utf8"));
+  // Real optical-study variants: positive turns smaller than the former area
+  // epsilon must survive hull construction, then use normal edge simplification.
+  const offsets = [0.3501840041, 0.3499571222479759, 0.3481420672, 0.345873248];
+  let previousVolume = Infinity;
+  for (const offset of offsets) {
+    const document = structuredClone(source);
+    const table = document.facets.find(f => f.id === "table-facet:96");
+    table.plane.offset = offset;
+    table.depth = 1 - offset;
+    const result = inspectPresetSolid(document);
+    assert.deepEqual(result.issues, [], `table offset ${offset}`);
+    assert.equal(result.facetCount, 53);
+    assert.equal(result.metrics.eulerCharacteristic, 2);
+    assert.ok(result.metrics.volume < previousVolume);
+    assert.ok(result.metrics.volume > 1.30 && result.metrics.volume < 1.32);
+    previousVolume = result.metrics.volume;
+    if (offset === offsets[1]) assert.ok(Math.abs(result.metrics.volume - 1.309020772) < 1e-6);
+  }
+});

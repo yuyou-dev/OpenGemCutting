@@ -22,13 +22,23 @@ export const DRAFT_FIELDS = {
   mirrorOffset: { type: 'number', minimum: 0, maximum: 360 },
   patternMode: { type: 'string', enum: ['symmetric', 'arbitrary'] },
   customIndices: { type: 'string', maxLength: 400 },
+  // Ring cut: L-fold sides, each cut by a fan of facets; indices are generated on the project wheel.
+  // Ring cut kinds: fan (spacingDeg, one depth) or arc (bulge 0–1, jointly solved depths).
+  ring: object({
+    kind: { type: 'string', enum: ['fan', 'arc'] },
+    symmetry: { type: 'integer', minimum: 2, maximum: 24 },
+    subdivisions: { type: 'integer', minimum: 1, maximum: 9 },
+    spacingDeg: { type: 'number', minimum: 0.1, maximum: 90 },
+    bulge: { type: 'number', minimum: 0, maximum: 1 },
+    rotation: { type: 'integer', minimum: 0, maximum: 359 },
+  }, ['symmetry', 'subdivisions', 'rotation']),
   preform: { type: 'boolean' },
 };
 export const OPERATION_SCHEMA = object(
   {
     kind: {
       type: 'string',
-      enum: ['cut', 'remove', 'rename', 'reorder', 'transform', 'replace-parameters', 'concave-tool'],
+      enum: ['cut', 'remove', 'rename', 'reorder', 'transform', 'replace-parameters', 'concave-tool', 'dissolve-ring'],
     },
     toolId: string,
     preset: { type: 'string', enum: CONCAVE_PRESETS.map(p => p.id) },
@@ -80,7 +90,7 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_plan',
-    'Preview an atomic sequence of CUT edits or independent planar and concave parameter replacement (physical stock is locked after project creation). Existing patternId edits in place; a new id adds a group. Returns planId, exact solid diagnostics and covered-face feedback. Use design_view with planId to inspect.',
+    'Preview an atomic sequence of CUT edits or independent planar and concave parameter replacement (physical stock is locked after project creation). Existing patternId edits in place; a new id adds a group. draft.ring makes a ring cut on the project wheel: kind fan (each of L sides cut by a fan of facets, one depth) or arc (each side bulged into an arc and split into chords; depth sets the primary, farthest facet and the others follow solved ratios). kind dissolve-ring turns a ring layer into ordinary layers without moving any plane (an arc splits into one layer per depth level); an explicit draft.patternMode changes the layer to that mode. Returns planId, exact solid diagnostics and covered-face feedback. Use design_view with planId to inspect.',
     object(
       {
         ...scope,
@@ -155,7 +165,7 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_inspect',
-    'Inspect final logical CUT planes separately from stock surface pieces, volume, dimensions, Meet provenance and JSON roundtrip. Optional referenceTopology checks real named nodes and edges.',
+    'Inspect final logical CUT planes separately from stock surface pieces, volume, dimensions, Meet provenance and JSON roundtrip. Includes advisory meetAudit measurements for committed planar designs; active concave tools return unsupported, never a clean substitute. Candidate counts do not gate commits or aesthetic acceptance. Optional referenceTopology checks real named nodes and edges.',
     object(
       { ...readScope, planId: string, referenceTopology: { type: 'object' } },
       ['sessionId'],
@@ -196,12 +206,14 @@ export const DESIGN_TOOLS = [
   ],
   [
     'project_create',
-    'Choose indexTeeth for the project equipment (default 96). Create a separate project from the default cube, a stock template, a catalog preset, JSON or preflighted OBJ. Existing projects remain intact. Manual previews block switching.',
+    'Choose indexTeeth for the project equipment (default 96). Create a separate project from the default cube, a stock template, a catalog preset, JSON or preflighted OBJ. The default start takes outline cylinder (default) or square (4 girdle facets, sides at index 0/24/48/72 on 96; the wheel must divide by 4) and, for a cylinder, girdleFacets: a whole-tooth division of the wheel of at least 8 (default nearest 32). Existing projects remain intact. Manual previews block switching.',
     object(
       {
         ...scope,
         name: string,
         indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
+        outline: { type: 'string', enum: ['cylinder', 'square'] },
+        girdleFacets: { type: 'integer', minimum: 8, maximum: 360 },
         stockPresetId: string,
         presetId: string,
         json: { type: 'string', maxLength: 20971520 },

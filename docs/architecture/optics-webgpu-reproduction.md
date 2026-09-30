@@ -11,7 +11,7 @@
 ## 固定输入
 
 - 项目：仓库内的 [PC 08.024 Columbia-Willamette](../../public/presets/documents/100626-pc-08-024-columbia-willamette.json)，来源/设计者保持原项目元数据；不另维护一份项目副本。
-- 文件 SHA-256：`67d00bd06b7b257d733f8eced22f075e68efa670a1479b441c6551f8ab517ed0`。脚本先验证哈希，避免换用同名不同版本。
+- 文件 SHA-256：公开发行 `67d00bd06b7b257d733f8eced22f075e68efa670a1479b441c6551f8ab517ed0`；私有版同一预设保留未清理的来源注释，为 `f5f13c7773dc3e87593ae6b725316d3db7b7d1f2dae4d477571332d1da179192`。两者几何相同，脚本先验证哈希属于其中之一，避免换用同名不同版本。
 - `importFacetingJSON` 读取项目，`buildConstructionStages(project).at(-1).afterSolid` 求得最终实体。凸路径使用 `normalizedOpticsPlanes(solid)`；网格路径显式使用 `normalizedOpticsMesh({ ...solid, kind: 'mesh' })`。**项目原本是凸体；网格转换仅用于复现第二条光学路径，并非声称该项目包含原石网格或几何错误。**
 - 相机：yaw `-0.62`、elevation `0.42`（弧度）、zoom `1`、panX `0.12`、panY `-0.05`；传入 focusOffset `0.23`。网格实际构图仍由正式 `opticsMeshFraming` 按 384×384、无检查器遮挡计算，不能用凸体构图替代。
 - 材质分别使用正式 `OPTICAL_PRESETS.diamond`（IOR 2.417、色散 0.044、体色 #ffffff、吸收 0）及 `blueSapphire`（IOR 1.766、色散 0.018、体色 #5987f2、吸收 0.08）。通过 `resolveOpticsSettings` 归一化，完整解析结果写入输出 JSON。
@@ -62,9 +62,9 @@ import assert from 'node:assert/strict';
 const url = new URL(process.argv[2]);
 assert.equal(url.hostname, '127.0.0.1', 'Use the loopback URL printed by npm run dev.');
 const projectPath = 'public/presets/documents/100626-pc-08-024-columbia-willamette.json';
-const projectHash = '67d00bd06b7b257d733f8eced22f075e68efa670a1479b441c6551f8ab517ed0';
+const projectHashes = ['67d00bd06b7b257d733f8eced22f075e68efa670a1479b441c6551f8ab517ed0', 'f5f13c7773dc3e87593ae6b725316d3db7b7d1f2dae4d477571332d1da179192'];
 const project = await readFile(projectPath);
-assert.equal(createHash('sha256').update(project).digest('hex'), projectHash);
+assert.ok(projectHashes.includes(createHash('sha256').update(project).digest('hex')), 'Unexpected Columbia-Willamette file.');
 const out = 'tmp/optics-comparison';
 await mkdir(out, { recursive: true });
 await writeFile(`${out}/project.json`, project);
@@ -78,7 +78,7 @@ page.on('pageerror', error => errors.push(error.message));
 const report = {
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   sourceDirty: Boolean(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()),
-  browser: await browser.version(), projectPath, projectHash,
+  browser: await browser.version(), projectPath, projectHash: createHash('sha256').update(project).digest('hex'),
   viewport: { width: 900, height: 650, deviceScaleFactor: 1 },
   canvas: { width: 384, height: 384 },
   camera: { yaw: -0.62, elevation: 0.42, zoom: 1, panX: 0.12, panY: -0.05 },

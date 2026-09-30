@@ -38,3 +38,12 @@
 .modal-panel.stock-start-panel p{padding:0;margin:0;font-size:12px;line-height:1.7}.modal-panel.stock-start-panel .stock-start-intro{margin-bottom:18px}
 
 .stock-start-modes button{min-width:0}.stock-start-modes button>svg{flex-shrink:0}
+
+.stock-start-outline{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 10px}
+.stock-start-outline button{min-height:34px;border:1px solid #d4d5d0;border-radius:4px;background:#fff;color:var(--ink);font-size:12px;font-weight:560}
+.stock-start-outline button[aria-pressed=true]{border-color:var(--pink);color:var(--pink);background:var(--pink-soft)}
+.stock-start-outline button:disabled{opacity:.45;cursor:not-allowed}
+.stock-start-girdle{display:grid;grid-template-columns:max-content 120px;justify-content:start;align-items:center;gap:6px 12px;font-size:12px;color:var(--ink)}
+.stock-start-girdle select{height:32px;padding:0 8px;border:1px solid #c9cac5;border-radius:4px;background:#fff;font:12px var(--mono)}
+.stock-start-girdle small{grid-column:1/-1;color:#737570;font-size:11px}
+.modal-panel.stock-start-panel p.stock-start-girdle-note{color:#737570;font-size:11px}

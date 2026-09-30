@@ -84,3 +84,30 @@ test('extension metadata stays permitted while original legacy schema versions s
   assert.equal(checkSchema(legacy), false);
   assert.equal(validateFacetingDocument(legacy).valid, true);
 });
+
+test('schema and runtime agree on ring cut metadata', async () => {
+  const { ringCutLayout, ringCutMetadata } = await import('./ringCut.js');
+  const { resolveFacet } = await import('./faceting.js');
+  const arc = { kind: 'arc', symmetry: 3, subdivisions: 3, bulge: 0.5, rotation: 0 };
+  const arcFacets = ringCutLayout(arc, 96).indices.map((index, ordinal) => resolveFacet({ id: `arc:${index}`, patternId: 'arc', ordinal,
+    region: 'girdle', indexTeeth: 96, baseIndex: index, repeat: 1, mirror: 0, index, industryAngleDeg: 90, depth: 0.2,
+    metadata: { patternMode: 'arbitrary', ring: ringCutMetadata(arc) } }));
+  const arcDocument = createFacetingDocument({ indexGear: 96, facets: arcFacets, concaveCuts: [] });
+  assert.equal(checkSchema(arcDocument), true, diagnostic());
+  const noBulge = structuredClone(arcDocument);
+  delete noBulge.facets[0].metadata.ring.bulge;
+  assert.equal(checkSchema(noBulge), false);
+  assert.equal(validateFacetingDocument(noBulge).valid, false);
+  const ring = { kind: 'fan', symmetry: 3, subdivisions: 3, spacingDeg: 15, rotation: 0 };
+  const facets = ringCutLayout(ring, 96).indices.map((index, ordinal) => resolveFacet({ id: `ring:${index}`, patternId: 'ring', ordinal,
+    region: 'girdle', indexTeeth: 96, baseIndex: index, repeat: 1, mirror: 0, index, industryAngleDeg: 90, depth: 0.2,
+    metadata: { patternMode: 'arbitrary', ring: ringCutMetadata(ring) } }));
+  const document = createFacetingDocument({ indexGear: 96, facets, concaveCuts: [] });
+  assert.equal(checkSchema(document), true, diagnostic());
+  for (const breakIt of [(d) => { d.facets[0].metadata.ring.symmetry = 1; }, (d) => { d.facets[0].metadata.patternMode = 'symmetric'; }]) {
+    const broken = structuredClone(document);
+    breakIt(broken);
+    assert.equal(checkSchema(broken), false);
+    assert.equal(validateFacetingDocument(broken).valid, false);
+  }
+});

@@ -35,8 +35,6 @@
 .home-projects-actions, .lab-navigation { display: flex; align-items: center; gap: 8px; }
 .workspace-page-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 32px; padding: 0 11px; border: 1px solid var(--hairline); border-radius: 3px; background: #fff; font-size: 12px; font-weight: 500; white-space: nowrap; }
 .workspace-page-button:hover { border-color: #8b928b; background: #f7f8f6; }
-.workspace-page-button.is-create { border-color: var(--create-border); color: var(--create); background: var(--create-soft); }
-.workspace-page-button.is-create:hover { border-color: var(--create); background: #e6f4eb; }
 .home-resume { color: var(--pink); border-color: #ebbdcb; }
 .home-resume:hover { border-color: var(--pink); background: var(--pink-soft); }
 .home-project-grid { display: grid; grid-template-columns: repeat(calc(var(--project-columns) + 1), minmax(0, 1fr)); align-items: start; gap: 22px; margin-top: 24px; }

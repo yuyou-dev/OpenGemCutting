@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createWorkbenchDocument, ensureTableFacet } from "./document.js";
+import { createWorkbenchDocument, ensureTableFacet, girdleFacetChoices, resolveDefaultStart, squareStartAvailable } from "./document.js";
+import { evaluateDocument } from "./documentGeometry.js";
 import { validateFacetingDocument } from "./faceting.js";
 
 test("default document starts from a centered 2.000 cube stock and passes validation", () => {
@@ -70,4 +71,26 @@ test("ensureTableFacet restores a missing fixed table at the front exactly once"
     1,
   );
   assert.deepEqual(restored.facets.slice(1), withoutTable.facets);
+});
+
+test("the default start cuts a square or a cylinder with a chosen whole-tooth girdle count", () => {
+  const girdle = (document) => document.facets.filter((facet) => facet.region === "girdle");
+  assert.deepEqual(girdleFacetChoices(96), [8, 12, 16, 24, 32, 48, 96]);
+  assert.deepEqual(girdleFacetChoices(77), [11, 77]);
+  assert.equal(girdle(createWorkbenchDocument("默认", 96)).length, 32, "the cylinder default is unchanged");
+  assert.equal(girdle(createWorkbenchDocument("八面", 96, { girdleFacets: 8 })).length, 8);
+  const square = createWorkbenchDocument("正方形", 96, { outline: "square" });
+  assert.deepEqual(girdle(square).map((facet) => facet.index).sort((a, b) => a - b), [0, 24, 48, 72]);
+  assert.ok(girdle(square).every((facet) => facet.depth === 0.2 && facet.label === "G1 腰部"));
+  assert.deepEqual(validateFacetingDocument(square), { valid: true, errors: [] });
+  const solid = evaluateDocument(square);
+  const xs = solid.vertices.map((vertex) => vertex.x ?? vertex[0]);
+  const ys = solid.vertices.map((vertex) => vertex.y ?? vertex[1]);
+  assert.ok(Math.abs(Math.max(...xs) - 0.8) < 1e-9 && Math.abs(Math.max(...ys) - 0.8) < 1e-9, "a 1.6 square prism");
+  assert.equal(squareStartAvailable(99), false);
+  assert.throws(() => resolveDefaultStart({ outline: "square" }, 99), /divide|square/);
+  assert.throws(() => resolveDefaultStart({ girdleFacets: 10 }, 96), /girdleFacets/);
+  assert.throws(() => resolveDefaultStart({ girdleFacets: 4 }, 96), /girdleFacets/);
+  assert.throws(() => resolveDefaultStart({ outline: "hexagon" }, 96), /outline/);
+  assert.deepEqual(resolveDefaultStart({}, 77), { outline: "cylinder", girdleFacets: 11 }, "the count nearest 32");
 });

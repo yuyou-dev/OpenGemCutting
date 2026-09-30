@@ -16,27 +16,21 @@
   },
   "geometry": "cube or convex mesh planar, fixed cuttingReference, no concave tools",
   "source": {
-    "commit": "3f1caa47c9daa47a31aed1e480a1b26f6728919a",
-    "branch": "codex/maintenance-1.3.0-audit",
-    "dirty": true,
-    "status": "M HANDOFF.md\n M docs/architecture/format-center.md\n M docs/architecture/preset-library.md\n M docs/architecture/state-contract.md\n M docs/labs/CONTRACT.md\n M docs/labs/HANDOFF.md\n M docs/mcp/architecture.md\n M docs/mcp/examples.md\n M mcp/tests/host.test.mjs\n M scripts/build-preset-library.mjs\n M scripts/design-build-stamp.mjs\n M scripts/labs-contract-self-test.mjs\n M scripts/labs-contract.mjs\n M scripts/lib/presetArchive.mjs\n M scripts/sync-public-design.mjs\n M src/application/formatCenter.js\n M src/application/formatCenter.test.js\n M src/application/labContractSamples.js\n M src/application/labDocuments.js\n M src/application/projectDesign.test.js\n M src/components/FormatCenterPage.jsx\n M src/domain/formats/shared.js\n M src/domain/labsContract/index.js\n M src/domain/labsContract/package.json\n M src/domain/labsContract/validation.js\n M src/domain/presetArchive.test.js\n M tests/release-sync.test.mjs\n M tests/sites-worker.test.mjs",
     "sourceFiles": {
       "src/domain/labsContract/index.js": "f65e3bbc72075afa45e4f1ae4a2eaf121dd745338acea6dfb72dd92957ae2b08",
       "src/domain/labsContract/indexing.js": "9ddb3ff869f52bafdbd5e009c3649d6db710939fcf2fa4b2133a5f98d507cce0",
       "src/domain/labsContract/package.json": "9aa39b7f3876dca0f574fbffbbbb631e4591e47cb6970b49c0f346d445fc63d5",
       "src/domain/labsContract/validation.js": "85670e1c9c1ab0811861d5c68a10242c607e4eae6fe09ae41d74f2ccdbdc684a",
-      "src/domain/faceting.js": "91e6aaac8227a24c4e6774d0c7c3d634a3d410472849003841c6d7708089e5c1",
+      "src/domain/faceting.js": "abdbf670f23d2cebe15677e89dc64977f6f39d6bcc78d332e89b3124afa044da",
       "src/domain/projectLibrary.js": "760dcdee66b9e3da1e9095550989260f0e89b5b7c45334e1af9a5566fe2a051e",
       "src/domain/meshStock.js": "c4ce75077b62278bc23ae11ea457637b62863a9c3d6623107e924eb24cf94af9",
       "src/application/labDocuments.js": "4d5666571ef0a43086e2db3bac9559cced46c9d09c9bc7e76fdf143cb29b0681",
       "src/application/labContractSamples.js": "42d7679e7db48778116f99f73ccb37bc78e0b5909daada3df7e1c46f0a336ba0",
-      "src/application/labDocuments.test.js": "55b1026ae349aeb69f77805e6212eb97c40a5b76cdcce35b576e7cbfbc41bac4",
-      "scripts/labs-contract.mjs": "03cd5d7ac0bc862a0ad1f3a795e594d3a167933070f7ce43c2a087d4a7a45fb6",
-      "scripts/labs-contract-self-test.mjs": "b07f0a561f3669d8e538311079a95ef450fcf74aec1ad6ab038a06affffea719",
-      "docs/labs/CONTRACT.md": "14b681ba098b41d1d47991e203687c784da7d6d1e6bec4b26273199c794428c6"
+      "src/application/labDocuments.test.js": "db68043ba5591d826623adc0cd2244b7df69b464c5de0eedbdea6db3256b51da",
+      "docs/labs/CONTRACT.md": "d635b922fc3e180c0428e6be6638baedc07d4761ff596b4bfd16ed17cfc75c78"
     }
   },
-  "generatedAt": "2026-09-26T04:56:36.203Z",
+  "generatedAt": "2026-09-30T09:23:45.072Z",
   "laboratoryModuleVersion": null,
   "jointAcceptance": false,
   "samples": [

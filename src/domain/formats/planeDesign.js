@@ -148,14 +148,6 @@ export function sameShape(left, right, tolerance = 1e-5) {
   });
 }
 
-/** Direction pseudo-facets for index compatibility reports. */
-export function designDirections(design) {
-  return visibleTiers(design).flatMap((tier, tierIndex) => tier.entries.map((entry, entryIndex) => ({
-    id: `${tierIndex}:${entryIndex}`,
-    normal: tierNormal(tier, entry.index, design.gear),
-  })));
-}
-
 export function designSummary(design) {
   const tiers = visibleTiers(design);
   const regions = { crown: 0, girdle: 0, pavilion: 0, table: 0 };
@@ -394,15 +386,28 @@ export function designFromDocument(document, { target = "该格式" } = {}) {
     groups.get(facet.patternId).push(facet);
   }
   const ordered = [...groups.values()].sort((left, right) => operationRank(left) - operationRank(right));
-  let flattened = false;
-  const tiers = ordered.map((group) => {
-    const first = group[0];
-    const sameTier = group.every((facet) => facet.region === first.region
-      && Math.abs(facet.industryAngleDeg - first.industryAngleDeg) <= EPSILON
-      && Math.abs(facet.plane.offset - first.plane.offset) <= EPSILON);
-    if (!sameTier) {
-      diagnostics.push(diagnostic("error", "INCONSISTENT_LAYER", `图层“${first.label ?? first.patternId}”内的刻面不共享角度和平面距离，不能写为一个 ${target} 层。`));
+  // A tier shares one angle and plane distance; a layer whose facets differ
+  // (an arc ring cut) is written as consecutive sub-tiers, primary level first.
+  const sameLevel = (facet, other) => facet.region === other.region
+    && Math.abs(facet.industryAngleDeg - other.industryAngleDeg) <= EPSILON
+    && Math.abs(facet.plane.offset - other.plane.offset) <= EPSILON;
+  const levelled = ordered.flatMap((group) => {
+    const levels = [];
+    for (const facet of group) {
+      const level = levels.find((items) => sameLevel(items[0], facet));
+      if (level) level.push(facet); else levels.push([facet]);
     }
+    if (levels.length === 1) return [{ group, suffix: "" }];
+    const primaryIndex = group[0].metadata?.primaryIndex ?? group[0].metadata?.construction?.primaryIndex;
+    const primaryLevel = levels.find((items) => items.some((facet) => Math.abs(facet.index - primaryIndex) <= EPSILON)) ?? levels[0];
+    const rest = levels.filter((items) => items !== primaryLevel).sort((left, right) => right[0].plane.offset - left[0].plane.offset);
+    facts.splitLayers = (facts.splitLayers ?? 0) + 1;
+    diagnostics.push(diagnostic("warning", "LAYER_SPLIT_BY_DEPTH", `图层“${group[0].label ?? group[0].patternId}”内有 ${levels.length} 级深度，${target} 按深度写为 ${levels.length} 个连续层；刻面几何保持，但弧切参数无法从 ${target} 恢复。`));
+    return [primaryLevel, ...rest].map((items, order) => ({ group: items, suffix: order === 0 ? "" : String.fromCharCode(97 + order) }));
+  });
+  let flattened = false;
+  const tiers = levelled.map(({ group, suffix }) => {
+    const first = group[0];
     if (first.repeat > 1 || first.mirror > 0) flattened = true;
     const table = first.metadata?.operationType === "table";
     const culet = first.region === "pavilion" && Math.abs(first.industryAngleDeg) <= EPSILON;
@@ -430,7 +435,7 @@ export function designFromDocument(document, { target = "该格式" } = {}) {
       distance: culet ? -first.plane.offset : first.plane.offset,
       region: first.region,
       table,
-      name: first.metadata?.asc?.name || first.label?.split(/\s+/)[0] || "",
+      name: `${first.metadata?.asc?.name || first.label?.split(/\s+/)[0] || ""}${suffix}`,
       instructions: String(first.metadata?.asc?.instructions ?? "").trim(),
       entries,
       preform: Boolean(first.metadata?.preform),

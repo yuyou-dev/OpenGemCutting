@@ -1,4 +1,4 @@
-# 实验室公共契约 1.0.0
+# 实验室公共契约 1.1.0
 
 状态：主项目与实验室之间现行的最小公共接口；原生接入已于 2026-09-25 通过人工验收；当前固定模块由 `src/application/labsModuleLock.json` 锁定，交付包按 MIT 随 OpenGemCutting 发布。本契约不授权覆盖项目或公开发布。
 
@@ -7,10 +7,10 @@
 | 名称 | 当前值 | 职责 |
 | --- | --- | --- |
 | 公共文档 | `facet-96-document` schema 1 / 2 / 3 | 主项目已有格式，不另造实验室简化格式 |
-| 公共契约 | `1.0.0` | 本文及样本的交换语义 |
-| 公共规则模块 | `@facet96/labs-contract` `1.0.0` | 无运行依赖的 ESM 分度规则、能力预检、扩展校验 |
-| 主项目产品 | package.json 的 `1.3.0` | 与文档、契约版本独立 |
-| 图案功能模块 | 已原生接入；版本由 `src/application/labsModuleLock.json` 锁定 | 固定交付模块与公共规则包分别管理，更新／回退见 [接入现状](HANDOFF.md) |
+| 公共契约 | `1.1.0` | 本文及样本的交换语义；1.1.0 在 1.0.0 上增加 `preset` 来源配置（cube 与有界凸 mesh），`pattern` 配置与 1.0.0 相同 |
+| 公共规则模块 | `@facet96/labs-contract` `1.1.0` | 无运行依赖的 ESM 分度规则、能力预检、扩展校验 |
+| 主项目产品 | 见 package.json | 与文档、契约版本独立 |
+| 图案功能模块 | 已原生接入；版本由 `src/application/labsModuleLock.json` 锁定 | 固定交付模块与公共规则包分别管理，操作与草稿恢复见宿主仓库 `docs/labs/USER-GUIDE.md` |
 
 实现单一来源为 [labsContract](../../src/domain/labsContract/index.js)；原 `domain/indexing.js` 只重导出该实现。宿主完整入口为 [readLabDocument](../../src/application/labDocuments.js)，使用正式导入器、领域校验器与实体内核。公共模块不依赖 React、DOM、MCP、几何引擎或相邻仓库。
 
@@ -28,7 +28,7 @@
 
 stock 是不可变毛坯；切深参考为 `cuttingReference ?? stock` 的固定旋转包络。cube 的半径和半高均为 size/2，含 center 的投影；depth 是支撑偏移减实际 offset。不能把实验室归一化坐标当宿主坐标，也不能由当前成品边界重新确定毛坯／深度零位。
 
-几何长度沿用模型单位。已知毫米尺度使用 `metadata.physicalScale.millimetersPerModelUnit`（有限正数），兼容既有 `stock.source.millimetersPerModelUnit`；两者同时存在必须一致。`millimetersPerModelUnit(document)` 未知时返回 null，禁止默认猜成 1 mm 或 10 mm 成品。坐标、深度和 offset 均乘此值换算毫米，体积乘其三次方；改变索引盘不改此比例。历史 `metadata.patternStudy.finalWidthMm` 仍作为来源信息保留，实验室须根据其真实成品宽度显式适配，不能把宽度直接当单位比例。此阶段记录尺度，不改写现有光学标定。
+几何长度沿用模型单位。已知毫米尺度使用 `metadata.physicalScale.millimetersPerModelUnit`（有限正数），兼容既有 `stock.source.millimetersPerModelUnit`；两者同时存在必须一致。`millimetersPerModelUnit(document)` 未知时返回 null，禁止默认猜成 1 mm 或 10 mm 成品。坐标、深度和 offset 均乘此值换算毫米，体积乘其三次方；改变索引盘不改此比例。历史 `metadata.patternStudy.finalWidthMm` 仍作为来源信息保留，实验室须根据其真实成品宽度显式适配，不能把宽度直接当单位比例。此阶段记录尺度，不改写现有光学标定。存在尺度时，主编辑器状态栏与 PDF 报告封面同时给出毫米外包尺寸与体积（`physicalMeasures()`）；工序参数仍为模型单位。
 
 ## 分度与兼容性
 
@@ -67,18 +67,18 @@ stock 是不可变毛坯；切深参考为 `cuttingReference ?? stock` 的固定
 
 ## 固定交接包与使用
 
-在主项目运行 `npm run labs:pack -- output/labs/contract-1.0.0` 生成一次性快照；目标存在即失败，不原地覆写。包包括公共 ESM、公开 v3 schema、本文、宿主生成的原始／规范化样本与预期实体、独立自检脚本、MANIFEST.json 和 SHA256SUMS。manifest 记录 HEAD、branch、dirty 状态、完整 porcelain 状态、相关源文件 SHA-256；因此未提交实现不能冒称由 HEAD 单独代表。压缩包另有 SHA-256。
+在主项目运行 `npm run labs:pack -- output/labs/contract-1.1.0 <pattern|preset>` 生成一次性快照；目标存在即失败，不原地覆写。包包括公共 ESM、公开 v3 schema、本文、宿主生成的原始／规范化样本与预期实体、独立自检脚本、MANIFEST.json 和 SHA256SUMS。快照随实验室交付包公开，manifest 只记录所用已发布宿主源文件的 SHA-256，不记录宿主提交、分支或工作区状态；联合验收按这些哈希核对宿主源码。压缩包另有 SHA-256。
 
 ```bash
 # 解包后，无需安装依赖；先核验逐文件校验和并执行公共规则自检。
-node /absolute/path/contract-1.0.0/self-test.mjs
+node /absolute/path/contract-1.1.0/self-test.mjs
 # 主项目中调用真实几何内核复核同一固定包。
-npm run labs:verify -- /absolute/path/contract-1.0.0
+npm run labs:verify -- /absolute/path/contract-1.1.0
 ```
 
 ```js
 import { LAB_CONTRACT_VERSION, inspectLabDocument, indexCompatibilityReport,
-  facetOnIndexGear, millimetersPerModelUnit } from '/absolute/path/contract-1.0.0/index.js';
+  facetOnIndexGear, millimetersPerModelUnit } from '/absolute/path/contract-1.1.0/index.js';
 // 输入应先经过实验室适配与宿主规范化；supported 仅为能力预检。
 const capability = inspectLabDocument(canonicalDocument);
 const allOperations = indexCompatibilityReport(canonicalDocument);

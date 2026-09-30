@@ -1,4 +1,4 @@
-import { FORMAT_LIMITS, diagnostic, fail, statusFor } from "./shared.js";
+import { FORMAT_LIMITS, diagnostic, fail, mod360, statusFor } from "./shared.js";
 import { cleanIndex, designSummary, markTable } from "./planeDesign.js";
 
 /*
@@ -20,7 +20,6 @@ import { cleanIndex, designSummary, markTable } from "./planeDesign.js";
  */
 
 const DEG = 180 / Math.PI;
-const mod360 = (value) => ((value % 360) + 360) % 360;
 
 function reader(bytes) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

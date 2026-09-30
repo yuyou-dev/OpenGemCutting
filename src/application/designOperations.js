@@ -1,7 +1,9 @@
+import { ringCutFromFacets, ringCutMetadata, ringDraftPatch, ringDissolveLevels } from '../domain/ringCut.js';
+import { inspectMeetpoints } from './meetInspection.js';
 import { facetMetadataAfterParameterEdit } from '../domain/facetSurface.js';
 import { resolveGroupReference } from '../domain/groupReference.js';
 import { indexExportSummary } from '../domain/indexing.js';
-import { getCuttingReference } from '../domain/faceting.js';
+import { getCuttingReference, primaryFacetOf } from '../domain/faceting.js';
 import { updateConcaveTool } from './concaveTools.js';
 import { evaluatePlanarDocument, evaluateDocument } from '../domain/documentGeometry.js';
 import {
@@ -143,13 +145,14 @@ export function draftForPattern(facets) {
   const first = facets[0];
   return {
     industryAngle: first.industryAngleDeg,
-    depth: first.depth,
+    depth: primaryFacetOf(facets).depth,
     indexTeeth: first.indexTeeth ?? 96,
     baseIndex: first.metadata?.primaryIndex ?? first.baseIndex,
     repeat: first.repeat,
     mirrorOffset: first.mirror,
     patternMode: first.metadata?.patternMode ?? 'symmetric',
     customIndices: facets.map((f) => displayIndex(f.index, f.indexTeeth ?? 96)).join(' '),
+    ring: ringCutFromFacets(facets),
     preform: Boolean(first.metadata?.preform),
   };
 }
@@ -164,10 +167,10 @@ function constructCut(document, operation) {
   if (!region) throw designError('INVALID_OPERATION', '新 CUT 需要 region。');
   if (first && operation.region && first.region !== operation.region)
     throw designError('LOCKED_REGION', '编辑不能更改已保存 CUT 的部位。');
-  let draft = {
-    ...(first ? draftForPattern(existing) : defaultDraftForRegion(region, { indexTeeth: document.indexGear.teeth })),
-    ...operation.draft,
-  };
+  const baseDraft = first ? draftForPattern(existing) : defaultDraftForRegion(region, { indexTeeth: document.indexGear.teeth });
+  let draft = { ...baseDraft, ...ringDraftPatch(baseDraft, { ...operation.draft }) };
+  if (draft.ring && (first?.metadata?.operationType === 'table'))
+    throw designError('LOCKED_PARAMETER', '固定台面不能设为环切。');
   if (draft.indexTeeth !== document.indexGear.teeth)
     throw designError('INDEX_GEAR_MISMATCH', '平面切割必须使用项目分度盘。');
   const table = first?.metadata?.operationType === 'table';
@@ -228,6 +231,8 @@ function constructCut(document, operation) {
     preform: draft.preform,
   };
   if (table || region === 'girdle') delete metadata.preform;
+  if (draft.ring) metadata.ring = ringCutMetadata(draft.ring);
+  else delete metadata.ring;
   if (meet)
     metadata.construction = {
       type: meet.secondTarget
@@ -372,7 +377,52 @@ function requirePattern(document, patternId) {
 }
 
 /** Same operation dispatch for browser commands, batch plans and MCP. */
+/**
+ * Dissolve a ring layer into ordinary layers without moving any plane. A fan
+ * stays one layer; an arc splits into one layer per depth level so each can
+ * be edited, met and exported as a single-depth layer. The primary level
+ * keeps the layer id, label, Meet construction and primary facet.
+ */
+export function dissolveRingLayer(document, patternId) {
+  const facets = document.facets.filter((facet) => facet.patternId === patternId);
+  const ring = facets.length ? ringCutFromFacets(facets) : null;
+  if (!ring) throw designError('NOT_A_RING', '该层不是可编辑的环切层。', { patternId });
+  const teeth = facets[0].indexTeeth ?? 96;
+  const primary = primaryFacetOf(facets);
+  const same = (a, b) => Math.abs(normalizeIndex(a, teeth) - normalizeIndex(b, teeth)) < 1e-9;
+  const levels = ringDissolveLevels(ring, teeth).map((indices) => facets.filter((facet) => indices.some((index) => same(index, facet.index))));
+  levels.sort((left, right) => Number(right.includes(primary)) - Number(left.includes(primary)));
+  const [prefix, ...rest] = String(facets[0].label ?? patternId).split(/\s+/);
+  const circular = (a, b) => { const d = Math.abs(normalizeIndex(a, teeth) - normalizeIndex(b, teeth)); return Math.min(d, teeth - d); };
+  const taken = new Set(document.facets.map((facet) => facet.patternId));
+  const freshId = (order) => {
+    let suffix = order + 1;
+    while (taken.has(`${patternId}-${suffix}`)) suffix += 1;
+    taken.add(`${patternId}-${suffix}`);
+    return `${patternId}-${suffix}`;
+  };
+  const replaced = levels.flatMap((level, order) => {
+    const levelId = order === 0 ? patternId : freshId(order);
+    const label = order === 0 ? facets[0].label : [`${prefix}${String.fromCharCode(97 + order)}`, ...rest].join(' ');
+    const levelPrimary = order === 0 ? primary : [...level].sort((a, b) => circular(a.index, primary.index) - circular(b.index, primary.index))[0];
+    return level.map((facet, ordinal) => {
+      const { ring: _ring, ...metadata } = facet.metadata;
+      metadata.patternMode = 'arbitrary';
+      metadata.primaryIndex = normalizeIndex(levelPrimary.index, teeth);
+      if (order > 0) delete metadata.construction;
+      return { ...facet, id: order === 0 ? facet.id : `${levelId}:${displayIndex(facet.index, teeth)}`, patternId: levelId, label, ordinal, metadata };
+    });
+  });
+  const at = document.facets.findIndex((facet) => facet.patternId === patternId);
+  const others = document.facets.filter((facet) => facet.patternId !== patternId);
+  return { document: { ...document, facets: [...others.slice(0, at), ...replaced, ...others.slice(at)] }, layers: levels.length };
+}
+
 export const DESIGN_OPERATION_TABLE = Object.freeze({
+  'dissolve-ring'(document, operation) {
+    const { document: next, layers } = dissolveRingLayer(document, operation.patternId);
+    return { document: next, change: { kind: operation.kind, patternId: operation.patternId, layers } };
+  },
   cut(document, operation) {
     const result = constructCut(document, operation);
     return { document: result.document, change: { patternId: operation.patternId, policy: result.policy, generated: result.impact.generatedFaceCount, threats: result.impact.threats } };
@@ -472,6 +522,7 @@ export function inspectDesign(document) {
     indexGear: { ...document.indexGear },
     concaveCuts: document.concaveCuts ?? [],
     geometryIssues,
+    meetAudit: inspectMeetpoints(document),
     stockKind: document.stock.kind ?? 'cube',
     logicalCutPlanes: document.facets.length,
     effectiveCutPlanes: document.facets.filter((f) => effective.effectiveFacetIds.includes(f.id)).length,

@@ -128,10 +128,10 @@ export function App() {
     else action();
   };
   const createProject = () => setNewProjectOpen(true);
-  const createDefaultProject = (indexTeeth = newProjectGear) => {
+  const createDefaultProject = (indexTeeth = newProjectGear, start = {}) => {
     setNewProjectOpen(false);
     switchProject(() => {
-    const record = projects.create(createWorkbenchDocument(t("未命名切型 {0}", [String(projects.records.length + 1).padStart(2, "0")]), indexTeeth));
+    const record = projects.create(createWorkbenchDocument(t("未命名切型 {0}", [String(projects.records.length + 1).padStart(2, "0")]), indexTeeth, start));
     if (record) activate(record);
     });
   };
