@@ -69,6 +69,8 @@ v1.1.1 发布前完整 `npm run check:mcp` 通过 339 项，公开敏感信息�
 
 Pages 子路径构建在内置浏览器实测：首页显示 2.0.0-rc.1；中英手册（各 38 页）、异形底胚 OBJ 下载、两个实验室模块均返回 200；默认起点“正方形”新建为 24-48-72-96 的方柱，腰部弧切 L3×3 预览 9 面、2 级深度并显示顶视示意；无控制台错误。
 
+线上发布：[PR #10](https://github.com/yuyou-dev/OpenGemCutting/pull/10) 的 GitHub CI 7 项通过，于 2026-09-30 由维护者合入 main（`6b97fc3`）；Pages 部署成功，标签与 [v2.0.0-rc.1 Pre-release](https://github.com/yuyou-dev/OpenGemCutting/releases/tag/v2.0.0-rc.1) 已发布（预发布不标为 Latest）。线上实测：首页显示 2.0.0-rc.1；中英手册与发布文件逐字节一致；异形底胚 OBJ、两个实验室模块与 v3 schema 返回 200；默认起点“正方形”新建后腰部弧切 L3×3 预览 9 面、2 级深度并显示顶视示意；无控制台错误。
+
 未验证：Windows 实机、Safari／Firefox、触屏真机、在干净目录经 Codex 重新执行 README 安装提示词。冠亭实验室内部界面目前为中文。
 
 ## 光学 WebGPU / WebGL2 回归
