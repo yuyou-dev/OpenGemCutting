@@ -34,9 +34,9 @@ export function ConstructionAssistantDialog({
             </select></label>
             <button type="button" className="secondary-button" onClick={() => onStageChange(currentStageIndex + 1)} disabled={currentStageIndex === stages.length - 1} aria-label={t("下一施工阶段")}><IconChevronRight size={16} stroke={1.7} /></button>
           </div>
-          {firstInvalidIndex >= 0 ? <button type="button" className="construction-assistant-invalid-jump" onClick={() => onStageChange(firstInvalidIndex)}><IconAlertTriangle size={15} stroke={1.6} /><span>{t("定位首个 Meet 失效 · 第")} {firstInvalidIndex + 1} {t("步")}</span></button> : null}
+          {firstInvalidIndex >= 0 ? <button type="button" className="construction-assistant-invalid-jump" onClick={() => onStageChange(firstInvalidIndex)}><IconAlertTriangle size={15} stroke={1.6} /><span>{t("定位首个 Meet 失效 · 第 {0} 步", [firstInvalidIndex + 1])}</span></button> : null}
           <div className="construction-assistant-stage-heading">
-            <div><strong>{labelFor(stage)}</strong><small>{t("第")} {currentStageIndex + 1} / {stages.length} {t("步")}{stage.preform ? t(" · 预形工序") : ""}</small></div>
+            <div><strong>{labelFor(stage)}</strong><small>{t("第 {0} / {1} 步", [currentStageIndex + 1, stages.length])}{stage.preform ? t(" · 预形工序") : ""}</small></div>
             <div className="construction-assistant-phase" role="group" aria-label={t("比较施工前后")}>
               <button type="button" aria-pressed={phase === "before"} onClick={() => onPhaseChange("before")}>{t("切割前")}</button>
               <button type="button" aria-pressed={phase === "after"} onClick={() => onPhaseChange("after")}>{t("切割后")}</button>

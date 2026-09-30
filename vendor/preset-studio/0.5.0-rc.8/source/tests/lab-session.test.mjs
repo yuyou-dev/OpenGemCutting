@@ -73,11 +73,11 @@ test('explicit replacement retains the opposite side and undo restores all origi
     s.dispose();
 });
 
-test('known rc.1 and rc.6 drafts migrate on save; future drafts remain untouched', async () => {
+test('known rc.1, rc.6 and rc.7 drafts migrate on save; future drafts remain untouched', async () => {
     let saved;
     const persistence={load:()=>saved,save:value=>{saved=structuredClone(value);}};
     let s=await createPresetStudioSession({source:source(),persistence}); await s.flush();s.dispose();
-    for (const version of ['0.5.0-rc.1', '0.5.0-rc.6']) {
+    for (const version of ['0.5.0-rc.1', '0.5.0-rc.6', '0.5.0-rc.7']) {
         saved.moduleVersion=version;
         const workspace=structuredClone(saved.workspace);
         s=await createPresetStudioSession({source:source(),persistence});await s.flush();s.dispose();

@@ -1,6 +1,7 @@
 import { adjacentJumpCandidateIndex } from "./meetJump.js";
 import { normalizeIndex, displayIndex } from "./faceting.js";
 import { normalizeIndexTeeth, compatibleRepeat } from "./indexing.js";
+import { ringDraftPatch } from "./ringCut.js";
 
 export const CUT_SESSION_MODE = Object.freeze({
   IDLE: "idle",
@@ -75,6 +76,7 @@ export function defaultDraftForRegion(region, previous = null) {
     mirrorOffset: 0,
     patternMode: "symmetric",
     customIndices: previous?.customIndices ?? gearedDefaults?.customIndices ?? DEFAULT_CUSTOM_INDICES,
+    ring: null,
     preform: false,
   };
 }
@@ -298,13 +300,17 @@ function draftForIndexGear(draft, indexTeeth) {
   const source = draft?.indexTeeth ?? 96;
   const customIndices = String(draft?.customIndices ?? DEFAULT_CUSTOM_INDICES).trim().split(/[\s,，;；]+/);
   const customSource = draft?.customIndices === undefined ? 96 : source;
-  return {
+  const retargeted = {
     ...draft,
     indexTeeth: teeth,
     baseIndex: draft?.baseIndex === undefined ? Math.round(DEFAULT_BASE_INDEX * teeth / 96) % teeth : normalizeIndex(draft.baseIndex * teeth / source, teeth),
     customIndices: customIndices.map((token) => Number.isFinite(Number(token))
       ? displayIndex(normalizeIndex(Number(token) * teeth / customSource, teeth), teeth) : token).join(" "),
   };
+  // A ring keeps its shape on the new wheel; its rotation moves to the nearest tooth.
+  return draft?.ring
+    ? { ...retargeted, ...ringDraftPatch(retargeted, { ring: { ...draft.ring, rotation: Math.round(draft.ring.rotation * teeth / source) } }) }
+    : retargeted;
 }
 
 export function cutSessionReducer(session, event) {
@@ -345,7 +351,8 @@ export function cutSessionReducer(session, event) {
         : session;
     case CUT_SESSION_EVENT.CHANGE_DRAFT: {
       if (session.mode !== CUT_SESSION_MODE.CREATE && session.mode !== CUT_SESSION_MODE.EDIT) return session;
-      const patch = { ...event.patch };
+      // Ring parameters own the generated indices; every draft change keeps them in step.
+      const patch = ringDraftPatch(session.draft, { ...event.patch });
       delete patch.indexTeeth; // A wheel change belongs to the idle parameter-group event.
       if (session.region === "girdle" && "industryAngle" in patch) patch.industryAngle = 90;
       if (session.lockedLayer && "industryAngle" in patch) patch.industryAngle = 0;

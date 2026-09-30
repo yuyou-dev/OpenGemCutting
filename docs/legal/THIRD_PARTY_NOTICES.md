@@ -7,6 +7,7 @@ OpenGemCutting uses third-party packages listed in `package.json` and locked by 
 - React, React DOM, Vite, pdf-lib, fontkit, Tabler Icons and related build packages use their respective upstream licenses, commonly permissive licenses such as MIT.
 - The bundled Noto Serif SC font files in `public/fonts/` use the SIL Open Font License 1.1; the complete text is included at `public/fonts/OFL.txt`.
 - Fontsource packages provide font software under the corresponding upstream font licenses; inspect their package metadata when redistributing a build.
+- The laboratory modules in `vendor/pattern-lab/` and `vendor/preset-studio/` are MIT licensed deliveries. Each package ships its own `LICENSE`, `THIRD_PARTY_NOTICES.md` and a `licenses/` folder covering its bundled runtime libraries (such as React and Tabler Icons, MIT) and fonts (Noto Sans SC and IBM Plex Mono, SIL Open Font License 1.1).
 
 ## Format interchange
 

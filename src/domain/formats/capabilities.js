@@ -51,6 +51,10 @@ export const CONCEPTS = Object.freeze([
     support: { json: "keep", asc: "approx", gem: "approx", gcs: "approx" },
     notes: { asc: "展开为逐个分度，形状不变", gcs: "展开为逐个分度，形状不变" },
     codes: { approx: ["PARAMETRIC_RELATIONSHIP_FLATTENED"] } },
+  { id: "ringLevels", label: "弧切联动深度", hint: "一个图层内按比例联动的多级深度",
+    support: { json: "keep", asc: "approx", gem: "approx", gcs: "approx" },
+    notes: { asc: "按深度拆成连续层，形状不变", gcs: "按深度拆成连续层，形状不变" },
+    codes: { approx: ["LAYER_SPLIT_BY_DEPTH"] } },
   { id: "history", label: "被后续切割覆盖的工序", hint: "已不在宝石表面的早期切割",
     support: { json: "keep", asc: "lose", gem: "lose", gcs: "lose" },
     notes: { asc: "只写最终留在宝石上的面", gcs: "只写最终留在宝石上的面" }, codes: { lose: ["OVERWRITTEN_FACETS_OMITTED"] } },
@@ -111,6 +115,7 @@ export function presentConcepts(design, facts = {}) {
   const hidden = design ? design.tiers.length - tiers.length : 0;
   if (hidden) present.set("hiddenTiers", `${hidden} 层`);
   if (facts.flattened) present.set("parametric", "有");
+  if (facts.splitLayers) present.set("ringLevels", `${facts.splitLayers} 层`);
   if (facts.overwritten) present.set("history", `${facts.overwritten} 面`);
   if (facts.meet) present.set("meet", `${facts.meet} 面`);
   if (facts.preform) present.set("preform", `${facts.preform} 面`);

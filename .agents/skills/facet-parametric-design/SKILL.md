@@ -13,6 +13,7 @@ metadata:
 
 - 打开／查看／导出：执行对应工具并核实结果；导出已提交设计，无需重新构造。
 - 明确参数修改、预设派生或参数化新建：读取当前设计，使用 `design_plan → design_view / design_inspect → design_commit → project_save` 检查真实变化并完成保存。保留未要求改变的内容；Meet 来源使用 `design_topology` 的真实施工前缀。
+- 原创、补全、改型或重做一套切法：按需读 [交汇点切磨](references/meetpoint-cutting.md) 与 [琢型族谱](references/cut-families.md)，写清自由量和会合目标。用真实 Meet 保存构造意图；数值构造也须核对真实拓扑。`design_inspect.meetAudit` 提供相邻交点、短棱与腰线的诊断候选，结合设计意图逐项判断，不要求计数清零，不因候选阻断交付。参考图的外形与布局意图和几何可实现性分别核对。
 - 参考图／手绘还原：读取 [参考还原流程](references/reference-workflow.md)，独立记录参考节点与连接，交付真实实体及逐项偏差。
 - 无图且需探索造型或用户要求参考板：按 [参考板](references/reference-board.md) 生成并查看，再进入参考还原流程；明确参数和局部修改不要求出图。
 - 新底胚：按需读取 [正式预检](references/custom-preform.md)。明确要求离线工程诊断时读取 [领域入口](references/construction.md)，不以离线脚本绕过对话提交。
@@ -21,7 +22,7 @@ metadata:
 
 首次连接读取 `facet://guide`，工具参数按需读取 `facet://capabilities`。用 `workbench_open` 返回的完整链接在内置浏览器打开，经 `workbench_sessions` 和 `design_read` 核实实际项目后才报告连接成功。项目切换、断线或版本变化时重新核实；多个目标仍有歧义才询问。工具缺失先诊断安装、加载或连接状态；安装配置需在任务授权范围内。
 
-写入使用最新项目与 revision，不自动取消手动草稿或重复提交。完整保留被后续工序覆盖的层参数；整体消面只提示影响，可直接提交和撤销，已覆盖层仍可编辑。空实体、非法几何与新增空切禁止提交。分度按各层 `indexTeeth` 读取，允许小数索引；用 `design_inspect.indexCompatibility` 核对全部工序与最终有效面，不为适配 96 齿静默取整。底胚仅在新建时选择，创建后固定；平面切割与凹面加工使用正式 `replace-parameters` 独立替换，保留其他参数组。快捷凹切使用同源 `concave-tool` 计划；三角柱可调整尖角、宽度和长度，未指定切深时保持原切深。平切 Meet / Jump 只引用纯平切施工前缀，不能把凹切布尔面片当作平切约束来源；网页临时隐藏凹切不改变读取或导出结果。具体参数读取正式 capabilities 与 docs/mcp，不在本 Skill 复制算法。已授权的有效修改检查后直接提交；需要改变用户明确要求时说明具体影响再询问。比例冲突的取舍参见 [异常确认](references/proportions.md)。
+写入使用最新项目与 revision，不自动取消手动草稿或重复提交。完整保留被后续工序覆盖的层参数；整体消面只提示影响，可直接提交和撤销，已覆盖层仍可编辑。空实体、非法几何与新增空切禁止提交。分度按各层 `indexTeeth` 读取，允许小数索引；用 `design_inspect.indexCompatibility` 核对全部工序与最终有效面，不为适配 96 齿静默取整。底胚仅在新建时选择，创建后固定；平面切割与凹面加工使用正式 `replace-parameters` 独立替换，保留其他参数组。把 L 边母形的每条边换成一组面时用 `draft.ring`（扇形同深或弧形联动深度），打散用 `dissolve-ring`；快捷凹切使用同源 `concave-tool` 计划；三角柱可调整尖角、宽度和长度，未指定切深时保持原切深。平切 Meet / Jump 只引用纯平切施工前缀，不能把凹切布尔面片当作平切约束来源；网页临时隐藏凹切不改变读取或导出结果。具体参数读取正式 capabilities 与 docs/mcp，不在本 Skill 复制算法。已授权的有效修改检查后直接提交；需要改变用户明确要求时说明具体影响再询问。比例冲突的取舍参见 [异常确认](references/proportions.md)。
 
 ## 完成条件
 

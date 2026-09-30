@@ -59,6 +59,9 @@ export function readInteger(value, label, options) {
   return number;
 }
 
+/** Degrees folded into [0, 360). */
+export const mod360 = (value) => ((value % 360) + 360) % 360;
+
 export function formatNumber(value) {
   if (!Number.isFinite(value)) fail("NONFINITE_OUTPUT", "禁止写出非有限数字。");
   if (Math.abs(value) < 1e-14) return "0";

@@ -66,3 +66,9 @@
 ```
 
 在相同正交及立体观察条件下比较凹槽。将同一参数组中的 `concaveCuts` 改为 `[]` 可移除凹面加工；原底胚与平面 CUT 参数不变，撤销恢复凹槽。`group: "stock"` 文件只携带 `stock`，`group: "planar"` 只携带 `facets`，凹切组只携带 `concaveCuts`；不允许混装后暗中替换其他组。球面与柱面按指定段数离散为真实网格，凹切设备需求独立于平面分度兼容结果。
+
+## 交点诊断：台面角被分开
+
+以预设 Eight Main Highlight（`94504-pc-01-338-eight-main-highlight`）建立项目，保存原设计后调用 `design_inspect`，`meetAudit.splitMeets` 为 0。另存副本，保持其他参数不变，将台面切深增加 0.01，再读取同一字段，会出现 8 个短棱候选，`nearMisses` 仍为 0。以相同顶视和缩放对比台面角，再撤销恢复；候选只提示复查设计意图，不代表禁止交付。
+
+`meetAudit.status` 为 `measured` 或 `unsupported`，`advisory` 恒为 true。启用凹切的设计返回 `reason: active-concave-cuts`，不提供伪造的纯平切计数。网页“更多工具 → 交点检查”与 MCP 共用 application 入口；不需要运行 MCP 也能手动检查。完整流程见 [交汇点指南](../../.agents/skills/facet-parametric-design/references/meetpoint-cutting.md)。

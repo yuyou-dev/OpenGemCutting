@@ -1,4 +1,5 @@
 import { normalizeIndex, displayIndex, resolveFacet, resolveFacetPattern } from "./faceting.js";
+import { ringCutLayout, ringRatioForIndex } from "./ringCut.js";
 import { MEET_STATUS, resolvePersistedMeetTarget, solveVertexMeet, solveDualMeet } from "./meetJump.js";
 
 export function parseCustomIndices(value, indexTeeth = 96) {
@@ -52,20 +53,28 @@ export function resolveDraftGeometry(draft, region, stock) {
       const distance = Math.abs(index - normalizeIndex(draft.baseIndex, teeth));
       return Math.min(distance, teeth - distance) < 1e-9;
     })) return { facets: [], error: "请从自定义索引集合中选择主切面。" };
+    // An arc ring keeps its solved distance ratios: the primary carries the
+    // group depth, every other facet's plane is scaled from the primary's.
+    const ringLayout = draft.ring?.kind === "arc" ? ringCutLayout(draft.ring, draft.indexTeeth ?? 96) : null;
+    const facetAt = (index, ordinal, depth) => resolveFacet({
+      id: `draft-arbitrary:${displayIndex(index, draft.indexTeeth)}`,
+      patternId: "draft-arbitrary",
+      ordinal,
+      region,
+      indexTeeth: draft.indexTeeth,
+      baseIndex: index,
+      repeat: 1,
+      mirror: 0,
+      index,
+      industryAngleDeg: draft.industryAngle,
+      depth,
+    }, { stock });
     return {
-      facets: parsed.indices.map((index, ordinal) => resolveFacet({
-        id: `draft-arbitrary:${displayIndex(index, draft.indexTeeth)}`,
-        patternId: "draft-arbitrary",
-        ordinal,
-        region,
-        indexTeeth: draft.indexTeeth,
-        baseIndex: index,
-        repeat: 1,
-        mirror: 0,
-        index,
-        industryAngleDeg: draft.industryAngle,
-        depth: draft.depth,
-      }, { stock })),
+      facets: parsed.indices.map((index, ordinal) => {
+        const facet = facetAt(index, ordinal, draft.depth);
+        const ratio = ringRatioForIndex(ringLayout, index, draft.indexTeeth ?? 96);
+        return ratio === 1 ? facet : facetAt(index, ordinal, draft.depth + facet.plane.offset * (1 - ratio));
+      }),
       error: "",
     };
   } catch (error) {

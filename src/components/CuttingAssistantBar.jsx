@@ -21,8 +21,8 @@ export function IndexDial({ index, indexTeeth = 96 }) {
     })}
     {Array.from({ length: Math.min(4, indexTeeth) }, (_, ordinal) => Math.round(ordinal * indexTeeth / Math.min(4, indexTeeth))).map(i => { const p = at(141, i * Math.PI * 2 / indexTeeth); return <text key={i} x={p[0]} y={p[1]} dominantBaseline="central" textAnchor="middle">{displayIndex(i, indexTeeth)}</text>; })}
     {index != null && <g stroke="#ed225d" fill="#ed225d"><line x1={at(68,angle)[0]} y1={at(68,angle)[1]} x2={pointer[0]} y2={pointer[1]} /><circle cx={pointer[0]} cy={pointer[1]} r="4" /></g>}
-    <text x="150" y="130" textAnchor="middle" className="dial-label">{t("{0} 齿 · 分度", [indexTeeth])}</text>
-    <text x="150" y="180" textAnchor="middle" className="dial-value">{index == null ? "—" : displayIndex(index, indexTeeth)}</text>
+    <text x="150" y="104" textAnchor="middle" className="dial-label">{t("{0} 齿 · 分度", [indexTeeth])}</text>
+    <text x="150" y="190" textAnchor="middle" className="dial-value">{index == null ? "—" : displayIndex(index, indexTeeth)}</text>
   </svg>;
 }
 

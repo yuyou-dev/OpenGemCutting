@@ -91,7 +91,12 @@ export function getMeshViewGeometry(solid, viewDirection) {
       if(dot(normal,sub(c,a))>0) normal=normal.map(v=>-v);
       return {normal,offset:dot(normal,a)};
     });
-    planes.push({normal:triangle.normal,offset:dot(triangle.normal,triangle.a)-EPS});
+    // Depth plane from the face's own plane: fan triangulation keeps triangles over collinear T-junction points whose
+    // cross product is mostly rounding (height ~1e-12 on a mesh stock), so their geometric normal can tilt enough to put
+    // the face's own boundary edges "behind" it and erase them from the drawing.
+    // Mesh patches are planar, so their stored normal holds for every triangle of the fan.
+    const depthNormal=triangle.face.normal ? unit(xyz(triangle.face.normal)) : triangle.normal;
+    planes.push({normal:depthNormal,offset:dot(depthNormal,triangle.a)-EPS});
     return {...triangle,vertices,planes};
   });
   const boundsOf=vertices=> {

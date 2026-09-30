@@ -27,12 +27,9 @@ import {
   FACET_REGION_LABELS,
   FACET_REGION_PREFIXES,
   normalizeIndex,
+  isPlainObject,
 } from "./faceting.js";
 import { clipPolyhedronByPlanes } from "./geometry.js";
-
-function isPlainObject(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 function groupFacetsByPattern(document) {
   if (!isPlainObject(document) || !Array.isArray(document.facets)) {

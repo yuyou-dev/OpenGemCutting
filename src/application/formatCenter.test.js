@@ -119,3 +119,18 @@ test("a saved project file is a source like the open project", async () => {
   assert.deepEqual(targetsFor(source), ["workbench", "asc", "gcs"]);
   assert.equal(planTarget(source, "workbench").outcome, "complete");
 });
+
+test("an arc ring layer with several depths exports as consecutive tiers that read back to the same stone", async () => {
+  const { planDesign } = await import("./designOperations.js");
+  const ring = { kind: "arc", symmetry: 4, subdivisions: 3, bulge: 0.6, rotation: 0 };
+  const { document } = planDesign(await preset(), [{ kind: "cut", patternId: "arc", label: "A1 弧切", region: "girdle", draft: { industryAngle: 90, depth: 0.5, ring } }]);
+  const plans = planTargets(inspectProjectSource(document));
+  for (const plan of [plans.asc, plans.gcs]) {
+    assert.equal(plan.verified, true);
+    assert.ok(labels(plan.report.approximate).includes("ringLevels"));
+    assert.ok(plan.diagnostics.some((item) => item.code === "LAYER_SPLIT_BY_DEPTH"));
+  }
+  const tiers = plans.asc.text.split("\r\n").filter((line) => /^a 90\.0+ /.test(line));
+  assert.equal(tiers.length, 2, tiers.join("\n"));
+  assert.ok(Number(tiers[0].split(" ")[2]) > Number(tiers[1].split(" ")[2]), "the primary level is written first");
+});

@@ -10,7 +10,7 @@
 
 An open-source gemstone faceting workbench. Design through conversation, refine every cut.
 
-[![Version](https://img.shields.io/badge/version-1.3.0-ed225d?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.0.0--rc.1-ed225d?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-222222?style=flat-square)](LICENSE)
 [![Browser](https://img.shields.io/badge/browser-local_first-38755d?style=flat-square)](#start)
 
@@ -47,7 +47,20 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 </tr>
 </table>
 
-**v1.3.0 新增**：格式中心——打开 GemCAD（.asc、.gem）与 Gem Cut Studio（.gcs）的设计，或把当前设计交给这些软件；每个去向先写明会保留、简化或丢失什么，导出后读回核对形状。磨砂面与 Gem Cut Studio 磨砂互转，无台面的老设计也能直接互转。详见 [CHANGELOG](CHANGELOG.md)。
+<details>
+<summary><b>2.0 更新 · What's new in 2.0</b>（v2.0.0-rc.1 预发布，汇总 1.0 以来的全部新增）</summary>
+
+- **起点贴近设备**：新建时先选切磨分度盘（32–360 齿共 11 种），绿灯／红灯显示能否整齿加工；默认起点可选圆柱并指定腰棱数，或直接从正方形开始。
+- **整组刻面一次生成**：环切把 L 边母形的每条边换成一组扇形面；弧切把边鼓成圆弧、各面深度按弧线联动；构成器的顶视示意在切下去之前画出外形。
+- **凹切与磨砂**：球形、圆弧槽、V 形尖槽、细槽与三角柱尖槽，可重复、旋转、启停；磨砂面在切割助手、光学仿真与 PDF 中都有对应表达。
+- **两个实验室**：图案实验室试做表面图案，冠亭预设实验室用阶梯、错层等配方生成冠亭变体，检查后带回为新项目。
+- **格式中心**：读写 GemCAD（.asc，.gem 只读）与 Gem Cut Studio（.gcs），转换前逐项说明保留、简化或丢失的信息，导出后读回核对。
+- **检查与交付**：交点检查列出值得复核的会合；已知比例显示毫米尺寸，PDF 标注单位；WebGPU 光学（不可用时回退 WebGL2）。
+- **中英双语**：界面、帮助、PDF 报告与 38 页图解手册均有中文和英文版。
+
+Multi-index wheels and square or chosen-count starts; ring and arc cuts with a live top-view sketch; concave tools and frosted finishes; pattern and crown/pavilion labs; a GemCAD / Gem Cut Studio format center; meetpoint inspection, millimetre sizes and WebGPU optics; a fully bilingual interface, reports and manual. Details: [CHANGELOG](CHANGELOG.md).
+
+</details>
 
 <sub>展示琢型：PC 01.338 Eight Main Highlight，Long, R H &amp; Steele, N W；来源 Facet Design v5 (1984) pC12。可在预设库按名称载入。[来源与许可](docs/legal/THIRD_PARTY_NOTICES.md)。</sub>
 
@@ -152,7 +165,8 @@ npm run check:mcp      # 加上 MCP 的连接与版本检查
 
 - **请保留设计文件。** 项目保存在当前浏览器与地址下；更换浏览器、端口或清理浏览器数据不会自动迁移项目。重要设计请导出 JSON。
 - **保留真实原石形状。** 支持闭合 OBJ，保留凹槽、孔和分离组件；导入上限与交换限制见 [文件与设计边界](docs/limits.md)。
-- **仿真帮助比较。** 显示效果不代表实际切磨收益或材料光学等级。独立光学实验室仍为开发中入口。
+- **仿真帮助比较。** 显示效果不代表实际切磨收益或材料光学等级。实验室的专业界面目前为中文。
+- **这是预发布版本。** 2.0.0-rc.1 功能已冻结，正式版前只修正问题；欢迎按 [Issues](https://github.com/yuyou-dev/OpenGemCutting/issues) 反馈。
 - **支持按实测说明。** 本机功能已通过设计师验收；跨平台、浏览器与线上状态见 [支持与验收](docs/validation.md)，不以源码版本推断站点已更新。
 
 ## 一起完善这张工作台

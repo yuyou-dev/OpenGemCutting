@@ -343,6 +343,9 @@
         },
         "construction": {
           "$ref": "#/$defs/meetConstruction"
+        },
+        "ring": {
+          "$ref": "#/$defs/ringCut"
         }
       },
       "additionalProperties": true,
@@ -362,6 +365,26 @@
             ],
             "properties": {
               "patternMode": {}
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "ring"
+            ],
+            "properties": {
+              "ring": {}
+            }
+          },
+          "then": {
+            "required": [
+              "patternMode"
+            ],
+            "properties": {
+              "patternMode": {
+                "const": "arbitrary"
+              }
             }
           }
         }
@@ -705,6 +728,79 @@
       ],
       "additionalProperties": true,
       "$comment": "phaseDeg and axis are normalized on import. Axis must be nonzero; operation ids must be unique across planar and concave groups; enabled tool meshes must stay within generated-patch budget. Domain validation enforces these relational/geometric conditions."
+    },
+    "ringCut": {
+      "description": "Editable ring cut parameters of an arbitrary-index layer. kind fan (default when absent): each side cut by a fan of facets at one depth. kind arc: each side bulged into an arc and split into chords whose depths follow solved ratios. The facets remain explicit; readers may ignore this and see an ordinary layer.",
+      "type": "object",
+      "required": [
+        "version",
+        "symmetry",
+        "subdivisions",
+        "rotation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "kind": {
+          "enum": [
+            "fan",
+            "arc"
+          ]
+        },
+        "symmetry": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 24
+        },
+        "subdivisions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "spacingDeg": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 90
+        },
+        "bulge": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rotation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 359
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "arc"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "bulge": true
+        },
+        "required": [
+          "bulge"
+        ]
+      },
+      "else": {
+        "properties": {
+          "spacingDeg": true
+        },
+        "required": [
+          "spacingDeg"
+        ]
+      }
     }
   }
 }

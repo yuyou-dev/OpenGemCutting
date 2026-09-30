@@ -32,7 +32,7 @@ export async function createPresetStudioSession({ source, newDesign, persistence
     signal?.addEventListener('abort', dispose, { once: true });
     try {
         const saved = await abortable(persistence?.load?.(context), context.signal);
-        if (saved && (saved.labId !== moduleInfo.id || ![moduleInfo.moduleVersion, '0.5.0-rc.1', '0.5.0-rc.2', '0.5.0-rc.3', '0.5.0-rc.4', '0.5.0-rc.5', '0.5.0-rc.6'].includes(saved.moduleVersion) || saved.contractVersion !== moduleInfo.contractVersion
+        if (saved && (saved.labId !== moduleInfo.id || ![moduleInfo.moduleVersion, '0.5.0-rc.1', '0.5.0-rc.2', '0.5.0-rc.3', '0.5.0-rc.4', '0.5.0-rc.5', '0.5.0-rc.6', '0.5.0-rc.7'].includes(saved.moduleVersion) || saved.contractVersion !== moduleInfo.contractVersion
             || JSON.stringify(saved.source) !== JSON.stringify(origin))) throw Error('实验稿版本或来源不匹配，原实验稿保留；请使用对应版本恢复。');
         let document = origin?.document;
         if (!source) {

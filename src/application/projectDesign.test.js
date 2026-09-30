@@ -35,3 +35,13 @@ test('the documented 120-wheel example executes on one project wheel and survive
   assert.deepEqual(restored.facets.filter(facet => facet.patternId === 'five-crown').map(facet => facet.index).sort((a, b) => a - b), [0, 24, 48, 72, 96]);
   assert.ok(indexCompatibilityReport(restored, { gears: [120] })[0].compatible);
 });
+
+test('the default start takes the same outline and girdle choices over MCP', async () => {
+  const girdle = (document) => document.facets.filter((facet) => facet.region === 'girdle');
+  const square = await projectDesign({ name: 'square', outline: 'square' });
+  assert.deepEqual(girdle(square).map((facet) => facet.index).sort((a, b) => a - b), [0, 24, 48, 72]);
+  assert.equal(girdle(await projectDesign({ name: 'twelve', indexTeeth: 72, girdleFacets: 12 })).length, 12);
+  await assert.rejects(projectDesign({ name: 'odd', indexTeeth: 99, outline: 'square' }), { code: 'INVALID_START' });
+  await assert.rejects(projectDesign({ name: 'ten', girdleFacets: 10 }), (error) => error.code === 'INVALID_START' && error.details.choices.includes(12));
+  await assert.rejects(projectDesign({ name: 'mixed', outline: 'square', stockPresetId: 'heart' }), { code: 'INVALID_START' });
+});

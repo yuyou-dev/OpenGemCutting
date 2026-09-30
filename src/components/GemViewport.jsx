@@ -25,6 +25,7 @@ import { clamp } from "../utils/format.js";
 import { advanceViewportCamera, createViewportFrames, cuttingCameraPose, startCameraTransition } from "./viewportFrames.js";
 import { createViewportCamera, dragViewport, zoomViewport, keyViewport } from "./viewportNavigation.js";
 import { indexRingLayout, ringPoint } from "./viewportIndexRing.js";
+import { createViewportLifecycle } from "./viewportLifecycle.js";
 import "./GemViewport.css";
 
 const VIEW_POSES = {
@@ -1701,7 +1702,7 @@ function drawGizmoLabels(canvas, scene) {
         context,
         constructionScreen.x + 12,
         constructionScreen.y + (marker.slot === "B" ? 10 : -31),
-        `${marker.slot ?? "A"} · ${marker.locked ? label : label.replace("Meet", "预览")}`,
+        `${marker.slot ?? "A"} · ${t(marker.locked ? label : label.replace("Meet", "预览"))}`,
         status === "valid" ? "#ed225d" : status === "destructive" ? "#a67712" : "#b3264d",
       );
     }
@@ -1714,7 +1715,7 @@ function drawGizmoLabels(canvas, scene) {
       context,
       nextJumpScreen.x + 12,
       nextJumpScreen.y + 10,
-      `下一点 · ${scene.nextJumpMarker.position ?? "—"}${hidden ? " · 背面" : ""}`,
+      `${t("下一点")} · ${scene.nextJumpMarker.position ?? "—"}${hidden ? ` · ${t("背面")}` : ""}`,
       hidden ? "#887b58" : "#a67712",
     );
   }
@@ -1798,7 +1799,10 @@ function drawGizmoLabels(canvas, scene) {
     }
     context.globalAlpha = 1;
     if (width >= 760) {
-      const legendX = clamp(outerBounds.maxX - 150, outerBounds.minX + 18, width - 170);
+      const legendLabels = [t("外圈：分度"), t("内圈：镜像轴偏移")];
+      // Longer translations widen the legend; keep it fully on the canvas.
+      const legendWidth = 32 + Math.max(...legendLabels.map((label) => context.measureText(label).width)) + 12;
+      const legendX = clamp(outerBounds.maxX - 150, outerBounds.minX + 18, width - legendWidth);
       const legendY = clamp(outerBounds.maxY + 34, 72, height - 50);
       context.textAlign = "left";
       context.strokeStyle = "#1f262a";
@@ -1808,13 +1812,13 @@ function drawGizmoLabels(canvas, scene) {
       context.lineTo(legendX + 24, legendY);
       context.stroke();
       context.fillStyle = "#4d5559";
-      context.fillText(t("外圈：分度"), legendX + 32, legendY);
+      context.fillText(legendLabels[0], legendX + 32, legendY);
       context.strokeStyle = "#a67712";
       context.beginPath();
       context.moveTo(legendX, legendY + 21);
       context.lineTo(legendX + 24, legendY + 21);
       context.stroke();
-      context.fillText(t("内圈：镜像轴偏移"), legendX + 32, legendY + 21);
+      context.fillText(legendLabels[1], legendX + 32, legendY + 21);
     }
     context.restore();
     if (!isOccluded(indexRing.outerHandle)) {
@@ -2319,6 +2323,7 @@ export function GemViewport({
   const interactionRef = useRef(null);
   const gizmoLabelCanvasRef = useRef(null);
   const framesRef = useRef(null);
+  const lifecycleRef = useRef(null);
   const normalizedGeometry = useMemo(() => normalizeGeometry(polyhedron), [polyhedron]);
   const normalizedMeetSource = useMemo(
     () => meetPolyhedron ? normalizeGeometry(meetPolyhedron) : null,
@@ -2329,6 +2334,8 @@ export function GemViewport({
   const ghostBoundsRef = useRef(null);
   const initialMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
   const [activeViewMode, setActiveViewMode] = useState(initialMode);
+  const [contextStatus, setContextStatus] = useState("ready");
+  const contextLost = contextStatus !== "ready";
 
   interactionRef.current = {
     onCameraInteraction,
@@ -2434,12 +2441,16 @@ export function GemViewport({
     if (!host) return undefined;
     let detachInteractions = () => {};
     let cancelled = false;
-    let instance = null;
+    let lifecycle = null;
     let resizeObserver = null;
+    let resizeTimer = 0;
     let cameraMoving = false;
     const frames = createViewportFrames({
       draw: async () => {
-        await instance?.redraw();
+        // No drawable instance while the WebGL context is lost.
+        const instance = lifecycle?.instance;
+        if (!instance) return false;
+        await instance.redraw();
         return cameraMoving;
       },
     });
@@ -2454,11 +2465,18 @@ export function GemViewport({
       let renderer;
 
       p.setup = () => {
+        p.noLoop();
+        if (cancelled) { p.remove(); return; }
         const width = Math.max(320, Math.round(host.clientWidth || 720));
         const height = Math.max(320, Math.round(host.clientHeight || 520));
         p.pixelDensity(Math.min(window.devicePixelRatio || 1, 1.75));
-        renderer = p.createCanvas(width, height, p.WEBGL);
-        renderer.parent(host);
+        try {
+          renderer = p.createCanvas(width, height, p.WEBGL);
+        } catch {
+          lifecycle.fail();
+          return;
+        }
+        lifecycle.attach(renderer.elt);
         renderer.elt.setAttribute("tabindex", "0");
         renderer.elt.setAttribute("role", "application");
         renderer.elt.setAttribute(
@@ -2476,10 +2494,10 @@ export function GemViewport({
         );
         p.colorMode(p.RGB, 255, 255, 255, 255);
         p.frameRate(60);
-        p.noLoop();
       };
 
       p.draw = () => {
+        if (lifecycle?.instance !== p) return;
         const { geometry, previewPlanes: planes, selectedIndex: index, viewMode: mode, renderMode: displayMode } = sceneRef.current;
         const camera = cameraRef.current;
         const ghostBounds = ghostBoundsRef.current ?? geometry.bounds;
@@ -2555,18 +2573,46 @@ export function GemViewport({
       // The workbench supplies validated numeric geometry; avoid p5 running
       // its teaching-oriented argument schemas for every vertex and helper.
       p5.disableFriendlyErrors = true;
-      instance = new p5(sketch);
+      // Camera, scene and draft live in refs, so a replacement instance after
+      // a GPU context loss redraws the latest state without resetting them.
+      // p5 adds its canvases to the host: elsewhere its temporary setup canvas
+      // would join the editor's grid <main> and shrink the measured host.
+      lifecycle = createViewportLifecycle({
+        createInstance: () => new p5(sketch, host),
+        releaseInstance: (instance, { contextLost }) => {
+          detachInteractions();
+          detachInteractions = () => {};
+          // A lost context already dropped these GPU meshes; deleting them
+          // on a restored context would only raise WebGL errors.
+          if (!contextLost) { releasePolyhedronMeshes(instance); releaseConcaveToolMeshes(instance); }
+          instance.remove();
+          // A throwing p5 renderer constructor leaves an unregistered canvas.
+          host.replaceChildren();
+        },
+        onLost: () => setContextStatus("lost"),
+        onRestore: () => setContextStatus("ready"),
+        onError: () => setContextStatus("failed"),
+      });
+      lifecycleRef.current = lifecycle;
+      let firstSize = true;
+      const applySize = (width, height) => {
+        const instance = lifecycle.instance;
+        if (!instance?.canvas || (width === instance.width && height === instance.height)) return;
+        // Resizing clears the canvas; redraw through the same serialized
+        // queue as React and pointer updates instead of p5's immediate path.
+        instance.resizeCanvas(width, height, true);
+        frames.invalidate();
+      };
       resizeObserver = new ResizeObserver((entries) => {
         const entry = entries[0];
-        if (!entry || !instance.canvas) return;
+        if (!entry || !lifecycle.instance?.canvas) return;
         const width = Math.max(320, Math.round(entry.contentRect.width));
         const height = Math.max(320, Math.round(entry.contentRect.height));
-        if (width !== instance.width || height !== instance.height) {
-          // Resizing clears the canvas; redraw through the same serialized
-          // queue as React and pointer updates instead of p5's immediate path.
-          instance.resizeCanvas(width, height, true);
-          frames.invalidate();
-        }
+        // A sidebar opening or closing resizes the host every frame; resize
+        // once it settles so the stone stays drawn while the column moves.
+        window.clearTimeout(resizeTimer);
+        if (firstSize) { firstSize = false; applySize(width, height); return; }
+        resizeTimer = window.setTimeout(() => applySize(width, height), 140);
       });
       resizeObserver.observe(host);
     })();
@@ -2576,10 +2622,10 @@ export function GemViewport({
       frames.dispose();
       framesRef.current = null;
       unsubscribeLanguage();
+      window.clearTimeout(resizeTimer);
       resizeObserver?.disconnect();
-      detachInteractions();
-      if (instance) { releasePolyhedronMeshes(instance); releaseConcaveToolMeshes(instance); }
-      instance?.remove();
+      lifecycle?.destroy();
+      lifecycleRef.current = null;
     };
   }, []);
 
@@ -2587,7 +2633,15 @@ export function GemViewport({
     <section className="gem-viewport" aria-label={t("宝石多面体三维视口")}>
       <div className="gem-viewport__canvas" ref={hostRef} />
 
-      <canvas className="gem-viewport__gizmo-labels" ref={gizmoLabelCanvasRef} aria-hidden="true" />
+      <canvas className="gem-viewport__gizmo-labels" ref={gizmoLabelCanvasRef} aria-hidden="true" hidden={contextLost} />
+      {contextLost ? (
+        <div role="alert" className="gem-viewport__error">
+          <p>{contextStatus === "failed"
+            ? t("三维视口暂时无法恢复，当前设计已保留，请重试。")
+            : t("显卡上下文暂时中断，恢复后将自动重绘三维视口。")}</p>
+          {contextStatus === "failed" ? <button type="button" onClick={() => lifecycleRef.current?.retry()}>{t("重试三维视口")}</button> : null}
+        </div>
+      ) : null}
 
       <div className="gem-viewport__interaction-hints" aria-label={t("视口操作提示")}>
         <span><IconRotate3d size={16} stroke={1.7} />{t("拖拽旋转")}</span>

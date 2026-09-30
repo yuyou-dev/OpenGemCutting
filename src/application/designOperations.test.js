@@ -30,7 +30,7 @@ import { measurePolyhedron } from '../domain/geometry.js';
 import { buildConstructionStages } from '../domain/constructionHistory.js';
 import { applyConcaveCuts } from '../domain/documentGeometry.js';
 import { createCuttingReplay } from '../domain/cuttingAssistant.js';
-import { validateTool } from './designContract.js';
+import { validateTool, validateInput, OPERATION_SCHEMA } from './designContract.js';
 const cut = {
   kind: 'cut',
   patternId: 'crown-main',
@@ -329,4 +329,78 @@ test('editing a mixed-finish tier preserves each surviving member instead of cop
   const history = executeFacetingCommand(createCommandHistory(initial), createReplaceDocumentCommand(next));
   assert.equal(exportFacetingJSON(undoFacetingCommand(history).present), snapshot);
   assert.deepEqual(redoFacetingCommand(undoFacetingCommand(history)).present.facets, history.present.facets);
+});
+
+test('arc ring cuts link depths to the primary, and dissolve into one layer per level', async () => {
+  const { ringCutFromFacets, ringCutLayout } = await import('../domain/ringCut.js');
+  const ring = { kind: 'arc', symmetry: 3, subdivisions: 3, bulge: 0.55, rotation: 0 };
+  assert.doesNotThrow(() => validateInput(OPERATION_SCHEMA, { kind: 'cut', patternId: 'arc', region: 'girdle', draft: { ring } }));
+  assert.doesNotThrow(() => validateInput(OPERATION_SCHEMA, { kind: 'dissolve-ring', patternId: 'arc' }));
+  assert.throws(() => validateInput(OPERATION_SCHEMA, { kind: 'cut', patternId: 'arc', draft: { ring: { ...ring, bulge: 1.5 } } }), /out of range/);
+  const plan = planDesign(createWorkbenchDocument('arc'), [
+    { kind: 'cut', patternId: 'arc', region: 'girdle', draft: { industryAngle: 90, depth: 0.45, ring } },
+  ]);
+  const layer = (document, id = 'arc') => document.facets.filter((facet) => facet.patternId === id);
+  const depths = (facets) => new Map(facets.map((facet) => [facet.index, facet.depth]));
+  assert.equal(layer(plan.document).length, 9);
+  assert.equal(layer(plan.document)[0].metadata.primaryIndex, 6);
+  assert.equal(depths(layer(plan.document)).get(6), 0.45);
+  assert.ok(depths(layer(plan.document)).get(0) > 0.45, 'the arc middle cuts deeper than the primary');
+  assert.deepEqual(ringCutFromFacets(layer(importFacetingJSON(exportFacetingJSON(plan.document)))), ring);
+
+  // Editing only the bulge keeps the primary's depth and re-solves the rest.
+  const bulged = planDesign(plan.document, [{ kind: 'cut', patternId: 'arc', draft: { ring: { ...ring, bulge: 0.8 } } }]);
+  assert.equal(depths(layer(bulged.document)).get(ringCutLayout({ ...ring, bulge: 0.8 }, 96).primaryIndex), 0.45);
+
+  const dissolved = planDesign(plan.document, [{ kind: 'dissolve-ring', patternId: 'arc' }]);
+  assert.equal(dissolved.changes[0].layers, 2);
+  const outer = layer(dissolved.document);
+  const inner = layer(dissolved.document, 'arc-2');
+  assert.deepEqual([outer.length, inner.length], [6, 3]);
+  assert.ok([...outer, ...inner].every((facet) => facet.metadata.ring === undefined && facet.metadata.patternMode === 'arbitrary'));
+  assert.equal(outer[0].metadata.primaryIndex, 6);
+  assert.equal(inner[0].metadata.primaryIndex, 0);
+  assert.deepEqual(outer.map((facet) => facet.id), layer(plan.document).filter((facet) => depths(outer).has(facet.index)).map((facet) => facet.id), 'the primary level keeps its facet ids');
+  assert.deepEqual([...depths(outer), ...depths(inner)].sort(), [...depths(layer(plan.document))].sort(), 'every facet keeps its depth');
+  assert.ok(inner[0].label.endsWith('b') || inner[0].label.includes('b '), `level label ${inner[0].label}`);
+  assert.throws(() => planDesign(dissolved.document, [{ kind: 'dissolve-ring', patternId: 'arc' }]), /环切/);
+
+  const fan = planDesign(createWorkbenchDocument('fan'), [cut,
+    { kind: 'cut', patternId: 'fan', region: 'crown', draft: { industryAngle: 22, depth: 0.7, ring: { kind: 'fan', symmetry: 3, subdivisions: 3, spacingDeg: 15, rotation: 0 } } },
+    { kind: 'dissolve-ring', patternId: 'fan' }]);
+  assert.equal(fan.changes.at(-1).layers, 1);
+  assert.equal(layer(fan.document, 'fan').length, 9);
+});
+
+test('ring cuts plan as one editable group that JSON keeps and a mode change dissolves', async () => {
+  const { ringCutFromFacets } = await import('../domain/ringCut.js');
+  const ring = { kind: 'fan', symmetry: 3, subdivisions: 3, spacingDeg: 15, rotation: 0 };
+  assert.doesNotThrow(() => validateInput(OPERATION_SCHEMA, { kind: 'cut', patternId: 'ring', region: 'crown', draft: { ring } }));
+  assert.throws(() => validateInput(OPERATION_SCHEMA, { kind: 'cut', patternId: 'ring', draft: { ring: { ...ring, subdivisions: 12 } } }), /out of range/);
+  const plan = planDesign(createWorkbenchDocument('ring'), [
+    cut,
+    { kind: 'cut', patternId: 'ring', region: 'crown', draft: { industryAngle: 22, depth: 0.7, ring } },
+  ]);
+  const facets = () => plan.document.facets.filter((facet) => facet.patternId === 'ring');
+  assert.deepEqual(facets().map((facet) => facet.index).sort((a, b) => a - b), [0, 4, 28, 32, 36, 60, 64, 68, 92]);
+  assert.equal(facets()[0].metadata.patternMode, 'arbitrary');
+  assert.deepEqual(facets()[0].metadata.ring, { version: 1, ...ring });
+  const reopened = importFacetingJSON(exportFacetingJSON(plan.document));
+  assert.deepEqual(ringCutFromFacets(reopened.facets.filter((facet) => facet.patternId === 'ring')), ring);
+
+  const edited = planDesign(plan.document, [{ kind: 'cut', patternId: 'ring', draft: { industryAngle: 25, ring: { ...ring, subdivisions: 2 } } }]);
+  const editedFacets = edited.document.facets.filter((facet) => facet.patternId === 'ring');
+  assert.equal(editedFacets.length, 6);
+  assert.equal(editedFacets[0].industryAngleDeg, 25);
+
+  const turned = planDesign(edited.document, [{ kind: 'transform', region: 'crown', rotationTeeth: 4 }]);
+  assert.equal(turned.document.facets.find((facet) => facet.patternId === 'ring').metadata.ring.rotation, 4);
+  assert.ok(ringCutFromFacets(turned.document.facets.filter((facet) => facet.patternId === 'ring')));
+
+  const plain = planDesign(turned.document, [{ kind: 'cut', patternId: 'ring', draft: { patternMode: 'arbitrary' } }]);
+  const plainFacets = plain.document.facets.filter((facet) => facet.patternId === 'ring');
+  assert.equal(plainFacets[0].metadata.ring, undefined);
+  const sorted = (list) => list.map((facet) => facet.index).sort((a, b) => a - b);
+  assert.deepEqual(sorted(plainFacets), sorted(turned.document.facets.filter((facet) => facet.patternId === 'ring')));
+  assert.throws(() => planDesign(plan.document, [{ kind: 'cut', patternId: 'table-facet', draft: { ring } }]), /台面|LOCKED/);
 });

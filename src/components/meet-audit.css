@@ -1,0 +1,7 @@
+.meet-audit-dialog { width: min(720px, calc(100vw - 32px)); }
+.meet-audit-dialog p { line-height: 1.65; }
+.meet-audit-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; }
+.meet-audit-metrics > div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #e5e7e5; padding: 8px 0; }
+.meet-audit-metrics dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.meet-audit-candidates { padding-left: 20px; overflow-wrap: anywhere; line-height: 1.8; }
+@media (max-width: 520px) { .meet-audit-metrics { grid-template-columns: 1fr; } }

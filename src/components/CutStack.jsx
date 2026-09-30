@@ -103,6 +103,7 @@ export function CutStack({
   canStartGroup = true,
   onToggleVisibility,
   onRemove,
+  onDissolveRing,
   onRename,
   onReorder,
   inlineValues,
@@ -411,8 +412,12 @@ export function CutStack({
                           <strong>{operation.label}</strong>
                         </button>
                       )}
-                      {operation.preform || diagnostic ? (
+                      {operation.preform || diagnostic || operation.ring ? (
                         <span className="cut-stack-construction-tags">
+                          {operation.ring?.kind === "arc"
+                            ? <span className="cut-stack-ring-tag" title={t("弧切：对称数 {0}，每弧分段 {1}，凸度 {2}，{3} 级深度", [operation.ring.symmetry, operation.ring.subdivisions, operation.ring.bulge, operation.depthLevels])}>{t("弧切 L{0}×{1} · {2} 级", [operation.ring.symmetry, operation.ring.subdivisions, operation.depthLevels])}</span>
+                            : operation.ring ? <span className="cut-stack-ring-tag" title={t("环切：对称数 {0}，每边细分 {1}，间距 {2}°", [operation.ring.symmetry, operation.ring.subdivisions, operation.ring.spacingDeg])}>{t("环切 L{0}×{1}", [operation.ring.symmetry, operation.ring.subdivisions])}</span> : null}
+                          {operation.ring ? <button type="button" className="cut-stack-ring-dissolve" onClick={() => onDissolveRing?.(operation.id)} disabled={!canMutateStack} aria-label={t(operation.ring?.kind === "arc" ? "打散弧切 {0}" : "打散环切 {0}", [operation.label])}>{t("打散")}</button> : null}
                           {operation.preform ? <span className="cut-stack-preform-tag">{t("预形")}</span> : null}
                           {diagnostic ? <span className={`cut-stack-meet-tag${stale ? " is-stale" : ""}`} title={t(diagnostic.message)}>{stale ? t("Meet 失效") : "Meet"}</span> : null}
                         </span>

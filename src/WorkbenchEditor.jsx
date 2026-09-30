@@ -1,3 +1,5 @@
+import { MeetAuditDialog } from './components/MeetAuditDialog.jsx';
+import { ringCutFromFacets, ringCutLayout, ringCutMetadata, ringDraftPatch } from "./domain/ringCut.js";
 import { facetMetadataAfterParameterEdit, facetSurfaceState } from './domain/facetSurface.js';
 import { receiveConcaveUpdate } from './application/concaveEvaluation.js';
 import { createConcavePreviewScheduler } from './components/concavePreviewScheduler.js';
@@ -64,6 +66,7 @@ import {
   redoFacetingCommand,
   replacePatternFacets,
   rotateFacetsByTeeth,
+  primaryFacetOf,
   scaleFacetsAlongZ,
   translateFacetsAlongZ,
   undoFacetingCommand,
@@ -486,7 +489,9 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
         indexTeeth: first.indexTeeth ?? 96,
         industryAngleDeg: first.industryAngleDeg,
         signedBeta: first.betaDeg,
-        depth: first.depth,
+        // A layer's depth is its primary facet's; arc rings hold other depths too.
+        depth: primaryFacetOf(facets).depth,
+        depthLevels: new Set(facets.map((facet) => facet.depth.toFixed(6))).size,
         indices: facets.map((facet) => facet.index),
         effectiveIndices: effectiveFacets.map((facet) => facet.index),
         effectiveCount: effectiveFacets.length,
@@ -496,6 +501,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
         repeat: first.repeat,
         mirror: first.mirror,
         patternMode: first.metadata?.patternMode || (first.repeat === 1 && facets.length > 1 ? "arbitrary" : "symmetric"),
+        ring: ringCutFromFacets(facets),
         facets,
         locked,
         visible: !hiddenPatternIds.has(id),
@@ -514,7 +520,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     const labels = (target?.sourceOperationIds ?? [])
       .filter((id) => !["rough-cube", "rough-mesh"].includes(id))
       .map((id) => operations.find((operation) => operation.id === id)?.label?.split(/\s+/)[0] ?? id);
-    return labels.length ? labels.join(" × ") : "毛坯";
+    return labels.length ? labels.join(" × ") : t("毛坯");
   }, [operations]);
 
   const primaryFacetForDraft = useCallback((draftState) => {
@@ -610,7 +616,9 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     };
   }, [constructionBaseSolid, impactBaseSolid, cutSession.construction.meet, cutSession.draft, document.stock, machineStock, region, sourceLabelForTarget]);
 
-  const changeDraftWithConstruction = useCallback((patch) => {
+  const changeDraftWithConstruction = useCallback((rawPatch) => {
+    // Ring parameters own the generated indices before Meet sees the draft.
+    const patch = ringDraftPatch(cutSession.construction.returnDraft ?? cutSession.draft, rawPatch);
     if (Object.keys(patch).every((key) => key === "preform")) {
       dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch });
       return;
@@ -745,6 +753,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     metadata.primaryIndex = normalizeIndex(baseIndex, indexTeeth);
     if (cutSession.canMarkPreform) metadata.preform = Boolean(cutSession.draft.preform);
     else delete metadata.preform;
+    if (cutSession.draft.ring) metadata.ring = ringCutMetadata(cutSession.draft.ring);
+    else delete metadata.ring;
     const lockedMeet = cutSession.construction.meet;
     if (lockedMeet && [MEET_STATUS.VALID, MEET_STATUS.DESTRUCTIVE].includes(lockedMeet.status)) {
       metadata.construction = {
@@ -863,7 +873,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       region: first.region,
       draft: {
         industryAngle: first.industryAngleDeg,
-        depth: first.depth,
+        depth: operation.depth,
         baseIndex: operation.baseIndex ?? first.index,
         preform: operation.preform,
         repeat: first.repeat || operation.indices.length,
@@ -871,6 +881,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
         patternMode: operation.patternMode,
         indexTeeth: operation.indexTeeth,
         customIndices: operation.indices.map((index) => displayIndex(index, operation.indexTeeth)).join(" "),
+        ring: operation.ring,
       },
       construction,
       lockedLayer: operation.locked,
@@ -907,6 +918,26 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       return next;
     });
     notify(`已从解析序列移除“${operation.label}”，可使用撤销恢复。`);
+  };
+
+  // Dissolving keeps every facet, angle and depth; a fan stays one layer, an arc becomes one layer per depth level.
+  const dissolveRing = (id) => {
+    setModal(null);
+    if (!cutSession.canMutateStack) return;
+    const operation = operations.find((item) => item.id === id);
+    if (!operation?.ring) return;
+    let result;
+    try { result = planDesign(document, [{ kind: 'dissolve-ring', patternId: id }]); }
+    catch (error) { notify(error.message); return; }
+    const layers = result.changes?.[0]?.layers ?? 1;
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, createReplaceDocumentCommand(result.document, { description: `打散 ${operation.label}` })));
+    if (hiddenPatternIds.has(id) && layers > 1) {
+      const added = new Set(result.document.facets.map((facet) => facet.patternId).filter((patternId) => patternId.startsWith(`${id}-`) && !document.facets.some((facet) => facet.patternId === patternId)));
+      setHiddenPatternIds((current) => new Set([...current, ...added]));
+    }
+    notify(layers > 1
+      ? `已打散“${operation.label}”：${operation.facets.length} 个切面按深度拆为 ${layers} 个普通层，可撤销。`
+      : `已打散“${operation.label}”：${operation.facets.length} 个切面保留为普通层，可撤销。`);
   };
 
   const renameCut = (id, label) => {
@@ -1341,6 +1372,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             onOpenSettings={() => setModal("settings")}
             onOpenHelp={() => setModal("help")}
             onOpenAssistant={() => setAssistantOpen(true)}
+            onOpenMeetAudit={() => setModal("meet-audit")}
             viewMode={opticsActive ? opticsViewMode : viewMode}
             onViewMode={opticsActive ? setOpticsViewMode : setViewMode}
             displayMode={renderMode}
@@ -1355,11 +1387,6 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       </div>
       <section className={`${sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}${opticsActive ? " is-optics-focus" : ""}${cuttingAssistantActive ? " is-assistant-focus" : ""}${concaveActive ? " is-concave-focus" : ""}`}>
         {viewportMode === "edit" && !concaveActive ? <aside className="control-sidebar" aria-label={t("切磨参数侧栏")} aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
-          <div className="parameter-rail-title">
-            <span>CUT PARAMETERS</span>
-            <button type="button" className="collapse-sidebar" onClick={() => setSidebarOpen(false)} aria-label={t("收起参数侧栏")}><IconChevronLeft size={16} stroke={1.7} /></button>
-          </div>
-
           <div className="sidebar-sections">
             <IndexCompatibilityPanel document={document} facets={compatibilityFacets} error={draft.error || previewResult.error} canChangeGear={cutSession.canEditParameterGroups} onGearChange={changeIndexGear} />
             <details className="control-section" open>
@@ -1424,6 +1451,9 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
                 onCustomIndicesChange={(value) => {
                   changeDraftWithConstruction({ customIndices: value });
                 }}
+                ring={cutSession.draft.ring}
+                ringLayout={cutSession.draft.ring ? ringCutLayout(cutSession.draft.ring, indexTeeth) : null}
+                onRingChange={(value) => changeDraftWithConstruction({ ring: value })}
                 generatedCount={draft.facets.length}
                 instructionGroups={instructionGroups}
                 mode={cutMode}
@@ -1442,13 +1472,13 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             </details>
           </div>
         </aside> : null}
+        {viewportMode === "edit" && !concaveActive ? (
+          <button type="button" className="sidebar-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-expanded={sidebarOpen} aria-label={t(sidebarOpen ? "收起参数侧栏" : "展开参数侧栏")}>
+            {sidebarOpen ? <IconChevronLeft size={14} stroke={1.9} /> : <IconChevronRight size={14} stroke={1.9} />}
+          </button>
+        ) : null}
 
         <div className="viewport-column">
-          {viewportMode === "edit" && !concaveActive && !sidebarOpen ? (
-            <button type="button" className="sidebar-reopen" onClick={() => setSidebarOpen(true)} aria-label={t("展开参数侧栏")}>
-              <IconChevronRight size={18} stroke={1.8} />
-            </button>
-          ) : null}
 
 
 
@@ -1482,7 +1512,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             renderMode={renderMode}
-            suspended={!visible || interactionPaused || opticsActive || assistantOpen}
+            suspended={!visible || interactionPaused || opticsActive || assistantOpen || modal === "meet-audit"}
             resetSignal={resetSignal}
             highlightOperationId={cuttingAssistantActive || concaveActive ? null : hoveredPatternId}
             activeOperationId={cuttingAssistantActive || concaveActive ? null : cutSession.activePatternId}
@@ -1492,7 +1522,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             groupGizmo={cuttingAssistantActive || concaveActive ? null : groupGizmo}
             onFacePick={handleFacePick}
             meetTargets={cuttingAssistantActive || concaveActive ? [] : (cutSession.construction.tool === "pick-edge" ? meetEdges : meetTargets)}
-            meetPickEnabled={["pick-vertex", "pick-edge"].includes(cutSession.construction.tool) && visible && !cuttingAssistantActive && !concaveActive && !opticsActive && !assistantOpen}
+            meetPickEnabled={["pick-vertex", "pick-edge"].includes(cutSession.construction.tool) && visible && !cuttingAssistantActive && !concaveActive && !opticsActive && !assistantOpen && modal !== "meet-audit"}
             constructionMarkers={cuttingAssistantActive || concaveActive ? [] : [
               ...(cutSession.construction.meet ? [{ point: cutSession.construction.meet.target.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true, slot: "A" }] : []),
               ...(cutSession.construction.meet?.secondTarget ? [{ point: cutSession.construction.meet.secondTarget.fallbackWorldPoint, status: cutSession.construction.meet.status, locked: true, slot: "B" }] : []),
@@ -1602,6 +1632,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             canStartGroup={cutSession.canStartGroup}
             onToggleVisibility={toggleVisibility}
             onRemove={removeCut}
+            onDissolveRing={(id) => cutSession.canMutateStack && setModal(`dissolve-ring:${id}`)}
             onRename={renameCut}
             onReorder={reorderCut}
             inlineValues={{ angle: industryAngle, depth }}
@@ -1689,6 +1720,20 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
         />
       ) : null}
 
+      {typeof modal === "string" && modal.startsWith("dissolve-ring:") ? (() => {
+        const operation = operations.find((item) => `dissolve-ring:${item.id}` === modal);
+        return operation?.ring ? (
+          operation.ring.kind === "arc" ? (
+            <Modal eyebrow="ARC CUT" title={t("打散弧切“{0}”", [operation.label])} confirmLabel={t("按深度拆为 {0} 层", [operation.depthLevels])} onClose={() => setModal(null)} onConfirm={() => dissolveRing(operation.id)}>
+              <p>{t("{0} 个切面、行业角与各自深度都保留不变，按深度级拆成 {1} 个普通层；之后每层可单独调整深度与 Meet／Jump，但不能再修改对称数、分段和凸度。可以撤销。", [operation.facets.length, operation.depthLevels])}</p>
+            </Modal>
+          ) : (
+            <Modal eyebrow="RING CUT" title={t("打散环切“{0}”", [operation.label])} confirmLabel={t("打散为普通层")} onClose={() => setModal(null)} onConfirm={() => dissolveRing(operation.id)}>
+              <p>{t("{0} 个切面、行业角与深度都保留不变；之后不能再修改对称数、细分和间距，只能逐个编辑分度。可以撤销。", [operation.facets.length])}</p>
+            </Modal>
+          )
+        ) : null;
+      })() : null}
       {modal === "json-export" ? (
         <Modal eyebrow="JSON · EXPORT" title={t("导出已提交的 JSON")} confirmLabel={t("导出已提交文档")} onClose={() => setModal(null)} onConfirm={() => { setModal(null); exportDocument(); }}>
           <p>{t("分度盘")}：{equipment.selectedTeeth} · {t("兼容分度盘")}：{equipment.supportedTeeth.join(" / ") || t("无")}</p>
@@ -1750,6 +1795,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
           </ul>
         </Modal>
       ) : null}
+
+      {modal === "meet-audit" ? <MeetAuditDialog document={document} onClose={() => setModal(null)} /> : null}
 
       {modal === "help" ? (
         <HelpCenterDialog onClose={() => setModal(null)} />

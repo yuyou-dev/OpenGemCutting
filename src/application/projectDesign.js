@@ -1,6 +1,8 @@
 import {
   createWorkbenchDocument,
   ensureTableFacet,
+  girdleFacetChoices,
+  squareStartAvailable,
 } from '../domain/document.js';
 import { importFacetingJSON, withDocumentIndexGear } from '../domain/faceting.js';
 import { assertFileBudget, assertDocumentImportBudget } from '../domain/importBudget.js';
@@ -19,6 +21,9 @@ export async function projectDesign(args, library) {
   );
   if (inputs.length > 1)
     throw designError('INVALID_START', '新项目只能选择一种起点。');
+  const outlineChoice = args.outline !== undefined || args.girdleFacets !== undefined;
+  if (outlineChoice && inputs.length)
+    throw designError('INVALID_START', '外形与腰棱数只用于默认起点。');
   let document;
   if (args.stockPresetId) {
     const preset = STOCK_PRESETS.find((item) => item.id === args.stockPresetId);
@@ -45,7 +50,13 @@ export async function projectDesign(args, library) {
     if (!result.document)
       throw designError('OBJ_INVALID', '初始晶体未通过正式预检。', result);
     document = result.document;
-  } else document = createWorkbenchDocument(args.name, args.indexTeeth);
+  } else {
+    try {
+      document = createWorkbenchDocument(args.name, args.indexTeeth ?? 96, { outline: args.outline, girdleFacets: args.girdleFacets });
+    } catch (error) {
+      throw designError('INVALID_START', error.message, { choices: girdleFacetChoices(args.indexTeeth ?? 96), square: squareStartAvailable(args.indexTeeth ?? 96) });
+    }
+  }
   if (args.indexTeeth !== undefined) document = withDocumentIndexGear(document, args.indexTeeth);
   assertValidDocumentGeometry(document);
   return { ...document, name: args.name };

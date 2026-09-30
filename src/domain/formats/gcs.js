@@ -1,4 +1,4 @@
-import { FORMAT_LIMITS, diagnostic, fail, formatNumber, readInteger, readNumber, statusFor } from "./shared.js";
+import { FORMAT_LIMITS, diagnostic, fail, formatNumber, mod360, readInteger, readNumber, statusFor } from "./shared.js";
 import { parseXml, writeXml } from "./xml.js";
 import { clipPolyhedronByPlanes, createCenteredCube } from "../geometry.js";
 import { cleanIndex, designSummary, individualFacetNames, markTable, planeDesignSolid, solidDimensions, textLines, tierNormal, visibleTiers } from "./planeDesign.js";
@@ -31,7 +31,6 @@ const KNOWN = {
 };
 const CHILDREN = { GemCutStudio: ["index", "tier", "render", "info"], tier: ["facet"], facet: ["vertex"], render: ["color"] };
 
-const mod360 = (value) => ((value % 360) + 360) % 360;
 const toOurs = ({ x, y, z }) => ({ x: -y, y: x, z });
 const toGcs = ({ x, y, z }) => ({ x: y, y: -x, z });
 

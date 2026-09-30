@@ -191,6 +191,7 @@ test("region defaults rebuild drafts while index preferences survive", () => {
     mirrorOffset: 0,
     patternMode: "symmetric",
     customIndices: "02 22 26 46 50 70 74 94",
+    ring: null,
     preform: false,
   });
   assert.equal(defaultDraftForRegion("girdle").repeat, 16);
@@ -813,4 +814,20 @@ test("initial authoring gear converts complete default index preferences includi
   assert.equal(resolveCutSession(createCutSession(CUT_SESSION_MODE.EDIT, { region: "crown", draft: {
     ...custom.draft, customIndices: "",
   } })).canUseMeetJump, false);
+});
+
+test("ring cut drafts generate their indices, rotate as a whole and leave the ring on a mode change", () => {
+  const create = createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" });
+  const ring = cutSessionReducer(create, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { ring: { symmetry: 3, subdivisions: 3, spacingDeg: 15, rotation: 0 } } });
+  assert.equal(ring.draft.patternMode, "arbitrary");
+  assert.equal(ring.draft.customIndices, "4 28 32 36 60 64 68 92 96");
+  assert.equal(ring.draft.baseIndex, 0);
+  const turned = cutSessionReducer(ring, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { baseIndex: 2 } });
+  assert.equal(turned.draft.ring.rotation, 2);
+  assert.equal(turned.draft.customIndices, "2 6 30 34 38 62 66 70 94");
+  const angled = cutSessionReducer(turned, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { industryAngle: 40 } });
+  assert.equal(angled.draft.customIndices, turned.draft.customIndices, "angle and depth keep the ring indices");
+  const plain = cutSessionReducer(angled, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { patternMode: "arbitrary" } });
+  assert.equal(plain.draft.ring, null);
+  assert.equal(plain.draft.customIndices, turned.draft.customIndices, "leaving the ring keeps its facets as custom indices");
 });

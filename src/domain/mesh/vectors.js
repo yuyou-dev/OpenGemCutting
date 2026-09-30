@@ -9,19 +9,13 @@ const normalize = (a) => {
   const len = length(a);
   return len === 0 ? vec3(0, 0, 0) : scale(a, 1 / len);
 };
-const negate = (a) => vec3(-a.x, -a.y, -a.z);
-const distance = (a, b) => length(sub(a, b));
 const lerp = (a, b, t) => vec3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
-const near = (a, b, eps) => distance(a, b) <= eps;
 export {
   add,
   cross,
-  distance,
   dot,
   length,
   lerp,
-  near,
-  negate,
   normalize,
   scale,
   sub,

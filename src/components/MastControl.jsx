@@ -154,7 +154,7 @@ export function MastControl({
           </div>
           {nextJumpCandidate && !secondTarget ? (
             <p className="construction-next" role="status">
-              <b>{t("下一")}{meet ? t("第二点") : t("点")} · {t(nextJumpCandidate.position)} · {nextJumpCandidate.classification === "contact-only" ? t("仅接触") : nextJumpCandidate.classification === "destructive" ? t("覆盖已有面") : t("形成有效切面")}</b>
+              <b>{meet ? t("下一第二点") : t("下一点")} · {t(nextJumpCandidate.position)} · {nextJumpCandidate.classification === "contact-only" ? t("仅接触") : nextJumpCandidate.classification === "destructive" ? t("覆盖已有面") : t("形成有效切面")}</b>
               <span>{t(meet && Number.isFinite(nextJumpCandidate.industryAngleDeg) ? `A ${nextJumpCandidate.industryAngleDeg.toFixed(2)}° · ` : "")}D {Number(nextJumpCandidate.depth).toFixed(3)} · {nextJumpCandidate.sourceLabel ?? t("实体顶点")}</span>
             </p>
           ) : null}
@@ -178,6 +178,7 @@ export function MastControl({
               {construction?.tool === "edit-edge" ? <button type="button" className="construction-edge-done" onClick={onFinishEdgeEdit}>{t("完成比例调整")}</button> : null}
             </div>
           ) : null}
+          <div className="construction-footer">
           <p className="construction-diagnostic" role={panelInvalid ? "alert" : "status"}>
             {t(candidateInvalid ? candidateMessage || t("{0}，请调整分度或重新选择目标。", [t(candidateLabel)])
               : meet?.status === "destructive" ? t("当前轨道会覆盖已有面；保存前仍会检查完整重复与镜像的影响。")
@@ -194,10 +195,10 @@ export function MastControl({
               {meet ? t("锁定 B · 双 Meet") : t("锁定 Meet A")}
             </button> : null}
           </div>
+          </div>
         </section>
       ) : null}
 
-      <p className="mast-viewport-hint">{t("桥架调行业角 · 伸缩杆调深度 · 双环调索引与镜像")}</p>
     </section>
   );
 }

@@ -10,7 +10,7 @@
 - UI 组件不得自行用 `mode` 推导操作权限或切换会话；操作权限只消费 `resolveCutSession(session)` 返回的能力位（`controlsEnabled`、`showGizmo`、`showCutPlane`、`showNewButton`、`highlightActiveLayer`、`canCancel`、`canPickLayer`、`canChangeRegion`、`canMutateStack`、`canStartGroup`、`canUseMeetJump`、`canJumpPrevious`、`canJumpNext`、`canPickMeetTarget`、`canLockMeet`、`canLockSecondMeet`、`canClearMeetA`、`canClearMeetB`、`canEditEdgeRatio`、`canMarkPreform`、`canEditParameterGroups`、`canCancelConstructionTool`、`depthEditable`、`angleEditable`、`constructionValid`、`exitLabel`）与派生态（`active`、`previewEnabled`、`canCommit`、`activePatternId`、`groupRegion`）。标题和状态文案可展示传入的会话身份，不得据此另建权限判断。
 - 按钮与控件的 `disabled` 必须由能力位或派生态驱动，不得在组件内另写与 `CUT_SESSION_TABLE` 平行的条件。
 - 新增 CUT 交互的标准流程：新增事件类型 → 在 `CUT_SESSION_TABLE` 评审并声明能力位 → 更新 reducer 转换 → 更新对应契约测试。四步缺一不可。
-- 草稿参数（`industryAngle / depth / indexTeeth / baseIndex / repeat / mirrorOffset / patternMode / customIndices / preform`）、草稿构造状态 `construction` 与群组参数（`deltaZ / scale / rotationTeeth`）只存在于会话对象的 `draft` / `construction` / `group` 字段，经状态机事件更新。参数 patch 和 Meet 自动求解后的深度必须由同一个 `changeDraftWithConstruction()` 编排入口原子派发到 `CHANGE_DRAFT`，禁止侧栏、行内编辑、Gizmo、分度环或组件本地 state 各自求解；区域默认值只从 `DEFAULT_DRAFT_ANGLES` / `DEFAULT_DRAFT_DEPTHS` / `defaultDraftForRegion` 取得。
+- 草稿参数（`industryAngle / depth / indexTeeth / baseIndex / repeat / mirrorOffset / patternMode / customIndices / ring / preform`）、草稿构造状态 `construction` 与群组参数（`deltaZ / scale / rotationTeeth`）只存在于会话对象的 `draft` / `construction` / `group` 字段，经状态机事件更新。参数 patch 和 Meet 自动求解后的深度必须由同一个 `changeDraftWithConstruction()` 编排入口原子派发到 `CHANGE_DRAFT`，禁止侧栏、行内编辑、Gizmo、分度环或组件本地 state 各自求解；区域默认值只从 `DEFAULT_DRAFT_ANGLES` / `DEFAULT_DRAFT_DEPTHS` / `defaultDraftForRegion` 取得。
 - 领域锁定在状态机层强制，而不是只靠 UI 禁用：腰部 `industryAngle` 锁定 `90°` 由 `CHANGE_DRAFT` 直接压回，固定台面 `0°` 同理不依赖控件 disabled。UI 禁用只是配套提示。
 - 图层的常显“编辑”按钮、参数／面数兼容入口和视口选层共用 `SELECT_LAYER` 事件与 `canPickLayer` 能力；传给列表的 `canSelectLayers` 仅映射该能力。选中只恢复保存参数和构造，不提交、不改变实体或历史；按钮样式归设计规范。此入口复用既有事件，不创建新的 CUT 状态。
 - 实时 CUT 的 helper 与实体预览必须使用同一版草稿；不得只延后实体派生而显示新参数的机械臂。缓存只复用输入未变的计算，不跳过当前草稿的提交检查。复杂度、容差边界与复测方法见 [CUT 性能](../cut-performance.md)。
@@ -78,6 +78,7 @@
 | 光学物理设置 | 持久化在 `document.metadata.optics`；归一化在 `src/domain/optics.js` | `document/optics` 命令更新；视图实时从文档派生 | 是（metadata） | 是 |
 | 光学会话内 UI 态（检查器折叠、参数页签、观察位、VIEW ONLY 参数） | `src/WorkbenchEditor.jsx` 本地 state | 显示模式菜单、仿真命令条与画布视角条 | 否 | 否 |
 | 光学视口会话（GPU 后端、表面预览模式、细化与采样进度） | `src/components/OpticsViewport.jsx` 本地 state 与渲染器 | 表面模式切换组；后端初始化失败自动回退；观察输入 | 否 | 否 |
+| 编辑视口 GPU 状态（可用／中断／创建失败） | `GemViewport` 本地反馈与 `viewportLifecycle` 资源生命周期 | 上下文事件、超时重建与“重试三维视口”；只重建渲染资源，不派发 CUT 事件，不重置相机、草稿或助手进度 | 否 | 否 |
 | 视口模式 `viewportMode`（edit / assistant / optics）与切割助手步进位置 | `src/WorkbenchEditor.jsx` 本地 state | 画布左上视口模式切换组、助手命令条；显示模式菜单保留光学入口 | 否 | 否 |
 | 图层临时显隐 | `src/WorkbenchEditor.jsx` 的 `hiddenPatternIds` | 图层显隐按钮；文档替换时清空 | 否 | 否 |
 | 编辑器 UI chrome（对话框、历史/台账面板、抽屉与 `CUT STACK` 折叠、toast） | `src/WorkbenchEditor.jsx` 与各组件本地 state | 组件自身交互 | 否 | 否 |
@@ -96,6 +97,7 @@
 - 光学仿真进入/退出只操作会话内 UI 态，不提交、不取消 CUT 会话；退出后按会话对象原样恢复。仿真读取当前可见实体（含新建、脏编辑或群组预览），材质修改仍经文档命令进入历史。
 - `viewportMode` 是 WorkbenchEditor 拥有的视图态（edit / assistant / optics），不是 CUT 会话第五态。切割助手套用光学仿真的挂起/恢复边界：序列在进入时从已提交 `CUT STACK` 与 `hiddenPatternIds` 派生（层序、层内索引升序、隐藏层跳过、台面恒 1 步、preform 层照常参与等规则以 `src/domain/cuttingAssistant.js` 为唯一真值），未提交草稿不参与；模式内步进、逐组跳转与进度条只移动观察位置，只读、不写历史、不提交或取消草稿；`Escape` 只退出助手，退出后按会话对象原样恢复编辑现场。
 - 助手位置 `p` 表示已完成刀数：实体由 `steps[0..p)` 裁切；`p < total` 的粉色平面来自 `steps[p]`，提示下一刀，`p = total` 不再显示切割平面。每次进入助手从 0 开始；层内按本层连续索引排序，内部 0 在 UI 显示为该层齿数。几何、计数和步进都使用同一回放模块，不从最终有效面数反推刀数。
+- “交点检查”复用 WorkbenchEditor 的 `modal` chrome，只读取完整已保存文档（含临时隐藏层、不含草稿）；打开/关闭不派发 CUT 事件，不写历史，不修改参数。打开期间按模态守卫暂停拾取与 CUT 快捷键，Escape 只关闭弹窗。诊断候选不增加能力位、确认或提交门槛。MCP `design_inspect` 同源返回 `meetAudit`；带 planId 时测量计划快照，不冒充已提交。
 - UI chrome 状态可以短暂存在，但不得反向影响文档或会话；快捷键处理必须以这些状态做守卫（如对话框打开时屏蔽 `Escape` 取消 CUT）。
 
 ## 旧本地恢复记录（兼容范围）
@@ -128,7 +130,7 @@
 
 ### 新建项目的底胚选择
 
-App 持有起点选择弹窗；默认起点、预设琢型、预设底胚和上传 OBJ 共用新建入口；预设琢型打开已有资料浏览层，最终确认后建立独立项目。选择、预览、下载、返回和取消均不创建项目或改动当前 CUT。只有最终确认调用现有 `switchProject`，未保存预览仍经 `pendingSwitch` 确认。默认起点沿用 T1/G1 和空闲会话；四种预设经 `createMeshDocument` 创建独立 mesh 项目，零 CUT、无预切草稿。上传沿用持久预检，可返回选择起点。弹窗期间暂停工作台交互。
+App 持有起点选择弹窗；默认起点、预设琢型、预设底胚和上传 OBJ 共用新建入口；预设琢型打开已有资料浏览层，最终确认后建立独立项目。选择、预览、下载、返回和取消均不创建项目或改动当前 CUT。只有最终确认调用现有 `switchProject`，未保存预览仍经 `pendingSwitch` 确认。默认起点沿用 T1/G1 和空闲会话，G1 由网页与 MCP `project_create` 共用的 `resolveDefaultStart` 按所选外形生成，几何规则见 [几何契约](geometry-contract.md)。G1 之后是普通对称腰部层；四种预设经 `createMeshDocument` 创建独立 mesh 项目，零 CUT、无预切草稿。上传沿用持久预检，可返回选择起点。弹窗期间暂停工作台交互。
 
 ## 切割助手播放与观察（1.0）
 
@@ -163,6 +165,23 @@ App 持有起点选择弹窗；默认起点、预设琢型、预设底胚和上�
 - 异步初始化期间合并最新的实体、材质和相机快照；没有 WebGPU、初始化／绘制失败或 device lost 时，由 React 创建新的 canvas 并切回 WebGL2。相机、观察位、材质和当前实体保留，pointer、wheel、touch 监听重新绑定；WebGL2 使用 context lost/restored 恢复。卸载后到达的异步初始化结果必须释放，不得触发回退或重绘。
 - 按设计表面只读取当前文档的逐面 `surfaceFinish`，不派发文档事件；没有有效磨砂面时直接复用全抛光后端与输入。两种模式保留同一相机、材质、灯光和反射次数。
 - 观察输入的分辨率细化与采样累积只属于渲染，不写历史或 JSON；退出或资源重建须清理细化定时器。渲染不变量见 [几何契约](geometry-contract.md#光学渲染)。
+
+## 环切
+
+环切是一种生成分度的方式，不是新的 CUT 状态。形式登记在 `RING_CUT_KINDS`（规则唯一真值 `src/domain/ringCut.js`），界面与 MCP 只从登记表取形式与默认值，新形式在同一表中注册，不另建模式：
+
+- **扇形（`kind: "fan"`，同深）**：L 边母形（对称数 2–24）的每条边切一组扇形刻面（每边细分 1–9，细分间距 0.1–90°），整组共用一个行业角与切入深度。未写 `kind` 的已保存环切按扇形读取。
+- **弧形（`kind: "arc"`，联动深度）**：把 L 边形的每条边向外鼓成经过两端顶点的圆弧，再把每段弧等分为 k 段弦（每弧分段 1–9）。凸度 0–1：0 为直边（正多边形），1 为外接圆；L2 要求分段至少 2、凸度至少 0.05（`ARC_TWO_SIDED_MIN_BULGE`），得到橄榄／透镜形。各弦法向取整到分度盘后，按“相邻刻面交点拟合弧上等分点”的最小二乘联合求出各面平面距离比（均 ≤ 1，镜像对称）；取整到同一分度的相邻弦合并并提示，拐点偏离弧线超过外接圆半径 2% 时提示。
+
+共同规则：
+
+- 取整以对称性优先：同一组整齿偏移由所有边共用、在边内左右对称（偶数细分跨在边法向两侧）；只有分度盘不能整除 L 时各边中心分别就近取整，并提示边距相差 1 齿。扇形相邻边重合的面合并并提示；扇面越过相邻边中心时提示。对称数与分段确定后分度即锁定，只能整组整齿旋转。
+- 草稿 `ring`（扇形 `kind / symmetry / subdivisions / spacingDeg / rotation`，弧形以 `bulge` 代替 `spacingDeg`）存在时，`customIndices`、`patternMode: "arbitrary"` 与主切面 `baseIndex` 一律由 `ringDraftPatch` 生成；网页的 `changeDraftWithConstruction`、`CHANGE_DRAFT`、闲置换盘与 MCP `design_plan` 都经过它，组件不自行拼分度。普通分度改动（分度带、操纵环、Meet 主切面）按同样整齿数旋转整组；显式选择对称模式或自定义索引即离开环切，保留当前切面。
+- 主切面：扇形为第 0 边的首个面；弧形为第 0 边最外一级（距离比 1）中偏移最小、同距时取正向偏移的面。层深度（CUT STACK、`draftForPattern` 与再次编辑）取主切面深度（`primaryFacetOf`）。弧形各面深度由 `resolveDraftGeometry` 按 `depth_j = D + offset(D)·(1 − ratio_j)` 求出，使平面距离与比例严格成比例；行业角整组共用。
+- Meet／Jump：整组只有主切面深度一个自由度（加共用行业角），因此群组 Meet／Jump 作用于主切面，其余各面随比例联动；不支持组内逐面 Meet。需要逐级 Meet 时先打散，打散后每级是普通层，Meet／Jump 完整可用。群组 Z 平移与缩放按普通层处理各面深度，会破坏弧形比例；再次编辑该层时按参数重新施加比例。
+- 保存为普通自定义索引层加 `metadata.ring`（`version: 1`），各面分度与深度照常显式保存；旧版读者按普通层处理。只有保存的分度与参数重新计算的结果完全一致时才可继续编辑环切参数，否则（例如半齿群组旋转、实验室改动了分度）自动视为普通层。整齿群组旋转同步 `rotation` 并保持各面深度。固定台面不能设为环切，腰部可用。
+- 导出：ASC／GCS 的一层只能有一个角度与距离，含多级深度的层按深度写为连续层（主切面一级在前，其余层名加 b、c…），并在损失说明中列为“弧切联动深度”（形状不变、参数无法恢复）。PDF、刻面台账与切割助手按各面深度显示。
+- 打散（`dissolve-ring`，网页“打散”与 MCP 共用 `dissolveRingLayer`）经确认后作为一次可撤销命令：扇形只移除 `metadata.ring`、保持一层；弧形按深度级拆成多个普通层——主切面所在一级保留原层 id、名称与面 id，其余各级取新 id（`<层 id>-2`…）与名称后缀 b、c…，各级 `primaryIndex` 取离原主切面最近的面，Meet 构造只留在主级。原层被隐藏时新层同样隐藏。
 
 ## 多分度与三组参数
 
