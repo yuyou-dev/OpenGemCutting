@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { clone, generatePreset, editPlane, validateComponent, parseJSONSafe, validateMesh, importOBJ, importSTL, exportOBJ, extractComponent, instancePlanes, planesEquivalent, importNativeDocument, makeNativeDocument, nativeFacetInputs, prepareHostCommand, normalizeTransform, validateWorkspace, cubeSolid, prismSolid, geometryStats, cutSolid, signedVolume, nativeFacetPlane } from '../src/index.js';
+import { lSolid, ringSolid, disconnectedSolid, cubeDocument, halfPlane } from './fixtures.mjs';
+const near = (a, b, e = 1e-7) => assert.ok(Math.abs(a - b) < e, `${a} != ${b}`);
+const component = () => generatePreset(), stock = () => ({ name: 'cube', polys: cubeSolid(2.4), convex: true, nativeStock: cubeDocument().stock });
+const groups = () => [{ id: 'crown-instance', component: component(), transform: normalizeTransform({ translation: [0, 0, .045] }) }, { id: 'pav-instance', component: generatePreset({ part: 'pavilion' }), transform: normalizeTransform({ translation: [0, 0, -.045] }) }];
+test('JSON recipe + frozen geometry round-trip', () => { const c = component(), r = validateComponent(parseJSONSafe(JSON.stringify(c))); assert.ok(r.recipe); assert.ok(planesEquivalent(c.planes, r.planes)); });
+test('outdated recipe never overwrites frozen planes', () => { const c = component(); c.planes[0].d += .031; const r = validateComponent(c); assert.equal(r.recipe, undefined); assert.equal(r.unresolvedRecipe.version, 1); near(r.planes[0].d, c.planes[0].d); });
+test('unknown generator version falls back to custom geometry', () => { const c = component(); c.recipe.version = 2; const r = validateComponent(c); assert.equal(r.family, 'custom'); assert.equal(r.recipe, undefined); assert.ok(planesEquivalent(c.planes, r.planes)); });
+test('unsafe JSON, repeated plane IDs, broken frames and nonfinite values rejected', () => { assert.throws(() => parseJSONSafe('{"__proto__":{}}')); const c = component(); c.planes[1].id = c.planes[0].id; assert.throws(() => validateComponent(c)); const d = component(); d.frame.referenceRadius = 10; assert.throws(() => validateComponent(d)); const e = component(); e.planes[0].n[0] = NaN; assert.throws(() => validateComponent(e)); });
+test('extract arbitrary hand-made crown planes without temporary cap', () => { const c = component(), t = normalizeTransform({ translation: [0, 0, .12], scale: [1.3, 1.3, 1.3] }), p = instancePlanes(c, t); p.push({ n: [0, 0, -1], d: 0, role: 'interface', part: 'crown' }); const r = extractComponent(p, 'crown', { waistZ: .12, radius: 1.3 }); assert.ok(planesEquivalent(c.planes, r.planes)); assert.equal(r.recipe, undefined); });
+for (const [name, get] of [['cube', () => cubeSolid(2)], ['nonconvex L', lSolid], ['through-hole', ringSolid], ['disconnected', disconnectedSolid]])
+    test(`OBJ manifold round-trip: ${name}`, () => { const p = get(), r = importOBJ(exportOBJ(p), { normalize: false }); near(signedVolume(r.polys), signedVolume(p)); assert.equal(validateMesh(r.polys).valid, true); });
+test('OBJ negative indices and inline comments', () => { const source = exportOBJ(cubeSolid(2)), nv = source.split('\n').filter(s => s.startsWith('v ')).length, negative = source.replace(/^f (.+)$/gm, (_, s) => 'f ' + s.split(' ').map(n => Number(n) - nv - 1).join(' ') + ' # face'); near(signedVolume(importOBJ(negative, { normalize: false }).polys), 8); });
+test('open and non-manifold mesh is rejected instead of made convex', () => { assert.throws(() => validateMesh(cubeSolid(2).slice(1)), /非闭合/); assert.throws(() => validateMesh([...cubeSolid(2), cubeSolid(2)[0]]), /非闭合/); });
+test('ASCII and binary STL import cube', () => { const quads = cubeSolid(2), tris = quads.flatMap(p => [[p.v[0], p.v[1], p.v[2]], [p.v[0], p.v[2], p.v[3]]]); const ascii = 'solid cube\n' + tris.map(v => 'facet normal 0 0 0\nouter loop\n' + v.map(p => 'vertex ' + p.join(' ')).join('\n') + '\nendloop\nendfacet').join('\n') + '\nendsolid'; near(signedVolume(importSTL(new TextEncoder().encode(ascii).buffer, { normalize: false }).polys), 8); const buffer = new ArrayBuffer(84 + tris.length * 50), dv = new DataView(buffer); dv.setUint32(80, tris.length, true); tris.forEach((t, i) => t.flat().forEach((x, j) => dv.setFloat32(84 + i * 50 + 12 + j * 4, x, true))); near(signedVolume(importSTL(buffer, { normalize: false }).polys), 8); });
+test('native export/import preserves all 57 CUT planes and recovers groups', () => { const doc = makeNativeDocument(stock(), cubeDocument(), groups()), result = importNativeDocument(doc); assert.equal(doc.facets.length, 57); assert.equal(result.groups.length, 2); assert.equal(result.basePlanes.length, 0); assert.equal(doc.metadata.unknownFutureField.keep, true); assert.equal(doc.optics.ri, 1.54); assert.ok(planesEquivalent(instancePlanes(result.groups[0].component, result.groups[0].transform), instancePlanes(groups()[0].component, groups()[0].transform))); });
+test('native round-trip has the same solid volume', () => { const g = groups(), doc = makeNativeDocument(stock(), cubeDocument(), g), r = importNativeDocument(doc), before = cutSolid(stock().polys, g.flatMap(x => instancePlanes(x.component, x.transform))), after = cutSolid(r.stock.polys, [...r.basePlanes, ...r.groups.flatMap(x => instancePlanes(x.component, x.transform))]); near(signedVolume(before), signedVolume(after)); });
+test('native metadata never overrides hand-edited true CUT; the edit folds into its component', () => {
+    const doc = makeNativeDocument(stock(), cubeDocument(), groups()); doc.facets[0].depth += .01; doc.facets[0].plane.offset -= .01;
+    const r = importNativeDocument(doc);
+    assert.equal(r.groups.length, 2); assert.equal(r.basePlanes.length, 0); assert.equal(r.warnings.length, 0);
+    assert.match(r.notices.join(), /1 个切面在主项目中单独修改过/);
+    const back = makeNativeDocument(stock(), doc, r.groups);
+    assert.deepEqual(back.facets, doc.facets);
+    const again = importNativeDocument(back);
+    assert.deepEqual(again.notices, []); assert.equal(again.groups.length, 2);
+});
+test('native export blocks fractional96 indices without rounding', () => { assert.throws(() => nativeFacetInputs(generatePreset({ params: { symmetry: 9 } }), {}, cubeDocument().stock), /非整数分度/); assert.throws(() => nativeFacetInputs(component(), { rotation: [0, 0, 1] }, cubeDocument().stock), /非整数分度/); });
+test('native conversion never admits negative cutting depth', () => { assert.throws(() => nativeFacetInputs(component(), { translation: [0, 0, 8] }, cubeDocument().stock), /负切深/); });
+test('native mesh source round-trip preserves its actual rough instead of a cube', () => { const source = { name: 'ring', polys: ringSolid(), convex: false }, doc = makeNativeDocument(source, null, []), r = importNativeDocument(doc); assert.equal(doc.schemaVersion, 2); near(signedVolume(r.stock.polys), 8); assert.equal(r.stock.convex, false); });
+test('workspace validates complete state and ignores untrusted convex flag', () => { const c = component(), s = { stock: { name: 'L', polys: lSolid(), convex: true }, basePlanes: [], nativeDocument: null, groups: [], draft: c, transform: normalizeTransform(), editId: null }; const r = validateWorkspace({ kind: 'opengemcutting-component-workspace', schemaVersion: 1, state: s }); assert.equal(r.stock.convex, false); });
+test('workspace rejects lost-source CUT and duplicate or missing edit identity', () => { const c = component(), s = { stock: stock(), basePlanes: [], nativeDocument: null, groups: groups(), draft: c, transform: normalizeTransform(), editId: 'absent' }, w = { kind: 'opengemcutting-component-workspace', schemaVersion: 1, state: s }; assert.throws(() => validateWorkspace(w)); s.editId = null; s.groups[1].id = s.groups[0].id; assert.throws(() => validateWorkspace(w)); s.groups = []; s.basePlanes = instancePlanes(c); assert.throws(() => validateWorkspace(w), /原生文档/); });
+test('export T-junction-stitches clipped nonconvex solid for mesh round-trip', () => { const p = cutSolid(ringSolid(), [halfPlane], { convex: false }), r = importOBJ(exportOBJ(p), { normalize: false }); near(signedVolume(r.polys), 4); });
+test('frozen geometry is bit-stable over repeated normalization and JSON persistence', () => { const c = component(); let r = clone(c); for (let i = 0; i < 10; i++)
+    r = validateComponent(JSON.parse(JSON.stringify(r))); assert.deepEqual(r.planes, c.planes); });
+test('inconsistent explicit native planes are rejected', () => { const doc = makeNativeDocument(stock(), cubeDocument(), groups()); doc.facets[0].depth += .5; assert.throws(() => importNativeDocument(doc), /不一致/); });
+test('editor whole-design lifts, Z scales and wheel rotations keep the component group', () => {
+    const base = groups(), crown = base[0];
+    const moved = [
+        ['lift', { ...crown.transform, translation: [0, 0, crown.transform.translation[2] - .09] }],
+        ['scale', { ...crown.transform, scale: [1, 1, .85], translation: [0, 0, crown.transform.translation[2] * .85 + .1] }],
+        ['rotate', { ...crown.transform, rotation: [0, 0, 3.75] }],
+    ];
+    for (const [label, transform] of moved) {
+        // The editor moves the facets and leaves metadata.componentInstances as it was.
+        const doc = makeNativeDocument(stock(), cubeDocument(), [{ ...crown, transform: normalizeTransform(transform) }, base[1]]);
+        doc.metadata.componentInstances = makeNativeDocument(stock(), cubeDocument(), base).metadata.componentInstances;
+        const r = importNativeDocument(doc);
+        assert.equal(r.groups.length, 2, label); assert.equal(r.basePlanes.length, 0, label); assert.deepEqual(r.warnings, [], label);
+        assert.match(r.notices.join(), /整体变换更新位置/, label);
+        const back = makeNativeDocument(stock(), doc, r.groups);
+        assert.deepEqual(back.facets, doc.facets, label);
+        assert.deepEqual(importNativeDocument(back).notices, [], label);
+    }
+});
+test('cuts from an extracted component carry the source layer name, not its operation ID', () => {
+    const source = makeNativeDocument(stock(), cubeDocument(), groups()), planes = importNativeDocument(source).groups.flatMap(g => instancePlanes(g.component, g.transform, g.id));
+    const named = planes.map(p => ({ ...p, label: p.part === 'crown' ? 'C1 冠部' : 'P1 亭部', tier: 'cut-1790827344208-1' }));
+    const extracted = extractComponent(named, 'crown', { name: '经典八向 · 冠 · 自定义', waistZ: .045 });
+    const doc = makeNativeDocument(stock(), cubeDocument(), [{ id: 'x', component: extracted, transform: normalizeTransform({ translation: [0, 0, .045] }) }]);
+    assert.ok(doc.facets.every(f => f.label === '经典八向 · 冠 · 自定义 / C1 冠部'));
+});

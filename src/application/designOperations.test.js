@@ -331,6 +331,25 @@ test('editing a mixed-finish tier preserves each surviving member instead of cop
   assert.deepEqual(redoFacetingCommand(undoFacetingCommand(history)).present.facets, history.present.facets);
 });
 
+test('editing a layer keeps each surviving facet ID and lab identity; new directions inherit only layer metadata', () => {
+  const initial = planDesign(createWorkbenchDocument(), [cut]).document;
+  const members = initial.facets.filter(f => f.patternId === cut.patternId);
+  // A preset-studio component and a pattern-lab study record identities per facet.
+  members.forEach((f, i) => Object.assign(f.metadata, { componentInstanceId: 'inst-1', sourcePlaneId: `saved-${i}`, patternStudy: { version: 1, sourcePlaneId: `p-${i}` } }));
+  const same = planDesign(initial, [{ kind: 'cut', patternId: cut.patternId, draft: { industryAngle: 36 } }]).document;
+  const after = same.facets.filter(f => f.patternId === cut.patternId);
+  assert.deepEqual(after.map(f => f.id), members.map(f => f.id));
+  for (const f of after) {
+    const old = members.find(m => m.index === f.index);
+    assert.equal(f.metadata.sourcePlaneId, old.metadata.sourcePlaneId);
+    assert.deepEqual(f.metadata.patternStudy, old.metadata.patternStudy);
+  }
+  const rotated = planDesign(initial, [{ kind: 'cut', patternId: cut.patternId, draft: { baseIndex: members[0].baseIndex + 1 } }]).document;
+  const moved = rotated.facets.filter(f => f.patternId === cut.patternId);
+  assert.equal(new Set(moved.map(f => f.id)).size, moved.length);
+  assert.ok(moved.every(f => f.metadata.componentInstanceId === undefined && f.metadata.sourcePlaneId === undefined && f.metadata.patternStudy === undefined));
+});
+
 test('arc ring cuts link depths to the primary, and dissolve into one layer per level', async () => {
   const { ringCutFromFacets, ringCutLayout } = await import('../domain/ringCut.js');
   const ring = { kind: 'arc', symmetry: 3, subdivisions: 3, bulge: 0.55, rotation: 0 };

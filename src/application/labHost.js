@@ -72,7 +72,11 @@ export function createLabHost({ record: initial, lab, drafts, readProject, creat
         const id = existing && same(existing.document, document) ? existing.id : crypto.randomUUID();
         await change(() => ({ candidate: { id, document, summary, sourceState, recipe: inspectLabRecipe(document), diagnostics: copy(candidate.diagnostics),
           projectId: `experiment-${record.id}-${id}`, checkedAt: Date.now() } }), context);
-      } catch (e) { if (!signal.aborted) error = e.message; throw e; }
+      } catch (e) {
+        // A validator error alone reads "Invalid Facet-96 document."; name the first failing field.
+        if (e.errors?.length && e.code !== 'LAB_UNSUPPORTED_DOCUMENT') e.message = `实验结果未通过工作台校验，未写入项目；实验稿仍保留。（${e.errors[0].path}: ${e.errors[0].message}）`;
+        if (!signal.aborted) error = e.message; throw e;
+      }
       finally { reviewing = false; notify(); }
     },
   };

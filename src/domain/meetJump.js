@@ -1,7 +1,7 @@
 import { PolyhedronError } from "./mesh/index.js";
 import { getMeshBoundaryEdges } from "./meshDisplay.js";
 import { facetNormal, industryAngleToBetaDeg, rotationalStockSupportOffset } from "./faceting.js";
-import { clipPolyhedronByPlanes, clipPolyhedronPreview } from "./geometry.js";
+import { clipPolyhedronByPlanes, clipPolyhedronPreview, faceArea } from "./geometry.js";
 
 export const MEET_STATUS = Object.freeze({
   VALID: "valid",
@@ -230,11 +230,23 @@ export function solveDualMeet({
 }
 
 /** Derive the explicit facet faces that remain effective in a final solid. */
+// A face thinner than any physical feature (rounding slivers around a near-shared
+// corner) is not a final facet: 1e-12 of the extent squared is ~10 nm on a 10 mm stone.
+const SLIVER_AREA_RATIO = 1e-12;
+function sliverAreaLimit(solid) {
+  const span = ['x', 'y', 'z'].map(k => solid.vertices.reduce((range, v) => { const c = v[k] ?? v['xyz'.indexOf(k)]; return [Math.min(range[0], c), Math.max(range[1], c)]; }, [Infinity, -Infinity]));
+  const extent = Math.max(...span.map(([lo, hi]) => hi - lo));
+  return Number.isFinite(extent) ? SLIVER_AREA_RATIO * extent * extent : 0;
+}
+
+/** The one definition of final effective facets: reports, ledgers, labs and Meet threats use it. */
 export function summarizeEffectiveFacets(solid) {
   const byOperation = new Map();
   const seen = new Set();
+  const minArea = sliverAreaLimit(solid);
 
   solid.faces.forEach((face, index) => {
+    if (Array.isArray(face.vertexIndices) && faceArea(solid, face) < minArea) return;
     if (face.sourceOperationId == null || face.sourceOperationId === "rough-cube" || face.sourceOperationId === "rough-mesh"
       || face.region === "rough" || face.region === "concave" || face.operationType === "concave") return;
     const operationId = String(face.sourceOperationId);

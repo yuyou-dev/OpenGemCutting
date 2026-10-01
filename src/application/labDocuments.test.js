@@ -106,3 +106,30 @@ test('preset convex mesh capability does not broaden the pattern laboratory', ()
     if(result.document.stock.kind==='mesh') assert.throws(()=>readLabDocument(document),{code:'LAB_UNSUPPORTED_DOCUMENT'});
   }
 });
+
+test('rebuilding a document keeps lab plane values, and a recipe revives when geometry returns exactly', async () => {
+  const { createFacetingDocument } = await import('../domain/faceting.js');
+  const { planDesign } = await import('./designOperations.js');
+  // Labs write planes that differ from the host's 1e-12 rounding; the fingerprint is over those exact values.
+  const source = structuredClone(sample('surface-scale-source'));
+  for (const f of source.facets) f.plane.offset += 3e-13;
+  source.metadata.labRecipe = { ...source.metadata.labRecipe, status: 'current', geometryKey: shared.labGeometryKey(source) };
+  const rebuilt = createFacetingDocument(source);
+  assert.deepEqual(rebuilt.facets.map(f => f.plane), source.facets.map(f => f.plane));
+  assert.equal(shared.inspectLabRecipe(rebuilt).status, 'current');
+  const withTool = planDesign(source, [{ kind: 'concave-tool', toolId: 'bowl-1', preset: 'bowl' }]).document;
+  assert.equal(withTool.metadata.labRecipe.status, 'stale');
+  const removed = planDesign(withTool, [{ kind: 'replace-parameters', parameterGroup: { kind: 'facet-parameter-group', schemaVersion: 1, group: 'concave', concaveCuts: [] } }]).document;
+  assert.equal(removed.metadata.labRecipe.status, 'current');
+  // Other reasons never revive on their own.
+  const moduleStale = { ...source, metadata: { ...source.metadata, labRecipe: { ...source.metadata.labRecipe, status: 'stale', reason: 'module-retired' } } };
+  assert.equal(shared.inspectLabRecipe(moduleStale).status, 'stale');
+});
+
+test('rounding slivers are not final facets, so reports and laboratories count the same faces', async () => {
+  const { readFileSync } = await import('node:fs');
+  const raw = JSON.parse(readFileSync(new URL('../../public/presets/documents/96622-pc-02-265-ten-main-barion-oval.json', import.meta.url)));
+  const { summary } = readLabDocument(raw.document ?? raw, { profile: 'preset' });
+  // The kernel leaves ten ~1e-16 slivers at near-shared corners; the preset studio's own kernel finds 99 facets.
+  assert.equal(summary.effectiveFacetIds.length, 99);
+});

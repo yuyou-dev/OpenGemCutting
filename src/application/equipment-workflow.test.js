@@ -67,3 +67,16 @@ test('MCP uses the same preset operation and rejects a second equipment wheel fo
   assert.equal(result.document.concaveCuts[0].repeat, 5);
   assert.throws(() => planDesign(doc, [{ kind: 'cut', patternId: 'wrong-wheel', region: 'crown', draft: { indexTeeth: 96 } }]), /项目分度盘/);
 });
+
+test('switching the wheel of an edited design keeps every plane and face ID, for any wheel pair', () => {
+  // The editor and MCP share this path; re-resolving planes used to fail on 96→77, 99→96 and 120→99.
+  for (const [from, to] of [[120, 99], [96, 77], [99, 96], [96, 120], [77, 96], [360, 96]]) {
+    const start = createWorkbenchDocument('wheel', from);
+    const document = planDesign(start, [{ kind: 'cut', patternId: 'c1', region: 'crown',
+      draft: { industryAngle: 35, depth: .3, baseIndex: { 120: 12, 99: 11, 77: 7, 360: 15 }[from] ?? 4, repeat: { 99: 9, 77: 7, 120: 8, 360: 8 }[from] ?? 8 } }]).document;
+    const changed = withDocumentIndexGear(document, to);
+    assert.equal(changed.indexGear.teeth, to, `${from}→${to}`);
+    assert.deepEqual(changed.facets.map(f => f.id), document.facets.map(f => f.id));
+    assert.deepEqual(changed.facets.map(f => f.plane), document.facets.map(f => f.plane));
+  }
+});

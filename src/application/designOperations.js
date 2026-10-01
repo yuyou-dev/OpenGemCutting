@@ -1,6 +1,6 @@
-import { ringCutFromFacets, ringCutMetadata, ringDraftPatch, ringDissolveLevels } from '../domain/ringCut.js';
+import { ringCutFromFacets, ringDraftPatch, ringDissolveLevels } from '../domain/ringCut.js';
 import { inspectMeetpoints } from './meetInspection.js';
-import { facetMetadataAfterParameterEdit } from '../domain/facetSurface.js';
+import { facetsAfterLayerEdit, layerEditMetadata } from '../domain/layerEdit.js';
 import { resolveGroupReference } from '../domain/groupReference.js';
 import { indexExportSummary } from '../domain/indexing.js';
 import { getCuttingReference, primaryFacetOf } from '../domain/faceting.js';
@@ -32,7 +32,6 @@ import {
   planeEntry,
   resolveDraftGeometry,
   solveDraftConstruction,
-  snapshotMeetTarget,
 } from '../domain/cutConstruction.js';
 import { buildConstructionStages } from '../domain/constructionHistory.js';
 import {
@@ -223,38 +222,12 @@ function constructCut(document, operation) {
   }
   const resolved = resolveDraftGeometry(draft, region, getCuttingReference(document));
   if (resolved.error) throw designError('INVALID_CUT', resolved.error);
-  const metadata = {
-    ...first?.metadata,
-    patternMode: draft.patternMode,
-    primaryIndex: normalizeIndex(draft.baseIndex, draft.indexTeeth),
-    integerIndexOnly: resolved.facets.every((facet) => Number.isInteger(facet.index)),
-    preform: draft.preform,
-  };
-  if (table || region === 'girdle') delete metadata.preform;
-  if (draft.ring) metadata.ring = ringCutMetadata(draft.ring);
-  else delete metadata.ring;
-  if (meet)
-    metadata.construction = {
-      type: meet.secondTarget
-        ? 'dual-meet'
-        : meet.target.kind === 'edge-point'
-          ? 'edge-meet'
-          : 'vertex-meet',
-      solverVersion: 2,
-      primaryIndex: normalizeIndex(draft.baseIndex, draft.indexTeeth),
-      target: snapshotMeetTarget(meet.target),
-      ...(meet.secondTarget
-        ? { secondTarget: snapshotMeetTarget(meet.secondTarget) }
-        : {}),
-    };
-  else delete metadata.construction;
-  const facets = resolved.facets.map((f) => ({
-    ...f,
-    id: `${operation.patternId}:${displayIndex(f.index, f.indexTeeth ?? 96)}`,
-    patternId: operation.patternId,
-    label: operation.label ?? first?.label ?? operation.patternId,
-    metadata: facetMetadataAfterParameterEdit(f, document.facets.filter(old => old.patternId === operation.patternId), metadata),
-  }));
+  const metadata = layerEditMetadata({
+    previous: first?.metadata, patternMode: draft.patternMode, baseIndex: draft.baseIndex, indexTeeth: draft.indexTeeth,
+    facets: resolved.facets, preform: table || region === 'girdle' ? undefined : draft.preform, ring: draft.ring, meet,
+  });
+  const facets = facetsAfterLayerEdit(resolved.facets, document.facets.filter(old => old.patternId === operation.patternId),
+    { patternId: operation.patternId, label: operation.label ?? first?.label ?? operation.patternId, metadata });
   return preparePatternCommit(
     document,
     facets,

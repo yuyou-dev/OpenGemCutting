@@ -28,6 +28,7 @@
   cursor: pointer;
 }
 .viewport-loading.is-failed { cursor: default; }
+.viewport-loading__detail { max-width: 46ch; color: #9a3a3a; white-space: pre-line; overflow-wrap: anywhere; }
 
 .viewport-loading__bar { width: 140px; height: 2px; overflow: hidden; background: #ededeb; }
 .viewport-loading__bar span {
