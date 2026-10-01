@@ -1900,7 +1900,6 @@
   "接下来选择起点，开始实验。": "Choose a starting point for your experiment.",
   "选择起点": "Choose a starting point",
   "请先选择来源设计": "Choose a source design first",
-  "此设计不在该实验室的接入范围内。原设计完整保留。": "This design is not supported by this laboratory. The original remains intact.",
   "冠部组合": "Crown combinations",
   "亭部调整": "Pavilion shaping",
   "形态与贴合": "Shape and rim fit",
@@ -2094,5 +2093,14 @@
   "正在准备三维视图…": "Preparing the 3D view…",
   "正在准备光学仿真…": "Preparing the optical simulation…",
   "三维渲染器未能加载，当前设计已保留。请检查网络后重试。": "The 3D renderer could not load. Your design is kept; check the connection and try again.",
-  "这是 2.0 的预发布版本（版本号见页脚）：功能已冻结，正式版之前只修正问题。重要设计请同时保存 JSON 主文件。": "This is a 2.0 pre-release (see the footer for the version): features are frozen and only fixes land before the final release. Keep a JSON master file of important designs."
+  "这是 2.0 的预发布版本（版本号见页脚）：功能已冻结，正式版之前只修正问题。重要设计请同时保存 JSON 主文件。": "This is a 2.0 pre-release (see the footer for the version): features are frozen and only fixes land before the final release. Keep a JSON master file of important designs.",
+  "分度盘未切换，原设计保持不变：": "Index wheel not changed; the design is unchanged: ",
+  "此设计暂时不能带入：{0}。原设计完整保留。": "This design cannot be brought in yet: {0}. The original design is kept intact.",
+  "这颗设计从异形底胚或原石开始，该实验室只接受方块底胚": "it starts from a shaped stock or a rough crystal, and this laboratory accepts only the block stock",
+  "设计含凹切（包括已停用的），该实验室暂不支持凹切": "it has concave cuts (including disabled ones), which this laboratory does not support yet",
+  "设计共有 {0} 道平切（含被覆盖的），超过该实验室上限 {1} 道": "it has {0} planar cuts (including covered ones), above this laboratory's limit of {1}",
+  "分度盘不在 1–360 整齿范围内": "its index wheel is not a whole-tooth wheel from 1 to 360",
+  "设计含该实验室无法识别的必需扩展数据": "it carries required extension data this laboratory does not recognize",
+  "设计文件的格式或版本不受该实验室支持": "its file format or version is not supported by this laboratory",
+  "实验结果未通过工作台校验，未写入项目；实验稿仍保留。（{0}）": "The result did not pass the workbench check and was not saved to a project; the experiment draft is kept. ({0})"
 }

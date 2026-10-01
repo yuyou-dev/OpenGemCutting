@@ -93,9 +93,9 @@ export const LabWorkspaceHost = forwardRef(function LabWorkspaceHost({ lab, reco
   return <section className="labs-workspace" aria-label={t('实验工作区')}>
     {headerSlot ? createPortal(workspaceControls, headerSlot) : workspaceControls}
     {state.sourceState && !['new', 'current'].includes(state.sourceState.status) ? <p className="labs-source-alert" role="status">{t(sourceStateText(state.sourceState))}</p> : null}
-    {error || state.error ? <div className="labs-error" role="alert"><span>{t(error || state.error)}</span><button onClick={retrySave} disabled={busy}>{t('重试保存与恢复')}</button><button onClick={() => downloadLabRecovery(driver.current.recovery())}>{t('下载恢复文件')}</button></div> : null}
+    {phase !== 'error' && (error || state.error) ? <div className="labs-error" role="alert"><span>{t(error || state.error)}</span><button onClick={retrySave} disabled={busy}>{t('重试保存与恢复')}</button><button onClick={() => downloadLabRecovery(driver.current.recovery())}>{t('下载恢复文件')}</button></div> : null}
     {phase === 'loading' ? <ViewportLoading message="正在载入实验室与已保存的实验稿…" /> : null}
-    {phase === 'error' ? <ViewportLoading failed message="载入失败，原实验稿仍保留。" onRetry={() => setMountKey(k => k + 1)} /> : null}
+    {phase === 'error' ? <ViewportLoading failed message="载入失败，原实验稿仍保留。" detail={error} onRetry={() => setMountKey(k => k + 1)} /> : null}
     <div ref={element} className="labs-module-root" data-lab-module={lab.id} />
     {candidate ? <Modal title={t('检查实验结果')} onClose={dismiss} closeLabel={t('继续实验')} footerActions={<button className="primary-action modal-button" disabled={busy || phase !== 'ready'} onClick={accept}>{t(busy ? '正在保存…' : candidate.returnedProjectId ? '打开已带回项目' : '带回为新项目')}</button>}>
       <p>{t('实际几何已由工作台重新计算并校验。带回会创建独立项目，来源设计保持原样。')}</p><label className="labs-result-name">{t('新项目名称')}<input value={name} onChange={e => setName(e.target.value)} /></label>

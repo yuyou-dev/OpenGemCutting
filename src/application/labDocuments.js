@@ -3,6 +3,7 @@ import { importFacetingJSON } from '../domain/faceting.js';
 import { assertValidDocumentGeometry } from '../domain/documentGeometry.js';
 import { polyhedronVolume } from '../domain/geometry.js';
 import { buildConstructionStages } from '../domain/constructionHistory.js';
+import { summarizeEffectiveFacets } from '../domain/meetJump.js';
 import { inspectLabDocument, indexCompatibilityReport, millimetersPerModelUnit } from '../domain/labsContract/index.js';
 
 /** Full host boundary for fixtures and future source/candidate exchange.
@@ -23,7 +24,7 @@ export function readLabDocument(input, { profile = 'pattern' } = {}) {
   }
   const solid = assertValidDocumentGeometry(document);
   const ids = new Set(document.facets.map(f => f.id));
-  const effectiveFacetIds = [...new Set(solid.faces.map(f => f.facetId ?? f.id).filter(id => ids.has(id)))].sort();
+  const effectiveFacetIds = summarizeEffectiveFacets(solid).effectiveFacetIds.filter(id => ids.has(id)).sort();
   return { document, summary: {
     schemaVersion: document.schemaVersion,
     millimetersPerModelUnit: millimetersPerModelUnit(document),

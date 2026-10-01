@@ -1,6 +1,7 @@
 import { MeetAuditDialog } from './components/MeetAuditDialog.jsx';
-import { ringCutFromFacets, ringCutLayout, ringCutMetadata, ringDraftPatch } from "./domain/ringCut.js";
-import { facetMetadataAfterParameterEdit, facetSurfaceState } from './domain/facetSurface.js';
+import { ringCutFromFacets, ringCutLayout, ringDraftPatch } from "./domain/ringCut.js";
+import { facetSurfaceState } from './domain/facetSurface.js';
+import { facetsAfterLayerEdit, layerEditMetadata } from './domain/layerEdit.js';
 import { receiveConcaveUpdate } from './application/concaveEvaluation.js';
 import { createConcavePreviewScheduler } from './components/concavePreviewScheduler.js';
 import { resolveGroupReference } from './domain/groupReference.js';
@@ -51,7 +52,7 @@ import {
   FACET_REGION_PREFIXES,
   canRedo,
   canUndo,
-  createFacetingDocument,
+  withDocumentIndexGear,
   getCuttingReference,
   createCommandHistory,
   createReplacePatternCommand,
@@ -92,7 +93,7 @@ import {
 } from "./domain/meetJump.js";
 import { DEFAULT_OPTICS_SETTINGS, createDocumentOpticsCommand, resolveOpticsSettings } from "./domain/optics.js";
 import { createWorkbenchDocument, ensureTableFacet } from "./domain/document.js";
-import { parseCustomIndices, planeEntry, resolveDraftGeometry, solveDraftConstruction, snapshotMeetTarget } from "./domain/cutConstruction.js";
+import { parseCustomIndices, planeEntry, resolveDraftGeometry, solveDraftConstruction } from "./domain/cutConstruction.js";
 import { buildConstructionStages } from "./domain/constructionHistory.js";
 import { useCuttingPlayback } from "./components/useCuttingPlayback.js";
 import { createCuttingReplay } from "./domain/cuttingAssistant.js";
@@ -742,37 +743,16 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     const { patternId, label } = current
       ? { patternId: current.id, label: current.label }
       : makeOperationIdentity(region);
-    const createdAt = new Date().toISOString();
-    const metadata = {
-      ...(current?.facets[0]?.metadata || {}),
-      createdAt: current?.facets[0]?.metadata?.createdAt || createdAt,
-      updatedAt: createdAt,
-      integerIndexOnly: true,
-      patternMode,
-    };
-    metadata.primaryIndex = normalizeIndex(baseIndex, indexTeeth);
-    if (cutSession.canMarkPreform) metadata.preform = Boolean(cutSession.draft.preform);
-    else delete metadata.preform;
-    if (cutSession.draft.ring) metadata.ring = ringCutMetadata(cutSession.draft.ring);
-    else delete metadata.ring;
     const lockedMeet = cutSession.construction.meet;
-    if (lockedMeet && [MEET_STATUS.VALID, MEET_STATUS.DESTRUCTIVE].includes(lockedMeet.status)) {
-      metadata.construction = {
-        type: lockedMeet.secondTarget ? "dual-meet" : lockedMeet.target.kind === "edge-point" ? "edge-meet" : "vertex-meet",
-        solverVersion: 2, primaryIndex: normalizeIndex(baseIndex, indexTeeth),
-        target: snapshotMeetTarget(lockedMeet.target),
-        ...(lockedMeet.secondTarget ? { secondTarget: snapshotMeetTarget(lockedMeet.secondTarget) } : {}),
-      };
-    } else delete metadata.construction;
+    const metadata = layerEditMetadata({
+      previous: current?.facets[0]?.metadata, patternMode, baseIndex, indexTeeth, facets: draft.facets,
+      preform: cutSession.canMarkPreform ? Boolean(cutSession.draft.preform) : undefined,
+      ring: cutSession.draft.ring,
+      meet: lockedMeet && [MEET_STATUS.VALID, MEET_STATUS.DESTRUCTIVE].includes(lockedMeet.status) ? lockedMeet : null,
+    });
 
     try {
-      const facets = draft.facets.map((facet) => ({
-          ...facet,
-          id: `${patternId}:${displayIndex(facet.index, facet.indexTeeth ?? 96)}`,
-          patternId,
-          label,
-          metadata: facetMetadataAfterParameterEdit(facet, current?.facets ?? [], metadata),
-        }));
+      const facets = facetsAfterLayerEdit(draft.facets, current?.facets ?? [], { patternId, label, metadata });
       if (document.stock.kind === "mesh") {
         const sequence = current ? replacePatternFacets(document.facets, current.id, facets) : [...document.facets, ...facets];
         clipPolyhedronByPlanes(stockSolid, sequence.map(planeEntry));
@@ -1188,7 +1168,10 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
 
   const changeIndexGear = teeth => {
     if (!cutSession.canEditParameterGroups) return;
-    const next = createFacetingDocument({ ...document, indexGear: { teeth } });
+    // Same domain path as MCP set_index_gear: converts each index, never re-resolves planes.
+    let next;
+    try { next = withDocumentIndexGear(document, teeth); }
+    catch (error) { notify(`${t("分度盘未切换，原设计保持不变：")}${error.errors?.[0]?.message ?? error.message}`); return; }
     setHistory(current => executeFacetingCommand(current, createReplaceDocumentCommand(next, { description: `设计分度盘 · ${teeth} 齿` })));
     dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_INDEX_GEAR, indexTeeth: teeth });
     notify("分度盘已切换；已有切面方向保持不变。");

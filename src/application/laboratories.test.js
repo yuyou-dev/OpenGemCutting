@@ -21,3 +21,20 @@ test('the selected lab independently gates convex mesh sources without modifying
   assert.equal(labEntryState(pattern,document).canCreate,true);
   assert.deepEqual(document,before);
 });
+
+test('a blocked entry names what in the design blocks it, including each laboratory budget', async () => {
+  const { createWorkbenchDocument } = await import('../domain/document.js');
+  const { LAB_PROFILES } = await import('../domain/labsContract/index.js');
+  const { createTranslator } = await import('../i18n/format.js');
+  const samples = createLabContractSamples('preset');
+  const mesh = samples.find(s => s.id === 'v3-mesh-rejected').document;
+  assert.match(labEntryState(pattern, mesh).reason, /异形底胚或原石/);
+  const concave = samples.find(s => s.id === 'v3-concave-rejected').document;
+  assert.match(labEntryState(pattern, concave).reason, /凹切/);
+  const base = createWorkbenchDocument('budget');
+  const many = { ...base, facets: Array.from({ length: LAB_PROFILES.pattern.maxFacets + 1 }, (_, i) => ({ ...base.facets[1], id: `g:${i}` })) };
+  const reason = labEntryState(pattern, many).reason;
+  assert.match(reason, new RegExp(`${many.facets.length} 道平切.*上限 ${LAB_PROFILES.pattern.maxFacets} 道`));
+  assert.equal(labEntryState(preset, many).canBring, true);
+  assert.match(createTranslator('en')(reason), /^This design cannot be brought in yet: it has \d+ planar cuts .* limit of 600\. The original/);
+});

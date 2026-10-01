@@ -1,4 +1,4 @@
-import { inspectLabDocument, millimetersPerModelUnit } from '../domain/labsContract/index.js';
+import { LAB_PROFILES, inspectLabDocument, millimetersPerModelUnit } from '../domain/labsContract/index.js';
 import presetLock from './presetModuleLock.json' with { type: 'json' };
 import lock from './labsModuleLock.json' with { type: 'json' };
 
@@ -27,11 +27,27 @@ export const LABORATORIES = Object.freeze([
     } }),
 ]);
 
+// The contract reports paths; the designer needs to know what in the design blocks entry.
+const ENTRY_REASONS = [
+  [/^\$\.(stock|cuttingReference)/, () => '这颗设计从异形底胚或原石开始，该实验室只接受方块底胚'],
+  [/^\$\.concaveCuts/, () => '设计含凹切（包括已停用的），该实验室暂不支持凹切'],
+  [/^\$\.facets$/, (document, profile) => `设计共有 ${document.facets.length} 道平切（含被覆盖的），超过该实验室上限 ${LAB_PROFILES[profile]?.maxFacets} 道`],
+  [/^\$\.indexGear/, () => '分度盘不在 1–360 整齿范围内'],
+  [/extensions/, () => '设计含该实验室无法识别的必需扩展数据'],
+];
+export function labEntryReason(document, errors, profile = 'pattern') {
+  const match = errors.map(e => ENTRY_REASONS.find(([path]) => path.test(e.path))).find(Boolean);
+  const detail = match ? match[1](document, profile) : '设计文件的格式或版本不受该实验室支持';
+  return `此设计暂时不能带入：${detail}。原设计完整保留。`;
+}
+
 export function labSourceSummary(document, profile = 'pattern') {
   if (!document) return null;
+  const inspection = inspectLabDocument(document, { profile });
   return { name: document.name, teeth: document.indexGear.teeth,
     scale: millimetersPerModelUnit(document),
-    supported: inspectLabDocument(document, { profile }).supported,
+    supported: inspection.supported,
+    reason: inspection.supported ? '' : labEntryReason(document, inspection.errors, profile),
     frostedCount: document.facets.filter(f => f.metadata?.surfaceFinish?.state === 'frosted').length };
 }
 
@@ -40,6 +56,6 @@ export function labEntryState(lab, document, { busy = false, hasPreview = false 
   const source = labSourceSummary(document, lab?.profile);
   const blocked = busy ? '正在创建…' : hasPreview ? '请先返回编辑，保存或放弃未保存切割，再开始实验。'
     : lab?.status !== 'ready' ? '此实验室暂已停用，原实验稿仍保留。' : '';
-  const sourceReason = blocked || (!source ? '请先选择来源设计' : !source.supported ? '此设计不在该实验室的接入范围内。原设计完整保留。' : '');
+  const sourceReason = blocked || (!source ? '请先选择来源设计' : !source.supported ? source.reason : '');
   return { source, canCreate: !blocked, canBring: !sourceReason, reason: sourceReason };
 }

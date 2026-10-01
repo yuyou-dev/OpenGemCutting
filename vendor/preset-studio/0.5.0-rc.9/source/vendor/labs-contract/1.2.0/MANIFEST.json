@@ -1,0 +1,133 @@
+{
+  "contractVersion": "1.2.0",
+  "moduleVersion": "1.2.0",
+  "profile": "preset",
+  "documentVersions": {
+    "host": [
+      1,
+      2,
+      3
+    ],
+    "laboratory": [
+      1,
+      2,
+      3
+    ]
+  },
+  "geometry": "cube or convex mesh planar, fixed cuttingReference, no concave tools",
+  "source": {
+    "sourceFiles": {
+      "src/domain/labsContract/index.js": "9e65b59a365f57a1759639f44795361a01c18e436c615ddd4c327b61e1a982d2",
+      "src/domain/labsContract/indexing.js": "9ddb3ff869f52bafdbd5e009c3649d6db710939fcf2fa4b2133a5f98d507cce0",
+      "src/domain/labsContract/package.json": "307896f19e3f8e736ad4dc957e2ed9b7f835aa5d5a2d51e8b7b758d36e440f17",
+      "src/domain/labsContract/validation.js": "11b5156a218de77b567dce0552f835f570a21decf904cb77d8660c6422a59a98",
+      "src/domain/faceting.js": "2e20964bfd82218fa6a51a58302ecb02344e74763da3a9f39de34d6c92794884",
+      "src/domain/projectLibrary.js": "760dcdee66b9e3da1e9095550989260f0e89b5b7c45334e1af9a5566fe2a051e",
+      "src/domain/meshStock.js": "c4ce75077b62278bc23ae11ea457637b62863a9c3d6623107e924eb24cf94af9",
+      "src/application/labDocuments.js": "7db4e25b3b33b588aa5085c275f111b87b3f00fce76f005cb831958d34b1fcb3",
+      "src/application/labContractSamples.js": "42d7679e7db48778116f99f73ccb37bc78e0b5909daada3df7e1c46f0a336ba0",
+      "src/application/labDocuments.test.js": "9fd6f54ce1329b85c8aa5029ae90a54878240f5dbf0d00922fc386a2568b4c92",
+      "docs/labs/CONTRACT.md": "834a26ba21314f7555e6b98aa9d0fb8d53d05f5af2fb1165a644ac9ef3cd1f90"
+    }
+  },
+  "generatedAt": "2026-10-01T05:39:24.825Z",
+  "laboratoryModuleVersion": null,
+  "jointAcceptance": false,
+  "samples": [
+    {
+      "id": "96-legacy",
+      "file": "samples/96-legacy.json",
+      "expected": "accept"
+    },
+    {
+      "id": "96-legacy-omissions",
+      "file": "samples/96-legacy-omissions.json",
+      "expected": "accept"
+    },
+    {
+      "id": "96-legacy-angle",
+      "file": "samples/96-legacy-angle.json",
+      "expected": "accept"
+    },
+    {
+      "id": "99-ninefold",
+      "file": "samples/99-ninefold.json",
+      "expected": "accept"
+    },
+    {
+      "id": "120-tenfold",
+      "file": "samples/120-tenfold.json",
+      "expected": "accept"
+    },
+    {
+      "id": "360-twelvefold",
+      "file": "samples/360-twelvefold.json",
+      "expected": "accept"
+    },
+    {
+      "id": "96-fractional",
+      "file": "samples/96-fractional.json",
+      "expected": "accept"
+    },
+    {
+      "id": "surface-scale-source",
+      "file": "samples/surface-scale-source.json",
+      "expected": "accept"
+    },
+    {
+      "id": "surface-on-99",
+      "file": "samples/surface-on-99.json",
+      "expected": "accept"
+    },
+    {
+      "id": "covered-operation",
+      "file": "samples/covered-operation.json",
+      "expected": "accept"
+    },
+    {
+      "id": "meet-current",
+      "file": "samples/meet-current.json",
+      "expected": "accept"
+    },
+    {
+      "id": "meet-stale",
+      "file": "samples/meet-stale.json",
+      "expected": "accept"
+    },
+    {
+      "id": "fixed-reference",
+      "file": "samples/fixed-reference.json",
+      "expected": "accept"
+    },
+    {
+      "id": "v2-mesh-rejected",
+      "file": "samples/v2-mesh-rejected.json",
+      "expected": "accept"
+    },
+    {
+      "id": "v3-mesh-rejected",
+      "file": "samples/v3-mesh-rejected.json",
+      "expected": "accept"
+    },
+    {
+      "id": "v3-concave-rejected",
+      "file": "samples/v3-concave-rejected.json",
+      "expected": "reject"
+    },
+    {
+      "id": "v3-active-concave-rejected",
+      "file": "samples/v3-active-concave-rejected.json",
+      "expected": "reject"
+    },
+    {
+      "id": "required-extension-rejected",
+      "file": "samples/required-extension-rejected.json",
+      "expected": "reject"
+    },
+    {
+      "id": "future-format-rejected",
+      "file": "samples/future-format-rejected.json",
+      "expected": "reject"
+    }
+  ]
+}

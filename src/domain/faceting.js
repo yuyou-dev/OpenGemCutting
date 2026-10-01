@@ -633,6 +633,17 @@ export function resolveFacetPattern(pattern, { stock = DEFAULT_STOCK } = {}) {
   );
 }
 
+// Re-resolving an untouched facet only re-rounds its plane (cleanNumber, 1e-12).
+// Keep the stored values then, so lab fingerprints and exact round trips survive
+// operations that rebuild the whole document.
+function keepStoredPlane(facet, resolved) {
+  const stored = facet.plane;
+  if (!stored?.normal || !Number.isFinite(stored.offset) || stored.keep !== resolved.plane.keep) return resolved;
+  const close = (a, b) => Math.abs(a - b) <= 1e-12;
+  return close(stored.offset, resolved.plane.offset) && ['x', 'y', 'z'].every(k => close(stored.normal[k], resolved.plane.normal[k]))
+    ? { ...resolved, plane: clone(stored) } : resolved;
+}
+
 export function createFacetingDocument({
   name = "Untitled Facet Design",
   stock = DEFAULT_STOCK,
@@ -651,7 +662,7 @@ export function createFacetingDocument({
   const reference = cuttingReference === undefined ? resolvedStock : normalizeStock(cuttingReference);
   const resolvedGear = normalizeIndexGear(indexGear);
   const resolvedFacets = facets.map((facet) =>
-    resolveFacet(facetOnIndexGear(facet, resolvedGear.teeth), { stock: reference }),
+    keepStoredPlane(facet, resolveFacet(facetOnIndexGear(facet, resolvedGear.teeth), { stock: reference })),
   );
   const document = {
     $schema: DOCUMENT_SCHEMA_ID,

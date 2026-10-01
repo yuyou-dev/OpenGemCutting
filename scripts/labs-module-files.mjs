@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { LAB_CONTRACT_VERSION } from '../src/domain/labsContract/index.js';
 
+// SHA-256 of the contract 1.2.0 snapshots each laboratory vendors (npm run labs:pack -- … <profile>).
+export const CONTRACT_ARCHIVES = Object.freeze({
+  pattern: '81d42366dbb634786648c23a72d62f6f8e57be0443c0168acee30a0834b9d72f',
+  preset: 'a828ddb546041492f82ad59308422c151be87538e94f0aa11163c0c3184e1e7d',
+});
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const readJSON = async file => JSON.parse(await readFile(file, 'utf8'));
 export const safeModulePath = file => typeof file === 'string' && !file.includes('\\') && !file.startsWith('/') && file.split('/').every(p => p && p !== '.' && p !== '..');
@@ -22,10 +28,11 @@ export async function verifyModule(root, expected = {}) {
   const preset = manifest.packageName === '@facet96/preset-studio';
   assert.ok(preset || manifest.packageName === '@facet96/pattern-lab', 'Unregistered module');
   if (expected.packageName) assert.equal(manifest.packageName, expected.packageName);
-  assert.equal(manifest.contractVersion, preset ? '1.1.0' : '1.0.0');
+  // Both laboratories follow the host's current public contract.
+  assert.equal(manifest.contractVersion, LAB_CONTRACT_VERSION);
   assert.ok([1, 2].includes(manifest.entryApiVersion), "Unsupported module API");
   assert.match(manifest.moduleVersion, /^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/);
-  assert.equal(manifest.publicContractArchiveSha256, preset ? 'ae958888f68046b498aca040f7a69b0a18a29166561967a854980252000b1b1a' : 'b1c99bb91600bfc47d9f8fc8eda2f4fdf89372df98e40ee823e41399a2ac3f8c');
+  assert.equal(manifest.publicContractArchiveSha256, CONTRACT_ARCHIVES[preset ? 'preset' : 'pattern']);
   if (expected.moduleVersion) assert.equal(manifest.moduleVersion, expected.moduleVersion);
   if (expected.manifestSha256) assert.equal(sha256(await readFile(path.join(root, 'MANIFEST.json'))), expected.manifestSha256);
   const checksums = {};
