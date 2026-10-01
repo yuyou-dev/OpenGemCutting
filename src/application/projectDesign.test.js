@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { projectDesign } from './projectDesign.js';
+import { validateTool } from './designContract.js';
 import { planDesign } from './designOperations.js';
 import { indexCompatibilityReport } from '../domain/indexing.js';
 import { createFacetingDocument, exportFacetingJSON, resolveFacetPattern } from '../domain/faceting.js';
@@ -37,8 +38,13 @@ test('the documented 120-wheel example executes on one project wheel and survive
 });
 
 test('the default start takes the same outline and girdle choices over MCP', async () => {
+  const args = { sessionId: 'test', projectId: 'none', revision: 'home', name: 'explicit square', outline: 'square', girdleFacets: 4 };
+  validateTool('project_create', args);
+  const explicit = await projectDesign(args);
   const girdle = (document) => document.facets.filter((facet) => facet.region === 'girdle');
   const square = await projectDesign({ name: 'square', outline: 'square' });
+  assert.equal(girdle(explicit).length, 4);
+  for (const girdleFacets of [4, 5, 6, 7]) await assert.rejects(projectDesign({ name: 'small cylinder', outline: 'cylinder', girdleFacets }), { code: 'INVALID_START' });
   assert.deepEqual(girdle(square).map((facet) => facet.index).sort((a, b) => a - b), [0, 24, 48, 72]);
   assert.equal(girdle(await projectDesign({ name: 'twelve', indexTeeth: 72, girdleFacets: 12 })).length, 12);
   await assert.rejects(projectDesign({ name: 'odd', indexTeeth: 99, outline: 'square' }), { code: 'INVALID_START' });

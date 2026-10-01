@@ -120,6 +120,26 @@ test('edits keep original sequence and table constraints, empty CUTs are blocked
     inspectDesign(withCut).groups.map((g) => g.patternId),
   );
 });
+
+test('table direction cannot erase structural protection; depth edits preserve identity through JSON and undo', () => {
+  const initial = createWorkbenchDocument('table protection');
+  const before = exportFacetingJSON(initial);
+  for (const baseIndex of [24, 96, 0.5]) {
+    assert.throws(() => planDesign(initial, [
+      { kind: 'cut', patternId: 'table-facet', draft: { baseIndex } },
+      { kind: 'remove', patternId: 'table-facet' },
+    ]), { code: 'LOCKED_PARAMETER' });
+  }
+  assert.equal(exportFacetingJSON(initial), before);
+  const plan = planDesign(initial, [{ kind: 'cut', patternId: 'table-facet', draft: { depth: 0.3 } }]);
+  const history = executeFacetingCommand(createCommandHistory(initial), createReplaceDocumentCommand(plan.document));
+  assert.equal(exportFacetingJSON(undoFacetingCommand(history).present), before);
+  const restored = importFacetingJSON(exportFacetingJSON(plan.document));
+  const table = restored.facets.find(facet => facet.patternId === 'table-facet');
+  assert.equal(table.id, initial.facets.find(facet => facet.patternId === 'table-facet').id);
+  assert.equal(table.metadata.operationType, 'table');
+  assert.throws(() => planDesign(restored, [{ kind: 'remove', patternId: 'table-facet' }]), { code: 'TABLE_PROTECTED' });
+});
 test('real mesh retains immutable stock and counts a multi-piece plane once', () => {
   const initial = createPresetStockDocument(
     STOCK_PRESETS.find((p) => p.id === 'letter-a'),

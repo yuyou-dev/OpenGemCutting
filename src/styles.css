@@ -3826,6 +3826,8 @@ canvas.technical-preview {
 .workspace-editor .optics-inspector { top: 18px; max-height: calc(100% - 36px); }
 .workspace-editor .optics-viewport { inset: 0; }
 .project-save-error { position: fixed; z-index: 65; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100% - 32px); padding: 12px 16px; border: 1px solid #dc9ba9; border-radius: 5px; background: #fff7f8; font-size: 12px; box-shadow: 0 4px 20px #00000012; }
+.project-save-pending { position: fixed; z-index: 25; bottom: 18px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 8px 12px; border: 1px solid #c7c5bd; border-radius: 5px; background: #fff; color: #343630; font-size: 12px; pointer-events: none; }
+body:has(.project-save-pending) .toast { bottom: 76px; }
 .project-save-error p { margin: 4px 0 0; font-size: 11px; }
 .project-save-error button { flex-shrink: 0; padding: 7px 10px; border: 1px solid #c89ba6; border-radius: 3px; background: #fff; }
 @media (max-width: 1280px) {

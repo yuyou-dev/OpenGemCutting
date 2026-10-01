@@ -84,7 +84,7 @@ stock 是不可变毛坯；切深参考为 `cuttingReference ?? stock` 的固定
 | 暂停 | 页面隐藏时发出暂停信号 | 停止求解、光学循环、拾取和快捷键，不提交编辑 |
 | 释放 | 离开／卸载时结束此实例 | 取消任务、释放 Worker／GPU／事件资源，迟到结果不得回写 |
 
-原生接入通过 `application/laboratories` 登记固定模块，`application/labHost` 校验候选，`domain/labDrafts` 独立保存实验稿；不使用 iframe 或远程运行时代码。宿主只提供单份实验的保存能力，带回创建独立项目，不覆盖来源或建立平行 CUT 会话。当前生命周期与存储边界见 [状态契约](../architecture/state-contract.md#项目与页面)；第一阶段未接入 UI 的描述仅适用于历史交接包。
+原生接入通过 `application/laboratories` 登记固定模块，`application/labHost` 校验候选，`application/labDatabase` 事务保存独立实验稿（`domain/labDrafts` 保留旧格式校验与兼容适配）；不使用 iframe 或远程运行时代码。宿主只提供单份实验的保存能力，带回创建独立项目，不覆盖来源或建立平行 CUT 会话。当前生命周期与存储边界见 [状态契约](../architecture/state-contract.md#项目与页面)；第一阶段未接入 UI 的描述仅适用于历史交接包。
 
 ## 固定交接包与使用
 

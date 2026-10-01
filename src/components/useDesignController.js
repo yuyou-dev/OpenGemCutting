@@ -31,8 +31,8 @@ import { designJumpCandidates } from '../application/designJump.js';
 import { auditProjection } from '../domain/projectionAudit.js';
 import { inspectTopology } from '../domain/referenceTopology.js';
 import { technicalPreviewSvg } from '../domain/technicalPreview.js';
-import { serializeGemCadAsc } from '../domain/gemcadAsc.js';
 import { inspectProjectSource, planTarget } from '../application/formatCenter.js';
+import { gemCadAscSummary } from '../domain/gemcadAsc.js';
 
 async function renderPng(solid, view) {
   const svg = technicalPreviewSvg(solid, view, {
@@ -260,17 +260,17 @@ export function useDesignController({
       });
       return { projectId, revision, ...(await request.exportArtifact(blob)) };
     }
-    if (name === 'design_export' && args.format === 'gcs') {
-      const { status, text, diagnostics, report, verified } = planTarget(inspectProjectSource(document), 'gcs');
-      return { projectId, revision, format: 'gcs', status, text, diagnostics, report, verified };
+    if (name === 'design_export' && ['asc', 'gcs'].includes(args.format)) {
+      const source = inspectProjectSource(document);
+      const { status, text, diagnostics, report, verified } = planTarget(source, args.format);
+      return { projectId, revision, format: args.format, status, text, diagnostics, report, verified,
+        ...(args.format === 'asc' ? { summary: gemCadAscSummary(document, source) } : {}) };
     }
     if (name === 'design_export')
       return {
         projectId,
         revision,
-        ...(args.format === 'json'
-          ? { format: 'json', text: exportFacetingJSON(document) }
-          : serializeGemCadAsc(document)),
+        format: 'json', text: exportFacetingJSON(document),
       };
     throw designError('UNKNOWN_TOOL', `未实现 ${name}`);
   };

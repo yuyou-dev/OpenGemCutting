@@ -176,6 +176,7 @@ function constructCut(document, operation) {
   if (
     (table &&
       (draft.industryAngle !== 0 ||
+        draft.baseIndex !== baseDraft.baseIndex ||
         draft.repeat !== 1 ||
         draft.mirrorOffset !== 0 ||
         draft.patternMode !== 'symmetric')) ||

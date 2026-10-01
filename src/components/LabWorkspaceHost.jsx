@@ -23,16 +23,22 @@ export const LabWorkspaceHost = forwardRef(function LabWorkspaceHost({ lab, reco
   const candidate = state.record.candidate, reviewRef = useRef(false); reviewRef.current = Boolean(candidate);
   useEffect(() => {
     const controller = new AbortController(); lifetime.current = controller;
-    setPhase('loading'); setError(''); let mounted;
-    const host = createLabHost({ record: drafts.read(record.id), lab, drafts, readProject, createProject,
-      signal: controller.signal, onChange: setState }); driver.current = host;
-    mountLaboratory(element.current, { lab, options: host.options }).then(instance => {
+    setPhase('loading'); setError(''); let mounted, host;
+    driver.current = null;
+    const mount = async () => {
+      const latest = await drafts.read(record.id);
+      controller.signal.throwIfAborted();
+      if (!latest) throw new Error(t('实验稿不存在。'));
+      host = createLabHost({ record: latest, lab, drafts, readProject, createProject,
+        signal: controller.signal, onChange: setState }); driver.current = host;
+      const instance = await mountLaboratory(element.current, { lab, options: host.options });
       if (controller.signal.aborted) { instance.dispose(); return; }
       mounted = instance; runtime.current = instance; setState(host.state()); setPhase('ready');
       if (document.visibilityState === 'hidden' || host.state().record.candidate) instance.pause();
-    }).catch(e => { if (!controller.signal.aborted) { setError(e.message); setPhase('error'); } });
+    };
+    mount().catch(e => { if (!controller.signal.aborted) { setError(e.message); setPhase('error'); } });
     const visibility = () => { if (document.visibilityState === 'hidden') mounted?.pause(); else if (!reviewRef.current) mounted?.resume(); };
-    const beforeUnload = event => { if (host.hasUnsaved()) { event.preventDefault(); event.returnValue = ''; } };
+    const beforeUnload = event => { if (host?.hasUnsaved()) { event.preventDefault(); event.returnValue = ''; } };
     const pageHide = () => controller.abort();
     const pageShow = event => { if (event.persisted) setMountKey(k => k + 1); };
     document.addEventListener('visibilitychange', visibility);

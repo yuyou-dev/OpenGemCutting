@@ -1,4 +1,14 @@
 {
+  "旧版更新副本": "Copy updated in an older version",
+  "本地存储不可用，请允许浏览器本地存储后重试。": "Local storage is unavailable. Allow browser storage and try again.",
+  "请关闭旧版工作台窗口，再重试打开本地存储。": "Close older workbench windows and try opening local storage again.",
+  "本地保存已中断，原记录仍保留，请重试。": "Saving was interrupted. The previous record is retained; please try again.",
+  "冷灰色面 · 磨砂": "Cool grey faces · Frosted",
+  "正在保存项目…": "Saving project…",
+  "正在打开项目…": "Opening project…",
+  "旧项目已升级，原记录仍保留。新版修改请导出 JSON 后再交给旧版工作台。": "Your projects have been upgraded and the original records are retained. Export new edits as JSON before opening them in an older workbench.",
+  "已保留旧版更新副本，请在项目列表核对；当前项目未被覆盖。": "Updates from an older workbench were preserved as separate copies. Check the project list; current projects were not overwritten.",
+  "标题或脚注中的内嵌换行已改为空格，避免被识别为切割指令；原文保留在 JSON 中。": "Embedded line breaks in headings or footnotes were replaced with spaces so they cannot become cutting instructions; JSON keeps the original text.",
   "从预设琢型开始": "Start from a preset cut",
   "选择已有切工，继续设计": "Choose a cut and make it yours",
   "从一个想法，到一颗自己的宝石": "From an idea to a gemstone of your own",
@@ -2102,5 +2112,7 @@
   "分度盘不在 1–360 整齿范围内": "its index wheel is not a whole-tooth wheel from 1 to 360",
   "设计含该实验室无法识别的必需扩展数据": "it carries required extension data this laboratory does not recognize",
   "设计文件的格式或版本不受该实验室支持": "its file format or version is not supported by this laboratory",
-  "实验结果未通过工作台校验，未写入项目；实验稿仍保留。（{0}）": "The result did not pass the workbench check and was not saved to a project; the experiment draft is kept. ({0})"
+  "实验结果未通过工作台校验，未写入项目；实验稿仍保留。（{0}）": "The result did not pass the workbench check and was not saved to a project; the experiment draft is kept. ({0})",
+  "2.0 的项目与实验稿分别自动保存；多个窗口修改同一份内容时会提示冲突。重要设计请同时保存 JSON 主文件。": "In 2.0, projects and experiment drafts save independently. Editing the same record in multiple windows reports a conflict. Keep a JSON master file for important designs.",
+  "保存退出后可从最近实验继续。多窗口冲突时下载恢复文件，再从总览“从恢复文件另存”。带回后冷灰色标记磨砂面；助手提示无需抛光。": "Resume saved work from Recent experiments. On a conflict, download a recovery file and use Save from recovery file in the overview. Returned frosted facets appear in cool gray; the assistant marks them as needing no polish."
 }

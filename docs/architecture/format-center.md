@@ -61,7 +61,7 @@
 
 ## 可选 MCP
 
-`design_export` 的 `format: "gcs"` 与页面使用同一应用层，返回文本、诊断、保留／简化／丢失报告与读回核对结果；`asc` 返回形状不变。
+`design_export` 的 `format: "asc" / "gcs"` 与页面使用同一应用层，返回文本、诊断、保留／简化／丢失报告与 `verified` 读回核对结果；失败时不返回可下载文本。ASC 保留既有 `summary` 字段。标题与脚注中的内嵌换行统一写为空格，并以 `TEXT_LINE_BREAKS_NORMALIZED` 明确报告，避免文本被解析为新的切割指令；完整原文仍保留在 JSON。
 
 ## 测试与样本
 

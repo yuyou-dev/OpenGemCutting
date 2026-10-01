@@ -196,3 +196,19 @@ test('rc.6 preset drafts upgrade with a full backup and preserve unapplied work'
     await session.flush();assert.equal(drafts.read(record.id).versionBackups.length,1);
   } finally {session.dispose();signal.abort();}
 });
+
+
+test('async project storage commits the returned project before recording the receipt', async () => {
+  const f = fixture('fixed-reference');
+  let durable = false;
+  const host = createLabHost({ record:f.record, lab, drafts:f.drafts,
+    readProject:async id => f.projects.read(id),
+    createProject:async (document, options) => { await Promise.resolve(); const record=f.projects.create(document,options); durable=true; return record; },
+    signal:f.lifetime.signal });
+  await host.options.onResult(candidate(f));
+  const returned=await host.accept({name:'Async return',expectedSourceState:host.state().sourceState});
+  assert.equal(durable,true);
+  assert.equal(returned.document.name,'Async return');
+  assert.equal(f.drafts.read(f.record.id).returns[0].projectId,returned.id);
+  assert.equal((await host.accept()).id,returned.id);
+});

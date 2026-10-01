@@ -96,3 +96,23 @@
     font-size: 0;
   }
 }
+
+/* Saved surface labels stay quieter than CUT selection and draft colors. */
+.gem-viewport__surface-legend {
+  position: absolute;
+  top: 66px;
+  left: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #697177;
+  font-size: 11px;
+  pointer-events: none;
+}
+.gem-viewport__surface-legend > span {
+  width: 11px;
+  height: 11px;
+  border: 1px solid #b6bbc2;
+  border-radius: 2px;
+  background: #c9ccd1;
+}

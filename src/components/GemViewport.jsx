@@ -123,6 +123,7 @@ function normalizeGeometry(polyhedron) {
         : normalize(cross(subtract(points[1], points[0]), subtract(points[2], points[0])));
       return {
         id: face?.id ?? faceIndex,
+        facetId: face?.facetId ?? face?.id ?? faceIndex,
         operationId: Array.isArray(face) ? null : face?.sourceOperationId ?? null,
         points,
         center: average(points),
@@ -1845,6 +1846,19 @@ function drawGizmoLabels(canvas, scene) {
 }
 
 const polyhedronRenderCaches = new WeakMap();
+const surfaceCueShaders = new WeakMap();
+
+// Keep the saved surface cue legible under the editor's bright studio lights.
+// One attribute per vertex preserves the existing depth, alpha and face order.
+function surfaceCueShader(p) {
+  if (!surfaceCueShaders.has(p)) surfaceCueShaders.set(p, p.baseMaterialShader().modify({
+    vertexDeclarations: 'in float aSurfaceCue; out float vSurfaceCue; out vec4 vSurfaceColor;',
+    fragmentDeclarations: 'in float vSurfaceCue; in vec4 vSurfaceColor;',
+    'void afterVertex': '() { vSurfaceCue = aSurfaceCue; vSurfaceColor = aVertexColor; }',
+    'vec4 getFinalColor': '(vec4 color, vec2 texCoord) { return vec4(mix(color.rgb, vSurfaceColor.rgb, vSurfaceCue), color.a); }',
+  }));
+  return surfaceCueShaders.get(p);
+}
 
 function releasePolyhedronMeshes(p, cache = polyhedronRenderCaches.get(p)) {
   if (!cache) return;
@@ -1868,7 +1882,7 @@ function lineMesh(p, edges, sceneScale) {
   return mesh;
 }
 
-function drawPolyhedron(p, geometry, sceneScale, lineWeight, yaw, pitch, renderMode, highlightOperationId, activeOperationId, previewOperationId) {
+function drawPolyhedron(p, geometry, sceneScale, lineWeight, yaw, pitch, renderMode, highlightOperationId, activeOperationId, previewOperationId, frostedFaceIds) {
   const gl = p.drawingContext;
   const orderedFaces = geometry.faces
     .map(face => ({ face, depth: viewDepth(face.center, yaw, pitch) }))
@@ -1880,14 +1894,16 @@ function drawPolyhedron(p, geometry, sceneScale, lineWeight, yaw, pitch, renderM
     cache = { geometry, sceneScale, edgeMesh: lineMesh(p, geometry.edges, sceneScale), faceVertices: new Map() };
     polyhedronRenderCaches.set(p, cache);
   }
-  const colors = [renderMode, highlightOperationId, activeOperationId, previewOperationId];
+  const colors = [renderMode, highlightOperationId, activeOperationId, previewOperationId, frostedFaceIds];
   if (!cache.fillMesh || colors.some((value, index) => value !== cache.colors[index])
     || orderedFaces.some((face, index) => face !== cache.orderedFaces[index])) {
     if (cache.fillMesh) p.freeGeometry(cache.fillMesh);
     const mesh = new p.constructor.Geometry();
     orderedFaces.forEach((face) => {
-      const color = faceColor(face, renderMode, highlightOperationId, activeOperationId, previewOperationId)
+      const color = faceColor(face, renderMode, highlightOperationId, activeOperationId, previewOperationId, frostedFaceIds)
         .map((value) => value / 255);
+      const surfaceCue = frostedFaceIds?.has(face.facetId)
+        && ![highlightOperationId, activeOperationId, previewOperationId].some(id => id && id === face.operationId);
       let vectors = cache.faceVertices.get(face);
       if (!vectors) {
         vectors = { normal: p.createVector(...transformPoint(face.normal, 1)), vertices: face.points.map(point => p.createVector(...transformPoint(point, sceneScale))) };
@@ -1898,6 +1914,7 @@ function drawPolyhedron(p, geometry, sceneScale, lineWeight, yaw, pitch, renderM
         mesh.vertices.push(point);
         mesh.vertexNormals.push(vectors.normal);
         mesh.vertexColors.push(...color);
+        mesh.vertexProperty('aSurfaceCue', surfaceCue ? 1 : 0);
       });
       for (let index = 1; index < face.points.length - 1; index += 1) {
         mesh.faces.push([start, start + index, start + index + 1]);
@@ -1921,7 +1938,10 @@ function drawPolyhedron(p, geometry, sceneScale, lineWeight, yaw, pitch, renderM
   if (orderedFaces.length) {
     p.noStroke();
     p.fill(255);
+    p.push();
+    if (frostedFaceIds?.size) p.shader(surfaceCueShader(p));
     p.model(cache.fillMesh);
+    p.pop();
     p.normal(...transformPoint(orderedFaces.at(-1).normal, 1));
   }
   gl.depthMask(true);
@@ -2294,6 +2314,7 @@ export function GemViewport({
   renderMode = "solid",
   resetSignal,
   highlightOperationId = null,
+  frostedFaceIds,
   activeOperationId = null,
   previewOperationId = null,
   pickingEnabled = false,
@@ -2327,6 +2348,7 @@ export function GemViewport({
   const framesRef = useRef(null);
   const lifecycleRef = useRef(null);
   const normalizedGeometry = useMemo(() => normalizeGeometry(polyhedron), [polyhedron]);
+  const hasFrostedFaces = normalizedGeometry.faces.some(face => frostedFaceIds?.has(face.facetId));
   const normalizedMeetSource = useMemo(
     () => meetPolyhedron ? normalizeGeometry(meetPolyhedron) : null,
     [meetPolyhedron],
@@ -2380,6 +2402,7 @@ export function GemViewport({
       viewMode: assistantView ? "perspective" : activeViewMode,
       renderMode,
       highlightOperationId,
+      frostedFaceIds,
       activeOperationId,
       previewOperationId,
       pickingEnabled,
@@ -2396,7 +2419,7 @@ export function GemViewport({
     }
     framesRef.current?.setSuspended(suspended);
     framesRef.current?.invalidate();
-  }, [concaveTools, assistantView, activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, indexTeeth, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
+  }, [frostedFaceIds, concaveTools, assistantView, activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, indexTeeth, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
 
   useEffect(() => {
     const nextMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
@@ -2541,7 +2564,7 @@ export function GemViewport({
         if (displayMode === "xray") drawGhostCube(p, ghostBounds, sceneScale, lineWeight);
         // Solid first so preview planes are correctly occluded by geometry;
         // patches never write depth, they only tint what the camera can see.
-        drawPolyhedron(p, geometry, sceneScale, lineWeight, camera.yaw, camera.pitch, displayMode, sceneRef.current.highlightOperationId, sceneRef.current.activeOperationId, sceneRef.current.previewOperationId);
+        drawPolyhedron(p, geometry, sceneScale, lineWeight, camera.yaw, camera.pitch, displayMode, sceneRef.current.highlightOperationId, sceneRef.current.activeOperationId, sceneRef.current.previewOperationId, sceneRef.current.frostedFaceIds);
         drawPreviewPlanes(p, planes, index, ghostBounds, sceneScale, lineWeight, displayMode, sceneRef.current.indexTeeth);
         drawConcaveTools(p, sceneRef.current.concaveTools, sceneScale, transformPoint);
         drawGroupControlPlane(p, sceneRef.current.groupGizmo, sceneScale, lineWeight);
@@ -2659,6 +2682,7 @@ export function GemViewport({
         </div>
       ) : null}
 
+      {hasFrostedFaces ? <div className="gem-viewport__surface-legend"><span aria-hidden="true" />{t("冷灰色面 · 磨砂")}</div> : null}
       <div className="gem-viewport__interaction-hints" aria-label={t("视口操作提示")}>
         <span><IconRotate3d size={16} stroke={1.7} />{t("拖拽旋转")}</span>
         <span><IconZoomIn size={16} stroke={1.7} />{t("滚轮缩放")}</span>

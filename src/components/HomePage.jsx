@@ -38,7 +38,7 @@ const ProjectCard = memo(function ProjectCard({ project, active, onOpen, onDelet
   );
 });
 
-export function HomePage({ projects, activeProjectId, onOpenProject, onNewProject, onDeleteProject, onOpenLab, onOpenFormats, onResume, error, onRetry, onOpenHelp }) {
+export function HomePage({ projects, activeProjectId, onOpenProject, onNewProject, onDeleteProject, onOpenLab, onOpenFormats, onResume, error, notice, onRetry, onOpenHelp }) {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
@@ -80,6 +80,7 @@ export function HomePage({ projects, activeProjectId, onOpenProject, onNewProjec
             {projects.length > 3 && !words.length && <button type="button" className="workspace-page-button home-show-all" aria-expanded={showAll} aria-controls="home-project-list" onClick={() => setShowAll((value) => !value)}>{showAll ? t("收起") : t("全部")}{showAll ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}</button>}
           </div>
         </div>
+        {notice && <p className="workspace-storage-notice" role="status">{t(notice)}</p>}
         {error && <div className="workspace-page-error" role="alert"><span>{t(error)}</span><button type="button" onClick={onRetry}>{t("重试")}</button></div>}
         <div id="home-project-list" className="home-project-grid" style={{ "--project-columns": Math.max(1, Math.min(3, visibleProjects.length)) }}>
           <button type="button" className="home-create-card" onClick={onNewProject}>
