@@ -69,6 +69,8 @@ v1.1.1 发布前完整 `npm run check:mcp` 通过 339 项，公开敏感信息�
 
 Pages 子路径构建在系统 Chrome（无头）实测：限速 300 KB/s、延迟 150 ms 直接进入编辑时显示“正在准备三维视图…”浮层约 4 秒后出现画布；在主页停留后进入不再出现浮层（已预取）；光学仿真与实验室各自显示加载浮层；实验室光学对比拖动松手、画布从 136 切回 472 像素的那一帧保留上一张图像，无黑帧；无控制台错误。
 
+线上发布：[PR #12](https://github.com/yuyou-dev/OpenGemCutting/pull/12) 的 GitHub CI 7 项通过后合入 main（`f267fe4`），Pages 部署成功，标签与 [v2.0.0-rc.2 Pre-release](https://github.com/yuyou-dev/OpenGemCutting/releases/tag/v2.0.0-rc.2) 已发布。线上实测：首页 2.0.0-rc.2；中英手册与发布文件逐字节一致；两个实验室模块与底胚 OBJ 返回 200；同样限速下直接进入编辑浮层约 2.8 秒，主页停留后进入无浮层；实验室光学对比松手无黑帧；无控制台错误。
+
 ## v2.0.0-rc.1 预发布 · 2026-09-30
 
 维护者授权以预发布形式发布 2.0：推送 release 分支并开 PR、CI 通过后合入 main、创建 v2.0.0-rc.1 标签与 GitHub Pre-release、更新线上演示。本机工程验证：`npm ci`、`npm ci --prefix mcp`、`npm audit` 与 MCP 依赖审计 0 已知漏洞（MCP 传递依赖 fast-uri、ip-address 按审计修复）；`npm run check:mcp` 通过（核心 533 项通过，4 项依赖未公开旧实验室交付包的升级回归按设计跳过；Companion 14、设计接口 11、Sites 4、MCP 5），公开敏感信息扫描通过 1938 个文本文件。冠亭实验室交付包更新为 0.5.0-rc.8（功能同 rc.7），随包契约快照不再含宿主提交、分支与工作区状态。93 张预设预览按 1.3.0 之后的裁切内核修正重新生成（仅几何线稿）。
