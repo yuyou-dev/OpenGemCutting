@@ -1,0 +1,47 @@
+/* Same language as the boot screen: white field, brand mark, thin pink progress. */
+.viewport-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: #fafaf9;
+  color: #666;
+  text-align: center;
+  cursor: progress;
+  animation: viewport-loading-in 200ms ease-out 120ms both;
+}
+
+.viewport-loading img { width: 40px; height: auto; opacity: .9; }
+.viewport-loading p { margin: 0; font-size: 12px; line-height: 1.5; }
+.viewport-loading button {
+  min-height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--pink, #ed225d);
+  border-radius: 3px;
+  color: var(--pink, #ed225d);
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.viewport-loading.is-failed { cursor: default; }
+
+.viewport-loading__bar { width: 140px; height: 2px; overflow: hidden; background: #ededeb; }
+.viewport-loading__bar span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: var(--pink, #ed225d);
+  animation: viewport-loading-progress 900ms ease-in-out infinite alternate;
+}
+
+@keyframes viewport-loading-progress { from { transform: translateX(-100%); } to { transform: translateX(264%); } }
+@keyframes viewport-loading-in { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .viewport-loading { animation: none; }
+  .viewport-loading__bar span { width: 68%; transform: none; animation: none; }
+}

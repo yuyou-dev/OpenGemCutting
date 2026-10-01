@@ -5,6 +5,7 @@ import { createLabHost, mountLaboratory } from '../application/labHost.js';
 import { Modal } from './Modal.jsx';
 import { downloadBlob } from '../utils/download.js';
 import { t } from '../i18n/locale.js';
+import { ViewportLoading } from './ViewportLoading.jsx';
 
 export const sourceStateText = state => ({ new: '从实验室新建', current: '来源版本未变化', changed: '来源已有新版本；本实验仍基于进入时的快照',
   missing: '来源项目已删除；本实验的来源快照仍保留', unreadable: '暂时无法读取来源项目；本实验的来源快照仍保留' }[state?.status] ?? '');
@@ -93,8 +94,8 @@ export const LabWorkspaceHost = forwardRef(function LabWorkspaceHost({ lab, reco
     {headerSlot ? createPortal(workspaceControls, headerSlot) : workspaceControls}
     {state.sourceState && !['new', 'current'].includes(state.sourceState.status) ? <p className="labs-source-alert" role="status">{t(sourceStateText(state.sourceState))}</p> : null}
     {error || state.error ? <div className="labs-error" role="alert"><span>{t(error || state.error)}</span><button onClick={retrySave} disabled={busy}>{t('重试保存与恢复')}</button><button onClick={() => downloadLabRecovery(driver.current.recovery())}>{t('下载恢复文件')}</button></div> : null}
-    {phase === 'loading' ? <p className="labs-loading" role="status">{t('正在载入实验室与已保存的实验稿…')}</p> : null}
-    {phase === 'error' ? <div className="labs-loading"><p>{t('载入失败，原实验稿仍保留。')}</p><button onClick={() => setMountKey(k => k + 1)}>{t('重新载入')}</button></div> : null}
+    {phase === 'loading' ? <ViewportLoading message="正在载入实验室与已保存的实验稿…" /> : null}
+    {phase === 'error' ? <ViewportLoading failed message="载入失败，原实验稿仍保留。" onRetry={() => setMountKey(k => k + 1)} /> : null}
     <div ref={element} className="labs-module-root" data-lab-module={lab.id} />
     {candidate ? <Modal title={t('检查实验结果')} onClose={dismiss} closeLabel={t('继续实验')} footerActions={<button className="primary-action modal-button" disabled={busy || phase !== 'ready'} onClick={accept}>{t(busy ? '正在保存…' : candidate.returnedProjectId ? '打开已带回项目' : '带回为新项目')}</button>}>
       <p>{t('实际几何已由工作台重新计算并校验。带回会创建独立项目，来源设计保持原样。')}</p><label className="labs-result-name">{t('新项目名称')}<input value={name} onChange={e => setName(e.target.value)} /></label>

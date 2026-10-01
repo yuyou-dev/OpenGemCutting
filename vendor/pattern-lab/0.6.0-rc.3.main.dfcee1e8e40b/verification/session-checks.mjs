@@ -74,15 +74,17 @@ export async function checkSessionBoundaries({ createLabSession, moduleInfo }, d
   let saved;
   const first = await createLabSession({ source: source(document), persistence: { save: draft => { saved = draft; } } });
   await first.returnResult(); first.dispose();
-  await check('accepted phase-one draft resumes without changing source geometry', async () => {
-    const legacy = structuredClone(saved); legacy.moduleVersion = '0.5.1-alpha'; const untouched = structuredClone(legacy);
-    let upgraded;
-    const session = await createLabSession({ source: source(document), persistence: { load: () => legacy, save: draft => { upgraded = draft; } } });
-    try {
-      const result = await session.returnResult(); assert.deepEqual(result.document.facets, document.facets);
-      assert.equal(upgraded.moduleVersion, moduleInfo.moduleVersion); assert.deepEqual(legacy, untouched);
-    } finally { session.dispose(); }
-  });
+  for (const version of ['0.5.1-alpha', '0.6.0-rc.3.main.92ee082cc1e1', '0.6.0-rc.3.main.b88db469903c']) {
+    await check(`draft from published ${version} resumes without changing source geometry`, async () => {
+      const legacy = structuredClone(saved); legacy.moduleVersion = version; const untouched = structuredClone(legacy);
+      let upgraded;
+      const session = await createLabSession({ source: source(document), persistence: { load: () => legacy, save: draft => { upgraded = draft; } } });
+      try {
+        const result = await session.returnResult(); assert.deepEqual(result.document.facets, document.facets);
+        assert.equal(upgraded.moduleVersion, moduleInfo.moduleVersion); assert.deepEqual(legacy, untouched);
+      } finally { session.dispose(); }
+    });
+  }
   for (const [label, patch] of [['foreign lab', { labId: 'different-lab' }], ['future module', { moduleVersion: '999.0.0' }],
     ['future contract', { contractVersion: '999.0.0' }], ['source revision conflict', { source: { ...saved.source, revision: 'revision-8' } }]]) {
     await check(`refuse ${label} without overwriting stored data`, async () => {

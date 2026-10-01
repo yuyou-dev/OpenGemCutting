@@ -22,6 +22,8 @@ export class RoughRenderer {
     this.engine = 'path';
     this.mode = 0;
     this.interactive = false;
+    this.held = null;
+    this.lastShown = null;
     this.fence = null;
     this.raf = null;
     this.camera = { eye: [0, -.48, .877], right: [1, 0, 0], up: [0, .877, .48], span: 1.12 };
@@ -122,8 +124,16 @@ export class RoughRenderer {
 
   allocate() {
     const gl = this.gl;
+    // Resizing clears the canvas. Keep the last finished image on screen, scaled,
+    // until the new resolution has its first sample, instead of showing black.
+    // Track the image last shown, not the sample count: a camera move resets the
+    // count just before the resize that ends a drag, while that image is still intact.
+    const live = this.lastShown && (this.lastShown.image === this.held?.image || this.targets.some(target => target.image === this.lastShown.image));
+    const shown = live ? this.lastShown : null;
+    if (this.held && this.held.image !== shown?.image) this.dropHeld();
     for (const fbo of this.fbos) gl.deleteFramebuffer(fbo);
-    for (const target of this.targets) { this.dropTexture(target.image); this.dropTexture(target.guide); }
+    for (const target of this.targets) if (target.image !== shown?.image) { this.dropTexture(target.image); this.dropTexture(target.guide); }
+    this.held = shown;
     this.fbos = [];
     this.targets = [];
     for (let i = 0; i < 2; i++) {
@@ -153,7 +163,14 @@ export class RoughRenderer {
     if (this.canvas.width === width && this.canvas.height === height && this.targets.length) return;
     this.canvas.width = width;
     this.canvas.height = height;
-    if (!this.contextLost && !this.disposed) this.allocate();
+    if (!this.contextLost && !this.disposed) { this.allocate(); this.display(); }
+  }
+
+  dropHeld() {
+    if (!this.held) return;
+    this.dropTexture(this.held.image);
+    this.dropTexture(this.held.guide);
+    this.held = null;
   }
 
   setScene(compiled) {
@@ -279,8 +296,9 @@ export class RoughRenderer {
   }
 
   display() {
-    if (this.disposed || this.contextLost || !this.mesh || !this.sample) return;
-    const gl = this.gl, program = this.displayProgram, target = this.targets[1 - this.write];
+    if (this.disposed || this.contextLost || !this.mesh || !(this.sample || this.held)) return;
+    const gl = this.gl, program = this.displayProgram, target = this.sample ? this.targets[1 - this.write] : this.held;
+    const samples = this.sample || this.held.samples;
     gl.bindVertexArray(this.vao);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(program);
@@ -289,12 +307,14 @@ export class RoughRenderer {
     this.bind(program, 'uGuide', target.guide, 1);
     this.bind(program, 'uMaterials', this.geometryTextures[3], 2);
     this.uniform(program, 'uExposure', this.options.exposure);
-    this.uniform(program, 'uSamples', this.sample);
+    this.uniform(program, 'uSamples', samples);
     this.uniform(program, 'uDenoise', this.options.denoise ? 1 : 0, 'i');
     this.uniform(program, 'uCompare', this.options.compare ? 1 : 0, 'i');
     this.uniform(program, 'uAnyFrost', this.mesh.audit.frosted ? 1 : 0, 'i');
     this.uniform(program, 'uMode', this.mode, 'i');
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    this.lastShown = { image: target.image, guide: target.guide, samples };
+    if (this.sample) this.dropHeld();
   }
 
   readLinear() {
@@ -349,6 +369,8 @@ export class RoughRenderer {
     this.fbos = [];
     this.programs = [];
     this.targets = [];
+    this.held = null;
+    this.lastShown = null;
     this.geometryTextures = [];
     this.uniformCache?.clear();
     this.vao = null;

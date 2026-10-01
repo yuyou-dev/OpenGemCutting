@@ -12,6 +12,7 @@ import { createAsyncOpticsRenderer } from "./opticsAsyncRenderer.js";
 import { opticsCameraFromViewport } from "./viewportOrbit.js";
 import { createViewportCamera, dragViewport, zoomViewport, keyViewport, resetViewport, advanceViewportCamera } from "./viewportNavigation.js";
 import { startCameraTransition } from "./viewportFrames.js";
+import { ViewportLoading } from "./ViewportLoading.jsx";
 import "./OpticsViewport.css";
 
 function cameraOrbitForView(viewMode) {
@@ -38,6 +39,8 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const [error, setError] = useState("");
+  // The WebGPU and surface renderers load on demand; cover the canvas until one is ready.
+  const [rendererReady, setRendererReady] = useState(false);
   // Backend choice is session-only. A fresh canvas is required after WebGPU:
   // a canvas cannot switch context types once it has acquired one.
   const [backend, setBackend] = useState(() =>
@@ -103,6 +106,8 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
     const renderer = createProgressiveOpticsRenderer(backendRenderer,
       { stages: rendererKind === "surface" ? SAMPLING_STAGES : POLISHED_STAGES });
     rendererRef.current = renderer;
+    setRendererReady(false);
+    Promise.resolve(backendRenderer?.ready).finally(() => { if (!disposed) setRendererReady(true); });
     const observer = new ResizeObserver(() => drawRef.current());
     observer.observe(canvas);
     return () => {
@@ -189,6 +194,7 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
 
   return (
     <section className="optics-viewport" aria-label={t("宝石光学仿真视口")}>
+      {rendererReady ? null : <ViewportLoading message="正在准备光学仿真…" />}
       <canvas
         key={rendererKind}
         ref={canvasRef}

@@ -1,7 +1,7 @@
 // Consume the fixed laboratory's accepted BSDF, VNDF and random-dimension code
 // directly. This adapter supplies the host's boundary traversal, environment
 // sampling, camera and accumulation only.
-import { traceShader } from '../../vendor/pattern-lab/0.6.0-rc.3.main.b88db469903c/source/src/render/shaders.js';
+import { traceShader } from '../../vendor/pattern-lab/0.6.0-rc.3.main.dfcee1e8e40b/source/src/render/shaders.js';
 import { FRAGMENT_SHADER } from './opticsWebglRenderer.js';
 import { MAX_SURFACE_PLANES } from '../domain/opticsSurface.js';
 

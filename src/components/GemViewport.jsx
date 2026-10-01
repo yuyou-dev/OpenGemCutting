@@ -26,6 +26,8 @@ import { advanceViewportCamera, createViewportFrames, cuttingCameraPose, startCa
 import { createViewportCamera, dragViewport, zoomViewport, keyViewport } from "./viewportNavigation.js";
 import { indexRingLayout, ringPoint } from "./viewportIndexRing.js";
 import { createViewportLifecycle } from "./viewportLifecycle.js";
+import { ViewportLoading } from "./ViewportLoading.jsx";
+import { loadViewportRenderer } from "./viewportRenderer.js";
 import "./GemViewport.css";
 
 const VIEW_POSES = {
@@ -2336,6 +2338,9 @@ export function GemViewport({
   const [activeViewMode, setActiveViewMode] = useState(initialMode);
   const [contextStatus, setContextStatus] = useState("ready");
   const contextLost = contextStatus !== "ready";
+  // "loading" until the renderer chunk has arrived and p5 has drawn once.
+  const [rendererState, setRendererState] = useState("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   interactionRef.current = {
     onCameraInteraction,
@@ -2445,6 +2450,8 @@ export function GemViewport({
     let resizeObserver = null;
     let resizeTimer = 0;
     let cameraMoving = false;
+    let firstFrameDrawn = false;
+    setRendererState("loading");
     const frames = createViewportFrames({
       draw: async () => {
         // No drawable instance while the WebGL context is lost.
@@ -2558,15 +2565,17 @@ export function GemViewport({
         // p5 also draws once after async setup, outside our frame queue. Keep
         // a pending camera transition moving even if it starts on that frame.
         if (cameraMoving) frames.invalidate();
+        if (!firstFrameDrawn) { firstFrameDrawn = true; setRendererState("ready"); }
       };
     };
 
     (async () => {
       let p5;
       try {
-        ({ default: p5 } = await import("p5"));
+        p5 = await loadViewportRenderer();
       } catch (error) {
         console.error("加载 p5 视口渲染器失败：", error);
+        if (!cancelled) setRendererState("failed");
         return;
       }
       if (cancelled) return;
@@ -2627,13 +2636,20 @@ export function GemViewport({
       lifecycle?.destroy();
       lifecycleRef.current = null;
     };
-  }, []);
+  }, [loadAttempt]);
 
   return (
     <section className="gem-viewport" aria-label={t("宝石多面体三维视口")}>
       <div className="gem-viewport__canvas" ref={hostRef} />
 
       <canvas className="gem-viewport__gizmo-labels" ref={gizmoLabelCanvasRef} aria-hidden="true" hidden={contextLost} />
+      {rendererState !== "ready" && !contextLost ? (
+        <ViewportLoading
+          failed={rendererState === "failed"}
+          message={rendererState === "failed" ? "三维渲染器未能加载，当前设计已保留。请检查网络后重试。" : undefined}
+          onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+        />
+      ) : null}
       {contextLost ? (
         <div role="alert" className="gem-viewport__error">
           <p>{contextStatus === "failed"
