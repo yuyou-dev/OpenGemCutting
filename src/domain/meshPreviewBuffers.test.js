@@ -29,3 +29,16 @@ test("GPU preview basis retains top/bottom and front/side handedness",()=> {
   assert.deepEqual(getTechnicalViewBasis("bottom"),{horizontal:{x:1,y:0,z:0},vertical:{x:0,y:1,z:0},view:{x:0,y:0,z:-1}});
   assert.deepEqual(getTechnicalViewBasis("side"),{horizontal:{x:0,y:1,z:0},vertical:{x:0,y:0,z:1},view:{x:1,y:0,z:0}});
 });
+
+test("frosted mesh patches share a cue without coloring other facets in their CUT layer",()=> {
+  const solid=triangulatedCube();solid.faces.forEach(face=>{face.sourceOperationId='one-layer';});
+  const buffers=getMeshPreviewBuffers(solid), frostedFaceIds=new Set(['facet-0']);
+  const plain=fillMeshPreviewColors(buffers), marked=fillMeshPreviewColors(buffers,{frostedFaceIds});
+  for(const range of buffers.faceRanges) {
+    const a=[...plain.slice(range.start*3,(range.start+range.count)*3)];
+    const b=[...marked.slice(range.start*3,(range.start+range.count)*3)];
+    if(range.facetId==='facet-0')assert.notDeepEqual(a,b);else assert.deepEqual(a,b);
+  }
+  assert.deepEqual(fillMeshPreviewColors(buffers,{activeOperationId:'one-layer',frostedFaceIds}),fillMeshPreviewColors(buffers,{activeOperationId:'one-layer'}));
+  assert.deepEqual(fillMeshPreviewColors(buffers,{frostedFaceIds:new Set()}),plain,'removing surface labels restores the ordinary appearance');
+});

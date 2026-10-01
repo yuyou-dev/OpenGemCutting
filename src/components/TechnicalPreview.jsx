@@ -57,7 +57,7 @@ function VectorTechnicalPreview({
 }
 
 function MeshTechnicalPreview(props) {
-  const { solid, view = "isometric", label, className = "", activeOperationId, previewOperationId, highlightOperationId } = props;
+  const { solid, view = "isometric", label, className = "", activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds } = props;
   const canvasRef = useRef(null);
   const drawRef = useRef(null);
   const [fallback, setFallback] = useState(false);
@@ -71,9 +71,9 @@ function MeshTechnicalPreview(props) {
     const height = Math.max(1, Math.round(box.height * density));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     try {
-      if (!renderTechnicalMesh(canvas, solid, view, { activeOperationId, previewOperationId, highlightOperationId })) setFallback(true);
+      if (!renderTechnicalMesh(canvas, solid, view, { activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds })) setFallback(true);
     } catch { setFallback(true); }
-  }, [solid, view, activeOperationId, previewOperationId, highlightOperationId]);
+  }, [solid, view, activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds]);
   drawRef.current = draw;
   useLayoutEffect(() => { draw(); }, [draw]);
   useLayoutEffect(() => {

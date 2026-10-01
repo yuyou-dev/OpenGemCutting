@@ -37,7 +37,7 @@ export const CONCEPTS = Object.freeze([
   { id: "titles", label: "标题与脚注", hint: "图纸上方的标题和下方的备注",
     support: { json: "keep", asc: "approx", gem: "keep", gcs: "approx" },
     notes: { asc: "各保留前 4 行", gcs: "各保留前 2 行" },
-    codes: { approx: ["TEXT_LINES_TRUNCATED", "GCS_TEXT_LIMIT"] } },
+    codes: { approx: ["TEXT_LINES_TRUNCATED", "TEXT_LINE_BREAKS_NORMALIZED", "GCS_TEXT_LIMIT"] } },
   { id: "refractiveIndex", label: "折射率", hint: "材料折射率",
     support: { json: "keep", asc: "keep", gem: "keep", gcs: "keep" } },
   { id: "optics", label: "色散、体色与观察环境", hint: "光学仿真的材料与环境设置",
@@ -106,7 +106,7 @@ export function presentConcepts(design, facts = {}) {
   if (named) present.set("names", `${named} 层`);
   const facetNames = tiers.reduce((sum, tier) => sum + individualFacetNames(tier).length, 0);
   if (facetNames) present.set("facetNames", `${facetNames} 面`);
-  if (design && (textLines(design.headings).length > 1 || textLines(design.footnotes).length)) {
+  if (design && (textLines(design.headings).length > 1 || textLines(design.footnotes).length || design.headings.some(line => /[\r\n\u2028\u2029]/.test(line)))) {
     present.set("titles", `${textLines(design.headings).length} 行标题 · ${textLines(design.footnotes).length} 行脚注`);
   }
   if (design) present.set("refractiveIndex", String(design.refractiveIndex));

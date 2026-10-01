@@ -70,7 +70,7 @@ PDF 返回本机临时下载链接，避免大型字体嵌入对话消息。服�
 
 ## 设备与快捷凹切
 
-`project_create.indexTeeth` 在新建时指定设备盘（默认 96），默认腰棱按该盘整齿生成；默认起点另可传 `outline: "square"`（4 面，盘须能被 4 整除）或圆柱的 `girdleFacets`（该盘整除数且 ≥ 8，默认最接近 32），与起点模板、预设或文件同传返回 `INVALID_START`。所有平面切割统一使用项目盘；旧文件换盘保留造型与面 ID，仅重算读数，不吸附小数。`cut.draft.indexTeeth` 不得另指定不同设备。
+`project_create.indexTeeth` 在新建时指定设备盘（默认 96），默认腰棱按该盘整齿生成；默认起点另可传 `outline: "square"`（4 面，可显式传 `girdleFacets: 4`，盘须能被 4 整除）或圆柱的 `girdleFacets`（该盘整除数且 ≥ 8，默认最接近 32），与起点模板、预设或文件同传返回 `INVALID_START`。所有平面切割统一使用项目盘；旧文件换盘保留造型与面 ID，仅重算读数，不吸附小数。`cut.draft.indexTeeth` 不得另指定不同设备。
 
 `design_plan` 的 `concave-tool` 操作与网页快捷刀具同源：`{ "kind": "concave-tool", "toolId": "flute-1", "preset": "flute", "repeat": 5, "toolDepth": 0.34 }`。`preset` 可选 `bowl`、`flute`、`v-groove`（90° V 形轮）、`triangle-groove`（可调三角柱）、`fine-flute`；已有 `toolId` 可只传 `repeat`、`toolDepth` 或连续角度 `phaseDeg`，未指定字段保持原值；phaseDeg 独立于平切分度盘。三角柱可另外传 `width > 0`、`length > 0` 与 `0 < tipAngle < 180`；尺寸变化保留现有切深，显式 `toolDepth` 可覆盖。比如 `{ "kind": "concave-tool", "toolId": "triangle-1", "preset": "triangle-groove", "width": 0.8, "length": 1.6, "tipAngle": 60, "toolDepth": 0.65 }` 在预设 Columbia-Willamette 上生成五重直线尖槽。预览／提交沿用正式 plan/commit 生命周期。网页一键添加在共享 application 完整求值后写入一次可撤销命令。高级工具参数仍可通过已有参数组导入和计划操作精确保留。
 
@@ -79,3 +79,14 @@ PDF 返回本机临时下载链接，避免大型字体嵌入对话消息。服�
 平切 Meet / Jump、有效提交与影响检查以原始底胚和平切工序为来源；凹切仅在最终实体上做布尔叠加。网页临时隐藏凹切不改变项目参数，MCP 快照和导出仍得到已保存的组合设计。
 
 表面记录沿用 `facet.metadata.surfaceFinish`，参数编辑的继承规则见 [逐面表面处理](../architecture/state-contract.md#逐面表面处理与切割提醒)。MCP 未新增表面编辑工具或参数。
+
+固定台面的几何只允许修改切深，不能通过修改主分度、角度或重复轨道解除其结构身份。ASC 与 GCS 导出均返回读回核对 `verified` 和信息损失报告；核对失败时 `text` 为空。
+
+## 2.0 功能范围
+
+2.0 保持当前能力注册表中的 13 个设计工具，以及工作台连接／会话和纯几何计算入口；不以界面拥有某项能力推定 MCP 已支持。
+
+- 已有项目的重命名、原位切换分度盘、光学视图／材质调整和实验室内部操作仍由网页完成，不提供对应的独立 MCP 控制工具。
+- `project_create.name / indexTeeth` 只配置新建项目，不是修改当前项目的接口；新建时可从 JSON、预设或底胚开始。
+- 表面处理信息可以随正式文档与参数组保留，但没有新增逐面表面处理接口。JSON 保存完整可编辑数据；ASC / GCS 的损失以实际导出报告为准。
+- 手动 CUT、弹窗或只读视图仍按当前守卫阻止自动写入。不能用自动取消用户现场来补齐接口范围。

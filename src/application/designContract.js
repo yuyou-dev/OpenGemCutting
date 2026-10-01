@@ -192,7 +192,7 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_export',
-    'Export the committed design as full editable JSON, vector PDF, or GemCad ASC / Gem Cut Studio GCS with the final effective facets (every loss reported in diagnostics; GCS is read back and returned only when the shape matches, with a kept/approximate/lost report); mesh or active curved-tool geometry requires JSON. PDF surfaceFinish defaults to polished; annotated marks frosted faces in views and facet tables. Does not commit a draft.',
+    'Export the committed design as full editable JSON, vector PDF, or GemCad ASC / Gem Cut Studio GCS with the final effective facets (every loss reported in diagnostics; ASC and GCS are read back and returned only when the shape matches, with a kept/approximate/lost report); mesh or active curved-tool geometry requires JSON. PDF surfaceFinish defaults to polished; annotated marks frosted faces in views and facet tables. Does not commit a draft.',
     object(
       {
         ...readScope,
@@ -213,7 +213,7 @@ export const DESIGN_TOOLS = [
         name: string,
         indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
         outline: { type: 'string', enum: ['cylinder', 'square'] },
-        girdleFacets: { type: 'integer', minimum: 8, maximum: 360 },
+        girdleFacets: { type: 'integer', minimum: 4, maximum: 360 },
         stockPresetId: string,
         presetId: string,
         json: { type: 'string', maxLength: 20971520 },

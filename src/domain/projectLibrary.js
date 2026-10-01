@@ -8,7 +8,7 @@ const MIGRATED_PREFIX = "facet96:project-migration:v1:";
 const legacyProjectId = (id) => `legacy-${encodeURIComponent(id)}`;
 
 // Only the committed document crosses this boundary; viewport and CUT state do not.
-function projectSnapshot(document) {
+export function projectSnapshot(document) {
   const validated = importFacetingJSON(document);
   assertValidDocumentGeometry(validated);
   const { $schema, schemaVersion, kind, name, indexGear, stock, cuttingReference, facets, concaveCuts, metadata, extensions } = validated;
@@ -21,7 +21,7 @@ function projectSnapshot(document) {
 
 // Callers may edit returned metadata/facets. The cache owns its snapshots;
 // only validated and deeply frozen mesh stock/tool arrays cross by reference.
-function copyRecord(record) {
+export function copyRecord(record) {
   const { stock, concaveCuts } = record.document;
   // Replace immutable payloads in place, preserving native JSON field order.
   const document = { ...record.document, stock: undefined };
@@ -32,6 +32,17 @@ function copyRecord(record) {
   return copy;
 }
 
+/** Shared validation for legacy bytes and transactional project records. */
+export function parseProjectRecord(id, raw) {
+  const record = JSON.parse(raw);
+  if (record.schemaVersion !== 1 || !Number.isFinite(record.createdAt) || !Number.isFinite(record.updatedAt))
+    throw new Error("本地项目格式不受支持。");
+  const revision = Number.isInteger(record.revision) && record.revision >= 0 ? record.revision : 0;
+  return { id, createdAt: record.createdAt, updatedAt: record.updatedAt, revision, document: projectSnapshot(record.document) };
+}
+
+// Legacy localStorage format adapter, retained for old delivery/fixture compatibility.
+// The live application writes exclusively through application/projectDatabase.js.
 export function createProjectStore(storage, { locks } = {}) {
   const cache = new Map();
   // Compare-and-write must not be interleaved by another writer: run the
@@ -46,13 +57,7 @@ export function createProjectStore(storage, { locks } = {}) {
     if (cached?.raw === raw) return copyRecord(cached.record);
     // Another tab or external edit changed storage: validate the new bytes.
     cache.delete(id);
-    const record = JSON.parse(raw);
-    if (record.schemaVersion !== 1 || !Number.isFinite(record.createdAt) || !Number.isFinite(record.updatedAt)) {
-      throw new Error("本地项目格式不受支持。");
-    }
-    // Records written before revisions existed upgrade to baseline 0.
-    const revision = Number.isInteger(record.revision) && record.revision >= 0 ? record.revision : 0;
-    const validated = { id, createdAt: record.createdAt, updatedAt: record.updatedAt, revision, document: projectSnapshot(record.document) };
+    const validated = parseProjectRecord(id, raw);
     cache.set(id, { raw, record: validated });
     return copyRecord(validated);
   };

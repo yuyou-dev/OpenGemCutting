@@ -20,7 +20,7 @@ export function getMeshPreviewBuffers(solid) {
         const p = solid.vertices[index]; positions.push(p.x, p.y, p.z);
       }
     }
-    faceRanges.push({ start, count: positions.length / 3 - start, operationId: face.sourceOperationId });
+    faceRanges.push({ start, count: positions.length / 3 - start, operationId: face.sourceOperationId, facetId: face.facetId ?? face.id });
   }
   const edges = getMeshBoundaryEdges(solid);
   const lines = new Float32Array(edges.length * 6 * 8);
@@ -36,13 +36,13 @@ export function getMeshPreviewBuffers(solid) {
   return result;
 }
 
-const COLORS = { normal: [243/255,244/255,242/255], active: [248/255,181/255,206/255], preview: [170/255,213/255,244/255], highlight: [238/255,141/255,172/255] };
-export function fillMeshPreviewColors(buffers, { activeOperationId, previewOperationId, highlightOperationId } = {}) {
+const COLORS = { frosted: [201/255,204/255,209/255], normal: [243/255,244/255,242/255], active: [248/255,181/255,206/255], preview: [170/255,213/255,244/255], highlight: [238/255,141/255,172/255] };
+export function fillMeshPreviewColors(buffers, { activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds } = {}) {
   const colors = new Float32Array(buffers.positions.length);
-  for (const { start, count, operationId } of buffers.faceRanges) {
+  for (const { start, count, operationId, facetId } of buffers.faceRanges) {
     const color = activeOperationId && operationId === activeOperationId ? COLORS.active
       : previewOperationId && operationId === previewOperationId ? COLORS.preview
-      : highlightOperationId && operationId === highlightOperationId ? COLORS.highlight : COLORS.normal;
+      : highlightOperationId && operationId === highlightOperationId ? COLORS.highlight : frostedFaceIds?.has(facetId) ? COLORS.frosted : COLORS.normal;
     for (let vertex = start; vertex < start + count; vertex += 1) colors.set(color,vertex*3);
   }
   return colors;

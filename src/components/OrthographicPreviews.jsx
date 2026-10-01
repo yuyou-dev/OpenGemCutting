@@ -3,9 +3,9 @@ import { useState } from "react";
 import { TechnicalPreview } from "./TechnicalPreview.jsx";
 import "./orthographic-previews.css";
 
-export function OrthographicPreviews({ solid, activeOperationId, previewOperationId, highlightOperationId }) {
+export function OrthographicPreviews({ solid, activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds }) {
   const [axialView, setAxialView] = useState("top");
-  const shared = { solid, activeOperationId, previewOperationId, highlightOperationId };
+  const shared = { solid, activeOperationId, previewOperationId, highlightOperationId, frostedFaceIds };
   return (
     <section className="orthographic-previews" aria-label={t("实时正交预览")}>
       <div className="orthographic-preview-panel">

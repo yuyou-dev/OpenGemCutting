@@ -167,6 +167,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const [reportIncludeGirdle, setReportIncludeGirdle] = useState(false);
   const [reportSurfaceFinish, setReportSurfaceFinish] = useState("polished");
   const importRef = useRef(null);
+  const importSequence = useRef(0);
+  useEffect(() => () => { importSequence.current++; }, [visible]);
   const toastTimerRef = useRef(null);
   const operationSequence = useRef(0);
 
@@ -305,6 +307,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     [document.facets, document.concaveCuts, machineStock, stockSolid],
   );
   const savedEffectiveFacets = useMemo(() => summarizeEffectiveFacets(savedSolid), [savedSolid]);
+  const frostedFaceIds = useMemo(() => new Set(document.facets.filter(facet => facetSurfaceState(facet) === "frosted").map(facet => facet.id)), [document.facets]);
   const savedFrostedFacetCount = useMemo(() => {
     const effective = new Set(savedEffectiveFacets.effectiveFacetIds);
     return document.facets.filter((facet) => effective.has(facet.id) && facetSurfaceState(facet) === "frosted").length;
@@ -1168,7 +1171,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
 
   const changeIndexGear = teeth => {
     if (!cutSession.canEditParameterGroups) return;
-    // Same domain path as MCP set_index_gear: converts each index, never re-resolves planes.
+    // Convert each index while keeping the existing cutting planes unchanged.
     let next;
     try { next = withDocumentIndexGear(document, teeth); }
     catch (error) { notify(`${t("分度盘未切换，原设计保持不变：")}${error.errors?.[0]?.message ?? error.message}`); return; }
@@ -1224,36 +1227,38 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     }
   };
 
-  const applyImportedDocument = (imported) => {
+  const applyImportedDocument = (imported, options) => {
     try {
       assertValidDocumentGeometry(imported);
     } catch (error) {
       notify(`导入失败：${error.message}`);
       return false;
     }
-    setConcavePreview(null);
-    onOpenDocument(imported);
-    return true;
+    return onOpenDocument(imported, options);
   };
 
   const importDocument = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    const sequence = ++importSequence.current;
+    const isCurrent = () => sequence === importSequence.current;
     let imported;
     try {
       assertFileBudget(file);
       const text = await file.text();
+      if (!isCurrent()) return;
       assertDocumentImportBudget(JSON.parse(text));
       imported = ensureTableFacet(importFacetingJSON(text));
       assertValidDocumentGeometry(imported);
     } catch (error) {
+      if (!isCurrent()) return;
       const detail = error.errors?.[0];
       notify(detail ? `导入失败：${detail.path} ${detail.message}` : `导入失败：${error.message}`);
       return;
     }
     // App creates a separate project and owns the pending-preview switch guard.
-    if (!applyImportedDocument(imported)) return;
+    if (!await applyImportedDocument(imported, { isCurrent })) return;
     notify(indexExportSummary(imported).notice || `已导入“${imported.name}”，共 ${imported.facets.length} 个面。`);
   };
 
@@ -1483,6 +1488,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             }}>{t("Meet 来源失效 ·")} {t(constructionStages.filter((stage) => stage.construction?.status === "stale").length)} {t("层 · 检查施工顺序")}</button>
           ) : null}
           <GemViewport
+            frostedFaceIds={frostedFaceIds}
             indexTeeth={cuttingAssistantActive ? (replayStep?.indexTeeth ?? activeGear) : indexTeeth}
             polyhedron={cuttingAssistantActive && assistantSolid ? assistantSolid : displaySolid}
             concaveTool={concaveActive && cutSession.canEditParameterGroups && activeConcaveTool?.enabled ? activeConcaveTool : null}
@@ -1653,7 +1659,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             collapsed={!cutStackOpen}
             onToggle={() => setCutStackOpen((value) => !value)}
           />}
-          <OrthographicPreviews solid={displaySolid} activeOperationId={concaveActive ? null : cutSession.activePatternId} previewOperationId={!concaveActive && cutMode === "create" ? `draft-${patternMode}` : null} highlightOperationId={concaveActive ? null : hoveredPatternId} />
+          <OrthographicPreviews frostedFaceIds={frostedFaceIds} solid={displaySolid} activeOperationId={concaveActive ? null : cutSession.activePatternId} previewOperationId={!concaveActive && cutMode === "create" ? `draft-${patternMode}` : null} highlightOperationId={concaveActive ? null : hoveredPatternId} />
         </aside> : null}
       </section>
 
@@ -1694,9 +1700,9 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
           onClose={() => setRecoveryOpen(false)}
           onRefresh={localRecovery.refresh}
           onRemove={localRecovery.remove}
-          onRestore={(record) => {
-            if (!applyImportedDocument(ensureTableFacet(record.document), { description: `恢复本地设计 · ${record.document.name}` })) return;
+          onRestore={async (record) => {
             setRecoveryOpen(false);
+            if (!await applyImportedDocument(ensureTableFacet(record.document))) return;
             setResetSignal((value) => value + 1);
             notify("已恢复文档与材质；未保存草稿、相机和旧撤销历史不包含在备份中。");
           }}

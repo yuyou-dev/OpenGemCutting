@@ -344,6 +344,8 @@ function safeTierName(value, fallback, diagnostics) {
   return fallback;
 }
 
+const ascTextLine = (value) => String(value).replace(/[\r\n\u2028\u2029]+/g, " ");
+
 /** Write a PlaneDesign as GemCad 5.0 text; every loss is reported. */
 export function writeAscDesign(design, { diagnostics = [] } = {}) {
   const tiers = design.tiers.filter((tier) => !tier.hidden);
@@ -356,6 +358,9 @@ export function writeAscDesign(design, { diagnostics = [] } = {}) {
   }
   const headings = design.headings.slice(0, 4);
   const footnotes = design.footnotes.slice(0, 4);
+  if ([...headings, ...footnotes].some((line) => ascTextLine(line) !== line)) {
+    diagnostics.push(diagnostic("warning", "TEXT_LINE_BREAKS_NORMALIZED", "标题或脚注中的内嵌换行已改为空格，避免被识别为切割指令；原文保留在 JSON 中。"));
+  }
   if (design.headings.length > 4 || design.footnotes.length > 4) {
     diagnostics.push(diagnostic("warning", "TEXT_LINES_TRUNCATED", "GemCad 只保留前四行标题与前四行脚注；其余行不会写入 ASC。"));
   }
@@ -391,10 +396,8 @@ export function writeAscDesign(design, { diagnostics = [] } = {}) {
   return { status: statusFor(diagnostics), text, diagnostics };
 }
 
-export function serializeGemCadAsc(document) {
-  const converted = designFromDocument(document, { target: "ASC" });
-  const { design, diagnostics, facts } = converted;
-  const summary = design || facts.effectiveFacetCount !== undefined ? {
+export function gemCadAscSummary(document, { design, facts } = designFromDocument(document, { target: "ASC" })) {
+  return design || facts.effectiveFacetCount !== undefined ? {
     sourceGear: design?.gear ?? document.indexGear?.teeth ?? 96,
     targetGear: design?.gear ?? document.indexGear?.teeth ?? 96,
     compatibility: facts.compatibility,
@@ -408,6 +411,12 @@ export function serializeGemCadAsc(document) {
     omittedFacetCount: facts.overwritten,
     dimensions: facts.dimensions,
   } : null;
+}
+
+export function serializeGemCadAsc(document) {
+  const converted = designFromDocument(document, { target: "ASC" });
+  const { design, diagnostics } = converted;
+  const summary = gemCadAscSummary(document, converted);
   if (!design) return { status: "error", text: "", diagnostics, summary };
   const written = writeAscDesign(design, { diagnostics });
   return { status: written.status, text: written.text, diagnostics, summary };
@@ -430,9 +439,9 @@ export function formatAscText({ gear, symmetry = 1, mirror = false, refractiveIn
     `g${gear} 0.0`,
     `y ${symmetry} ${mirror ? "y" : "n"}`,
     `I ${refractiveIndex}`,
-    ...headings.map((line) => `H ${line}`),
+    ...headings.map((line) => `H ${ascTextLine(line)}`),
     ...tierLines,
-    ...footnotes.map((line) => `F ${line}`),
+    ...footnotes.map((line) => `F ${ascTextLine(line)}`),
     "",
   ].join("\r\n");
 }

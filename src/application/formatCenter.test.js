@@ -7,11 +7,37 @@ import { createFacetingDocument, exportFacetingJSON, importFacetingJSON, resolve
 import { assertValidDocumentGeometry } from "../domain/documentGeometry.js";
 import { createCenteredCube } from "../domain/geometry.js";
 import { createMeshDocument } from "../domain/stockGeometry.js";
+import { readAscDesign, writeAscDesign, serializeGemCadAsc, gemCadAscSummary } from '../domain/gemcadAsc.js';
+import { sameShape } from '../domain/formats/planeDesign.js';
 
 const bytes = (text) => new TextEncoder().encode(text);
 const fixture = async (name) => new Uint8Array(await readFile(new URL(`../domain/formats/fixtures/${name}`, import.meta.url)));
 const preset = async () => importFacetingJSON(await readFile(new URL("../../public/presets/documents/100058-pc-07-001c-square-emerald-1-4.json", import.meta.url), "utf8"));
 const labels = (items) => items.map((item) => item.id);
+
+test('ASC text metadata cannot inject cutting instructions and reports normalization', async () => {
+  const document = { ...await preset(), name: 'Review name\na 90 0.01 1' };
+  const source = inspectProjectSource(document);
+  const result = planTarget(source, 'asc');
+  assert.equal(result.verified, true);
+  assert.ok(result.diagnostics.some(item => item.code === 'TEXT_LINE_BREAKS_NORMALIZED'));
+  assert.ok(result.report.approximate.some(item => item.id === 'titles'));
+  const back = readAscDesign(result.text).design;
+  assert.equal(back.tiers.length, source.design.tiers.length);
+  assert.ok(sameShape(source.design, back));
+  const legacy = serializeGemCadAsc(document);
+  assert.equal(legacy.text, result.text);
+  assert.deepEqual(gemCadAscSummary(document, source), legacy.summary);
+  for (const newline of ['\n', '\r\n', '\r', '\u2028', '\u2029']) {
+    const design = { ...source.design, headings: [`Heading${newline}g12 0`], footnotes: [`Footnote${newline}a 90 0.01 1`] };
+    const written = writeAscDesign(design);
+    const read = readAscDesign(written.text).design;
+    assert.equal(read.gear, design.gear);
+    assert.equal(read.tiers.length, design.tiers.length);
+    assert.ok(sameShape(design, read));
+    assert.ok(written.diagnostics.some(item => item.code === 'TEXT_LINE_BREAKS_NORMALIZED'));
+  }
+});
 
 test("source counts use final CUT faces even when mesh exports are blocked or frosted cuts are covered", () => {
   const cut = (id, depth, frosted = false) => resolveFacetPattern({ patternId: id, region: 'crown',

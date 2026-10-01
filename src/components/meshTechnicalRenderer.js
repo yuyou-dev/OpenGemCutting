@@ -139,12 +139,12 @@ export function renderTechnicalMesh(target,solid,view,colors={}, { pixelRatio = 
   if(solid.vertices.length) {
     const buffers=getMeshPreviewBuffers(solid);
     const colorKey=JSON.stringify([colors.activeOperationId,colors.previewOperationId,colors.highlightOperationId]);
-    const needsUpload = state.solid !== solid || state.colorKey !== colorKey;
+    const needsUpload = state.solid !== solid || state.colorKey !== colorKey || state.frostedFaceIds !== colors.frostedFaceIds;
     if(state.solid!==solid) {
       gl.bindBuffer(gl.ARRAY_BUFFER,state.position);gl.bufferData(gl.ARRAY_BUFFER,buffers.positions,gl.DYNAMIC_DRAW);
       gl.bindBuffer(gl.ARRAY_BUFFER,state.lines);gl.bufferData(gl.ARRAY_BUFFER,buffers.lines,gl.DYNAMIC_DRAW);
     }
-    if(state.solid!==solid||state.colorKey!==colorKey) {
+    if(state.solid!==solid||state.colorKey!==colorKey||state.frostedFaceIds!==colors.frostedFaceIds) {
       gl.bindBuffer(gl.ARRAY_BUFFER,state.colors);gl.bufferData(gl.ARRAY_BUFFER,fillMeshPreviewColors(buffers,colors),gl.DYNAMIC_DRAW);
     }
     // WebGL allocation/upload failures set an error flag rather than throwing.
@@ -157,6 +157,7 @@ export function renderTechnicalMesh(target,solid,view,colors={}, { pixelRatio = 
     }
     state.solid = solid;
     state.colorKey = colorKey;
+    state.frostedFaceIds = colors.frostedFaceIds;
     const values=projection(solid,view,width,height);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.BLEND);gl.disable(gl.CULL_FACE);
     gl.useProgram(state.mesh);setProjection(gl,state.meshUniforms,values);
