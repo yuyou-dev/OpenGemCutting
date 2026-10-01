@@ -9,6 +9,7 @@ import { projectDesign } from './application/projectDesign.js';
 import { createPresetLibrary, createStaticPresetProvider } from './domain/presetLibrary.js';
 import { STOCK_PRESETS } from './domain/stockPresets.js';
 import { RenderBoundary } from "./components/RenderBoundary.jsx";
+import { preloadViewportRenderer } from "./components/viewportRenderer.js";
 import { useDismissFloatingMenus } from "./components/useDismissFloatingMenus.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WorkbenchEditor } from "./WorkbenchEditor.jsx";
@@ -98,6 +99,9 @@ export function App() {
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(flush, 300);
   }, [active, flush]);
+
+  // Every page with a 3D view needs the renderer; fetch it before it is asked for.
+  useEffect(() => { preloadViewportRenderer(); }, []);
 
   useEffect(() => {
     const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };

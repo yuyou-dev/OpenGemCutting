@@ -1556,7 +1556,6 @@
   "重试保存与恢复": "Retry save and restore",
   "正在载入实验室与已保存的实验稿…": "Loading the laboratory and saved experiment…",
   "载入失败，原实验稿仍保留。": "Loading failed. The saved experiment is retained.",
-  "重新载入": "Reload",
   "检查实验结果": "Review experiment result",
   "正在保存…": "Saving…",
   "打开已带回项目": "Open returned project",
@@ -2051,7 +2050,6 @@
   "格式中心读取 GemCAD（.asc、.gem）与 Gem Cut Studio（.gcs），也能导出给它们；转换前逐项说明会保留、简化或丢失什么，导出后读回核对形状。见第 34 页。": "The format center reads GemCAD (.asc, .gem) and Gem Cut Studio (.gcs) and exports to them; before converting it lists what is kept, simplified or lost, and reads exports back to check the shape. See page 34.",
   "检查与交付更可靠": "More reliable checking and delivery",
   "交点检查列出值得复核的会合候选；已知物理比例的设计显示毫米尺寸，PDF 明确标注单位。界面、帮助、报告与手册均有中文和英文版。见第 26、32–35 页。": "Meetpoint inspection lists meet candidates worth a second look; designs with a known physical scale show millimetre sizes and the PDF labels its units. The interface, help, reports and manual are available in Chinese and English. See pages 26 and 32–35.",
-  "2.0.0-rc.1 是预发布版本：功能已冻结，正式版之前只修正问题。重要设计请同时保存 JSON 主文件。": "2.0.0-rc.1 is a pre-release: features are frozen and only fixes land before the final release. Keep a JSON master file of important designs.",
   "点击左侧“＋新建项目”，先选设备分度，再选默认起点、预设琢型、预设底胚或上传原石；各种起点的区别见下一页。": "Click + New project, choose the equipment wheel, then a default start, a preset cut, stock presets or an uploaded blank; the next page explains the starts.",
   "新建项目：先定设备，再选起点": "New project: equipment first, then the start",
   "起步 · 新建项目": "Getting started · New project",
@@ -2092,5 +2090,9 @@
   "定位首个 Meet 失效 · 第 {0} 步": "Find first stale Meet · step {0}",
   "第 {0} / {1} 步": "Step {0} of {1}",
   "对称数可设为 2（每弧至少 2 段、凸度至少 0.05），得到橄榄形。逐面 Meet 需先打散；导出 ASC／GCS 时按深度写为连续层，弧切参数只保存在 JSON。": "Symmetry can be 2 (at least 2 segments per arc and bulge 0.05) for a marquise-like lens. Per-facet Meet needs a dissolve first; ASC / GCS exports write one tier per depth, and the arc parameters are kept only in JSON.",
-  "对称数填 3、每弧分段 3。凸度拖到 0 为原三角形，拖到 1 接近圆形，最后停在 0.55。构成器的顶视示意画出理想圆弧与取整后的外形（按深度级着色），不必切下去就能比较三条边鼓出的程度。": "Enter symmetry 3 and 3 segments per arc. Drag the bulge to 0 for the plain triangle and to 1 for an almost round outline, then settle on 0.55. The composer's top-view sketch shows the ideal arcs and the snapped outline, coloured by depth level, so you can compare how far the sides bulge before cutting."
+  "对称数填 3、每弧分段 3。凸度拖到 0 为原三角形，拖到 1 接近圆形，最后停在 0.55。构成器的顶视示意画出理想圆弧与取整后的外形（按深度级着色），不必切下去就能比较三条边鼓出的程度。": "Enter symmetry 3 and 3 segments per arc. Drag the bulge to 0 for the plain triangle and to 1 for an almost round outline, then settle on 0.55. The composer's top-view sketch shows the ideal arcs and the snapped outline, coloured by depth level, so you can compare how far the sides bulge before cutting.",
+  "正在准备三维视图…": "Preparing the 3D view…",
+  "正在准备光学仿真…": "Preparing the optical simulation…",
+  "三维渲染器未能加载，当前设计已保留。请检查网络后重试。": "The 3D renderer could not load. Your design is kept; check the connection and try again.",
+  "这是 2.0 的预发布版本（版本号见页脚）：功能已冻结，正式版之前只修正问题。重要设计请同时保存 JSON 主文件。": "This is a 2.0 pre-release (see the footer for the version): features are frozen and only fixes land before the final release. Keep a JSON master file of important designs."
 }

@@ -6,6 +6,9 @@ import { untilAborted } from './hostLifecycle.js';
 
 /** Persistence belongs to one host-allocated experiment, never its source project.
  * All values crossing that boundary are snapshots, including origin metadata. */
+// Drafts written by every delivery a host has shipped must keep opening after an update.
+export const PUBLISHED_DRAFT_VERSIONS = Object.freeze(['0.6.0-rc.3.main.b88db469903c', '0.6.0-rc.3.main.92ee082cc1e1', '0.6.0-rc.2', '0.6.0-rc.1', '0.5.1-alpha']);
+
 export async function createLabSession({ source, newDesign, persistence, onResult, signal }) {
   signal?.throwIfAborted();
   if (!source && !newDesign) throw new Error('请提供来源快照或明确的新建请求。');
@@ -27,7 +30,7 @@ export async function createLabSession({ source, newDesign, persistence, onResul
   try {
     const saved = await untilAborted(persistence?.load?.(context), context.signal);
     if (saved && (saved.labId !== 'facet-pattern-lab' || saved.contractVersion !== LAB_CONTRACT_VERSION ||
-      ![LAB_VERSION, '0.6.0-rc.3', '0.6.0-rc.3.main.92ee082cc1e1', '0.6.0-rc.2', '0.6.0-rc.1', '0.5.1-alpha'].includes(saved.moduleVersion) ||
+      ![LAB_VERSION, '0.6.0-rc.3', ...PUBLISHED_DRAFT_VERSIONS].includes(saved.moduleVersion) ||
       saved.source?.projectId !== origin?.projectId || saved.source?.revision !== origin?.revision))
       throw new Error('实验稿版本或来源修订不匹配，原实验稿保留。');
     const wrap = plan => structuredClone({ labId: 'facet-pattern-lab', moduleVersion: LAB_VERSION,

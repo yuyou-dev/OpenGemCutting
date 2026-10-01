@@ -10,7 +10,7 @@
 
 An open-source gemstone faceting workbench. Design through conversation, refine every cut.
 
-[![Version](https://img.shields.io/badge/version-2.0.0--rc.1-ed225d?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.0.0--rc.2-ed225d?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-222222?style=flat-square)](LICENSE)
 [![Browser](https://img.shields.io/badge/browser-local_first-38755d?style=flat-square)](#start)
 
@@ -48,7 +48,7 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 </table>
 
 <details>
-<summary><b>2.0 更新 · What's new in 2.0</b>（v2.0.0-rc.1 预发布，汇总 1.0 以来的全部新增）</summary>
+<summary><b>2.0 更新 · What's new in 2.0</b>（v2.0.0-rc.2 预发布，汇总 1.0 以来的全部新增）</summary>
 
 - **起点贴近设备**：新建时先选切磨分度盘（32–360 齿共 11 种），绿灯／红灯显示能否整齿加工；默认起点可选圆柱并指定腰棱数，或直接从正方形开始。
 - **整组刻面一次生成**：环切把 L 边母形的每条边换成一组扇形面；弧切把边鼓成圆弧、各面深度按弧线联动；构成器的顶视示意在切下去之前画出外形。
@@ -166,7 +166,7 @@ npm run check:mcp      # 加上 MCP 的连接与版本检查
 - **请保留设计文件。** 项目保存在当前浏览器与地址下；更换浏览器、端口或清理浏览器数据不会自动迁移项目。重要设计请导出 JSON。
 - **保留真实原石形状。** 支持闭合 OBJ，保留凹槽、孔和分离组件；导入上限与交换限制见 [文件与设计边界](docs/limits.md)。
 - **仿真帮助比较。** 显示效果不代表实际切磨收益或材料光学等级。实验室的专业界面目前为中文。
-- **这是预发布版本。** 2.0.0-rc.1 功能已冻结，正式版前只修正问题；欢迎按 [Issues](https://github.com/yuyou-dev/OpenGemCutting/issues) 反馈。
+- **这是预发布版本。** 2.0.0-rc.2 功能已冻结，正式版前只修正问题；欢迎按 [Issues](https://github.com/yuyou-dev/OpenGemCutting/issues) 反馈。
 - **支持按实测说明。** 本机功能已通过设计师验收；跨平台、浏览器与线上状态见 [支持与验收](docs/validation.md)，不以源码版本推断站点已更新。
 
 ## 一起完善这张工作台

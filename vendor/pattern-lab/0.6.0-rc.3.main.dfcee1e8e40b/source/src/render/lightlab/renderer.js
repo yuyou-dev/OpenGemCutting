@@ -110,12 +110,14 @@ export class LightLabRenderer extends RoughRenderer {
   }
 
   display() {
-    if (this.disposed || this.contextLost || !this.mesh || !this.sample) return;
-    const gl = this.gl, p = this.displayProgram, target = this.targets[1 - this.write];
+    // Before the first sample after a resize, keep showing the held image (see RoughRenderer.allocate).
+    if (this.disposed || this.contextLost || !this.mesh || !(this.sample || this.held)) return;
+    const gl = this.gl, p = this.displayProgram, target = this.sample ? this.targets[1 - this.write] : this.held;
+    const samples = this.sample || this.held.samples;
     gl.bindVertexArray(this.vao); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.useProgram(p);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     this.bind(p, 'uImage', target.image, 0); this.bind(p, 'uGuide', target.guide, 1);
-    this.uniform(p, 'uExposure', this.options.exposure); this.uniform(p, 'uSamples', this.sample);
+    this.uniform(p, 'uExposure', this.options.exposure); this.uniform(p, 'uSamples', samples);
     this.uniform(p, 'uTone', this.options.toneMapping === 'aces' ? 0 : this.options.toneMapping === 'reinhard' ? 1 : 2, 'i');
     const mode = modes[this.options.mode] ?? 0;
     const observing = mode === 0 && this.environment.observation?.kind !== 'none';
@@ -123,6 +125,8 @@ export class LightLabRenderer extends RoughRenderer {
     this.uniform(p, 'uDenoise', this.options.denoise ? 1 : 0, 'i');
     this.uniform(p, 'uRough', this.usesRoughTransport ? 1 : 0, 'i');
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    this.lastShown = { image: target.image, guide: target.guide, samples };
+    if (this.sample) this.dropHeld();
   }
 
   info() {
