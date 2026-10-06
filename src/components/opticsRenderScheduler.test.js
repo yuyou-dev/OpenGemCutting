@@ -55,3 +55,11 @@ test('a polled fence reports its frame-quantized completion time', () => {
   assert.equal(h.draws.length, 2);
   h.scheduler.destroy();
 });
+test('cancel keeps the in-flight fence but drops obsolete queued geometry', () => {
+  const h = setup(); h.scheduler.draw(options(1)); h.step(); h.busy();
+  h.scheduler.draw(options(2)); h.scheduler.cancel();
+  assert.equal(h.pending(), false); assert.equal(h.deleted.length, 0);
+  h.scheduler.draw(options(3)); h.step(); assert.equal(h.draws.length, 1);
+  h.ready(); h.step(); assert.equal(h.draws.at(-1).camera.yaw, 3);
+  h.scheduler.destroy();
+});

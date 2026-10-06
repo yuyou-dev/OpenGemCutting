@@ -28,15 +28,16 @@ export function IndexDial({ index, indexTeeth = 96 }) {
 
 export function CuttingAssistantInspector({ replay, position, solid, follow, onFollow, duration, onDuration }) {
   const step = replay.steps[position];
+  const concave = step?.operationType === "concave";
   const location = replay.stepper.locate(position);
   const tier = location.tierIndex == null ? null : replay.tiers[location.tierIndex];
   const groupSteps = tier ? replay.steps.slice(tier.startPos, tier.startPos + tier.count) : [];
   return <aside className="assistant-inspector" aria-label={t("当前切割参数")}>
     <div className="assistant-operation"><span>{step ? t("下一刀") : t("切割完成")}</span><h2>{step?.patternName ?? (replay.total ? t("全部工序已完成") : t("当前没有切割工序"))}</h2></div>
     {step?.surfaceState === 'frosted' && <div className="assistant-surface-notice" role="status"><strong>{t("磨砂切割 · 无需抛光")}</strong><span>{t("此面保留磨砂表面；按原分度、角度和深度切割。")}</span></div>}
-    <IndexDial index={step?.index} indexTeeth={step?.indexTeeth ?? replay.steps.at(-1)?.indexTeeth ?? 96} />
-    <dl className="assistant-readouts"><div><dt>{t("行业角")}</dt><dd>{t(step ? `${step.industryAngleDeg.toFixed(2)}°` : "—")}</dd></div><div><dt>{t("切入深度")}</dt><dd>{t(step?.depth.toFixed(3) ?? "—")}</dd><small>{t("工作台单位")}</small></div></dl>
-    <section className="assistant-tier"><h3>{t("本组刀序")}</h3><div className="assistant-tier-indices">{groupSteps.map(s => <span key={s.seq} className={s.seq === position ? "is-current" : s.seq < position ? "is-complete" : ""} aria-current={s.seq === position ? "step" : undefined}>{displayIndex(s.index, s.indexTeeth ?? 96)}</span>)}</div><p>{step ? t("本组第 {0} 刀 / 共 {1} 刀", [location.stepInTier + 1, location.tierStepCount]) : t("已到达序列末尾")}</p></section>
+    {concave ? <div className="assistant-surface-notice"><strong>{t("凹切图层 · 整组加工")}</strong><span>{t("本步应用该图层的全部重复刀具。")}</span></div> : <IndexDial index={step?.index} indexTeeth={step?.indexTeeth ?? replay.steps.at(-1)?.indexTeeth ?? 96} />}
+    <dl className="assistant-readouts"><div><dt>{t(concave ? "整组旋转" : "行业角")}</dt><dd>{t(step ? `${(concave ? step.tool.phaseDeg : step.industryAngleDeg).toFixed(2)}°` : "—")}</dd></div><div><dt>{t(concave ? "重复" : "切入深度")}</dt><dd>{concave ? step.tool.repeat : t(step?.depth.toFixed(3) ?? "—")}</dd><small>{t(concave ? "整组刀具" : "工作台单位")}</small></div></dl>
+    <section className="assistant-tier"><h3>{t("本组刀序")}</h3><div className="assistant-tier-indices">{groupSteps.map(s => <span key={s.seq} className={s.seq === position ? "is-current" : s.seq < position ? "is-complete" : ""} aria-current={s.seq === position ? "step" : undefined}>{s.operationType === "concave" ? t("整组") : displayIndex(s.index, s.indexTeeth ?? 96)}</span>)}</div><p>{step ? t("本组第 {0} 刀 / 共 {1} 刀", [location.stepInTier + 1, location.tierStepCount]) : t("已到达序列末尾")}</p></section>
     <div className="assistant-side-view"><TechnicalPreview solid={solid} view="side" label={t("当前施工侧视图")} /><span>{t("施工侧视 · 已完成")} {t(position)} {t("刀")}</span></div>
     <div className="assistant-view-settings"><label>{t("跟随当前面")}<input type="checkbox" role="switch" checked={follow} onChange={e => onFollow(e.target.checked)} /></label><label>{t("转场速度")}<select aria-label={t("转场速度")} value={duration} onChange={e => onDuration(Number(e.target.value))}><option value={1000}>{t("舒缓 · 1.0 秒")}</option><option value={600}>{t("标准 · 0.6 秒")}</option><option value={250}>{t("快速 · 0.25 秒")}</option></select></label><small>{follow ? t("45° 斜向观察 · 平滑缓动") : t("自由观察 · 开启跟随回到当前面")}</small></div>
   </aside>;

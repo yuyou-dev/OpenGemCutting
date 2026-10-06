@@ -4,9 +4,13 @@ import lock from './labsModuleLock.json' with { type: 'json' };
 
 // A fixed local module, imported only when an experiment opens. No shared React
 // tree, project-store capability, iframe or runtime remote code download.
+// A merged laboratory is no longer offered for new experiments; its earlier
+// drafts stay listed and continuable (it remains 'ready').
 export const LABORATORIES = Object.freeze([
   Object.freeze({ id: 'preset', profile: 'preset', order: 20, name: '冠亭预设实验室', status: presetLock.enabled ? 'ready' : 'disabled',
     entryApiVersion: presetLock.entryApiVersion, moduleId: presetLock.moduleId, moduleVersion: presetLock.moduleVersion, contractVersion: presetLock.contractVersion,
+    merged: true,
+    mergedNotice: '冠亭预设实验室已并入编辑器：新增切割图层后在左侧操作栏的「刀具库」选择「圈层组合」类刀具，结果直接写入当前设计。',
     tags: ['冠部组合', '亭部调整', '形态与贴合'],
     description: '组合冠部与亭部、调整切面形态，并计算平腰与贴腰。',
     async load() {

@@ -1,0 +1,601 @@
+{
+  "input": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+    "schemaVersion": 3,
+    "kind": "facet-96-document",
+    "name": "Legacy v2 mesh",
+    "indexGear": {
+      "teeth": 96,
+      "zeroAlias": 96,
+      "degreesPerTooth": 3.75
+    },
+    "stock": {
+      "kind": "mesh",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ],
+      "mesh": {
+        "vertices": [
+          {
+            "x": -1,
+            "y": -1,
+            "z": -1
+          },
+          {
+            "x": 1,
+            "y": -1,
+            "z": -1
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "z": -1
+          },
+          {
+            "x": -1,
+            "y": 1,
+            "z": -1
+          },
+          {
+            "x": -1,
+            "y": -1,
+            "z": 1
+          },
+          {
+            "x": 1,
+            "y": -1,
+            "z": 1
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "z": 1
+          },
+          {
+            "x": -1,
+            "y": 1,
+            "z": 1
+          }
+        ],
+        "faces": [
+          [
+            0,
+            3,
+            2,
+            1
+          ],
+          [
+            4,
+            5,
+            6,
+            7
+          ],
+          [
+            0,
+            4,
+            7,
+            3
+          ],
+          [
+            1,
+            2,
+            6,
+            5
+          ],
+          [
+            0,
+            1,
+            5,
+            4
+          ],
+          [
+            3,
+            7,
+            6,
+            2
+          ]
+        ]
+      },
+      "envelope": {
+        "radius": 1.4142135623730951,
+        "halfHeight": 1
+      }
+    },
+    "facets": [],
+    "concaveCuts": []
+  },
+  "normalized": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v3.schema.json",
+    "schemaVersion": 3,
+    "kind": "facet-96-document",
+    "name": "Legacy v2 mesh",
+    "indexGear": {
+      "teeth": 96,
+      "zeroAlias": 96,
+      "degreesPerTooth": 3.75
+    },
+    "stock": {
+      "kind": "mesh",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ],
+      "mesh": {
+        "vertices": [
+          {
+            "x": -1,
+            "y": -1,
+            "z": -1
+          },
+          {
+            "x": 1,
+            "y": -1,
+            "z": -1
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "z": -1
+          },
+          {
+            "x": -1,
+            "y": 1,
+            "z": -1
+          },
+          {
+            "x": -1,
+            "y": -1,
+            "z": 1
+          },
+          {
+            "x": 1,
+            "y": -1,
+            "z": 1
+          },
+          {
+            "x": 1,
+            "y": 1,
+            "z": 1
+          },
+          {
+            "x": -1,
+            "y": 1,
+            "z": 1
+          }
+        ],
+        "faces": [
+          [
+            0,
+            3,
+            2,
+            1
+          ],
+          [
+            4,
+            5,
+            6,
+            7
+          ],
+          [
+            0,
+            4,
+            7,
+            3
+          ],
+          [
+            1,
+            2,
+            6,
+            5
+          ],
+          [
+            0,
+            1,
+            5,
+            4
+          ],
+          [
+            3,
+            7,
+            6,
+            2
+          ]
+        ]
+      },
+      "envelope": {
+        "radius": 1.4142135623730951,
+        "halfHeight": 1
+      }
+    },
+    "facets": [],
+    "concaveCuts": []
+  },
+  "expected": {
+    "schemaVersion": 3,
+    "millimetersPerModelUnit": null,
+    "volumeModelUnits": 8,
+    "vertices": [
+      [
+        -1,
+        -1,
+        -1
+      ],
+      [
+        -1,
+        -1,
+        1
+      ],
+      [
+        -1,
+        1,
+        -1
+      ],
+      [
+        -1,
+        1,
+        1
+      ],
+      [
+        1,
+        -1,
+        -1
+      ],
+      [
+        1,
+        -1,
+        1
+      ],
+      [
+        1,
+        1,
+        -1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ],
+    "effectiveFacetIds": [],
+    "construction": [],
+    "all": [
+      {
+        "teeth": 32,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 64,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 72,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 77,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 80,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 84,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 88,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 96,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 99,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 120,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 360,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      }
+    ],
+    "final": [
+      {
+        "teeth": 32,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 64,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 72,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 77,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 80,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 84,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 88,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 96,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 99,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 120,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 360,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 0,
+        "checkedCount": 0,
+        "exemptCount": 0,
+        "compatibleCount": 0,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 0,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      }
+    ]
+  }
+}

@@ -31,3 +31,17 @@ test('a sampling backend refines straight to full resolution, never restarting a
   assert.deepEqual(draws.slice(2).map(d => d.renderScale), [.5, 1]);
   renderer.destroy();
 });
+test('cancel drops refinement and prevents an in-flight old image from being presented', () => {
+  let timer, cancelled = 0, presented = 0;
+  const draws = [];
+  const renderer = createProgressiveOpticsRenderer({ draw: value => draws.push(value), cancel: () => cancelled++, destroy() {} },
+    { setTimer: fn => { timer = fn; return 1; }, clearTimer: () => { timer = null; } });
+  renderer.draw({ camera: { yaw: 1 }, interactive: true, onFrame: () => presented++ });
+  renderer.cancel();
+  assert.equal(timer, null); assert.equal(cancelled, 1);
+  draws[0].onFrame(); assert.equal(presented, 0);
+  renderer.draw({ camera: { yaw: 2 }, onFrame: () => presented++ });
+  draws[1].onFrame(); assert.equal(presented, 1);
+  assert.equal(draws[1].renderScale, 1);
+  renderer.destroy(); draws[1].onFrame(); assert.equal(presented, 1);
+});

@@ -71,3 +71,19 @@ test('terminology review data retains provenance and does not claim specialist a
   }
   assert.notEqual(terms.find(term => term.id === 'cut-depth').en, terms.find(term => term.id === 'pavilion-depth').en);
 });
+
+test('composite tool library and manual have complete English text', async () => {
+  const { COMPOSITE_TOOLS, COMPOSITE_CATEGORIES } = await import('../domain/compositeTools.js');
+  const { manualPages } = await import('../../scripts/manual/content.mjs');
+  const t = createTranslator('en');
+  const visit = value => {
+    if (typeof value === 'string' && /[\u3400-\u9fff]/.test(value)) assert.doesNotMatch(t(value), /[\u3400-\u9fff]/, value);
+    else if (value && typeof value === 'object') Object.values(value).forEach(visit);
+  };
+  visit(COMPOSITE_CATEGORIES);
+  visit(COMPOSITE_TOOLS);
+  visit(manualPages);
+  for (const file of ['../components/HelpCenterDialog.jsx', '../components/ToolInspector.jsx', '../components/QuickOpticsPreview.jsx', '../components/CuttingAssistantBar.jsx']) {
+    for (const match of readFileSync(new URL(file, import.meta.url), 'utf8').matchAll(/(["'])([^"'\n]*[\u3400-\u9fff][^"'\n]*)\1/g)) visit(match[2]);
+  }
+});

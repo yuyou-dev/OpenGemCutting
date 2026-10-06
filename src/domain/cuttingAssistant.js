@@ -15,12 +15,13 @@ import { createStockSolid } from "./stockGeometry.js";
  *   contributes exactly 1 step at its facet's index;
  * - every other layer contributes one step per facet, ordered by
  *   normalizeIndex(index) ascending, so mirror pairs stay adjacent;
- * - preform layers are real cuts and participate like any other layer.
+ * - preform layers are real cuts and participate like any other layer;
+ * - enabled concave layers follow all planar cuts, one whole-group step each.
  *
- * Position p in [0, total] counts completed cuts: p = 0 is the rough stock,
- * p = total the finished stone. Replay clips the stock cube with the first p
- * step planes through the same geometry path the workbench uses, caching
- * intermediate solids so stepping forward costs one clip per step.
+ * Position p in [0, total] counts completed demonstration steps: p = 0 is the rough stock,
+ * p = total the finished stone. Replay clips the original stock with the planar prefix, then applies the
+ * completed concave groups through the workbench geometry path. Intermediate
+ * solids are cached for backward navigation.
  */
 
 import {
@@ -28,6 +29,7 @@ import {
   FACET_REGION_PREFIXES,
   normalizeIndex,
   isPlainObject,
+  getCuttingReference,
 } from "./faceting.js";
 import { clipPolyhedronByPlanes } from "./geometry.js";
 
@@ -118,6 +120,14 @@ export function buildCuttingSequence(document, { hiddenPatternIds = [] } = {}) {
     });
   }
 
+  const center = getCuttingReference(document).center;
+  for (const [ordinal, tool] of (document.concaveCuts ?? []).entries()) {
+    if (!tool.enabled) continue;
+    const startPos = steps.length, patternId = `concave:${tool.id}`;
+    const patternName = `N${ordinal + 1} ${tool.label || '凹切'}`;
+    steps.push({ seq: startPos, patternId, patternName, operationType: 'concave', region: 'concave', center, indexTeeth: document.indexGear?.teeth ?? 96, tool });
+    tiers.push({ patternId, patternName, region: 'concave', table: false, hidden: false, count: 1, startPos });
+  }
   return { steps, tiers };
 }
 
@@ -274,10 +284,11 @@ export function makeCuttingStepper(sequence) {
 /**
  * Incremental replay of the half-finished solid.
  *
- * `solidAt(p)` returns the stock cube for p = 0 and the stock clipped by the
+ * `solidAt(p)` returns the original stock for p = 0 and the stock clipped by the
  * first p step planes for p > 0, using the same geometry path as the
  * planar construction stages (stock + per-plane clipping). Concave tools
- * are applied only to the displayed result, never fed back into clipping. Positions
+ * form one subsequent step per enabled layer (including its repetitions),
+ * applied only after planar completion, never fed back into clipping. Positions
  * clamp into [0, total]. Computed solids are cached, so forward stepping
  * costs one clip per step and backward/jump access replays from the nearest
  * cached position; the cache is internal and invisible to callers.
@@ -292,9 +303,10 @@ export function createCuttingReplay(document, { hiddenPatternIds = [] } = {}) {
     ],
   ]);
 
+  const planarCount = sequence.steps.filter(step => step.operationType !== "concave").length;
   const displayed = new Map();
   function planarAt(p) {
-    const position = clampPosition(stepper.total, p);
+    const position = Math.min(planarCount, clampPosition(stepper.total, p));
     const hit = cache.get(position);
     if (hit) return hit;
 
@@ -317,13 +329,17 @@ export function createCuttingReplay(document, { hiddenPatternIds = [] } = {}) {
   }
 
   return {
+    stock: cache.get(0),
     steps: sequence.steps,
     tiers: sequence.tiers,
     stepper,
     total: stepper.total,
     solidAt(p) {
       const position = clampPosition(stepper.total, p);
-      if (!displayed.has(position)) displayed.set(position, applyConcaveCuts(document, planarAt(position)));
+      if (!displayed.has(position)) {
+        const concaveCuts = sequence.steps.slice(planarCount, position).map(step => step.tool);
+        displayed.set(position, applyConcaveCuts(document, planarAt(position), { concaveCuts }));
+      }
       return displayed.get(position);
     },
   };

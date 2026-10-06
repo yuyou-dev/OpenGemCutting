@@ -25,6 +25,7 @@ import {
   constructionPrefix,
   exportParameterGroup,
   prepareParameterGroupReplacement,
+  preparePatternCommit,
 } from './designOperations.js';
 import { measurePolyhedron } from '../domain/geometry.js';
 import { buildConstructionStages } from '../domain/constructionHistory.js';
@@ -351,6 +352,34 @@ test('editing a mixed-finish tier preserves each surviving member instead of cop
   assert.deepEqual(redoFacetingCommand(undoFacetingCommand(history)).present.facets, history.present.facets);
 });
 
+test('editing retains per-face extensions and opaque metadata without spreading them to new faces', () => {
+  const initial = planDesign(createWorkbenchDocument(), [cut]).document;
+  const members = initial.facets.filter(f => f.patternId === cut.patternId);
+  for (const [i, facet] of members.entries()) {
+    facet.metadata.customNote = { face: i };
+    facet.extensions = { 'example.face': { version: 1, required: false, data: { face: i } } };
+  }
+  const result = planDesign(initial, [{ ...cut, draft: { depth: .61, repeat: 16 } }]).document;
+  for (const facet of result.facets.filter(f => f.patternId === cut.patternId)) {
+    const previous = members.find(f => f.index === facet.index);
+    assert.deepEqual(facet.extensions, previous?.extensions);
+    assert.deepEqual(facet.metadata.customNote, previous?.metadata.customNote);
+    if (previous) assert.equal(facet.id, previous.id);
+  }
+  const history = executeFacetingCommand(createCommandHistory(initial), createReplaceDocumentCommand(planDesign(initial, [{ ...cut, draft: { depth: .61 } }]).document));
+  assert.deepEqual(undoFacetingCommand(history).present, initial);
+  assert.deepEqual(importFacetingJSON(exportFacetingJSON(history.present)).facets, history.present.facets);
+});
+
+test('saving an unchanged layer preserves exact stored planes through the history command', () => {
+  const initial = planDesign(createWorkbenchDocument(), [cut]).document;
+  initial.facets.find(f => f.patternId === cut.patternId).plane.offset += 1e-13;
+  const planned = planDesign(initial, [{ kind: 'cut', patternId: cut.patternId, draft: {} }]);
+  const saved = executeFacetingCommand(createCommandHistory(initial), preparePatternCommit(initial, planned.document.facets.filter(f => f.patternId === cut.patternId), cut.patternId).command).present;
+  assert.deepEqual(saved.facets.map(f => f.plane), initial.facets.map(f => f.plane));
+  assert.deepEqual(saved.facets.map(f => f.id), initial.facets.map(f => f.id));
+});
+
 test('editing a layer keeps each surviving facet ID and lab identity; new directions inherit only layer metadata', () => {
   const initial = planDesign(createWorkbenchDocument(), [cut]).document;
   const members = initial.facets.filter(f => f.patternId === cut.patternId);
@@ -442,4 +471,99 @@ test('ring cuts plan as one editable group that JSON keeps and a mode change dis
   const sorted = (list) => list.map((facet) => facet.index).sort((a, b) => a - b);
   assert.deepEqual(sorted(plainFacets), sorted(turned.document.facets.filter((facet) => facet.patternId === 'ring')));
   assert.throws(() => planDesign(plan.document, [{ kind: 'cut', patternId: 'table-facet', draft: { ring } }]), /台面|LOCKED/);
+});
+
+test('a grid cut commits as one layer, reopens as a grid, keeps cell identities and dissolves into one layer per orbit', async () => {
+  const { draftForPattern } = await import('./designOperations.js');
+  const { getCuttingReference, validateFacetingDocument, rotateFacetsByTeeth } = await import('../domain/faceting.js');
+  const { transformGroup } = await import('./designOperations.js');
+  const grid = { symmetry: 4, columns: 6 };
+  assert.doesNotThrow(() => validateInput(OPERATION_SCHEMA, { kind: 'cut', patternId: 'g1', region: 'crown', draft: { grid, industryAngle: 36, depth: 0.5 } }));
+  const made = planDesign(createWorkbenchDocument(), [{ kind: 'cut', patternId: 'g1', region: 'crown', label: 'C1 网格', draft: { grid, industryAngle: 36, depth: 0.5, baseIndex: 0 } }]).document;
+  assert.equal(validateFacetingDocument(made).valid, true);
+  const layer = made.facets.filter((f) => f.patternId === 'g1');
+  assert.equal(layer.length, 36);
+  assert.ok(layer.every((f) => Number.isInteger(f.index) && f.metadata.patternMode === 'arbitrary' && f.metadata.grid && f.metadata.gridCell));
+  const reopened = draftForPattern(layer, getCuttingReference(made));
+  assert.equal(reopened.patternMode, 'grid');
+  assert.deepEqual([reopened.industryAngle, reopened.depth, reopened.baseIndex], [36, 0.5, 0]);
+  // Moving the whole tool deeper keeps every cell's facet ID.
+  const deeper = planDesign(made, [{ kind: 'cut', patternId: 'g1', draft: { depth: 0.55 } }]).document.facets.filter((f) => f.patternId === 'g1');
+  assert.deepEqual(deeper.map((f) => f.id).sort(), layer.map((f) => f.id).sort());
+  assert.ok(deeper.every((f) => f.metadata.grid.depth === 0.55));
+  // Whole-design lift and whole-tooth rotation keep it a grid.
+  const lifted = transformGroup(made, 'crown', { deltaZ: 0.03 });
+  assert.equal(draftForPattern(lifted.facets.filter((f) => f.patternId === 'g1'), getCuttingReference(lifted)).patternMode, 'grid');
+  const turned = rotateFacetsByTeeth(layer, 3, { stock: getCuttingReference(made) });
+  assert.equal(draftForPattern(turned, getCuttingReference(made)).baseIndex, 3);
+  // Dissolving moves no plane and leaves one ordinary layer per orbit.
+  const dissolved = planDesign(made, [{ kind: 'dissolve-grid', patternId: 'g1' }]).document;
+  const planes = (d) => d.facets.map((f) => JSON.stringify(f.plane)).sort();
+  assert.deepEqual(planes(dissolved), planes(made));
+  const layers = new Set(dissolved.facets.filter((f) => f.patternId.startsWith('g1')).map((f) => f.patternId));
+  assert.equal(layers.size, 6);
+  assert.ok(dissolved.facets.every((f) => f.metadata?.grid === undefined && f.metadata?.gridCell === undefined));
+  assert.throws(() => planDesign(made, [{ kind: 'cut', patternId: 'g2', region: 'girdle', draft: { grid } }]), /冠部或亭部/);
+});
+
+test('dissolving a grid whose rounding merged cells gives every facet one layer and moves no plane', async () => {
+  const { validateFacetingDocument } = await import('../domain/faceting.js');
+  const grid = { symmetry: 4, columns: 12, extent: 0.8 };
+  const made = planDesign(createWorkbenchDocument('merged', 32), [{ kind: 'cut', patternId: 'g1', region: 'crown', draft: { grid, industryAngle: 36, depth: 0.5, baseIndex: 0 } }]).document;
+  const dissolved = planDesign(made, [{ kind: 'dissolve-grid', patternId: 'g1' }]).document;
+  assert.equal(validateFacetingDocument(dissolved).valid, true);
+  const ids = dissolved.facets.map((f) => f.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(dissolved.facets.length, made.facets.length);
+  const planes = (d) => d.facets.map((f) => JSON.stringify(f.plane)).sort();
+  assert.deepEqual(planes(dissolved), planes(made));
+});
+
+test('a layer with several angle and depth levels is never rebuilt as one level; dissolving is the way out', async () => {
+  const { rotateFacetsByTeeth, getCuttingReference } = await import('../domain/faceting.js');
+  const made = planDesign(createWorkbenchDocument(), [{ kind: 'cut', patternId: 'g1', region: 'crown', draft: { grid: { symmetry: 4, columns: 6 }, industryAngle: 36, depth: 0.5, baseIndex: 0 } }]).document;
+  assert.throws(() => planDesign(made, [{ kind: 'cut', patternId: 'g1', draft: { patternMode: 'symmetric' } }]), (error) => error.code === 'MULTI_LEVEL_LAYER');
+  // Half a tooth leaves explicit facets that no tool describes any more: still protected.
+  const turned = { ...made, facets: made.facets.map((f) => (f.patternId === 'g1' ? rotateFacetsByTeeth([f], 0.5, { stock: getCuttingReference(made) })[0] : f)) };
+  assert.throws(() => planDesign(turned, [{ kind: 'cut', patternId: 'g1', draft: { depth: 0.6 } }]), (error) => error.code === 'MULTI_LEVEL_LAYER');
+  const dissolved = planDesign(made, [{ kind: 'dissolve-grid', patternId: 'g1' }]).document;
+  assert.doesNotThrow(() => planDesign(dissolved, [{ kind: 'cut', patternId: 'g1', draft: { depth: 0.52 } }]));
+});
+
+test('composite tools on nonconvex mesh preserve stock, planes and undo across save and dissolve', async () => {
+  const { compositeToolDefaults } = await import('../domain/compositeTools.js');
+  const { dissolveLayerByLevels } = await import('./designOperations.js');
+  const { resolveDraftGeometry } = await import('../domain/cutConstruction.js');
+  const { layerEditMetadata, facetsAfterLayerEdit } = await import('../domain/layerEdit.js');
+  const { defaultDraftForRegion } = await import('../domain/cutSession.js');
+  const { gridPrimaryIndex } = await import('../domain/gridCut.js');
+  const initial = createPresetStockDocument(STOCK_PRESETS.find(p => p.id === 'letter-a'));
+  for (const tool of ['brilliant', 'asanoha']) {
+    const draft = { ...defaultDraftForRegion('crown'),
+      patternMode: 'composite', industryAngle: 34, depth: .5, baseIndex: 0,
+      composite: { tool, params: compositeToolDefaults(tool), extent: .8, snap: 'tooth' },
+    };
+    const reference = initial.cuttingReference;
+    const { facets, error } = resolveDraftGeometry(draft, 'crown', reference);
+    assert.equal(error, '');
+    const metadata = layerEditMetadata({ patternMode: 'composite', baseIndex: gridPrimaryIndex(facets, 0, 96), indexTeeth: 96, facets,
+      composite: { composite: draft.composite, angle: 34, depth: .5, rotation: 0 } });
+    const layer = facetsAfterLayerEdit(facets, [], { patternId: 'mesh-tool', label: 'mesh tool', metadata });
+    const planned = executeFacetingCommand(createCommandHistory(initial), preparePatternCommit(initial, layer).command).present;
+    assert.equal(planned.stock, initial.stock);
+    const inspected = inspectDesign(planned);
+    assert.ok(inspected.effectiveCutPlanes > 0);
+    assert.ok(inspected.stockSurfacePieces > 0, 'original mesh surfaces remain');
+    assert.ok(inspected.roundtripVolumeError < 1e-9);
+    const restored = importFacetingJSON(exportFacetingJSON(planned));
+    assert.deepEqual(restored.stock, initial.stock);
+    const reopened = planDesign(restored, [{ kind: 'cut', patternId: 'mesh-tool', draft: {} }]).document;
+    assert.deepEqual(reopened.facets.map(f => f.plane), restored.facets.map(f => f.plane));
+    const dissolved = dissolveLayerByLevels(reopened, 'mesh-tool').document;
+    assert.deepEqual(dissolved.facets.map(f => JSON.stringify(f.plane)).sort(), reopened.facets.map(f => JSON.stringify(f.plane)).sort());
+    assert.equal(dissolved.stock, reopened.stock);
+    const history = executeFacetingCommand(createCommandHistory(reopened), createReplaceDocumentCommand(dissolved));
+    assert.deepEqual(undoFacetingCommand(history).present, reopened);
+    assert.deepEqual(redoFacetingCommand(undoFacetingCommand(history)).present, dissolved);
+  }
 });

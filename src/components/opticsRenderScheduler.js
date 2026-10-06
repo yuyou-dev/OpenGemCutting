@@ -39,6 +39,7 @@ export function createOpticsRenderScheduler({ gl, render, onError, onComplete, r
       latest = { ...options, camera: { ...options.camera } };
       schedule();
     },
+    cancel() { latest = null; cancelFrame(frame); frame = 0; },
     destroy() {
       disposed = true;
       cancelFrame(frame);

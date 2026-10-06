@@ -9,7 +9,7 @@ function setup() {
   return { scheduler, sent, previews, commits, errors, reply: data => worker.onmessage({ data }) };
 }
 const op = depth => ({ toolId: 'tool', toolDepth: depth });
-test('continuous input keeps one in flight and only the latest waiting position; release commits exactly once', () => {
+test('continuous input keeps one in flight and only the latest waiting position; confirmation commits exactly once', () => {
   const h = setup(), base = {};
   h.scheduler.preview(base, op(0));
   for (let i = 1; i <= 100; i++) h.scheduler.preview(base, op(i));
@@ -21,7 +21,7 @@ test('continuous input keeps one in flight and only the latest waiting position;
   assert.equal(h.commits.length, 1); assert.equal(h.commits[0].result, 'final-frame');
   assert.equal(h.sent.length, 2);
 });
-test('release reuses a completed preview; cancel and document replacement discard stale replies', () => {
+test('confirmation reuses a completed preview; cancel and document replacement discard stale replies', () => {
   const h = setup(), base = {};
   h.scheduler.preview(base, op(1)); h.reply({ result: 'ready' });
   h.scheduler.finish(base, op(1)); assert.equal(h.sent.length, 1); assert.equal(h.commits.length, 1);
@@ -32,12 +32,12 @@ test('release reuses a completed preview; cancel and document replacement discar
   h.scheduler.destroy(); h.reply({ result: 'after unmount' }); assert.equal(h.commits.length, 1);
 });
 
-test('release before a preview frame still runs off-thread and can be canceled before commit', () => {
+test('confirmation before a preview frame still runs off-thread and can be canceled before commit', () => {
   const h = setup(), base = {};
   h.scheduler.finish(base, op(1));
   assert.equal(h.sent.length, 1); assert.equal(h.commits.length, 0);
-  h.scheduler.cancel(); h.reply({ result: 'canceled release' });
+  h.scheduler.cancel(); h.reply({ result: 'canceled confirmation' });
   assert.equal(h.commits.length, 0);
-  h.scheduler.finish(base, op(2)); h.reply({ result: 'new release' });
-  assert.equal(h.commits.length, 1); assert.equal(h.commits[0].result, 'new release');
+  h.scheduler.finish(base, op(2)); h.reply({ result: 'new confirmation' });
+  assert.equal(h.commits.length, 1); assert.equal(h.commits[0].result, 'new confirmation');
 });

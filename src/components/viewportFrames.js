@@ -48,7 +48,15 @@ export { advanceViewportCamera } from './viewportNavigation.js';
 // Keep the gem upright, with the current cut seen obliquely from 45° to its side.
 // A shallow view from above preserves both crown and pavilion proportions.
 export function cuttingCameraPose(step, currentYaw = 0) {
-  const n = step.plane.normal;
+  let n = step.plane?.normal;
+  if (step.operationType === 'concave') {
+    // Tool positions are absolute; rotate their radial direction about the
+    // same machine center used by the concave geometry.
+    const x = step.tool.position[0] - step.center[0];
+    const y = step.tool.position[1] - step.center[1];
+    const angle = step.tool.phaseDeg * Math.PI / 180;
+    n = { x: x * Math.cos(angle) - y * Math.sin(angle), y: x * Math.sin(angle) + y * Math.cos(angle), z: 0 };
+  }
   const azimuth = Math.hypot(n.x, n.y) < 1e-8 ? currentYaw + Math.PI / 2 : Math.atan2(n.y, n.x);
   const target = azimuth - Math.PI / 2 - (Math.hypot(n.x, n.y) < 1e-8 ? 0 : Math.PI / 4);
   const delta = Math.atan2(Math.sin(target - currentYaw), Math.cos(target - currentYaw));

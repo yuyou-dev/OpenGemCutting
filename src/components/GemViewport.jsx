@@ -956,8 +956,10 @@ function angleArcWorldInfo(gizmo) {
   if (!gizmo?.radial || !Number.isFinite(gizmo.arcRadius)) return null;
   const radial = normalize(gizmo.radial);
   const ring = gizmo.indexRing;
+  // The bridge stands in the primary facet's vertical plane, so it meets the ring at that facet's tooth;
+  // a tool's ring handle sits at its rotation, which need not be the primary facet's tooth.
   const bearing = ring?.center && Number.isFinite(ring.outerRadius)
-    ? ringPoint(ring.center, ring.outerRadius, ring.baseIndex, ring.indexTeeth ?? gizmo.indexTeeth)
+    ? ringPoint(ring.center, ring.outerRadius, gizmo.baseIndex ?? ring.baseIndex, ring.indexTeeth ?? gizmo.indexTeeth)
     : ringPoint(gizmo.bearingCenter ?? [0, 0, 0], gizmo.bearingRadius, gizmo.baseIndex, gizmo.indexTeeth);
   const center = add(bearing, multiply(radial, -gizmo.arcRadius));
   const pointAtAngle = (angle) => {
@@ -995,6 +997,34 @@ function depthScreenInfo(frame, gizmo) {
     railStartWorld: arc.knob,
     railEndWorld: carriagePoint,
   };
+}
+
+/**
+ * Composite tools hang from the machine axis like a hood: their depth is a
+ * vertical move of the whole tool, so the depth handle is a spindle along Z
+ * above the hood apex (below it on the pavilion) instead of a rod along one
+ * facet normal. Same screen shape as depthScreenInfo, so it drags the same way.
+ */
+function spindleScreenInfo(frame, gizmo) {
+  const spindle = gizmo?.spindle;
+  if (!frame || !spindle) return null;
+  const apex = spindle.apex;
+  const handleWorld = [apex[0], apex[1], apex[2] + spindle.sign * spindle.length];
+  const railStart = projectDomainPoint(apex, frame, false);
+  const railEnd = projectDomainPoint(handleWorld, frame, false);
+  if (!railStart || !railEnd) return null;
+  const dx = railEnd.x - railStart.x, dy = railEnd.y - railStart.y;
+  const lengthPx = Math.hypot(dx, dy);
+  if (lengthPx < 1e-4) return null;
+  return {
+    x: railEnd.x, y: railEnd.y, dirX: dx / lengthPx, dirY: dy / lengthPx, pxPerUnit: lengthPx / spindle.length,
+    railStart, railEnd, railStartWorld: apex, railEndWorld: handleWorld, spindle: true,
+  };
+}
+
+/** Depth handle of the active gizmo: the hood spindle when there is one, else the facet rod. */
+function depthHandleInfo(frame, gizmo) {
+  return spindleScreenInfo(frame, gizmo) ?? depthScreenInfo(frame, gizmo);
 }
 
 function angleNormal(gizmo, industryAngle) {
@@ -1136,13 +1166,13 @@ function indexRingKnobHit(x, y, ring) {
 }
 
 function mirrorRingHandleHit(x, y, ring) {
-  if (!ring || ring.locked) return false;
+  if (!ring || ring.locked || ring.hideMirror) return false;
   if (Math.hypot(x - ring.mirrorHandle.x, y - ring.mirrorHandle.y) <= 13) return true;
   return ringPathHit(x, y, ring.mirrorCandidates.map((candidate) => candidate.point), 6);
 }
 
 function mirrorRingKnobHit(x, y, ring) {
-  return Boolean(ring && !ring.locked && Math.hypot(x - ring.mirrorHandle.x, y - ring.mirrorHandle.y) <= 13);
+  return Boolean(ring && !ring.locked && !ring.hideMirror && Math.hypot(x - ring.mirrorHandle.x, y - ring.mirrorHandle.y) <= 13);
 }
 
 function indexAtScreenPoint(x, y, ring) {
@@ -1211,7 +1241,7 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   };
 
   drawTrack(ring.outer, ring.outerRadius, graphite, activeIndex);
-  drawTrack(ring.inner, ring.innerRadius, warm, activeMirror);
+  if (!ring.hideMirror) drawTrack(ring.inner, ring.innerRadius, warm, activeMirror);
 
   const ticks = [];
   for (let tooth = 0; tooth < ring.indexTeeth; tooth += 1) {
@@ -1230,7 +1260,7 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   drawScreenSegmentBatch(p, ticks);
 
   const axisTicks = [];
-  ring.axes.forEach((axis) => {
+  if (!ring.hideMirror) ring.axes.forEach((axis) => {
     [axis, axis + ring.indexTeeth / 2].forEach((tooth) => {
       const from = ring.projectRingPoint(ring.innerRadius - 0.028, tooth);
       const to = ring.projectRingPoint(ring.innerRadius + 0.028, tooth);
@@ -1248,7 +1278,7 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   const axisWorldB = ringPoint(ring.worldCenter, ring.innerRadius, ring.baseIndex + ring.mirror + ring.indexTeeth / 2, ring.indexTeeth);
   p.stroke(warm[0], warm[1], warm[2], 82);
   p.strokeWeight(1);
-  const segments = 15;
+  const segments = ring.hideMirror ? 0 : 15;
   for (let part = 0; part < segments; part += 2) {
     const t1 = part / segments;
     const t2 = Math.min((part + 1) / segments, 1);
@@ -1282,7 +1312,7 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
   });
   p.pop();
 
-  if (ring.mirror !== 0) {
+  if (ring.mirror !== 0 && !ring.hideMirror) {
     p.push();
     p.fill(palette.mirrorFill);
     p.strokeWeight(1.35);
@@ -1317,7 +1347,7 @@ function drawIndexRing(p, ring, isOccluded, isInsideSolid, isInsideSilhouette) {
     p.pop();
   };
   drawHandle(ring.outerHandle, graphite, activeIndex);
-  drawHandle(ring.mirrorHandle, warm, activeMirror);
+  if (!ring.hideMirror) drawHandle(ring.mirrorHandle, warm, activeMirror);
 }
 
 function drawGroupRotationRing(p, ring, isOccluded) {
@@ -1370,7 +1400,7 @@ function drawGroupRotationRing(p, ring, isOccluded) {
 function drawPickOverlay(p, scene) {
   const frame = scene.frame;
   if (!frame) return;
-  const depthHandle = depthScreenInfo(frame, scene.cutGizmo);
+  const depthHandle = depthHandleInfo(frame, scene.cutGizmo);
   const angleArc = angleArcScreenInfo(frame, scene.cutGizmo);
   const indexRing = indexRingScreenInfo(frame, scene.cutGizmo);
   const groupControls = groupControlsScreenInfo(frame, scene.groupGizmo);
@@ -1626,6 +1656,17 @@ function drawPickOverlay(p, scene) {
       isInsideSolid,
     );
 
+    if (depthHandle.spindle && !isDepthOccluded(depthHandle.railStart)) {
+      const [cx, cy, cz] = toLocal(depthHandle.railStart);
+      p.push();
+      p.translate(cx, cy, cz);
+      p.fill(255, 247, 250, 240);
+      p.stroke(237, 34, 93, 230);
+      p.strokeWeight(1.4);
+      p.rectMode(p.CENTER);
+      p.rect(0, 0, 9, 9);
+      p.pop();
+    }
     if (!isInsideSolid(depthHandle.railEndWorld) && !isDepthOccluded(depthHandle)) {
       p.push();
       p.translate(hx, hy, hz);
@@ -1736,7 +1777,7 @@ function drawGizmoLabels(canvas, scene) {
     drawCanvasBadge(context, rotationRing.outerHandle.x + 10, rotationRing.outerHandle.y + 12, `R ${teeth >= 0 ? "+" : ""}${teeth}T`, "#a67712");
   }
 
-  const depth = depthScreenInfo(scene.frame, scene.cutGizmo);
+  const depth = depthHandleInfo(scene.frame, scene.cutGizmo);
   const arc = angleArcScreenInfo(scene.frame, scene.cutGizmo);
   const indexRing = indexRingScreenInfo(scene.frame, scene.cutGizmo);
   const { isOccluded, isInsideSolid, isInsideSilhouette } = visibility;
@@ -1777,7 +1818,7 @@ function drawGizmoLabels(canvas, scene) {
       context,
       depth.x + depth.dirX * 45 + perpendicularX * 10,
       depth.y + depth.dirY * 45 + perpendicularY * 10,
-      `D ${scene.cutGizmo.value.toFixed(3)}`,
+      depth.spindle ? `${t(scene.cutGizmo.spindle.label ?? "顶点深度")} ${scene.cutGizmo.value.toFixed(3)}` : `D ${scene.cutGizmo.value.toFixed(3)}`,
       "#ed225d",
     );
   }
@@ -1802,11 +1843,15 @@ function drawGizmoLabels(canvas, scene) {
     }
     context.globalAlpha = 1;
     if (width >= 760) {
-      const legendLabels = [t("外圈：分度"), t("内圈：镜像轴偏移")];
+      const legendLabels = indexRing.hideMirror ? [t("外圈：整组旋转（整齿）")] : [t("外圈：分度"), t("内圈：镜像轴偏移")];
       // Longer translations widen the legend; keep it fully on the canvas.
       const legendWidth = 32 + Math.max(...legendLabels.map((label) => context.measureText(label).width)) + 12;
       const legendX = clamp(outerBounds.maxX - 150, outerBounds.minX + 18, width - legendWidth);
-      const legendY = clamp(outerBounds.maxY + 34, 72, height - 50);
+      // A pavilion bridge hangs below the ring and its angle badge would sit on the legend.
+      const legendAbove = arc && arc.knob.y > indexRing.center.y;
+      const legendY = legendAbove
+        ? clamp(outerBounds.minY - 34 - (legendLabels.length - 1) * 21, 72, height - 50)
+        : clamp(outerBounds.maxY + 34, 72, height - 50);
       context.textAlign = "left";
       context.strokeStyle = "#1f262a";
       context.lineWidth = 1.5;
@@ -1816,12 +1861,14 @@ function drawGizmoLabels(canvas, scene) {
       context.stroke();
       context.fillStyle = "#4d5559";
       context.fillText(legendLabels[0], legendX + 32, legendY);
-      context.strokeStyle = "#a67712";
-      context.beginPath();
-      context.moveTo(legendX, legendY + 21);
-      context.lineTo(legendX + 24, legendY + 21);
-      context.stroke();
-      context.fillText(legendLabels[1], legendX + 32, legendY + 21);
+      if (legendLabels[1]) {
+        context.strokeStyle = "#a67712";
+        context.beginPath();
+        context.moveTo(legendX, legendY + 21);
+        context.lineTo(legendX + 24, legendY + 21);
+        context.stroke();
+        context.fillText(legendLabels[1], legendX + 32, legendY + 21);
+      }
     }
     context.restore();
     if (!isOccluded(indexRing.outerHandle)) {
@@ -1829,11 +1876,11 @@ function drawGizmoLabels(canvas, scene) {
         context,
         indexRing.outerHandle.x + 12,
         indexRing.outerHandle.y + 10,
-        `主切面 · I${String(displayIndex(indexRing.baseIndex, indexRing.indexTeeth)).padStart(2, "0")}`,
+        indexRing.hideMirror ? `${t("旋转")} · R${displayIndex(indexRing.baseIndex, indexRing.indexTeeth) % indexRing.indexTeeth}T` : `主切面 · I${String(displayIndex(indexRing.baseIndex, indexRing.indexTeeth)).padStart(2, "0")}`,
         indexRing.locked ? "rgba(31, 38, 42, 0.45)" : "#1f262a",
       );
     }
-    if (!isOccluded(indexRing.mirrorHandle)) {
+    if (!indexRing.hideMirror && !isOccluded(indexRing.mirrorHandle)) {
       drawCanvasBadge(
         context,
         indexRing.mirrorHandle.x + 12,
@@ -1843,6 +1890,54 @@ function drawGizmoLabels(canvas, scene) {
       );
     }
   }
+}
+
+// Machining levels of a tool hood: blue, teal, amber, violet, then softer repeats.
+const HOOD_LEVEL_COLORS = [[47, 111, 228], [22, 140, 131], [196, 136, 18], [125, 91, 184], [79, 140, 196], [70, 160, 120], [205, 112, 60], [150, 110, 200]];
+const hoodRenderCaches = new WeakMap();
+
+/** The composite tool as a translucent hood, floated a hair outward so it never fights the cut faces. */
+function drawToolHood(p, hood, sceneScale, lineWeight, renderMode) {
+  if (!hood?.faces?.length) return;
+  let cache = hoodRenderCaches.get(p);
+  if (!cache || cache.hood !== hood || cache.sceneScale !== sceneScale) {
+    if (cache?.fillMesh) p.freeGeometry(cache.fillMesh);
+    if (cache?.edgeMesh) p.freeGeometry(cache.edgeMesh);
+    const sign = hood.region === "pavilion" ? -1 : 1;
+    const fillMesh = new p.constructor.Geometry();
+    const edges = [];
+    for (const face of hood.faces) {
+      const points = face.points;
+      if (points.length < 3) continue;
+      let normal = normalize(cross(subtract(points[1], points[0]), subtract(points[2], points[0])));
+      if (normal[2] * sign < 0) normal = multiply(normal, -1);
+      const lift = multiply(normal, 0.006);
+      const lifted = points.map((point) => add(point, lift));
+      const color = HOOD_LEVEL_COLORS[(face.level ?? 0) % HOOD_LEVEL_COLORS.length].map((value) => value / 255);
+      const start = fillMesh.vertices.length;
+      for (const point of lifted) {
+        fillMesh.vertices.push(p.createVector(...transformPoint(point, sceneScale)));
+        fillMesh.vertexNormals.push(p.createVector(...transformPoint(normal, 1)));
+        fillMesh.vertexColors.push(...color, 0.2);
+      }
+      for (let index = 1; index < lifted.length - 1; index += 1) fillMesh.faces.push([start, start + index, start + index + 1]);
+      lifted.forEach((point, index) => edges.push([point, lifted[(index + 1) % lifted.length]]));
+    }
+    cache = { hood, sceneScale, fillMesh, edgeMesh: lineMesh(p, edges, sceneScale) };
+    hoodRenderCaches.set(p, cache);
+  }
+  const gl = p.drawingContext;
+  gl.depthMask(false);
+  p.push();
+  p.noStroke();
+  p.fill(255);
+  p.model(cache.fillMesh);
+  p.pop();
+  p.noFill();
+  p.stroke(36, 70, 120, renderMode === "xray" ? 120 : 170);
+  p.strokeWeight(lineWeight * 0.95);
+  p.model(cache.edgeMesh);
+  gl.depthMask(true);
 }
 
 const polyhedronRenderCaches = new WeakMap();
@@ -2068,7 +2163,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
       const groupControls = groupControlsScreenInfo(scene.frame, scene.groupGizmo);
       const groupVisibility = createHelperVisibilityContext(scene);
       const arc = angleArcScreenInfo(scene.frame, scene.cutGizmo);
-      const depth = depthScreenInfo(scene.frame, scene.cutGizmo);
+      const depth = depthHandleInfo(scene.frame, scene.cutGizmo);
       const indexRing = indexRingScreenInfo(scene.frame, scene.cutGizmo);
       const beginGroupDrag = (control) => {
         gizmoDrag = {
@@ -2210,7 +2305,7 @@ function attachViewportInteractions(canvas, cameraRef, sceneRef, requestViewMode
     const groupControls = groupControlsScreenInfo(scene.frame, scene.groupGizmo);
     const groupVisibility = createHelperVisibilityContext(scene);
     const arc = scene.cutGizmo ? angleArcScreenInfo(scene.frame, scene.cutGizmo) : null;
-    const depth = scene.cutGizmo ? depthScreenInfo(scene.frame, scene.cutGizmo) : null;
+    const depth = scene.cutGizmo ? depthHandleInfo(scene.frame, scene.cutGizmo) : null;
     const indexRing = scene.cutGizmo ? indexRingScreenInfo(scene.frame, scene.cutGizmo) : null;
     if (groupRotationRingHit(x, y, groupControls.rotation, groupVisibility)) {
       canvas.style.cursor = "grab";
@@ -2320,6 +2415,7 @@ export function GemViewport({
   pickingEnabled = false,
   cutGizmo = null,
   groupGizmo = null,
+  toolHood = null,
   onFacePick,
   meetTargets = [],
   meetPickEnabled = false,
@@ -2346,8 +2442,10 @@ export function GemViewport({
   const interactionRef = useRef(null);
   const gizmoLabelCanvasRef = useRef(null);
   const framesRef = useRef(null);
+  const coverRef = useRef(() => {});
   const lifecycleRef = useRef(null);
   const normalizedGeometry = useMemo(() => normalizeGeometry(polyhedron), [polyhedron]);
+  const assistantBounds = useMemo(() => assistantView ? normalizeGeometry(assistantView.stock).bounds : null, [assistantView?.stock]);
   const hasFrostedFaces = normalizedGeometry.faces.some(face => frostedFaceIds?.has(face.facetId));
   const normalizedMeetSource = useMemo(
     () => meetPolyhedron ? normalizeGeometry(meetPolyhedron) : null,
@@ -2393,6 +2491,7 @@ export function GemViewport({
     // is owned by the interaction handlers and must survive re-renders.
     Object.assign(sceneRef.current, {
       geometry: normalizedGeometry,
+      assistantBounds,
       concaveTools,
       meetGeometry: normalizedMeetGeometry,
       faces: normalizedGeometry.faces,
@@ -2412,14 +2511,15 @@ export function GemViewport({
       nextJumpMarker,
       cutGizmo: cutGizmo ? { ...cutGizmo, indexTeeth: cutGizmo.indexTeeth ?? indexTeeth, indexRing: cutGizmo.indexRing ? { ...cutGizmo.indexRing, indexTeeth: cutGizmo.indexRing.indexTeeth ?? indexTeeth } : null } : null,
       groupGizmo: groupGizmo ? { ...groupGizmo, indexTeeth: groupGizmo.indexTeeth ?? indexTeeth } : null,
+      toolHood,
       suspended,
     });
-    if (hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
+    if (!assistantView && hasExplicitGeometry && (!ghostBoundsRef.current || isStockGeometry(polyhedron, normalizedGeometry))) {
       ghostBoundsRef.current = copyBounds(normalizedGeometry.bounds);
     }
     framesRef.current?.setSuspended(suspended);
     framesRef.current?.invalidate();
-  }, [frostedFaceIds, concaveTools, assistantView, activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, hasExplicitGeometry, highlightOperationId, indexTeeth, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
+  }, [assistantBounds, frostedFaceIds, concaveTools, assistantView, activeOperationId, activeViewMode, constructionMarkers, cutGizmo, groupGizmo, toolHood, hasExplicitGeometry, highlightOperationId, indexTeeth, meetPickEnabled, meetTargets, nextJumpMarker, normalizedGeometry, normalizedMeetGeometry, pickingEnabled, polyhedron, previewOperationId, previewPlanes, renderMode, selectedIndex, suspended]);
 
   useEffect(() => {
     const nextMode = VIEW_POSES[viewMode] ? viewMode : "perspective";
@@ -2446,7 +2546,7 @@ export function GemViewport({
     const camera = cameraRef.current;
     if (assistantView && !editCameraRef.current) {
       editCameraRef.current = { ...camera };
-      Object.assign(camera, { targetZoom: 1.8, targetPanX: 0, targetPanY: 0 });
+      Object.assign(camera, { zoom: 1.25, targetZoom: 1.25, panX: 0, panY: 0, targetPanX: 0, targetPanY: 0 });
     } else if (!assistantView && editCameraRef.current) {
       Object.assign(camera, editCameraRef.current, { transition: null });
       editCameraRef.current = null;
@@ -2464,6 +2564,10 @@ export function GemViewport({
     framesRef.current?.invalidate();
   }, [assistantView]);
 
+  useLayoutEffect(() => {
+    coverRef.current();
+  }, [suspended, Boolean(assistantView)]);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return undefined;
@@ -2471,15 +2575,23 @@ export function GemViewport({
     let cancelled = false;
     let lifecycle = null;
     let resizeObserver = null;
-    let resizeTimer = 0;
     let cameraMoving = false;
-    let firstFrameDrawn = false;
-    setRendererState("loading");
+    let presented = false;
+    const cover = () => {
+      presented = false;
+      host.parentElement.dataset.renderPending = "true";
+      setRendererState("loading");
+    };
+    coverRef.current = cover;
+    cover();
     const frames = createViewportFrames({
       draw: async () => {
         // No drawable instance while the WebGL context is lost.
         const instance = lifecycle?.instance;
         if (!instance) return false;
+        const width = Math.max(1, Math.round(host.clientWidth));
+        const height = Math.max(1, Math.round(host.clientHeight));
+        if (width !== instance.width || height !== instance.height) instance.resizeCanvas(width, height, true);
         await instance.redraw();
         return cameraMoving;
       },
@@ -2497,8 +2609,8 @@ export function GemViewport({
       p.setup = () => {
         p.noLoop();
         if (cancelled) { p.remove(); return; }
-        const width = Math.max(320, Math.round(host.clientWidth || 720));
-        const height = Math.max(320, Math.round(host.clientHeight || 520));
+        const width = Math.max(1, Math.round(host.clientWidth || 720));
+        const height = Math.max(1, Math.round(host.clientHeight || 520));
         p.pixelDensity(Math.min(window.devicePixelRatio || 1, 1.75));
         try {
           renderer = p.createCanvas(width, height, p.WEBGL);
@@ -2530,7 +2642,7 @@ export function GemViewport({
         if (lifecycle?.instance !== p) return;
         const { geometry, previewPlanes: planes, selectedIndex: index, viewMode: mode, renderMode: displayMode } = sceneRef.current;
         const camera = cameraRef.current;
-        const ghostBounds = ghostBoundsRef.current ?? geometry.bounds;
+        const ghostBounds = sceneRef.current.assistantBounds ?? ghostBoundsRef.current ?? geometry.bounds;
         cameraMoving = advanceViewportCamera(camera);
 
         p.background(255);
@@ -2565,6 +2677,7 @@ export function GemViewport({
         // Solid first so preview planes are correctly occluded by geometry;
         // patches never write depth, they only tint what the camera can see.
         drawPolyhedron(p, geometry, sceneScale, lineWeight, camera.yaw, camera.pitch, displayMode, sceneRef.current.highlightOperationId, sceneRef.current.activeOperationId, sceneRef.current.previewOperationId, sceneRef.current.frostedFaceIds);
+        drawToolHood(p, sceneRef.current.toolHood, sceneScale, lineWeight, displayMode);
         drawPreviewPlanes(p, planes, index, ghostBounds, sceneScale, lineWeight, displayMode, sceneRef.current.indexTeeth);
         drawConcaveTools(p, sceneRef.current.concaveTools, sceneScale, transformPoint);
         drawGroupControlPlane(p, sceneRef.current.groupGizmo, sceneScale, lineWeight);
@@ -2588,7 +2701,13 @@ export function GemViewport({
         // p5 also draws once after async setup, outside our frame queue. Keep
         // a pending camera transition moving even if it starts on that frame.
         if (cameraMoving) frames.invalidate();
-        if (!firstFrameDrawn) { firstFrameDrawn = true; setRendererState("ready"); }
+        if (!presented && !sceneRef.current.suspended
+          && p.width === Math.max(1, Math.round(host.clientWidth))
+          && p.height === Math.max(1, Math.round(host.clientHeight))) {
+          presented = true;
+          delete host.parentElement.dataset.renderPending;
+          setRendererState("ready");
+        }
       };
     };
 
@@ -2621,40 +2740,23 @@ export function GemViewport({
           // A throwing p5 renderer constructor leaves an unregistered canvas.
           host.replaceChildren();
         },
-        onLost: () => setContextStatus("lost"),
+        onLost: () => { cover(); setContextStatus("lost"); },
         onRestore: () => setContextStatus("ready"),
         onError: () => setContextStatus("failed"),
       });
       lifecycleRef.current = lifecycle;
-      let firstSize = true;
-      const applySize = (width, height) => {
-        const instance = lifecycle.instance;
-        if (!instance?.canvas || (width === instance.width && height === instance.height)) return;
-        // Resizing clears the canvas; redraw through the same serialized
-        // queue as React and pointer updates instead of p5's immediate path.
-        instance.resizeCanvas(width, height, true);
-        frames.invalidate();
-      };
-      resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry || !lifecycle.instance?.canvas) return;
-        const width = Math.max(320, Math.round(entry.contentRect.width));
-        const height = Math.max(320, Math.round(entry.contentRect.height));
-        // A sidebar opening or closing resizes the host every frame; resize
-        // once it settles so the stone stays drawn while the column moves.
-        window.clearTimeout(resizeTimer);
-        if (firstSize) { firstSize = false; applySize(width, height); return; }
-        resizeTimer = window.setTimeout(() => applySize(width, height), 140);
-      });
+      // Layout transitions reuse the same canvas and camera. Resize and draw
+      // together in the frame queue; only initial load/resume/context loss need a cover.
+      resizeObserver = new ResizeObserver(() => frames.invalidate());
       resizeObserver.observe(host);
     })();
 
     return () => {
       cancelled = true;
+      coverRef.current = () => {};
       frames.dispose();
       framesRef.current = null;
       unsubscribeLanguage();
-      window.clearTimeout(resizeTimer);
       resizeObserver?.disconnect();
       lifecycle?.destroy();
       lifecycleRef.current = null;

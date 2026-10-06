@@ -56,7 +56,8 @@
                     "transform",
                     "replace-parameters",
                     "concave-tool",
-                    "dissolve-ring"
+                    "dissolve-ring",
+                    "dissolve-grid"
                   ]
                 },
                 "toolId": {
@@ -152,7 +153,8 @@
                       "type": "string",
                       "enum": [
                         "symmetric",
-                        "arbitrary"
+                        "arbitrary",
+                        "grid"
                       ]
                     },
                     "customIndices": {
@@ -199,6 +201,71 @@
                         "symmetry",
                         "subdivisions",
                         "rotation"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "grid": {
+                      "type": "object",
+                      "properties": {
+                        "symmetry": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            6
+                          ]
+                        },
+                        "mirror": {
+                          "type": "boolean"
+                        },
+                        "lattice": {
+                          "type": "string",
+                          "enum": [
+                            "square",
+                            "hex",
+                            "tri"
+                          ]
+                        },
+                        "columns": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "rows": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "rings": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 6
+                        },
+                        "scope": {
+                          "type": "string",
+                          "enum": [
+                            "face",
+                            "row"
+                          ]
+                        },
+                        "row": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 24
+                        },
+                        "rowCopies": {
+                          "type": "boolean"
+                        },
+                        "extent": {
+                          "type": "number",
+                          "minimum": 0.2,
+                          "maximum": 1.2
+                        }
+                      },
+                      "required": [
+                        "symmetry"
                       ],
                       "additionalProperties": false
                     },
@@ -519,7 +586,8 @@
                 "type": "string",
                 "enum": [
                   "symmetric",
-                  "arbitrary"
+                  "arbitrary",
+                  "grid"
                 ]
               },
               "customIndices": {
@@ -566,6 +634,71 @@
                   "symmetry",
                   "subdivisions",
                   "rotation"
+                ],
+                "additionalProperties": false
+              },
+              "grid": {
+                "type": "object",
+                "properties": {
+                  "symmetry": {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      6
+                    ]
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "lattice": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "hex",
+                      "tri"
+                    ]
+                  },
+                  "columns": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "rows": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "rings": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "face",
+                      "row"
+                    ]
+                  },
+                  "row": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 24
+                  },
+                  "rowCopies": {
+                    "type": "boolean"
+                  },
+                  "extent": {
+                    "type": "number",
+                    "minimum": 0.2,
+                    "maximum": 1.2
+                  }
+                },
+                "required": [
+                  "symmetry"
                 ],
                 "additionalProperties": false
               },

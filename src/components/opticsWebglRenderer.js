@@ -112,6 +112,18 @@ vec3 rotateEnvironment(vec3 direction) {
   );
 }
 
+// Finite angular softboxes give polished facets readable bright/dark boundaries.
+float studioBox(vec3 direction, vec3 axis, vec2 halfSize) {
+  vec3 normal = normalize(axis);
+  vec3 right = normalize(cross(normal, vec3(0.0, 0.0, 1.0)));
+  vec3 up = cross(right, normal);
+  float forward = dot(direction, normal);
+  if (forward <= 0.0) return 0.0;
+  vec2 local = abs(vec2(dot(direction, right), dot(direction, up)) / forward);
+  vec2 edge = 1.0 - smoothstep(halfSize - vec2(0.025), halfSize + vec2(0.025), local);
+  return edge.x * edge.y;
+}
+
 vec3 environmentRadiance(vec3 rawDirection) {
   vec3 worldDirection = normalize(rawDirection);
   vec3 direction = rotateEnvironment(worldDirection);
@@ -134,6 +146,17 @@ vec3 environmentRadiance(vec3 rawDirection) {
   float darkStrength = uEnvironment == 2 ? 1.2 : 0.88;
   float observerCard = smoothstep(0.91, 0.985, dot(worldDirection, normalize(uObserverDirection)));
   vec3 radiance = max(vec3(0.006), base + panels - (darkCard + darkCardTwo) * darkStrength);
+
+  if (uEnvironment == 0) {
+    // Neutral studio: broad white sources, dark gaps, and a small observer.
+    // Color remains Beer–Lambert transmission, not painted facet shading.
+    radiance = mix(vec3(0.18), vec3(0.46), horizon) * (0.65 + 0.35 * direction.x)
+      + vec3(0.8) * pow(max(0.0, dot(direction, normalize(vec3(-0.4, 0.3, -0.85)))), 4.0)
+      + vec3(2.8, 2.9, 3.0) * studioBox(direction, vec3(-0.72, -0.36, 0.58), vec2(0.70, 0.50))
+      + vec3(3.4, 3.3, 3.2) * studioBox(direction, vec3(0.78, 0.18, 0.52), vec2(0.48, 0.70))
+      + vec3(1.8) * studioBox(direction, vec3(-0.15, 0.96, 0.44), vec2(0.70, 0.38));
+    observerCard = smoothstep(0.978, 0.990, dot(worldDirection, normalize(uObserverDirection)));
+  }
 
   if (uEnvironment == 3) {
     float azimuth = atan(worldDirection.y, worldDirection.x);
@@ -521,16 +544,19 @@ export function createWebglOpticsRenderer(canvas, onError, sampling = null) {
         canvas.dataset.renderStage = view.stage;
         if (!accumulation) {
           gl.drawArrays(gl.TRIANGLES, 0, 3);
+          options.onFrame?.();
           return;
         }
         if (!accumulation.begin(width, height, options)) return;
         gl.drawArrays(gl.TRIANGLES, 0, 3);
         if (accumulation.end()) scheduler.draw(options);
+        options.onFrame?.();
       },
     });
     return {
       gl,
       draw: scheduler.draw,
+      cancel: scheduler.cancel,
       destroy() {
         scheduler.destroy();
         release();

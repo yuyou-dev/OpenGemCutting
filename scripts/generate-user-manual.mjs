@@ -1,8 +1,7 @@
 import { createTranslator } from '../src/i18n/format.js';
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
+import { printManualPdf } from "./manual/print-pdf.mjs";
 import path from "node:path";
-import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { manualPages as sourcePages } from "./manual/content.mjs";
 import { importFacetingJSON } from "../src/domain/faceting.js";
@@ -146,21 +145,7 @@ if (!browserPath)
   throw Error(
     "Chrome or Chromium is required to build the operation manual PDF.",
   );
-await promisify(execFile)(
-  browserPath,
-  [
-    "--headless=new",
-    "--disable-gpu",
-    "--no-sandbox",
-    "--allow-file-access-from-files",
-    "--no-pdf-header-footer",
-    `--print-to-pdf=${outputPath}`,
-    "--run-all-compositor-stages-before-draw",
-    "--virtual-time-budget=4000",
-    pathToFileURL(htmlPath).href,
-  ],
-  { maxBuffer: 4 * 1024 * 1024 },
-);
+await printManualPdf(browserPath, htmlPath, outputPath);
 console.log(
   `Generated ${path.relative(root, outputPath)} (${manualPages.length} pages). HTML: ${path.relative(root, htmlPath)}`,
 );

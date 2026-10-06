@@ -1,5 +1,6 @@
 import { CONCAVE_PRESETS } from './concaveTools.js';
 import { CONCAVE_CUT_LIMITS } from '../domain/concaveCuts.js';
+import { GRID_CUT_LIMITS, GRID_SYMMETRIES } from '../domain/gridCut.js';
 
 export const DESIGN_API_VERSION = '1.0';
 const string = { type: 'string', minLength: 1, maxLength: 200 };
@@ -20,7 +21,7 @@ export const DRAFT_FIELDS = {
   indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
   repeat: { type: 'integer', minimum: 1, maximum: 360 },
   mirrorOffset: { type: 'number', minimum: 0, maximum: 360 },
-  patternMode: { type: 'string', enum: ['symmetric', 'arbitrary'] },
+  patternMode: { type: 'string', enum: ['symmetric', 'arbitrary', 'grid'] },
   customIndices: { type: 'string', maxLength: 400 },
   // Ring cut: L-fold sides, each cut by a fan of facets; indices are generated on the project wheel.
   // Ring cut kinds: fan (spacingDeg, one depth) or arc (bulge 0–1, jointly solved depths).
@@ -32,13 +33,28 @@ export const DRAFT_FIELDS = {
     bulge: { type: 'number', minimum: 0, maximum: 1 },
     rotation: { type: 'integer', minimum: 0, maximum: 359 },
   }, ['symmetry', 'subdivisions', 'rotation']),
+  // Grid cut: a convex dome tool cut as a lattice of facets (square for symmetry 1/2/4,
+  // hex or tri for 3/6). industryAngle is the edge angle, depth the apex depth and
+  // baseIndex the whole-tooth rotation; angles and depths per cell are solved.
+  grid: object({
+    symmetry: { type: 'integer', enum: GRID_SYMMETRIES },
+    mirror: { type: 'boolean' },
+    lattice: { type: 'string', enum: ['square', 'hex', 'tri'] },
+    columns: { type: 'integer', minimum: GRID_CUT_LIMITS.columns[0], maximum: GRID_CUT_LIMITS.columns[1] },
+    rows: { type: 'integer', minimum: GRID_CUT_LIMITS.rows[0], maximum: GRID_CUT_LIMITS.rows[1] },
+    rings: { type: 'integer', minimum: GRID_CUT_LIMITS.rings[0], maximum: GRID_CUT_LIMITS.rings[1] },
+    scope: { type: 'string', enum: ['face', 'row'] },
+    row: { type: 'integer', minimum: 0, maximum: 24 },
+    rowCopies: { type: 'boolean' },
+    extent: { type: 'number', minimum: GRID_CUT_LIMITS.extent[0], maximum: GRID_CUT_LIMITS.extent[1] },
+  }, ['symmetry']),
   preform: { type: 'boolean' },
 };
 export const OPERATION_SCHEMA = object(
   {
     kind: {
       type: 'string',
-      enum: ['cut', 'remove', 'rename', 'reorder', 'transform', 'replace-parameters', 'concave-tool', 'dissolve-ring'],
+      enum: ['cut', 'remove', 'rename', 'reorder', 'transform', 'replace-parameters', 'concave-tool', 'dissolve-ring', 'dissolve-grid'],
     },
     toolId: string,
     preset: { type: 'string', enum: CONCAVE_PRESETS.map(p => p.id) },

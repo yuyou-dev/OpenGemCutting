@@ -1,4 +1,6 @@
-import { ringCutFromFacets, ringDraftPatch, ringDissolveLevels } from '../domain/ringCut.js';
+import { ringCutFromFacets, ringDissolveLevels } from '../domain/ringCut.js';
+import { gridCutFromFacets, gridPrimaryIndex } from '../domain/gridCut.js';
+import { compositeToolFromFacets } from '../domain/compositeTools.js';
 import { inspectMeetpoints } from './meetInspection.js';
 import { facetsAfterLayerEdit, layerEditMetadata } from '../domain/layerEdit.js';
 import { resolveGroupReference } from '../domain/groupReference.js';
@@ -27,7 +29,7 @@ import {
 } from '../domain/faceting.js';
 import { assertDocumentImportBudget } from '../domain/importBudget.js';
 import { indexCompatibilityReport } from '../domain/indexing.js';
-import { defaultDraftForRegion } from '../domain/cutSession.js';
+import { defaultDraftForRegion, toolDraftPatch } from '../domain/cutSession.js';
 import {
   planeEntry,
   resolveDraftGeometry,
@@ -140,8 +142,27 @@ export function lookupTarget(solid, key, ratio) {
     { key },
   );
 }
-export function draftForPattern(facets) {
+/** Machining levels of a layer: its distinct (industry angle, depth) pairs. */
+export function layerLevelCount(facets) {
+  return new Set(facets.map((facet) => `${facet.industryAngleDeg.toFixed(6)}|${facet.depth.toFixed(6)}`)).size;
+}
+
+/** The CUT draft a saved layer reopens as; grid and composite layers need the cutting reference to be recognised. */
+export function draftForPattern(facets, reference) {
   const first = facets[0];
+  const composite = reference ? compositeToolFromFacets(facets, reference) : null;
+  if (composite) return {
+    industryAngle: composite.angle, depth: composite.depth, indexTeeth: first.indexTeeth ?? 96, baseIndex: composite.rotation,
+    repeat: 1, mirrorOffset: 0, patternMode: 'composite', customIndices: facets.map((f) => displayIndex(f.index, f.indexTeeth ?? 96)).join(' '),
+    ring: null, grid: null, composite: { version: composite.version, tool: composite.tool, params: composite.params, extent: composite.extent, snap: composite.snap },
+    preform: Boolean(first.metadata?.preform),
+  };
+  const grid = reference ? gridCutFromFacets(facets, reference) : null;
+  if (grid) return {
+    industryAngle: grid.edgeAngle, depth: grid.depth, indexTeeth: first.indexTeeth ?? 96, baseIndex: grid.rotation,
+    repeat: 1, mirrorOffset: 0, patternMode: 'grid', customIndices: facets.map((f) => displayIndex(f.index, f.indexTeeth ?? 96)).join(' '),
+    ring: null, grid: grid.grid, composite: null, preform: Boolean(first.metadata?.preform),
+  };
   return {
     industryAngle: first.industryAngleDeg,
     depth: primaryFacetOf(facets).depth,
@@ -152,6 +173,8 @@ export function draftForPattern(facets) {
     patternMode: first.metadata?.patternMode ?? 'symmetric',
     customIndices: facets.map((f) => displayIndex(f.index, f.indexTeeth ?? 96)).join(' '),
     ring: ringCutFromFacets(facets),
+    grid: null,
+    composite: null,
     preform: Boolean(first.metadata?.preform),
   };
 }
@@ -166,10 +189,19 @@ function constructCut(document, operation) {
   if (!region) throw designError('INVALID_OPERATION', '新 CUT 需要 region。');
   if (first && operation.region && first.region !== operation.region)
     throw designError('LOCKED_REGION', '编辑不能更改已保存 CUT 的部位。');
-  const baseDraft = first ? draftForPattern(existing) : defaultDraftForRegion(region, { indexTeeth: document.indexGear.teeth });
-  let draft = { ...baseDraft, ...ringDraftPatch(baseDraft, { ...operation.draft }) };
-  if (draft.ring && (first?.metadata?.operationType === 'table'))
-    throw designError('LOCKED_PARAMETER', '固定台面不能设为环切。');
+  const baseDraft = first ? draftForPattern(existing, getCuttingReference(document)) : defaultDraftForRegion(region, { indexTeeth: document.indexGear.teeth });
+  let draft = { ...baseDraft, ...toolDraftPatch(baseDraft, { ...operation.draft }) };
+  if ((draft.ring || draft.grid || draft.composite) && (first?.metadata?.operationType === 'table'))
+    throw designError('LOCKED_PARAMETER', draft.grid ? '固定台面不能设为网格切。' : draft.composite ? '固定台面不能设为复合刀具。' : '固定台面不能设为环切。');
+  if ((draft.grid || draft.composite) && region === 'girdle')
+    throw designError('LOCKED_PARAMETER', draft.grid ? '网格切只用于冠部或亭部。' : '复合刀具只用于冠部或亭部。');
+  if ((draft.grid || draft.composite) && operation.meet?.a)
+    throw designError('MEET_UNAVAILABLE', '网格切与复合刀具按整体求解，不支持 Meet；请先打散为普通层。');
+  // A saved layer with several angle/depth levels cannot be rebuilt as a one-level
+  // layer: leaving its tool must go through dissolving, which keeps every plane.
+  const multiLevelTool = draft.grid || draft.composite || draft.ring?.kind === 'arc';
+  if (first && !multiLevelTool && layerLevelCount(existing) > 1)
+    throw designError('MULTI_LEVEL_LAYER', '该层含多组角度与深度，不能按单一角度深度重建；请先打散为普通层再编辑。', { patternId: operation.patternId, levels: layerLevelCount(existing) });
   if (draft.indexTeeth !== document.indexGear.teeth)
     throw designError('INDEX_GEAR_MISMATCH', '平面切割必须使用项目分度盘。');
   const table = first?.metadata?.operationType === 'table';
@@ -224,8 +256,11 @@ function constructCut(document, operation) {
   const resolved = resolveDraftGeometry(draft, region, getCuttingReference(document));
   if (resolved.error) throw designError('INVALID_CUT', resolved.error);
   const metadata = layerEditMetadata({
-    previous: first?.metadata, patternMode: draft.patternMode, baseIndex: draft.baseIndex, indexTeeth: draft.indexTeeth,
+    previous: first?.metadata, patternMode: draft.patternMode, indexTeeth: draft.indexTeeth,
+    baseIndex: draft.grid || draft.composite ? gridPrimaryIndex(resolved.facets, draft.baseIndex, draft.indexTeeth) : draft.baseIndex,
     facets: resolved.facets, preform: table || region === 'girdle' ? undefined : draft.preform, ring: draft.ring, meet,
+    grid: draft.grid ? { grid: draft.grid, edgeAngle: draft.industryAngle, depth: draft.depth, rotation: draft.baseIndex } : null,
+    composite: draft.composite ? { composite: draft.composite, angle: draft.industryAngle, depth: draft.depth, rotation: draft.baseIndex } : null,
   });
   const facets = facetsAfterLayerEdit(resolved.facets, document.facets.filter(old => old.patternId === operation.patternId),
     { patternId: operation.patternId, label: operation.label ?? first?.label ?? operation.patternId, metadata });
@@ -392,7 +427,60 @@ export function dissolveRingLayer(document, patternId) {
   return { document: { ...document, facets: [...others.slice(0, at), ...replaced, ...others.slice(at)] }, layers: levels.length };
 }
 
+/**
+ * Split a layer into one ordinary layer per machining level (one industry
+ * angle and depth each) without moving any plane. Every facet belongs to
+ * exactly one level, keyed by its own angle and depth, so levels that a
+ * tool's rounding made coincide never duplicate a facet. The first level
+ * keeps the layer id and label; tool metadata and cell identities are removed.
+ */
+export function dissolveLayerByLevels(document, patternId, { requireTool = null } = {}) {
+  const facets = document.facets.filter((facet) => facet.patternId === patternId);
+  if (!facets.length) throw designError('PATTERN_NOT_FOUND', '未找到指定图层。', { patternId });
+  if (requireTool === 'grid' && !gridCutFromFacets(facets, getCuttingReference(document)))
+    throw designError('NOT_A_GRID', '该层不是可编辑的网格切层。', { patternId });
+  const teeth = facets[0].indexTeeth ?? 96;
+  const byLevel = new Map();
+  for (const facet of facets) {
+    const key = `${facet.industryAngleDeg.toFixed(6)}|${facet.depth.toFixed(6)}`;
+    if (!byLevel.has(key)) byLevel.set(key, []);
+    byLevel.get(key).push(facet);
+  }
+  const groups = [...byLevel.values()];
+  const [prefix, ...rest] = String(facets[0].label ?? patternId).split(/\s+/);
+  const taken = new Set(document.facets.map((facet) => facet.patternId));
+  const freshId = (order) => {
+    let suffix = order + 1;
+    while (taken.has(`${patternId}-${suffix}`)) suffix += 1;
+    taken.add(`${patternId}-${suffix}`);
+    return `${patternId}-${suffix}`;
+  };
+  const replaced = groups.flatMap((group, order) => {
+    const levelId = order === 0 ? patternId : freshId(order);
+    const label = order === 0 ? facets[0].label : [`${prefix}${String.fromCharCode(97 + order)}`, ...rest].join(' ');
+    return group.map((facet, ordinal) => {
+      const { grid: _grid, gridCell: _cell, composite: _composite, compositeCell: _compositeCell, ring: _ring, ...metadata } = facet.metadata ?? {};
+      metadata.patternMode = 'arbitrary';
+      metadata.primaryIndex = normalizeIndex(group[0].index, teeth);
+      if (order > 0) delete metadata.construction;
+      return { ...facet, patternId: levelId, label, ordinal, metadata };
+    });
+  });
+  const at = document.facets.findIndex((facet) => facet.patternId === patternId);
+  const others = document.facets.filter((facet) => facet.patternId !== patternId);
+  return { document: { ...document, facets: [...others.slice(0, at), ...replaced, ...others.slice(at)] }, layers: groups.length };
+}
+
+/** Dissolve a grid layer (the MCP and web "dissolve-grid" operation). */
+export function dissolveGridLayer(document, patternId) {
+  return dissolveLayerByLevels(document, patternId, { requireTool: 'grid' });
+}
+
 export const DESIGN_OPERATION_TABLE = Object.freeze({
+  'dissolve-grid'(document, operation) {
+    const { document: next, layers } = dissolveGridLayer(document, operation.patternId);
+    return { document: next, change: { kind: operation.kind, patternId: operation.patternId, layers } };
+  },
   'dissolve-ring'(document, operation) {
     const { document: next, layers } = dissolveRingLayer(document, operation.patternId);
     return { document: next, change: { kind: operation.kind, patternId: operation.patternId, layers } };
@@ -520,7 +608,7 @@ export function inspectDesign(document) {
       patternId: s.id,
       label: s.facets[0].label,
       region: s.facets[0].region,
-      draft: draftForPattern(s.facets),
+      draft: draftForPattern(s.facets, getCuttingReference(document)),
       generatedPlanes: s.facets.length,
       effectivePlanes: s.facets.filter((f) =>
         effective.effectiveFacetIds.includes(f.id),

@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { createSurfaceAccumulation, SURFACE_TARGET_SAMPLES } from './opticsSurfaceRenderer.js';
 import { surfaceFragmentShader, LAB_RANDOM_SOURCE, LAB_BSDF_SOURCE, ENVIRONMENT_PANELS } from './opticsSurfaceShader.js';
 import { FRAGMENT_SHADER } from './opticsWebglRenderer.js';
-import { traceShader } from '../../vendor/pattern-lab/0.6.0-rc.3.main.3d97f423432e/source/src/render/shaders.js';
+const labLock = JSON.parse(await readFile(new URL('../application/labsModuleLock.json', import.meta.url), 'utf8'));
+const { traceShader } = await import(new URL(`../../${labLock.directory}/source/src/render/shaders.js`, import.meta.url));
 
 function harness() {
   const uniforms = [], deleted = [], drawBuffers = [];

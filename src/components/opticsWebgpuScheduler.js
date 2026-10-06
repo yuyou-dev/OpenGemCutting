@@ -21,6 +21,7 @@ export function createWebgpuOpticsScheduler({ render, onError, requestFrame = re
       latest = { ...options, camera: { ...options.camera } };
       schedule();
     },
+    cancel() { latest = null; cancelFrame(frame); frame = 0; },
     destroy() {
       disposed = true;
       cancelFrame(frame);

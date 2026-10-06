@@ -5,9 +5,9 @@ function vector(value) {
 }
 
 /** Match the viewport's centered unit bounds without dropping any face plane. */
-export function normalizedOpticsPlanes(polyhedron) {
+function opticsNormalization(polyhedron) {
   const vertices = (polyhedron?.vertices ?? []).map(vector);
-  if (!vertices.length) return { planes: [], faceIndices: [], faceCount: 0 };
+  if (!vertices.length) return { vertices: [], center: [0, 0, 0], scale: 1 };
   const minimum = [Infinity, Infinity, Infinity];
   const maximum = [-Infinity, -Infinity, -Infinity];
   for (const vertex of vertices) {
@@ -18,6 +18,11 @@ export function normalizedOpticsPlanes(polyhedron) {
   }
   const center = minimum.map((value, axis) => (value + maximum[axis]) / 2);
   const scale = Math.max(...minimum.map((value, axis) => maximum[axis] - value), 1e-6) / 2;
+  return { vertices: vertices.map(vertex => vertex.map((value, axis) => (value - center[axis]) / scale)), center, scale };
+}
+
+export function normalizedOpticsPlanes(polyhedron) {
+  const { vertices } = opticsNormalization(polyhedron);
   const entries = [];
   (polyhedron?.faces ?? []).forEach((face, faceIndex) => {
     const rawNormal = vector(face.normal);
@@ -25,8 +30,7 @@ export function normalizedOpticsPlanes(polyhedron) {
     const firstVertex = vertices[face.vertexIndices?.[0]];
     if (!firstVertex || length < 1e-8) return;
     const normal = rawNormal.map((value) => value / length);
-    const offset = normal.reduce((sum, value, axis) => sum + value * firstVertex[axis], 0);
-    const normalizedOffset = (offset - normal.reduce((sum, value, axis) => sum + value * center[axis], 0)) / scale;
+    const normalizedOffset = normal.reduce((sum, value, axis) => sum + value * firstVertex[axis], 0);
     entries.push({ plane: [...normal, normalizedOffset], faceIndex });
   });
   // A canonical traversal also makes exact boundary ties independent of face order.
@@ -37,7 +41,7 @@ export function normalizedOpticsPlanes(polyhedron) {
     return 0;
   });
   return { planes: entries.map(entry => entry.plane), faceIndices: entries.map(entry => entry.faceIndex),
-    faceCount: polyhedron?.faces?.length ?? 0 };
+    vertices, faceCount: polyhedron?.faces?.length ?? 0 };
 }
 
 /** RGBA32F stores one complete half-space per texel, spanning rows as needed. */
@@ -54,22 +58,11 @@ export function packOpticsPlaneTexture(planes, maxTextureSize) {
 
 /** Keep cavities and disconnected components: normalized triangles, never a hull. */
 export function normalizedOpticsMesh(polyhedron) {
-  const vertices = polyhedron.vertices.map(vector);
-  if (!vertices.length) return { nodes: [], triangles: [], faceCount: 0 };
-  const minimum = [Infinity, Infinity, Infinity];
-  const maximum = [-Infinity, -Infinity, -Infinity];
-  for (const vertex of vertices) {
-    for (let axis = 0; axis < 3; axis += 1) {
-      minimum[axis] = Math.min(minimum[axis], vertex[axis]);
-      maximum[axis] = Math.max(maximum[axis], vertex[axis]);
-    }
-  }
-  const center = minimum.map((value, axis) => (value + maximum[axis]) / 2);
-  const scale = Math.max(...minimum.map((value, axis) => maximum[axis] - value), 1e-6) / 2;
-  const normalizedVertices = vertices.map((vertex) => vertex.map((value, axis) => (value - center[axis]) / scale));
+  const { vertices: normalizedVertices } = opticsNormalization(polyhedron);
+  if (!normalizedVertices.length) return { nodes: [], triangles: [], vertices: [], faceCount: 0 };
   let radius = 0;
   for (const vertex of normalizedVertices) radius = Math.max(radius, Math.hypot(...vertex));
-  return { ...buildMeshBvh({ ...polyhedron, vertices: normalizedVertices }), radius,
+  return { ...buildMeshBvh({ ...polyhedron, vertices: normalizedVertices }), radius, vertices: normalizedVertices,
     faceCount: polyhedron.faces.length };
 }
 
@@ -137,9 +130,9 @@ export function traceMeshOpticalPaths(mesh, origin, direction, { ior = 1.5, maxB
 
 /** Fit the complete normalized crystal at zoom=1 for every orbit orientation.
  * Account for the real inspector footprint; user zoom/pan remains independent. */
-export function opticsMeshFraming(mesh, { width, height, occludedRight = 0 }) {
+export function opticsMeshFraming(mesh, { width, height, occludedRight = 0, compact = false }) {
   const availableWidth = Math.max(1, width - occludedRight);
-  const halfField = Math.max(0.05, Math.min((height - 128) / height, (availableWidth - 48) / height));
+  const halfField = Math.max(0.05, Math.min((height - (compact ? 28 : 128)) / height, (availableWidth - (compact ? 28 : 48)) / height));
   const radius = mesh.radius || 1;
   const tangent = radius / Math.sqrt(4.4 ** 2 - radius ** 2);
   return { cameraScale: tangent / halfField * 1.08, focusOffset: occludedRight / height };

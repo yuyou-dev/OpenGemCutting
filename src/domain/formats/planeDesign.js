@@ -402,7 +402,7 @@ export function designFromDocument(document, { target = "该格式" } = {}) {
     const primaryLevel = levels.find((items) => items.some((facet) => Math.abs(facet.index - primaryIndex) <= EPSILON)) ?? levels[0];
     const rest = levels.filter((items) => items !== primaryLevel).sort((left, right) => right[0].plane.offset - left[0].plane.offset);
     facts.splitLayers = (facts.splitLayers ?? 0) + 1;
-    diagnostics.push(diagnostic("warning", "LAYER_SPLIT_BY_DEPTH", `图层“${group[0].label ?? group[0].patternId}”内有 ${levels.length} 级深度，${target} 按深度写为 ${levels.length} 个连续层；刻面几何保持，但弧切参数无法从 ${target} 恢复。`));
+    diagnostics.push(diagnostic("warning", "LAYER_SPLIT_BY_DEPTH", `图层“${group[0].label ?? group[0].patternId}”内有 ${levels.length} 级角度或深度，${target} 按级写为 ${levels.length} 个连续层；刻面几何保持，但弧切或网格切参数无法从 ${target} 恢复。`));
     return [primaryLevel, ...rest].map((items, order) => ({ group: items, suffix: order === 0 ? "" : String.fromCharCode(97 + order) }));
   });
   let flattened = false;

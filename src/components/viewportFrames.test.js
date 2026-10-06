@@ -131,3 +131,11 @@ test("cutting transition honors elapsed time, reaches its exact target and suppo
   assert.equal(advanceViewportCamera(camera,800),false);
   assert.equal(camera.yaw,2);
 });
+
+test('concave follow uses tool position and phase about the machine center', async () => {
+  const { cuttingCameraPose } = await import('./viewportFrames.js');
+  const step = { operationType: 'concave', center: [3, 4, 0], tool: { position: [3, 5, 0], phaseDeg: 90 } };
+  const expected = cuttingCameraPose({ plane: { normal: { x: -1, y: 0, z: 0 } } }, 0);
+  assert.deepEqual(cuttingCameraPose(step, 0), expected);
+  assert.deepEqual(cuttingCameraPose({ ...step, center: [0, 0, 0], tool: { position: [0, 1, 0], phaseDeg: 90 } }, 0), expected);
+});

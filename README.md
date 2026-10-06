@@ -10,7 +10,7 @@
 
 An open-source gemstone faceting workbench. Design through conversation, refine every cut.
 
-[![Version](https://img.shields.io/badge/version-2.0.0-ed225d?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-ed225d?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-222222?style=flat-square)](LICENSE)
 [![Browser](https://img.shields.io/badge/browser-local_first-38755d?style=flat-square)](#start)
 
@@ -46,6 +46,12 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 <td><b>理解每一道工序</b><br>逐刀或逐组回放；暂停、观察，再回到编辑。</td>
 </tr>
 </table>
+
+## 2.1.0 候选版 · Release candidate
+
+本地发布候选，尚未更新线上版本。新增复合刀具与统一切割操作区；凹切先预览、确认后入序列；快捷光学默认台面并在松手后渲染；助手先平切再逐层凹切；图案实验默认关闭磨砂细边。中英文操作手册与依赖安全补丁同步更新。
+
+Local candidate, not yet published. This update adds composite tools and unified cut controls, explicit concave-cut confirmation, a release-to-render optical preview, planar-then-concave playback, and opt-in frosted borders in the pattern lab. Bilingual manuals and dependency security patches are included. See [changes](CHANGELOG.md) and [validation](docs/validation.md).
 
 <details>
 <summary><b>2.0 更新 · What's new in 2.0</b>（v2.0.0，汇总 1.0 以来的全部新增）</summary>

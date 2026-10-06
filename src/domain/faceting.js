@@ -1,4 +1,6 @@
 import { validateRingCutMetadata } from "./ringCut.js";
+import { validateGridCutMetadata } from "./gridCut.js";
+import { validateCompositeToolMetadata } from "./compositeTools.js";
 import { clipPolyhedronByPlanes } from "./geometry.js";
 import { getMeshStockSolid, normalizeMeshStock } from "./meshStock.js";
 import { normalizeIndexTeeth, normalizeIndexGear, facetOnIndexGear, indexExportSummary } from "./indexing.js";
@@ -419,7 +421,12 @@ export function translateFacetsAlongZ(facets, deltaZ, { stock = DEFAULT_STOCK } 
     if (nextDepth < 0) {
       throw new RangeError("vertical translation would move a cutting plane outside the rough stock.");
     }
-    return resolveFacet({ ...facet, depth: nextDepth }, { stock });
+    // Grid and composite tools move rigidly: their apex depth follows (crown apex from the top, pavilion from the bottom).
+    let metadata = facet.metadata;
+    for (const key of ["grid", "composite"]) {
+      if (metadata?.[key]) metadata = { ...metadata, [key]: { ...metadata[key], depth: cleanNumber(metadata[key].depth - Math.sign(normalZ) * shift) } };
+    }
+    return resolveFacet({ ...facet, depth: nextDepth, ...(metadata ? { metadata } : {}) }, { stock });
   });
 }
 
@@ -475,6 +482,12 @@ export function rotateFacetsByTeeth(facets, teeth, { stock = DEFAULT_STOCK, inde
       // Whole-tooth rotation keeps the ring editable; anything else leaves an ordinary layer.
       const rotation = normalizeIndex(metadata.ring.rotation + facetStep, facetTeeth);
       if (Number.isInteger(rotation)) metadata.ring.rotation = rotation; else delete metadata.ring;
+    }
+    for (const key of ["grid", "composite"]) {
+      if (metadata?.[key] === undefined) continue;
+      // Same for grid and composite tools: whole teeth keep them editable.
+      const rotation = normalizeIndex(metadata[key].rotation + facetStep, facetTeeth);
+      if (Number.isInteger(rotation)) metadata[key].rotation = rotation; else delete metadata[key];
     }
     if (metadata?.construction?.primaryIndex !== undefined) {
       metadata.construction.primaryIndex = normalizeIndex(metadata.construction.primaryIndex + facetStep, facetTeeth);
@@ -697,12 +710,30 @@ export function primaryFacetOf(facets) {
 
 export function getCuttingReference(document) { return document.cuttingReference ?? document.stock; }
 
+/**
+ * Ring, grid and composite rotations are whole teeth. On another wheel they
+ * follow when they stay whole; otherwise the layer keeps its explicit facets
+ * and stops being a tool layer (its planes never move).
+ */
+function withToolRotationOnGear(facet, sourceTeeth, teeth) {
+  if (sourceTeeth === teeth || !facet.metadata) return facet;
+  let metadata = facet.metadata;
+  for (const key of ["ring", "grid", "composite"]) {
+    if (metadata[key]?.rotation === undefined) continue;
+    const rotation = (metadata[key].rotation * teeth) / sourceTeeth;
+    metadata = { ...metadata };
+    if (Math.abs(rotation - Math.round(rotation)) < 1e-9) metadata[key] = { ...metadata[key], rotation: Math.round(rotation) % teeth };
+    else delete metadata[key];
+  }
+  return metadata === facet.metadata ? facet : { ...facet, metadata };
+}
+
 /** Canonicalize legacy mixed-wheel records while preserving the authored shape. */
 export function withDocumentIndexGear(document, teeth = document.indexGear.teeth) {
   if (document.indexGear.teeth === teeth && document.facets.every(f => (f.indexTeeth ?? 96) === teeth)) return document;
   assertValidFacetingDocument(document);
   const facets = document.facets.map(facet => {
-    const next = facetOnIndexGear(facet, teeth);
+    const next = withToolRotationOnGear(facetOnIndexGear(facet, teeth), facet.indexTeeth ?? INDEX_TEETH, teeth);
     return { ...next, displayIndex: displayIndex(next.index, teeth), azimuthDeg: indexToAzimuthDeg(next.index, teeth) };
   });
   const result = normalizeDocumentSchema({ ...document, indexGear: normalizeIndexGear(teeth), facets });
@@ -922,6 +953,20 @@ function validateResolvedFacet(facet, path, stock, errors) {
   validateRingCutMetadata(facet.metadata?.ring, `${path}.metadata.ring`, (at, message) => addValidationError(errors, at, message));
   if (facet.metadata?.ring !== undefined && facet.metadata?.patternMode !== "arbitrary") {
     addValidationError(errors, `${path}.metadata.patternMode`, "must be arbitrary for a ring cut");
+  }
+  validateGridCutMetadata(facet.metadata?.grid, `${path}.metadata.grid`, (at, message) => addValidationError(errors, at, message));
+  if (facet.metadata?.grid !== undefined && facet.metadata?.patternMode !== "arbitrary") {
+    addValidationError(errors, `${path}.metadata.patternMode`, "must be arbitrary for a grid cut");
+  }
+  if (facet.metadata?.gridCell !== undefined && typeof facet.metadata.gridCell !== "string") {
+    addValidationError(errors, `${path}.metadata.gridCell`, "must be a string");
+  }
+  validateCompositeToolMetadata(facet.metadata?.composite, `${path}.metadata.composite`, (at, message) => addValidationError(errors, at, message));
+  if (facet.metadata?.composite !== undefined && facet.metadata?.patternMode !== "arbitrary") {
+    addValidationError(errors, `${path}.metadata.patternMode`, "must be arbitrary for a composite tool");
+  }
+  if (facet.metadata?.compositeCell !== undefined && typeof facet.metadata.compositeCell !== "string") {
+    addValidationError(errors, `${path}.metadata.compositeCell`, "must be a string");
   }
   if (facet.metadata?.preform !== undefined) {
     if (typeof facet.metadata.preform !== "boolean") addValidationError(errors, `${path}.metadata.preform`, "must be boolean");
@@ -1331,10 +1376,10 @@ export function applyFacetingCommand(document, command) {
   if (type === COMMAND_TYPE.REPLACE_PATTERN) {
     const firstIndex = document.facets.findIndex((facet) => facet.patternId === payload.patternId);
     if (firstIndex < 0) throw new RangeError(`Unknown pattern id: ${payload.patternId}`);
-    const replacements = payload.facets.map((facet) => resolveFacet(facetOnIndexGear({
+    const replacements = payload.facets.map((facet) => keepStoredPlane(facet, resolveFacet(facetOnIndexGear({
       ...facet,
       patternId: payload.patternId,
-    }, document.indexGear.teeth), { stock: getCuttingReference(document) }));
+    }, document.indexGear.teeth), { stock: getCuttingReference(document) })));
     const facets = replacePatternFacets(document.facets, payload.patternId, replacements);
     const next = normalizeDocumentSchema({ ...document, facets });
     assertValidFacetingDocument(next);

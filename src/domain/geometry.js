@@ -602,17 +602,48 @@ export function clipPolyhedron(polyhedron, planeInput, options = {}) {
   return result;
 }
 
+// Exact key of one clip step: every plane and option field, with -0 and
+// non-finite numbers kept distinct from 0 and null.
+const clipStepKey = (entry, options) => JSON.stringify([entry, options], (_, value) => (
+  typeof value === "number" && (Object.is(value, -0) || !Number.isFinite(value)) ? `#${Object.is(value, -0) ? "-0" : value}` : value
+));
+const convexClips = new WeakMap();
+const CONVEX_CLIPS_PER_SOLID = 4;
+
+/**
+ * One clip of an immutable convex solid, remembered per input solid. The
+ * saved document, construction stages, edit bases and undo replay the same
+ * ordered planes from the same stock solid, so they share every common prefix
+ * and only clip what differs. A few branches are kept per solid (editing one
+ * layer, the base without it); no drag history is retained.
+ */
+function clipConvexStep(solid, entry, options) {
+  const key = clipStepKey(entry, options);
+  let results = convexClips.get(solid);
+  const cached = results?.get(key);
+  if (cached) return cached;
+  const result = clipPolyhedron(solid, entry, options);
+  if (!results) convexClips.set(solid, results = new Map());
+  if (results.size >= CONVEX_CLIPS_PER_SOLID) results.delete(results.keys().next().value);
+  results.set(key, result);
+  return result;
+}
+
 /** Apply clipping planes in array order. */
 export function clipPolyhedronByPlanes(polyhedron, planes, options = {}) {
   if (!Array.isArray(planes)) throw new TypeError("planes must be an array");
+  // Every convex clip returns a new solid (a deep clone when nothing is cut),
+  // so the input needs no defensive clone when at least one plane applies.
+  const shared = polyhedron.kind !== "mesh" && planes.length > 0 && polyhedron.vertices?.length > 0;
 
   return planes.reduce((result, entry) => {
     if (result.vertices.length === 0) return result;
     const perPlaneOptions = entry?.options && typeof entry.options === "object"
       ? entry.options
       : {};
-    return clipPolyhedron(result, entry, { ...options, ...perPlaneOptions });
-  }, polyhedron.kind === "mesh" ? polyhedron : clonePolyhedron(polyhedron));
+    const stepOptions = { ...options, ...perPlaneOptions };
+    return shared ? clipConvexStep(result, entry, stepOptions) : clipPolyhedron(result, entry, stepOptions);
+  }, polyhedron.kind === "mesh" || shared ? polyhedron : clonePolyhedron(polyhedron));
 }
 
 /** Area of one face. */

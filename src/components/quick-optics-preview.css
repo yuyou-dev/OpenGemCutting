@@ -1,0 +1,12 @@
+.quick-optics-preview { flex: none; min-width: 0; border-top: 1px solid var(--hairline); background: #fff; }
+.quick-optics-preview header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; gap: 8px; font-size: 11px; }
+.quick-optics-preview header > span { display: flex; align-items: baseline; gap: 6px; }
+.quick-optics-preview small { color: var(--muted); font-size: 9px; }
+.quick-optics-preview button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid var(--hairline); border-radius: 3px; background: white; color: var(--ink); font-size: 10px; }
+.quick-optics-preview button:hover { color: var(--pink); border-color: var(--pink); }
+.quick-optics-canvas { position: relative; height: clamp(130px, 24vh, 230px); }
+.quick-optics-preview header > div { display: flex; gap: 5px; }
+.optics-geometry-preview { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.quick-optics-updating { position: absolute; bottom: 6px; left: 8px; z-index: 4; padding: 2px 4px; color: var(--muted); background: #ffffffdb; font-size: 10px; }
+
+.quick-optics-updating { pointer-events: none; }

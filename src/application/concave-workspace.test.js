@@ -81,7 +81,7 @@ test('changing planar cuts or blank geometry cannot change concave depth reading
   assert.deepEqual(next.document.facets, altered.facets);
 });
 
-test('continuous preview preparations do not enter history; release commits one undoable change', () => {
+test('continuous preview preparations do not enter history; confirmation commits one undoable change', () => {
   const base = prepareConcaveTool(createWorkbenchDocument('drag'), { toolId: 'flute', preset: 'flute' }).document;
   const history = createCommandHistory(base);
   const depth = concaveToolDepth(base, base.concaveCuts[0]);
@@ -149,7 +149,7 @@ test('V wheel and arbitrary group rotation preserve planar wheel, blank and exis
   assert.throws(() => prepareConcaveTool(next.document, { toolId: 'v', phaseDeg: NaN }));
 });
 
-test('drag finish and history clones reuse the exact validated result without changing undo semantics', () => {
+test('confirmed preview and history clones reuse the exact validated result without changing undo semantics', () => {
   const base = createFacetingDocument({ ...createWorkbenchDocument('reuse'), cuttingReference: DEFAULT_STOCK });
   const history = createCommandHistory(base);
   const operation = { toolId: 'cached', preset: 'flute', phaseDeg: 17.35, toolDepth: .4 };

@@ -4,10 +4,10 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { LAB_CONTRACT_VERSION } from '../src/domain/labsContract/index.js';
 
-// SHA-256 of the contract 1.2.0 snapshots each laboratory vendors (npm run labs:pack -- … <profile>).
+// SHA-256 of the contract 1.3.0 snapshots each laboratory vendors (npm run labs:pack -- … <profile>).
 export const CONTRACT_ARCHIVES = Object.freeze({
-  pattern: '81d42366dbb634786648c23a72d62f6f8e57be0443c0168acee30a0834b9d72f',
-  preset: 'a828ddb546041492f82ad59308422c151be87538e94f0aa11163c0c3184e1e7d',
+  pattern: '8ac98ead32d82e6c5eb0c685252a57ab85a810edec350eaabcd8c7c86419eb72',
+  preset: 'b94531101cfef0a946fed3cc7b7d526d44146a1e0c574b08f088790f6930cbd3',
 });
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const readJSON = async file => JSON.parse(await readFile(file, 'utf8'));

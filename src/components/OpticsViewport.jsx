@@ -1,6 +1,6 @@
 import { createProgressiveOpticsRenderer, POLISHED_STAGES, SAMPLING_STAGES } from './opticsProgressiveRenderer.js';
 import { t } from '../i18n/locale.js';
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconCube, IconHandMove, IconRotate3d, IconZoomIn } from "@tabler/icons-react";
 import { opticsSurfaceMaterials, normalizedSurfaceOptics } from "../domain/opticsSurface.js";
 import { resolveOpticsSettings } from "../domain/optics.js";
@@ -12,6 +12,7 @@ import { createAsyncOpticsRenderer } from "./opticsAsyncRenderer.js";
 import { opticsCameraFromViewport } from "./viewportOrbit.js";
 import { createViewportCamera, dragViewport, zoomViewport, keyViewport, resetViewport, advanceViewportCamera } from "./viewportNavigation.js";
 import { startCameraTransition } from "./viewportFrames.js";
+import { drawOpticsGeometryPreview } from "./opticsGeometryPreview.js";
 import { ViewportLoading } from "./ViewportLoading.jsx";
 import "./OpticsViewport.css";
 
@@ -35,8 +36,11 @@ function restingCamera(camera) {
     panX: camera.targetPanX, panY: camera.targetPanY } : null;
 }
 
-export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "perspective", onViewModeChange, inspectorOpen = true }) {
+export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "perspective", onViewModeChange, inspectorOpen = true, compact = false, interactionActive = false, resetViewRequest = 0 }) {
   const canvasRef = useRef(null);
+  const proxyRef = useRef(null);
+  const releaseTimer = useRef(null);
+  const [previewPhase, setPreviewPhase] = useState("rendering");
   const rendererRef = useRef(null);
   const [error, setError] = useState("");
   // The WebGPU and surface renderers load on demand; cover the canvas until one is ready.
@@ -67,16 +71,19 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
   }, [polyhedron, rendererKind, surface]);
   const drawRef = useRef(() => {});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
     let disposed = false;
     const onError = (message) => {
       if (disposed) return;
       setError(message);
+      if (message) { canvas.style.visibility = "hidden"; setRendererReady(false); }
       canvas.dataset.error = message;
     };
     setError("");
+    canvas.style.visibility = "hidden";
+    setRendererReady(false);
     canvas.dataset.backend = rendererKind === "surface" ? "webgl2-surface" : backend;
     const backendRenderer = rendererKind === "surface"
       ? createAsyncOpticsRenderer({
@@ -106,9 +113,13 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
     const renderer = createProgressiveOpticsRenderer(backendRenderer,
       { stages: rendererKind === "surface" ? SAMPLING_STAGES : POLISHED_STAGES });
     rendererRef.current = renderer;
-    setRendererReady(false);
-    Promise.resolve(backendRenderer?.ready).finally(() => { if (!disposed) setRendererReady(true); });
-    const observer = new ResizeObserver(() => drawRef.current());
+    // A loaded module is not a presented frame. Resize also invalidates the
+    // canvas image; keep it hidden until this size has actually been drawn.
+    const observer = new ResizeObserver(() => {
+      canvas.style.visibility = "hidden";
+      setRendererReady(false);
+      drawRef.current();
+    });
     observer.observe(canvas);
     return () => {
       disposed = true;
@@ -124,23 +135,55 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
   drawRef.current = (interactive = Boolean(dragRef.current || transitionRef.current)) => {
     if (surfaceMode === "design" && surface.error) return;
     const resting = !dragRef.current && restingCamera(cameraRef.current);
-    rendererRef.current?.draw({
-      interactive: interactive && !resting,
-      geometry,
-      settings: resolvedSettings,
-      camera: opticsCameraFromViewport(resting || cameraRef.current, canvasRef.current?.clientHeight ?? 1),
-      focusOffset: inspectorOpen ? 0.23 : 0,
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const width = canvas.clientWidth, height = canvas.clientHeight;
+    const options = {
+      geometry, settings: resolvedSettings,
+      camera: opticsCameraFromViewport(resting || cameraRef.current, height || 1),
+      focusOffset: inspectorOpen ? 0.23 : 0, compact,
+    };
+    clearTimeout(releaseTimer.current);
+    if (compact) {
+      rendererRef.current?.cancel();
+      canvas.style.visibility = "";
+      if (proxyRef.current) {
+        proxyRef.current.style.visibility = "";
+        drawOpticsGeometryPreview(proxyRef.current, polyhedron, options);
+      }
+      const moving = interactionActive || dragRef.current || !resting;
+      setPreviewPhase(moving ? "geometry" : "rendering");
+      if (moving) return;
+    }
+    const render = () => rendererRef.current?.draw({
+      ...options,
+      onFrame: () => {
+        if (canvasRef.current !== canvas || canvas.clientWidth !== width || canvas.clientHeight !== height) return;
+        canvas.style.visibility = "";
+        if (proxyRef.current) proxyRef.current.style.visibility = "hidden";
+        setRendererReady(true);
+        setPreviewPhase("ready");
+      },
+      interactive: !compact && interactive && !resting,
     });
+    // Coalesce keyboard/number edits too; held pointers never reach this timer.
+    if (compact) releaseTimer.current = setTimeout(render, 100);
+    else render();
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     drawRef.current();
-  }, [rendererKind, geometry, inspectorOpen, resolvedSettings, viewMode]);
+    return () => { clearTimeout(releaseTimer.current); rendererRef.current?.cancel(); };
+  }, [rendererKind, geometry, inspectorOpen, resolvedSettings, viewMode, interactionActive]);
 
   const animate = () => {
     if (transitionRef.current) return;
     const frame = now => {
-      const moving = advanceViewportCamera(cameraRef.current, now);
+      let moving = advanceViewportCamera(cameraRef.current, now);
+      if (compact && !dragRef.current && restingCamera(cameraRef.current)) {
+        Object.assign(cameraRef.current, restingCamera(cameraRef.current));
+        moving = false;
+      }
       transitionRef.current = moving ? requestAnimationFrame(frame) : 0;
       drawRef.current(Boolean(moving || dragRef.current));
     };
@@ -170,6 +213,7 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
     const onWheel = (event) => {
       event.preventDefault();
       zoomViewport(cameraRef.current, event.deltaY);
+      if (compact) drawRef.current(true);
       animate();
     };
     const onTouchMove = (event) => event.preventDefault();
@@ -179,13 +223,15 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
       canvas.removeEventListener("wheel", onWheel);
       canvas.removeEventListener("touchmove", onTouchMove);
     };
-  }, [rendererKind]);
+  }, [rendererKind, compact]);
 
   const resetCamera = () => {
-    resetViewport(cameraRef.current, { yaw: .62, pitch: -.42, panY: 0 });
-    usePerspective();
+    resetViewport(cameraRef.current, { yaw: .62, pitch: -.42, ...(compact ? cameraOrbitForView("top") : {}), panY: 0 });
+    if (compact) { previousViewRef.current = "top"; onViewModeChange?.("top"); }
+    else usePerspective();
     drawRef.current();
   };
+  useEffect(() => { if (resetViewRequest) resetCamera(); }, [resetViewRequest]);
   const endPointer = event => {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     dragRef.current = null;
@@ -193,8 +239,8 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
   };
 
   return (
-    <section className="optics-viewport" aria-label={t("宝石光学仿真视口")}>
-      {rendererReady ? null : <ViewportLoading message="正在准备光学仿真…" />}
+    <section className={`optics-viewport${compact ? " is-compact" : ""}`} aria-label={t("宝石光学仿真视口")}>
+      {rendererReady || (compact && !error) ? null : <ViewportLoading failed={Boolean(error)} message={error || "正在准备光学仿真…"} />}
       <canvas
         key={rendererKind}
         ref={canvasRef}
@@ -202,15 +248,16 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
         style={surfaceMode === "design" && surface.error ? { visibility: "hidden" } : undefined}
         data-testid="optics-webgl-canvas"
         data-surface-mode={surfaceMode}
-        tabIndex="0"
+        tabIndex={0}
         role="application"
-        aria-label={t("物理宝石光学仿真。拖拽旋转，Shift 加拖拽平移，滚轮缩放，0 键复位。")}
+        aria-label={t(compact ? "全抛光光学预览。拖拽旋转，松手渲染，双击恢复台面。" : "物理宝石光学仿真。拖拽旋转，Shift 加拖拽平移，滚轮缩放，0 键复位。")}
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           event.currentTarget.focus();
           event.currentTarget.setPointerCapture(event.pointerId);
           cameraRef.current.transition = null;
           dragRef.current = { x: event.clientX, y: event.clientY };
+          if (compact) drawRef.current(true);
         }}
         onPointerMove={(event) => {
           const drag = dragRef.current;
@@ -233,6 +280,11 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
           }
         }}
       />
+      {compact ? <>
+        <canvas ref={proxyRef} className="optics-geometry-preview" aria-hidden="true" />
+        <span className="quick-optics-updating" role="status">{t(error || (previewPhase === "geometry" ? "几何预览 · 松手后渲染" : previewPhase === "rendering" ? "正在渲染光学…" : "拖动预览 · 松手渲染"))}</span>
+      </> : null}
+      {!compact ? <>
       <div className="optics-surface-control">
         <div className="optics-view-switch optics-surface-tabs" role="tablist" aria-label={t("表面仿真模式")}>
           {[["polished", "全抛光"], ["design", "按设计表面"]].map(([mode, label]) => (
@@ -253,7 +305,7 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
           ? "按已保存标注模拟磨砂；仅影响预览。"
           : "当前设计未标注磨砂面，与全抛光相同。")}</p>}
       </div>
-      {(surfaceMode === "design" && surface.error) || error ? <p role="alert" className="optics-viewport__error">{t(surfaceMode === "design" && surface.error || error)}</p> : null}
+      {surfaceMode === "design" && surface.error ? <p role="alert" className="optics-viewport__error">{t(surface.error)}</p> : null}
       <div className="optics-orientation" aria-hidden="true">
         <IconCube size={27} stroke={1.25} />
         <span className="axis-x">X</span><span className="axis-y">Y</span><span className="axis-z">Z</span>
@@ -264,6 +316,7 @@ export function OpticsViewport({ polyhedron, facets = [], settings, viewMode = "
         <span><IconHandMove size={15} stroke={1.7} />{t("Shift + 拖拽平移")}</span>
       </div>
       <span className="optics-viewport__geometry-status">{t("视口实体 ·")} {geometry.faceCount} {polyhedron.kind === "mesh" ? t("面片") : t("面")}{(polyhedron.kind === "mesh" ? polyhedron.faces.some((face) => face.region === "rough" || face.sourceOperationId === "rough-mesh") : polyhedron.faces.some((face) => face.sourceOperationId === "rough-cube")) ? t("（含毛坯面）") : t("（全部为刻面）")}</span>
+      </> : null}
     </section>
   );
 }

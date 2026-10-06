@@ -11,7 +11,7 @@ export function designJumpCandidates(document, args) {
   if (existing.length && existing[0].region !== args.region)
     throw designError('LOCKED_REGION', '编辑不能更改已保存 CUT 的部位。');
   const draft = {
-    ...(existing.length ? draftForPattern(existing) : defaultDraftForRegion(args.region, { indexTeeth: document.indexGear.teeth })),
+    ...(existing.length ? draftForPattern(existing, getCuttingReference(document)) : defaultDraftForRegion(args.region, { indexTeeth: document.indexGear.teeth })),
     ...args.draft,
   };
   const reference = getCuttingReference(document);

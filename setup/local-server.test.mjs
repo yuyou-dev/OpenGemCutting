@@ -2,8 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { networkInterfaces } from 'node:os';
-import net from 'node:net';
 import { localServerMode } from './local-server.mjs';
 
 test('local launcher refuses host and fixed-port overrides', () => {
@@ -14,42 +12,35 @@ test('local launcher refuses host and fixed-port overrides', () => {
 });
 
 function launch() {
-  const child = spawn(process.execPath, ['scripts/run-vite-local.mjs'], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const child = spawn(process.execPath, ['--input-type=module', '-e',
+    "import { runLocalServer } from './setup/local-server.mjs'; const server = await runLocalServer([]); process.send(server.httpServer.address());"],
+    { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
   const ready = new Promise((resolve, reject) => {
     let output = '';
     const timer = setTimeout(() => reject(new Error(`Local server did not start: ${output}`)), 30000);
-    const read = chunk => {
-      output += chunk.toString().replace(/\x1b\[[0-9;]*m/g, '');
-      const url = output.match(/http:\/\/127\.0\.0\.1:(\d+)\//)?.[0];
-      if (url) { clearTimeout(timer); resolve(url); }
-    };
-    child.stdout.on('data', read);
-    child.stderr.on('data', read);
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { output += chunk; });
+    child.once('message', address => { clearTimeout(timer); resolve(address); });
     child.once('exit', code => { clearTimeout(timer); reject(new Error(`Local server exited ${code}: ${output}`)); });
     child.once('error', error => { clearTimeout(timer); reject(error); });
   });
   return { child, ready };
 }
 
-test('simultaneous dev servers use distinct high ports and reject LAN connections', { timeout: 45000 }, async () => {
+test('simultaneous dev servers use distinct high ports and bind only to loopback', { timeout: 45000 }, async () => {
   const servers = [launch(), launch()];
   try {
-    const urls = await Promise.all(servers.map(server => server.ready));
-    assert.notEqual(urls[0], urls[1]);
-    for (const url of urls) {
-      const port = Number(new URL(url).port);
-      assert.ok(port > 1023);
-      const response = await fetch(url);
+    const addresses = await Promise.all(servers.map(server => server.ready));
+    assert.notEqual(addresses[0].port, addresses[1].port);
+    for (const address of addresses) {
+      // Inspect the actual listening socket, not a TCP handshake that a VPN/TUN
+      // proxy may accept even when no service is listening at that destination.
+      assert.equal(address.address, '127.0.0.1');
+      assert.equal(address.family, 'IPv4');
+      assert.ok(address.port > 1023);
+      const response = await fetch(`http://${address.address}:${address.port}/`);
       assert.equal(response.status, 200);
       assert.match(await response.text(), /SUVA/);
-      for (const address of Object.values(networkInterfaces()).flat().filter(item => item.family === 'IPv4' && !item.internal)) {
-        await new Promise((resolve, reject) => {
-          const socket = net.connect({ host: address.address, port });
-          socket.once('connect', () => { socket.destroy(); reject(new Error(`LAN exposure at ${address.address}:${port}`)); });
-          socket.once('error', resolve);
-          socket.setTimeout(1000, () => { socket.destroy(); resolve(); });
-        });
-      }
     }
   } finally {
     await Promise.all(servers.map(async ({ child }) => {

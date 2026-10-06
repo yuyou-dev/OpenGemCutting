@@ -1,0 +1,142 @@
+/* Three-zone editor: operation panel | canvas over the information strip | layer
+   panel. styles.css loads after the component sheets, so overrides of its layout
+   rules carry one extra class. The operation panel, tool drawer and layer rows
+   have their own sheets next to their components. */
+.app-shell.workspace-editor { --left-panel-width: 320px; --right-panel-width: 280px; --info-strip-height: 190px; }
+@media (max-width: 1280px) {
+  .app-shell.workspace-editor { --left-panel-width: 296px; --right-panel-width: 264px; --info-strip-height: 176px; }
+}
+
+@media (min-width: 701px) {
+  .workspace-editor .editor-workspace.is-three-zone { grid-template-columns: var(--left-panel-width) minmax(0, 1fr) var(--right-panel-width); }
+  .is-three-zone > .operation-panel { grid-column: 1; grid-row: 1; }
+  .is-three-zone > .viewport-column { grid-column: 2; grid-row: 1; }
+  .is-three-zone > .workbench-right-sidebar { grid-column: 3; grid-row: 1; }
+  /* Concave cutting hands the operation panel's room to the canvas; the right column holds the concave panel. */
+  .workspace-editor .editor-workspace.is-three-zone.is-concave-focus { grid-template-columns: 0 minmax(0, 1fr) var(--right-panel-width); }
+  .workspace-editor .editor-workspace.is-three-zone.is-optics-focus,
+  .workspace-editor .editor-workspace.is-three-zone.is-assistant-focus { grid-template-columns: minmax(0, 1fr); }
+  .is-three-zone.is-optics-focus > .viewport-column,
+  .is-three-zone.is-assistant-focus > .viewport-column { grid-column: 1; }
+}
+
+/* Canvas over the information strip; floating canvas controls stay inside the stage. */
+.workspace-editor .is-cut-column .viewport-column { display: flex; flex-direction: column; }
+.viewport-stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+
+.viewport-info-strip {
+  flex: none; height: var(--info-strip-height); min-height: 0;
+  display: grid; grid-template-rows: var(--rail-h) minmax(0, 1fr);
+  border-top: 1px solid #c9cdca; background: #fff; transition: height 180ms ease;
+}
+.viewport-info-strip.is-collapsed { height: var(--rail-h); }
+.info-strip-bar { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 0 8px 0 10px; border-bottom: 1px solid #ebebe8; }
+.viewport-info-strip.is-collapsed .info-strip-bar { border-bottom: 0; }
+.info-strip-tabs { flex: none; }
+.info-strip-tabs button { display: inline-flex; align-items: center; }
+.info-strip-tool-dot { width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--tool); }
+.info-strip-status { flex: 1; min-width: 0; overflow: hidden; color: var(--muted); font: 10px/1.2 var(--mono); text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.info-strip-toggle {
+  flex: none; width: var(--control-h); height: var(--control-h); display: grid; place-items: center;
+  border: 1px solid #d7d7d3; border-radius: 4px; background: #fff; color: #777772;
+}
+.info-strip-toggle:hover { color: var(--pink); border-color: var(--pink); }
+.info-strip-body { min-height: 0; overflow: hidden; }
+
+.info-strip-ortho { height: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.info-strip-view { min-width: 0; min-height: 0; margin: 0; padding: 0 10px 8px; display: grid; grid-template-rows: 26px minmax(0, 1fr); border-left: 1px solid #ebebe8; }
+.info-strip-view:first-child { border-left: 0; }
+.info-strip-view figcaption { display: flex; align-items: baseline; gap: 7px; padding-top: 8px; font-size: 11px; }
+.info-strip-view figcaption strong { color: #343a35; font-weight: 600; }
+.info-strip-view figcaption span { color: #9a9a95; font: 9px/1 var(--mono); letter-spacing: 0.08em; }
+.info-strip-view > .technical-preview { display: block; width: 100%; height: 100%; min-height: 0; }
+
+.info-strip-instructions { height: 100%; }
+.info-strip-instructions .generated-indices.is-compact { height: 100%; padding: 0; border: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.info-strip-instructions .generated-instructions-heading { display: none; }
+.info-strip-instructions .generated-instruction-group { min-height: 0; padding: 8px 10px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); border-left: 1px solid #ebebe8; }
+.info-strip-instructions .generated-instruction-group:first-of-type { border-left: 0; }
+.info-strip-instructions .generated-instruction-group + .generated-instruction-group { margin-top: 0; }
+.info-strip-instructions .generated-instruction-list { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+
+.info-strip-empty { max-width: 640px; margin: 0; padding: 18px 16px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.info-strip-tool { height: 100%; display: grid; grid-template-columns: 150px minmax(170px, 0.8fr) minmax(280px, 1.5fr); }
+.info-strip-tool-sketch { min-height: 0; margin: 0; display: grid; justify-items: center; align-content: center; gap: 5px; border-right: 1px solid #ebebe8; background: #fbfbfa; }
+.info-strip-tool-sketch figcaption { color: var(--muted); font-size: 9px; }
+.info-strip-tool-sketch > .tool-sketch { width: auto; height: calc(var(--info-strip-height) - var(--rail-h) - 34px); }
+.info-strip-tool-nohood { display: grid; place-items: center; width: 110px; height: 110px; padding: 10px; border: 1px dashed var(--hairline); border-radius: 50%; color: var(--muted); font-size: 10px; text-align: center; }
+.info-strip-tool-copy { min-width: 0; min-height: 0; overflow-y: auto; padding: 10px 14px; display: grid; align-content: start; gap: 4px; border-right: 1px solid #ebebe8; color: #4f4f4a; font-size: 10.5px; line-height: 1.45; scrollbar-width: thin; }
+.info-strip-tool-copy > strong { color: var(--tool); font-size: 12px; font-weight: 650; }
+.info-strip-tool-copy > strong small { margin-left: 6px; color: var(--muted); font-size: 10px; font-weight: 400; }
+.info-strip-tool-total { color: var(--ink); font-weight: 600; }
+.info-strip-tool-copy .is-warning { color: #8a5a0b; }
+.info-strip-levels { min-width: 0; min-height: 0; overflow-y: auto; padding: 0 10px 8px; scrollbar-width: thin; }
+.info-strip-level { display: grid; grid-template-columns: 34px 54px 50px minmax(0, 1fr) 40px; align-items: start; gap: 6px; padding: 4px 2px; border-bottom: 1px solid #f0f0ed; font: 10.5px/1.45 var(--mono); font-variant-numeric: tabular-nums; }
+.info-strip-level.is-head { position: sticky; top: 0; z-index: 1; padding-top: 8px; background: #fff; color: var(--muted); font: 9px/1.3 "Noto Sans SC Variable", "Noto Sans SC", Arial, sans-serif; }
+.info-strip-level > span:first-child { display: inline-flex; align-items: center; font-weight: 600; }
+.info-strip-swatch { width: 9px; height: 9px; margin-right: 5px; border: 1px solid #2a3a44; border-radius: 2px; background: var(--tool-level-0); opacity: 0.7; }
+.info-strip-swatch.is-level-1 { background: var(--tool-level-1); }
+.info-strip-swatch.is-level-2 { background: var(--tool-level-2); }
+.info-strip-swatch.is-level-3 { background: var(--tool-level-3); }
+.info-strip-swatch.is-level-4 { background: var(--tool-level-4); }
+.info-strip-swatch.is-level-5 { background: var(--tool-level-5); }
+.info-strip-swatch.is-level-6 { background: var(--tool-level-6); }
+.info-strip-swatch.is-level-7 { background: var(--tool-level-7); }
+.info-strip-level-indices { min-width: 0; display: flex; flex-wrap: wrap; gap: 0 5px; }
+.info-strip-level-indices em { font-style: normal; }
+.info-strip-level-indices em.is-missing { color: #b0b0aa; text-decoration: line-through; }
+
+/* Toasts and the save notice rise above the open strip instead of covering it. */
+.workspace-editor:has(.viewport-info-strip.is-expanded) .toast { bottom: calc(var(--info-strip-height) + 16px); }
+body:has(.project-save-pending) .workspace-editor:has(.viewport-info-strip.is-expanded) .toast { bottom: calc(var(--info-strip-height) + 68px); }
+body:has(.viewport-info-strip.is-expanded) .project-save-pending { bottom: 206px; }
+
+/* The cut column. */
+.workspace-editor .workbench-right-sidebar.cut-column { display: flex; flex-direction: column; overflow: hidden; }
+.cut-column-header { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 10px; border-bottom: 1px solid var(--hairline); background: #fff; }
+.cut-column-header .cutting-method-switch { flex: none; gap: 0; padding: 0; border: 0; background: transparent; }
+.cut-column-header .cutting-method-switch button { flex: none; height: var(--control-h); padding: 0 13px; border-radius: 0; font-size: 11.5px; }
+.cut-column-header .cutting-method-switch button:first-child { border-radius: 3px 0 0 3px; }
+.cut-column-header .cutting-method-switch button:last-child { border-left: 0; border-radius: 0 3px 3px 0; }
+.cut-column .concave-visibility-toggle { flex: none; }
+
+.index-compatibility.is-compact { position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.index-compatibility.is-compact .gear-selector { display: block; }
+.index-compatibility.is-compact select {
+  height: var(--control-h); padding: 0 4px; border: 1px solid var(--hairline); border-radius: 3px;
+  background: #fff; color: var(--ink); font: 11px var(--mono); font-variant-numeric: tabular-nums;
+}
+.index-compatibility.is-compact select:disabled { color: #8c8c88; background: #f6f6f4; cursor: not-allowed; }
+.compatibility-summary {
+  min-width: 0; height: var(--control-h); display: inline-flex; align-items: center; gap: 5px; padding: 0 8px;
+  border: 1px solid var(--hairline); border-radius: 3px; background: #fff; color: #4f544f; font-size: 10.5px; white-space: nowrap;
+}
+.compatibility-summary i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--create); }
+.compatibility-summary.is-incompatible { color: #a3203f; border-color: #e2a7b6; }
+.compatibility-summary.is-incompatible i { background: #cf3650; }
+.compatibility-summary:hover, .compatibility-summary[aria-expanded="true"] { border-color: var(--hairline-dark); color: var(--ink); }
+.compatibility-popover {
+  position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; width: 280px; padding: 10px 12px 12px;
+  display: grid; gap: 7px; border: 1px solid var(--hairline); border-radius: 5px; background: #fff; box-shadow: 0 6px 22px rgba(20, 22, 23, 0.1);
+}
+.compatibility-popover strong { font-size: 11px; font-weight: 650; }
+.compatibility-popover p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+
+.cut-column > .concave-panel { flex: 1 1 0; min-height: 0; }
+
+@media (max-width: 1280px) {
+  .info-strip-tool { grid-template-columns: 136px minmax(150px, 0.8fr) minmax(250px, 1.5fr); }
+  .cut-column-header .cutting-method-switch button { padding: 0 10px; }
+}
+
+@media (max-width: 700px) {
+  .workspace-editor .is-cut-column .viewport-column { height: auto; min-height: 0; }
+  .workspace-editor .is-cut-column .viewport-stage { flex: none; height: 55vh; min-height: 320px; }
+  .workspace-editor .is-three-zone > .operation-panel { grid-row: 2; height: 640px; border-right: 0; border-top: 1px solid #c9cdca; }
+  .workspace-editor .is-three-zone > .workbench-right-sidebar { grid-row: 3; height: 460px; }
+  .info-strip-tool { grid-template-columns: 120px minmax(0, 1fr); }
+  .info-strip-levels { display: none; }
+}
+.info-strip-tool-sketch > .ring-sketch { margin: 0; padding: 6px; border: 0; background: none; }
+.info-strip-tool-sketch > .ring-sketch svg { width: auto; height: calc(var(--info-strip-height) - var(--rail-h) - 52px); }
+.info-strip-tool-sketch > .ring-sketch figcaption { display: none; }
