@@ -22,7 +22,7 @@
     },
     {
       "name": "design_plan",
-      "description": "Preview an atomic sequence of CUT edits or independent planar and concave parameter replacement (physical stock is locked after project creation). Existing patternId edits in place; a new id adds a group. draft.ring makes a ring cut on the project wheel: kind fan (each of L sides cut by a fan of facets, one depth) or arc (each side bulged into an arc and split into chords; depth sets the primary, farthest facet and the others follow solved ratios). kind dissolve-ring turns a ring layer into ordinary layers without moving any plane (an arc splits into one layer per depth level); an explicit draft.patternMode changes the layer to that mode. Returns planId, exact solid diagnostics and covered-face feedback. Use design_view with planId to inspect.",
+      "description": "Preview an atomic sequence of CUT edits or independent planar and concave parameter replacement (physical stock is locked after project creation). Existing patternId edits in place; a new id adds a group. draft.ring makes a ring cut on the project wheel: kind fan (each of L sides cut by a fan of facets, one depth) or arc (each side bulged into an arc and split into chords; depth sets the primary, farthest facet and the others follow solved ratios). kind dissolve-ring turns a ring layer into ordinary layers without moving any plane (an arc splits into one layer per depth level); an explicit draft.patternMode changes the layer to that mode. draft.composite selects a tier or fancy tool from facet://tool-catalog; params patches preserve unspecified saved values. dissolve-composite splits machining levels without changing planes. Returns planId, exact solid diagnostics and covered-face feedback. Use design_view with planId to inspect.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -57,7 +57,8 @@
                     "replace-parameters",
                     "concave-tool",
                     "dissolve-ring",
-                    "dissolve-grid"
+                    "dissolve-grid",
+                    "dissolve-composite"
                   ]
                 },
                 "toolId": {
@@ -154,7 +155,8 @@
                       "enum": [
                         "symmetric",
                         "arbitrary",
-                        "grid"
+                        "grid",
+                        "composite"
                       ]
                     },
                     "customIndices": {
@@ -268,6 +270,1151 @@
                         "symmetry"
                       ],
                       "additionalProperties": false
+                    },
+                    "composite": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "brilliant"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 32
+                                },
+                                "style": {
+                                  "type": "string",
+                                  "enum": [
+                                    "star",
+                                    "lower"
+                                  ]
+                                },
+                                "inner": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number",
+                                      "minimum": 0.06,
+                                      "maximum": 0.92
+                                    },
+                                    {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 0.4
+                                    }
+                                  ]
+                                },
+                                "star": {
+                                  "type": "number",
+                                  "minimum": 0.15,
+                                  "maximum": 0.85
+                                },
+                                "lower": {
+                                  "type": "number",
+                                  "minimum": 0.25,
+                                  "maximum": 0.9
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "step"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 32
+                                },
+                                "outline": {
+                                  "type": "string",
+                                  "enum": [
+                                    "round",
+                                    "emerald"
+                                  ]
+                                },
+                                "layers": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 8
+                                },
+                                "spread": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 60
+                                },
+                                "rhythm": {
+                                  "type": "string",
+                                  "enum": [
+                                    "even",
+                                    "outer",
+                                    "inner"
+                                  ]
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.92
+                                },
+                                "bevel": {
+                                  "type": "number",
+                                  "minimum": 0.05,
+                                  "maximum": 0.8
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "stagger"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 32
+                                },
+                                "layers": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 8
+                                },
+                                "spread": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 60
+                                },
+                                "twist": {
+                                  "type": "number",
+                                  "minimum": -1,
+                                  "maximum": 1
+                                },
+                                "rhythm": {
+                                  "type": "string",
+                                  "enum": [
+                                    "even",
+                                    "outer",
+                                    "inner"
+                                  ]
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.92
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "radial"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 32
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.92
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "scissor"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 32
+                                },
+                                "layers": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 8
+                                },
+                                "spread": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 60
+                                },
+                                "twist": {
+                                  "type": "number",
+                                  "minimum": -1,
+                                  "maximum": 1
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.92
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "keel"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "layers": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 8
+                                },
+                                "spread": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 60
+                                },
+                                "keel": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1.5
+                                },
+                                "bevel": {
+                                  "type": "number",
+                                  "minimum": 0.05,
+                                  "maximum": 0.8
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.4
+                                },
+                                "symmetry": {
+                                  "type": "integer",
+                                  "enum": [
+                                    8
+                                  ]
+                                },
+                                "outline": {
+                                  "type": "string",
+                                  "enum": [
+                                    "emerald"
+                                  ]
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "rose"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 24
+                                },
+                                "layers": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 6
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "rosette"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 24
+                                },
+                                "rings": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 9
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0.05,
+                                  "maximum": 0.45
+                                },
+                                "spacing": {
+                                  "type": "number",
+                                  "minimum": 0.5,
+                                  "maximum": 2
+                                },
+                                "table": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.4
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "pinwheel"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 24
+                                },
+                                "mirror": {
+                                  "type": "boolean"
+                                },
+                                "rings": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 9
+                                },
+                                "twist": {
+                                  "type": "number",
+                                  "minimum": -30,
+                                  "maximum": 30
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0.05,
+                                  "maximum": 0.45
+                                },
+                                "spacing": {
+                                  "type": "number",
+                                  "minimum": 0.5,
+                                  "maximum": 2
+                                },
+                                "table": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.4
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "split"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 24
+                                },
+                                "rings": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 9
+                                },
+                                "split": {
+                                  "type": "number",
+                                  "minimum": 0.025,
+                                  "maximum": 0.45
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0.05,
+                                  "maximum": 0.45
+                                },
+                                "spacing": {
+                                  "type": "number",
+                                  "minimum": 0.5,
+                                  "maximum": 2
+                                },
+                                "table": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.4
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "twist"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 24
+                                },
+                                "mirror": {
+                                  "type": "boolean"
+                                },
+                                "rings": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 9
+                                },
+                                "twist": {
+                                  "type": "number",
+                                  "minimum": -30,
+                                  "maximum": 30
+                                },
+                                "inner": {
+                                  "type": "number",
+                                  "minimum": 0.05,
+                                  "maximum": 0.45
+                                },
+                                "spacing": {
+                                  "type": "number",
+                                  "minimum": 0.5,
+                                  "maximum": 2
+                                },
+                                "table": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 0.4
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "honeycomb"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "density": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 5
+                                },
+                                "stretch": {
+                                  "type": "number",
+                                  "minimum": 0.65,
+                                  "maximum": 1.6
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "oblique"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "density": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 5
+                                },
+                                "crossAngle": {
+                                  "type": "number",
+                                  "minimum": 40,
+                                  "maximum": 90
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "asanoha"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "lattice": {
+                                  "type": "string",
+                                  "enum": [
+                                    "tri",
+                                    "square"
+                                  ]
+                                },
+                                "density": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 5
+                                },
+                                "lift": {
+                                  "type": "number",
+                                  "minimum": 0.05,
+                                  "maximum": 0.95
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "pentagrid"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "density": {
+                                  "type": "integer",
+                                  "minimum": 2,
+                                  "maximum": 6
+                                },
+                                "offset": {
+                                  "type": "number",
+                                  "enum": [
+                                    0.2,
+                                    0.4,
+                                    0.6,
+                                    0.8
+                                  ]
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "arcweave"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "symmetry": {
+                                  "type": "integer",
+                                  "minimum": 8,
+                                  "maximum": 24
+                                },
+                                "shear": {
+                                  "type": "number",
+                                  "minimum": -0.7,
+                                  "maximum": 0.7
+                                },
+                                "rows": {
+                                  "type": "integer",
+                                  "minimum": 4,
+                                  "maximum": 32
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "spiro"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "lobes": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 24
+                                },
+                                "turns": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 23
+                                },
+                                "amplitude": {
+                                  "type": "number",
+                                  "minimum": 0.08,
+                                  "maximum": 0.6
+                                },
+                                "samples": {
+                                  "type": "integer",
+                                  "minimum": 3,
+                                  "maximum": 16
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "tool": {
+                              "type": "string",
+                              "enum": [
+                                "bars"
+                              ]
+                            },
+                            "version": {
+                              "type": "integer",
+                              "enum": [
+                                1,
+                                2
+                              ]
+                            },
+                            "params": {
+                              "type": "object",
+                              "properties": {
+                                "density": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 8
+                                }
+                              },
+                              "required": [],
+                              "additionalProperties": false
+                            },
+                            "extent": {
+                              "type": "number",
+                              "minimum": 0.2,
+                              "maximum": 1.5
+                            },
+                            "snap": {
+                              "type": "string",
+                              "enum": [
+                                "tooth",
+                                "exact"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tool"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
                     },
                     "preform": {
                       "type": "boolean"
@@ -587,7 +1734,8 @@
                 "enum": [
                   "symmetric",
                   "arbitrary",
-                  "grid"
+                  "grid",
+                  "composite"
                 ]
               },
               "customIndices": {
@@ -701,6 +1849,1151 @@
                   "symmetry"
                 ],
                 "additionalProperties": false
+              },
+              "composite": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "brilliant"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 32
+                          },
+                          "style": {
+                            "type": "string",
+                            "enum": [
+                              "star",
+                              "lower"
+                            ]
+                          },
+                          "inner": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": 0.06,
+                                "maximum": 0.92
+                              },
+                              {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 0.4
+                              }
+                            ]
+                          },
+                          "star": {
+                            "type": "number",
+                            "minimum": 0.15,
+                            "maximum": 0.85
+                          },
+                          "lower": {
+                            "type": "number",
+                            "minimum": 0.25,
+                            "maximum": 0.9
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "step"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 32
+                          },
+                          "outline": {
+                            "type": "string",
+                            "enum": [
+                              "round",
+                              "emerald"
+                            ]
+                          },
+                          "layers": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 8
+                          },
+                          "spread": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          "rhythm": {
+                            "type": "string",
+                            "enum": [
+                              "even",
+                              "outer",
+                              "inner"
+                            ]
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.92
+                          },
+                          "bevel": {
+                            "type": "number",
+                            "minimum": 0.05,
+                            "maximum": 0.8
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "stagger"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 32
+                          },
+                          "layers": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 8
+                          },
+                          "spread": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          "twist": {
+                            "type": "number",
+                            "minimum": -1,
+                            "maximum": 1
+                          },
+                          "rhythm": {
+                            "type": "string",
+                            "enum": [
+                              "even",
+                              "outer",
+                              "inner"
+                            ]
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.92
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "radial"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 32
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.92
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "scissor"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 32
+                          },
+                          "layers": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 8
+                          },
+                          "spread": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          "twist": {
+                            "type": "number",
+                            "minimum": -1,
+                            "maximum": 1
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.92
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "keel"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "layers": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 8
+                          },
+                          "spread": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          "keel": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1.5
+                          },
+                          "bevel": {
+                            "type": "number",
+                            "minimum": 0.05,
+                            "maximum": 0.8
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.4
+                          },
+                          "symmetry": {
+                            "type": "integer",
+                            "enum": [
+                              8
+                            ]
+                          },
+                          "outline": {
+                            "type": "string",
+                            "enum": [
+                              "emerald"
+                            ]
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "rose"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 24
+                          },
+                          "layers": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 6
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "rosette"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 24
+                          },
+                          "rings": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 9
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0.05,
+                            "maximum": 0.45
+                          },
+                          "spacing": {
+                            "type": "number",
+                            "minimum": 0.5,
+                            "maximum": 2
+                          },
+                          "table": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.4
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "pinwheel"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 24
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "rings": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 9
+                          },
+                          "twist": {
+                            "type": "number",
+                            "minimum": -30,
+                            "maximum": 30
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0.05,
+                            "maximum": 0.45
+                          },
+                          "spacing": {
+                            "type": "number",
+                            "minimum": 0.5,
+                            "maximum": 2
+                          },
+                          "table": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.4
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "split"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 24
+                          },
+                          "rings": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 9
+                          },
+                          "split": {
+                            "type": "number",
+                            "minimum": 0.025,
+                            "maximum": 0.45
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0.05,
+                            "maximum": 0.45
+                          },
+                          "spacing": {
+                            "type": "number",
+                            "minimum": 0.5,
+                            "maximum": 2
+                          },
+                          "table": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.4
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "twist"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 24
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "rings": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 9
+                          },
+                          "twist": {
+                            "type": "number",
+                            "minimum": -30,
+                            "maximum": 30
+                          },
+                          "inner": {
+                            "type": "number",
+                            "minimum": 0.05,
+                            "maximum": 0.45
+                          },
+                          "spacing": {
+                            "type": "number",
+                            "minimum": 0.5,
+                            "maximum": 2
+                          },
+                          "table": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 0.4
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "honeycomb"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "density": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 5
+                          },
+                          "stretch": {
+                            "type": "number",
+                            "minimum": 0.65,
+                            "maximum": 1.6
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "oblique"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "density": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 5
+                          },
+                          "crossAngle": {
+                            "type": "number",
+                            "minimum": 40,
+                            "maximum": 90
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "asanoha"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "lattice": {
+                            "type": "string",
+                            "enum": [
+                              "tri",
+                              "square"
+                            ]
+                          },
+                          "density": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 5
+                          },
+                          "lift": {
+                            "type": "number",
+                            "minimum": 0.05,
+                            "maximum": 0.95
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "pentagrid"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "density": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 6
+                          },
+                          "offset": {
+                            "type": "number",
+                            "enum": [
+                              0.2,
+                              0.4,
+                              0.6,
+                              0.8
+                            ]
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "arcweave"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "symmetry": {
+                            "type": "integer",
+                            "minimum": 8,
+                            "maximum": 24
+                          },
+                          "shear": {
+                            "type": "number",
+                            "minimum": -0.7,
+                            "maximum": 0.7
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 4,
+                            "maximum": 32
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "spiro"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "lobes": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 24
+                          },
+                          "turns": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 23
+                          },
+                          "amplitude": {
+                            "type": "number",
+                            "minimum": 0.08,
+                            "maximum": 0.6
+                          },
+                          "samples": {
+                            "type": "integer",
+                            "minimum": 3,
+                            "maximum": 16
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "tool": {
+                        "type": "string",
+                        "enum": [
+                          "bars"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ]
+                      },
+                      "params": {
+                        "type": "object",
+                        "properties": {
+                          "density": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 8
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      },
+                      "extent": {
+                        "type": "number",
+                        "minimum": 0.2,
+                        "maximum": 1.5
+                      },
+                      "snap": {
+                        "type": "string",
+                        "enum": [
+                          "tooth",
+                          "exact"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "tool"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
               },
               "preform": {
                 "type": "boolean"
@@ -1039,6 +3332,1772 @@
         "additionalProperties": false
       },
       "mutates": false
+    }
+  ],
+  "toolCatalog": [
+    {
+      "id": "ring-fan",
+      "label": "扇形环切",
+      "summary": "L 边母形的每条边切一组扇形刻面，整组同角同深。",
+      "regions": [
+        "crown",
+        "pavilion",
+        "girdle"
+      ],
+      "draftField": "ring",
+      "kind": "fan",
+      "angle": {
+        "label": "行业角",
+        "min": 0,
+        "max": 90
+      },
+      "depth": {
+        "label": "切入深度",
+        "hint": "主切面深度"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 3,
+          "subdivisions": 3,
+          "spacingDeg": 15
+        },
+        "pavilion": {
+          "symmetry": 3,
+          "subdivisions": 3,
+          "spacingDeg": 15
+        },
+        "girdle": {
+          "symmetry": 3,
+          "subdivisions": 3,
+          "spacingDeg": 15
+        }
+      },
+      "presets": [
+        {
+          "id": "l3",
+          "label": "三边 · 3 细分",
+          "params": {
+            "symmetry": 3,
+            "subdivisions": 3,
+            "spacingDeg": 15
+          }
+        },
+        {
+          "id": "l4",
+          "label": "四边 · 3 细分",
+          "params": {
+            "symmetry": 4,
+            "subdivisions": 3,
+            "spacingDeg": 12
+          }
+        },
+        {
+          "id": "l6",
+          "label": "六边 · 2 细分",
+          "params": {
+            "symmetry": 6,
+            "subdivisions": 2,
+            "spacingDeg": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "ring-arc",
+      "label": "弧形环切",
+      "summary": "把母形的边鼓成圆弧再等分成弦，联合求解各级深度，交点落在弧上。",
+      "regions": [
+        "crown",
+        "pavilion",
+        "girdle"
+      ],
+      "draftField": "ring",
+      "kind": "arc",
+      "angle": {
+        "label": "行业角",
+        "min": 0,
+        "max": 90
+      },
+      "depth": {
+        "label": "切入深度",
+        "hint": "主切面（最外一级）深度"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 3,
+          "subdivisions": 3,
+          "bulge": 0.5
+        },
+        "pavilion": {
+          "symmetry": 3,
+          "subdivisions": 3,
+          "bulge": 0.5
+        },
+        "girdle": {
+          "symmetry": 3,
+          "subdivisions": 3,
+          "bulge": 0.5
+        }
+      },
+      "presets": [
+        {
+          "id": "l3",
+          "label": "三弧 · 凸度 .5",
+          "params": {
+            "symmetry": 3,
+            "subdivisions": 3,
+            "bulge": 0.5
+          }
+        },
+        {
+          "id": "l2",
+          "label": "橄榄 · 两弧",
+          "params": {
+            "symmetry": 2,
+            "subdivisions": 4,
+            "bulge": 0.6
+          }
+        },
+        {
+          "id": "l4",
+          "label": "四弧 · 凸度 .35",
+          "params": {
+            "symmetry": 4,
+            "subdivisions": 3,
+            "bulge": 0.35
+          }
+        }
+      ]
+    },
+    {
+      "id": "grid",
+      "label": "网格切",
+      "summary": "穹顶刀具的切平面铺成方格、蜂窝或三角网格；整齿取整后联合求解，每个格点精确相交。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "grid",
+      "angle": {
+        "label": "边缘角",
+        "min": 1,
+        "max": 70
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 4,
+          "mirror": true,
+          "lattice": "square",
+          "columns": 6,
+          "rows": 6,
+          "rings": 3,
+          "scope": "face",
+          "row": 0,
+          "rowCopies": true
+        },
+        "pavilion": {
+          "symmetry": 4,
+          "mirror": true,
+          "lattice": "square",
+          "columns": 6,
+          "rows": 6,
+          "rings": 3,
+          "scope": "face",
+          "row": 0,
+          "rowCopies": true
+        }
+      },
+      "presets": [
+        {
+          "id": "square6",
+          "label": "四次方格 6×6",
+          "params": {
+            "symmetry": 4,
+            "lattice": "square",
+            "columns": 6
+          }
+        },
+        {
+          "id": "hex3",
+          "label": "六次蜂窝 3 圈",
+          "params": {
+            "symmetry": 6,
+            "lattice": "hex",
+            "rings": 3
+          }
+        },
+        {
+          "id": "tri3",
+          "label": "六次三角 3 圈",
+          "params": {
+            "symmetry": 6,
+            "lattice": "tri",
+            "rings": 3
+          }
+        },
+        {
+          "id": "square2",
+          "label": "二次方格 4×6",
+          "params": {
+            "symmetry": 2,
+            "lattice": "square",
+            "columns": 4,
+            "rows": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": "brilliant",
+      "label": "明亮式",
+      "summary": "主面加星面与上腰面（或下腰面），各级角度由交点解析求出。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "主面角",
+        "min": 5,
+        "max": 80,
+        "region": {
+          "crown": 34.5,
+          "pavilion": 41
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "台面（或尖底）到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "style": "star",
+          "inner": 0.56,
+          "star": 0.5,
+          "lower": 0.75
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "style": "lower",
+          "inner": 0,
+          "star": 0.5,
+          "lower": 0.75
+        }
+      },
+      "presets": [
+        {
+          "id": "eight",
+          "label": "经典八向",
+          "params": {
+            "symmetry": 8
+          }
+        },
+        {
+          "id": "six",
+          "label": "六向",
+          "params": {
+            "symmetry": 6
+          }
+        },
+        {
+          "id": "twelve",
+          "label": "十二向",
+          "params": {
+            "symmetry": 12
+          }
+        },
+        {
+          "id": "sixteen",
+          "label": "十六向",
+          "params": {
+            "symmetry": 16
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 32
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "star",
+              "lower"
+            ]
+          },
+          "inner": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.06,
+                "maximum": 0.92
+              },
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.4
+              }
+            ]
+          },
+          "star": {
+            "type": "number",
+            "minimum": 0.15,
+            "maximum": 0.85
+          },
+          "lower": {
+            "type": "number",
+            "minimum": 0.25,
+            "maximum": 0.9
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "step",
+      "label": "阶梯式",
+      "summary": "同相位的同心阶梯；逐层角度与层宽决定高度。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "主面角",
+        "min": 5,
+        "max": 80,
+        "region": {
+          "crown": 36,
+          "pavilion": 45
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "台面（或尖底）到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "outline": "round",
+          "layers": 3,
+          "spread": 20,
+          "rhythm": "even",
+          "inner": 0.56,
+          "bevel": 0.3
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "outline": "round",
+          "layers": 3,
+          "spread": 20,
+          "rhythm": "even",
+          "inner": 0,
+          "bevel": 0.3
+        }
+      },
+      "presets": [
+        {
+          "id": "oct3",
+          "label": "八角三阶",
+          "params": {
+            "symmetry": 8,
+            "layers": 3
+          }
+        },
+        {
+          "id": "sq3",
+          "label": "方形三阶",
+          "params": {
+            "symmetry": 4,
+            "layers": 3
+          }
+        },
+        {
+          "id": "round4",
+          "label": "圆形四阶",
+          "params": {
+            "symmetry": 16,
+            "layers": 4
+          }
+        },
+        {
+          "id": "emerald4",
+          "label": "截角四阶",
+          "params": {
+            "symmetry": 8,
+            "layers": 4,
+            "outline": "emerald"
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 32
+          },
+          "outline": {
+            "type": "string",
+            "enum": [
+              "round",
+              "emerald"
+            ]
+          },
+          "layers": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "spread": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 60
+          },
+          "rhythm": {
+            "type": "string",
+            "enum": [
+              "even",
+              "outer",
+              "inner"
+            ]
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.92
+          },
+          "bevel": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.8
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "stagger",
+      "label": "错层环式",
+      "summary": "层间按扇区交错错位，葡萄牙式的节奏探索。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "主面角",
+        "min": 5,
+        "max": 80,
+        "region": {
+          "crown": 37,
+          "pavilion": 47
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "台面（或尖底）到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "layers": 4,
+          "spread": 24,
+          "twist": 0.5,
+          "rhythm": "even",
+          "inner": 0.56
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "layers": 4,
+          "spread": 24,
+          "twist": 0.5,
+          "rhythm": "even",
+          "inner": 0
+        }
+      },
+      "presets": [
+        {
+          "id": "eight",
+          "label": "八向错层",
+          "params": {
+            "symmetry": 8
+          }
+        },
+        {
+          "id": "twelve",
+          "label": "十二向错层",
+          "params": {
+            "symmetry": 12
+          }
+        },
+        {
+          "id": "sixteen",
+          "label": "十六向错层",
+          "params": {
+            "symmetry": 16
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 32
+          },
+          "layers": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "spread": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 60
+          },
+          "twist": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1
+          },
+          "rhythm": {
+            "type": "string",
+            "enum": [
+              "even",
+              "outer",
+              "inner"
+            ]
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.92
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "radial",
+      "label": "放射主面",
+      "summary": "单圈主面加台面或尖底，最少面数的基础结构。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "主面角",
+        "min": 5,
+        "max": 80,
+        "region": {
+          "crown": 32,
+          "pavilion": 42
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "台面（或尖底）到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "inner": 0.56
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "inner": 0
+        }
+      },
+      "presets": [
+        {
+          "id": "eight",
+          "label": "八主面",
+          "params": {
+            "symmetry": 8
+          }
+        },
+        {
+          "id": "six",
+          "label": "六主面",
+          "params": {
+            "symmetry": 6
+          }
+        },
+        {
+          "id": "sixteen",
+          "label": "十六主面",
+          "params": {
+            "symmetry": 16
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 32
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.92
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "scissor",
+      "label": "剪式节奏",
+      "summary": "每层两条相位轨道交叉的实验节奏，不代表标准 Princess／Chevron。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "主面角",
+        "min": 5,
+        "max": 80,
+        "region": {
+          "crown": 36,
+          "pavilion": 45
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "台面（或尖底）到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "layers": 3,
+          "spread": 18,
+          "twist": 0.5,
+          "inner": 0.56
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "layers": 3,
+          "spread": 18,
+          "twist": 0.5,
+          "inner": 0
+        }
+      },
+      "presets": [
+        {
+          "id": "eight",
+          "label": "八向剪式",
+          "params": {
+            "symmetry": 8
+          }
+        },
+        {
+          "id": "four",
+          "label": "四向剪式",
+          "params": {
+            "symmetry": 4
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 32
+          },
+          "layers": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "spread": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 60
+          },
+          "twist": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.92
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "keel",
+      "label": "龙骨阶梯",
+      "summary": "截角长方的阶梯面在底部汇成一条真实龙骨棱，而不是拉长的尖点。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "主面角",
+        "min": 5,
+        "max": 80,
+        "region": {
+          "crown": 40,
+          "pavilion": 44
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "龙骨到参考底面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "layers": 3,
+          "spread": 14,
+          "keel": 0.5,
+          "bevel": 0.3,
+          "inner": 0
+        },
+        "pavilion": {
+          "layers": 3,
+          "spread": 14,
+          "keel": 0.5,
+          "bevel": 0.3,
+          "inner": 0
+        }
+      },
+      "presets": [
+        {
+          "id": "k50",
+          "label": "龙骨 0.50 · 三阶",
+          "params": {
+            "keel": 0.5,
+            "layers": 3
+          }
+        },
+        {
+          "id": "k100",
+          "label": "龙骨 1.00 · 四阶",
+          "params": {
+            "keel": 1,
+            "layers": 4
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "layers": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "spread": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 60
+          },
+          "keel": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1.5
+          },
+          "bevel": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.8
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.4
+          },
+          "symmetry": {
+            "type": "integer",
+            "enum": [
+              8
+            ]
+          },
+          "outline": {
+            "type": "string",
+            "enum": [
+              "emerald"
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "rose",
+      "label": "三角玫瑰冠",
+      "summary": "交错顶点环上的凸支持面，无台面的浅拱三角刻面。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 5,
+        "max": 60,
+        "region": {
+          "crown": 29,
+          "pavilion": 35
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "拱顶到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "layers": 2
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "layers": 2
+        }
+      },
+      "presets": [
+        {
+          "id": "r82",
+          "label": "八向 · 两环",
+          "params": {
+            "symmetry": 8,
+            "layers": 2
+          }
+        },
+        {
+          "id": "r123",
+          "label": "十二向 · 三环",
+          "params": {
+            "symmetry": 12,
+            "layers": 3
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 24
+          },
+          "layers": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "rosette",
+      "label": "错层花冠",
+      "summary": "每圈按半个扇区交替错列，形成有共同镜像轴的多层花冠。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 35,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 9,
+          "rings": 5,
+          "inner": 0.13,
+          "spacing": 1,
+          "table": 0.06
+        },
+        "pavilion": {
+          "symmetry": 9,
+          "rings": 5,
+          "inner": 0.13,
+          "spacing": 1,
+          "table": 0.06
+        }
+      },
+      "presets": [
+        {
+          "id": "nine",
+          "label": "九重花冠",
+          "params": {
+            "symmetry": 9,
+            "rings": 5
+          }
+        },
+        {
+          "id": "six",
+          "label": "六重花冠",
+          "params": {
+            "symmetry": 6,
+            "rings": 4
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 24
+          },
+          "rings": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 9
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.45
+          },
+          "spacing": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
+          },
+          "table": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.4
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "pinwheel",
+      "label": "手性风车",
+      "summary": "相邻圈持续同向转动；保留旋转对称，可选镜像。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 33,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "mirror": false,
+          "rings": 6,
+          "twist": 11,
+          "inner": 0.13,
+          "spacing": 1,
+          "table": 0
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "mirror": false,
+          "rings": 6,
+          "twist": 11,
+          "inner": 0.13,
+          "spacing": 1,
+          "table": 0
+        }
+      },
+      "presets": [
+        {
+          "id": "eight",
+          "label": "八重右旋",
+          "params": {
+            "symmetry": 8,
+            "twist": 11
+          }
+        },
+        {
+          "id": "twelve",
+          "label": "十二重左旋",
+          "params": {
+            "symmetry": 12,
+            "twist": -9
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 24
+          },
+          "mirror": {
+            "type": "boolean"
+          },
+          "rings": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 9
+          },
+          "twist": {
+            "type": "number",
+            "minimum": -30,
+            "maximum": 30
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.45
+          },
+          "spacing": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
+          },
+          "table": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.4
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "split",
+      "label": "主面分裂",
+      "summary": "一个母面分成对称的两翼，分裂量、圈数与切角联动。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 35,
+          "pavilion": 41
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 8,
+          "rings": 4,
+          "split": 0.18,
+          "inner": 0.18,
+          "spacing": 1,
+          "table": 0.1
+        },
+        "pavilion": {
+          "symmetry": 8,
+          "rings": 4,
+          "split": 0.18,
+          "inner": 0.18,
+          "spacing": 1,
+          "table": 0.1
+        }
+      },
+      "presets": [
+        {
+          "id": "eight",
+          "label": "八重分裂",
+          "params": {
+            "symmetry": 8
+          }
+        },
+        {
+          "id": "six",
+          "label": "六重分裂",
+          "params": {
+            "symmetry": 6
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 24
+          },
+          "rings": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 9
+          },
+          "split": {
+            "type": "number",
+            "minimum": 0.025,
+            "maximum": 0.45
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.45
+          },
+          "spacing": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
+          },
+          "table": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.4
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "twist",
+      "label": "螺旋层切",
+      "summary": "以半径的对数控制相位，圈距按幂律变化，构成同轴螺旋层。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 36,
+          "pavilion": 41
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 12,
+          "mirror": false,
+          "rings": 7,
+          "twist": 14,
+          "inner": 0.11,
+          "spacing": 1.6,
+          "table": 0
+        },
+        "pavilion": {
+          "symmetry": 12,
+          "mirror": false,
+          "rings": 7,
+          "twist": 14,
+          "inner": 0.11,
+          "spacing": 1.6,
+          "table": 0
+        }
+      },
+      "presets": [
+        {
+          "id": "twelve",
+          "label": "十二臂螺旋",
+          "params": {
+            "symmetry": 12
+          }
+        },
+        {
+          "id": "eight",
+          "label": "八臂螺旋",
+          "params": {
+            "symmetry": 8,
+            "rings": 6
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 24
+          },
+          "mirror": {
+            "type": "boolean"
+          },
+          "rings": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 9
+          },
+          "twist": {
+            "type": "number",
+            "minimum": -30,
+            "maximum": 30
+          },
+          "inner": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.45
+          },
+          "spacing": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
+          },
+          "table": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.4
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "honeycomb",
+      "label": "拉伸蜂窝",
+      "summary": "可拉伸的蜂窝晶胞；不拉伸时请用网格切的蜂窝（交点按整齿联合求解）。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 33,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "density": 4,
+          "stretch": 1.3
+        },
+        "pavilion": {
+          "density": 4,
+          "stretch": 1.3
+        }
+      },
+      "presets": [
+        {
+          "id": "stretch",
+          "label": "长宽 1.3",
+          "params": {
+            "stretch": 1.3
+          }
+        },
+        {
+          "id": "wide",
+          "label": "长宽 0.8",
+          "params": {
+            "stretch": 0.8
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "density": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 5
+          },
+          "stretch": {
+            "type": "number",
+            "minimum": 0.65,
+            "maximum": 1.6
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "oblique",
+      "label": "偏斜织网",
+      "summary": "两个方向的凸折线相加，得到任意交角的平行四边形刻面。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 33,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "density": 4,
+          "crossAngle": 68
+        },
+        "pavilion": {
+          "density": 4,
+          "crossAngle": 68
+        }
+      },
+      "presets": [
+        {
+          "id": "net68",
+          "label": "六十八度织网",
+          "params": {
+            "crossAngle": 68
+          }
+        },
+        {
+          "id": "net90",
+          "label": "正交织网",
+          "params": {
+            "crossAngle": 90
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "density": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 5
+          },
+          "crossAngle": {
+            "type": "number",
+            "minimum": 40,
+            "maximum": 90
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "asanoha",
+      "label": "麻叶细分",
+      "summary": "晶格顶点、边中点与抬升的中心三点共面，切出真实的三角叶片。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 32,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "lattice": "tri",
+          "density": 3,
+          "lift": 0.5
+        },
+        "pavilion": {
+          "lattice": "tri",
+          "density": 3,
+          "lift": 0.5
+        }
+      },
+      "presets": [
+        {
+          "id": "tri",
+          "label": "六向麻叶",
+          "params": {
+            "lattice": "tri"
+          }
+        },
+        {
+          "id": "square",
+          "label": "八向叶片",
+          "params": {
+            "lattice": "square"
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "lattice": {
+            "type": "string",
+            "enum": [
+              "tri",
+              "square"
+            ]
+          },
+          "density": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 5
+          },
+          "lift": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.95
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "pentagrid",
+      "label": "五重准晶",
+      "summary": "五组网格的对偶生成非周期的粗细菱形，四角共面、整组五重对称。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 34,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "density": 3,
+          "offset": 0.2
+        },
+        "pavilion": {
+          "density": 3,
+          "offset": 0.2
+        }
+      },
+      "presets": [
+        {
+          "id": "a",
+          "label": "五重准晶 A",
+          "params": {
+            "offset": 0.2
+          }
+        },
+        {
+          "id": "b",
+          "label": "五重准晶 B",
+          "params": {
+            "offset": 0.4
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "density": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 6
+          },
+          "offset": {
+            "type": "number",
+            "enum": [
+              0.2,
+              0.4,
+              0.6,
+              0.8
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "arcweave",
+      "label": "弧织面网",
+      "summary": "两族短直边沿对数螺旋连续相接，每个四边形严格共面。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 32,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "symmetry": 12,
+          "shear": 0,
+          "rows": 10
+        },
+        "pavilion": {
+          "symmetry": 12,
+          "shear": 0,
+          "rows": 10
+        }
+      },
+      "presets": [
+        {
+          "id": "d12",
+          "label": "十二重双向",
+          "params": {
+            "symmetry": 12,
+            "shear": 0
+          }
+        },
+        {
+          "id": "c12",
+          "label": "十二重偏旋",
+          "params": {
+            "symmetry": 12,
+            "shear": 0.55,
+            "rows": 12
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "symmetry": {
+            "type": "integer",
+            "minimum": 8,
+            "maximum": 24
+          },
+          "shear": {
+            "type": "number",
+            "minimum": -0.7,
+            "maximum": 0.7
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 32
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "spiro",
+      "label": "回旋轨迹",
+      "summary": "有理双频闭合曲线上的对称采样点生成刻面；曲线只是构造轨迹。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 32,
+          "pavilion": 40
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "lobes": 12,
+          "turns": 5,
+          "amplitude": 0.38,
+          "samples": 6
+        },
+        "pavilion": {
+          "lobes": 12,
+          "turns": 5,
+          "amplitude": 0.38,
+          "samples": 6
+        }
+      },
+      "presets": [
+        {
+          "id": "twelve",
+          "label": "十二瓣回旋",
+          "params": {
+            "lobes": 12,
+            "turns": 5
+          }
+        },
+        {
+          "id": "eight",
+          "label": "八瓣回旋",
+          "params": {
+            "lobes": 8,
+            "turns": 3
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "lobes": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 24
+          },
+          "turns": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 23
+          },
+          "amplitude": {
+            "type": "number",
+            "minimum": 0.08,
+            "maximum": 0.6
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 16
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "bars",
+      "label": "平行条带",
+      "summary": "沿一条直径排列的平行条带；冠部与亭部各切一组、转开角度即为对向条带。",
+      "regions": [
+        "crown",
+        "pavilion"
+      ],
+      "draftField": "composite",
+      "angle": {
+        "label": "边缘角",
+        "min": 10,
+        "max": 60,
+        "region": {
+          "crown": 29,
+          "pavilion": 38
+        }
+      },
+      "depth": {
+        "label": "顶点深度",
+        "hint": "刀具顶点到参考顶面"
+      },
+      "defaultsByRegion": {
+        "crown": {
+          "density": 5
+        },
+        "pavilion": {
+          "density": 5
+        }
+      },
+      "presets": [
+        {
+          "id": "five",
+          "label": "十一条带",
+          "params": {
+            "density": 5
+          }
+        },
+        {
+          "id": "three",
+          "label": "七条带",
+          "params": {
+            "density": 3
+          }
+        }
+      ],
+      "paramsSchema": {
+        "type": "object",
+        "properties": {
+          "density": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
     }
   ]
 }

@@ -14,6 +14,7 @@ import path from 'node:path';
 import {
   DESIGN_API_VERSION,
   DESIGN_TOOLS,
+  TOOL_CATALOG,
 } from '../src/application/designContract.js';
 import { startHost } from './host.mjs';
 import {
@@ -109,6 +110,7 @@ const resources = [
     '参数化设计工作流',
     '.agents/skills/facet-parametric-design/SKILL.md',
   ],
+  ['facet://tool-catalog', '刀具目录、默认值与参数', null],
   ['facet://capabilities', '机器可读能力与参数', null],
 ];
 for (const name of await readdir(
@@ -236,7 +238,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => ({
     uri,
     name,
     mimeType:
-      uri === 'facet://capabilities' ? 'application/json' : 'text/markdown',
+      ['facet://capabilities', 'facet://tool-catalog'].includes(uri) ? 'application/json' : 'text/markdown',
   })),
 }));
 server.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
@@ -250,7 +252,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async ({ params }) => {
         text: item[2]
           ? await readFile(path.join(root, item[2]), 'utf8')
           : JSON.stringify(
-              { apiVersion: DESIGN_API_VERSION, tools: DESIGN_TOOLS },
+              params.uri === 'facet://tool-catalog' ? { tools: TOOL_CATALOG } : { apiVersion: DESIGN_API_VERSION, tools: DESIGN_TOOLS, toolCatalog: TOOL_CATALOG },
               null,
               2,
             ),

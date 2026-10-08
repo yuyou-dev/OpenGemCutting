@@ -1,6 +1,7 @@
 import { ringCutFromFacets, ringDissolveLevels } from '../domain/ringCut.js';
 import { gridCutFromFacets, gridPrimaryIndex } from '../domain/gridCut.js';
-import { compositeToolFromFacets } from '../domain/compositeTools.js';
+import { compositeToolFromFacets, compositeToolDefaults } from '../domain/compositeTools.js';
+import { toolReport } from './compositeToolSession.js';
 import { inspectMeetpoints } from './meetInspection.js';
 import { facetsAfterLayerEdit, layerEditMetadata } from '../domain/layerEdit.js';
 import { resolveGroupReference } from '../domain/groupReference.js';
@@ -190,7 +191,21 @@ function constructCut(document, operation) {
   if (first && operation.region && first.region !== operation.region)
     throw designError('LOCKED_REGION', '编辑不能更改已保存 CUT 的部位。');
   const baseDraft = first ? draftForPattern(existing, getCuttingReference(document)) : defaultDraftForRegion(region, { indexTeeth: document.indexGear.teeth });
-  let draft = { ...baseDraft, ...toolDraftPatch(baseDraft, { ...operation.draft }) };
+  const patch = { ...operation.draft };
+  if (patch.composite) {
+    const previous = baseDraft.composite;
+    if (previous && patch.composite.version !== undefined && patch.composite.version !== previous.version)
+      throw designError('LOCKED_PARAMETER', '不能通过参数编辑切换已保存刀具的算法版本。');
+    patch.composite = { ...previous, ...patch.composite, params: {
+      ...compositeToolDefaults(patch.composite.tool, region), ...(previous?.params ?? {}), ...patch.composite.params,
+    } };
+  }
+  let draft = { ...baseDraft, ...toolDraftPatch(baseDraft, patch) };
+  if (draft.patternMode === 'composite' && !draft.composite)
+    throw designError('INVALID_OPERATION', '复合刀具模式需要明确的刀具参数。');
+  const toolId = d => d.composite?.tool ?? (d.grid ? 'grid' : d.ring ? `ring-${d.ring.kind ?? 'fan'}` : null);
+  if (first && toolId(baseDraft) && toolId(draft) && toolId(baseDraft) !== toolId(draft))
+    throw designError('LOCKED_PARAMETER', '已保存的刀具层不能换刀，请新建图层。');
   if ((draft.ring || draft.grid || draft.composite) && (first?.metadata?.operationType === 'table'))
     throw designError('LOCKED_PARAMETER', draft.grid ? '固定台面不能设为网格切。' : draft.composite ? '固定台面不能设为复合刀具。' : '固定台面不能设为环切。');
   if ((draft.grid || draft.composite) && region === 'girdle')
@@ -477,6 +492,13 @@ export function dissolveGridLayer(document, patternId) {
 }
 
 export const DESIGN_OPERATION_TABLE = Object.freeze({
+  'dissolve-composite'(document, operation) {
+    const facets = document.facets.filter(f => f.patternId === operation.patternId);
+    if (!compositeToolFromFacets(facets, getCuttingReference(document)))
+      throw designError('NOT_A_COMPOSITE', '该层不是可编辑的复合刀具层。');
+    const { document: next, layers } = dissolveLayerByLevels(document, operation.patternId);
+    return { document: next, change: { kind: operation.kind, patternId: operation.patternId, layers } };
+  },
   'dissolve-grid'(document, operation) {
     const { document: next, layers } = dissolveGridLayer(document, operation.patternId);
     return { document: next, change: { kind: operation.kind, patternId: operation.patternId, layers } };
@@ -604,17 +626,21 @@ export function inspectDesign(document) {
     roundtripVolumeError: Math.abs(
       measurePolyhedron(roundtrip).volume - measurePolyhedron(solid).volume,
     ),
-    groups: stages.map((s) => ({
-      patternId: s.id,
-      label: s.facets[0].label,
-      region: s.facets[0].region,
-      draft: draftForPattern(s.facets, getCuttingReference(document)),
-      generatedPlanes: s.facets.length,
-      effectivePlanes: s.facets.filter((f) =>
-        effective.effectiveFacetIds.includes(f.id),
-      ).length,
-      construction: s.construction,
-    })),
+    groups: stages.map((s) => {
+      const draft = draftForPattern(s.facets, getCuttingReference(document));
+      return {
+        patternId: s.id,
+        label: s.facets[0].label,
+        region: s.facets[0].region,
+        draft,
+        toolReport: toolReport(draft, { document, region: s.facets[0].region, facets: s.facets, impactSolid: solid }),
+        generatedPlanes: s.facets.length,
+        effectivePlanes: s.facets.filter((f) =>
+          effective.effectiveFacetIds.includes(f.id),
+        ).length,
+        construction: s.construction,
+      };
+    }),
   };
   inspectionCache.set(document, result);
   return result;

@@ -2,8 +2,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 import {
   DESIGN_API_VERSION,
   DESIGN_TOOLS,
+  TOOL_CATALOG,
 } from '../src/application/designContract.js';
-const content = `${JSON.stringify({ apiVersion: DESIGN_API_VERSION, tools: DESIGN_TOOLS }, null, 2)}\n`;
+const content = `${JSON.stringify({ apiVersion: DESIGN_API_VERSION, tools: DESIGN_TOOLS, toolCatalog: TOOL_CATALOG }, null, 2)}\n`;
 const path = new URL('../docs/mcp/capabilities.json', import.meta.url);
 if (process.argv.includes('--write')) await writeFile(path, content);
 else {

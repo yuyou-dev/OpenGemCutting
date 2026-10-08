@@ -47,9 +47,9 @@ An open-source gemstone faceting workbench. Design through conversation, refine 
 </tr>
 </table>
 
-## 2.1.0 候选版 · Release candidate
+## 2.1.0 · 2026-10-08
 
-本地发布候选，尚未更新线上版本。新增复合刀具与统一切割操作区；凹切先预览、确认后入序列；快捷光学默认台面并在松手后渲染；助手先平切再逐层凹切；图案实验默认关闭磨砂细边。中英文操作手册与依赖安全补丁同步更新。
+新增复合刀具与统一切割操作区；凹切先预览、确认后入序列；快捷光学默认台面并在松手后渲染；助手先平切再逐层凹切；图案实验默认关闭磨砂细边。MCP 补齐 18 把圈层／花式刀具的创建和参数编辑。中英文操作手册与依赖安全补丁同步更新。
 
 Local candidate, not yet published. This update adds composite tools and unified cut controls, explicit concave-cut confirmation, a release-to-render optical preview, planar-then-concave playback, and opt-in frosted borders in the pattern lab. Bilingual manuals and dependency security patches are included. See [changes](CHANGELOG.md) and [validation](docs/validation.md).
 

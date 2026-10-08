@@ -1,3 +1,4 @@
+import { COMPOSITE_TOOLS, COMPOSITE_TOOL_VERSIONS, compositeToolDefaults } from '../domain/compositeTools.js';
 import { CONCAVE_PRESETS } from './concaveTools.js';
 import { CONCAVE_CUT_LIMITS } from '../domain/concaveCuts.js';
 import { GRID_CUT_LIMITS, GRID_SYMMETRIES } from '../domain/gridCut.js';
@@ -14,6 +15,40 @@ const object = (properties, required = []) => ({
   additionalProperties: false,
 });
 const array = (items, maxItems = 256) => ({ type: 'array', items, maxItems });
+// The public parameter schemas are derived from the same registry as the tool library.
+function toolParameterSchema(tool) {
+  const properties = {};
+  for (const param of tool.params) {
+    const field = param.type === 'choice'
+      ? { type: typeof param.options[0][0], enum: param.options.map(([value]) => value) }
+      : param.type === 'bool' ? { type: 'boolean' }
+        : { type: param.type === 'int' ? 'integer' : 'number', minimum: param.min, maximum: param.max };
+    const previous = properties[param.key];
+    properties[param.key] = previous ? { anyOf: [...(previous.anyOf ?? [previous]), field] } : field;
+  }
+  // The keel engine stores these fixed values alongside its editable parameters.
+  if (tool.id === 'keel') Object.assign(properties, {
+    symmetry: { type: 'integer', enum: [8] }, outline: { type: 'string', enum: ['emerald'] },
+  });
+  return object(properties);
+}
+const compositeTools = COMPOSITE_TOOLS.filter(tool => ['tier', 'fancy'].includes(tool.engine));
+export const COMPOSITE_SCHEMA = { anyOf: compositeTools.map(tool => object({
+  tool: { type: 'string', enum: [tool.id] },
+  version: { type: 'integer', enum: COMPOSITE_TOOL_VERSIONS },
+  params: toolParameterSchema(tool),
+  extent: { type: 'number', minimum: 0.2, maximum: 1.5 },
+  snap: { type: 'string', enum: ['tooth', 'exact'] },
+}, ['tool'])) };
+export const TOOL_CATALOG = COMPOSITE_TOOLS.map(tool => ({
+  id: tool.id, label: tool.label, summary: tool.summary, regions: tool.regions,
+  draftField: tool.engine === 'ring' ? 'ring' : tool.engine === 'grid' ? 'grid' : 'composite',
+  ...(tool.kind ? { kind: tool.kind } : {}),
+  angle: tool.angle, depth: tool.depth,
+  defaultsByRegion: Object.fromEntries(tool.regions.map(region => [region, compositeToolDefaults(tool.id, region)])),
+  presets: tool.presets,
+  ...(compositeTools.includes(tool) ? { paramsSchema: toolParameterSchema(tool) } : {}),
+}));
 export const DRAFT_FIELDS = {
   industryAngle: { ...number, minimum: 0, maximum: 90 },
   depth: { ...number, minimum: 0 },
@@ -21,7 +56,7 @@ export const DRAFT_FIELDS = {
   indexTeeth: { type: 'integer', minimum: 1, maximum: 360 },
   repeat: { type: 'integer', minimum: 1, maximum: 360 },
   mirrorOffset: { type: 'number', minimum: 0, maximum: 360 },
-  patternMode: { type: 'string', enum: ['symmetric', 'arbitrary', 'grid'] },
+  patternMode: { type: 'string', enum: ['symmetric', 'arbitrary', 'grid', 'composite'] },
   customIndices: { type: 'string', maxLength: 400 },
   // Ring cut: L-fold sides, each cut by a fan of facets; indices are generated on the project wheel.
   // Ring cut kinds: fan (spacingDeg, one depth) or arc (bulge 0–1, jointly solved depths).
@@ -48,13 +83,14 @@ export const DRAFT_FIELDS = {
     rowCopies: { type: 'boolean' },
     extent: { type: 'number', minimum: GRID_CUT_LIMITS.extent[0], maximum: GRID_CUT_LIMITS.extent[1] },
   }, ['symmetry']),
+  composite: COMPOSITE_SCHEMA,
   preform: { type: 'boolean' },
 };
 export const OPERATION_SCHEMA = object(
   {
     kind: {
       type: 'string',
-      enum: ['cut', 'remove', 'rename', 'reorder', 'transform', 'replace-parameters', 'concave-tool', 'dissolve-ring', 'dissolve-grid'],
+      enum: ['cut', 'remove', 'rename', 'reorder', 'transform', 'replace-parameters', 'concave-tool', 'dissolve-ring', 'dissolve-grid', 'dissolve-composite'],
     },
     toolId: string,
     preset: { type: 'string', enum: CONCAVE_PRESETS.map(p => p.id) },
@@ -106,7 +142,7 @@ export const DESIGN_TOOLS = [
   ],
   [
     'design_plan',
-    'Preview an atomic sequence of CUT edits or independent planar and concave parameter replacement (physical stock is locked after project creation). Existing patternId edits in place; a new id adds a group. draft.ring makes a ring cut on the project wheel: kind fan (each of L sides cut by a fan of facets, one depth) or arc (each side bulged into an arc and split into chords; depth sets the primary, farthest facet and the others follow solved ratios). kind dissolve-ring turns a ring layer into ordinary layers without moving any plane (an arc splits into one layer per depth level); an explicit draft.patternMode changes the layer to that mode. Returns planId, exact solid diagnostics and covered-face feedback. Use design_view with planId to inspect.',
+    'Preview an atomic sequence of CUT edits or independent planar and concave parameter replacement (physical stock is locked after project creation). Existing patternId edits in place; a new id adds a group. draft.ring makes a ring cut on the project wheel: kind fan (each of L sides cut by a fan of facets, one depth) or arc (each side bulged into an arc and split into chords; depth sets the primary, farthest facet and the others follow solved ratios). kind dissolve-ring turns a ring layer into ordinary layers without moving any plane (an arc splits into one layer per depth level); an explicit draft.patternMode changes the layer to that mode. draft.composite selects a tier or fancy tool from facet://tool-catalog; params patches preserve unspecified saved values. dissolve-composite splits machining levels without changing planes. Returns planId, exact solid diagnostics and covered-face feedback. Use design_view with planId to inspect.',
     object(
       {
         ...scope,
@@ -267,6 +303,12 @@ export const DESIGN_TOOLS = [
 
 // Small shared JSON-schema subset for this public contract. MCP and browser validate the same inputs.
 export function validateInput(schema, value, path = 'arguments') {
+  if (schema.anyOf) {
+    for (const variant of schema.anyOf) {
+      try { validateInput(variant, value, path); return; } catch { /* Try the next declared shape. */ }
+    }
+    throw new TypeError(`${path}: no matching parameter schema`);
+  }
   if (schema.type === 'object') {
     if (!value || typeof value !== 'object' || Array.isArray(value))
       throw new TypeError(`${path}: expected object`);
@@ -292,7 +334,7 @@ export function validateInput(schema, value, path = 'arguments') {
       (schema.type === 'integer' && !Number.isInteger(value))
     )
       throw new TypeError(`${path}: expected ${schema.type}`);
-    if (value < schema.minimum || value > schema.maximum)
+    if (value < schema.minimum || value > schema.maximum || value <= schema.exclusiveMinimum || value >= schema.exclusiveMaximum)
       throw new RangeError(`${path}: out of range`);
   } else if (typeof value !== schema.type)
     throw new TypeError(`${path}: expected ${schema.type}`);
