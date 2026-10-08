@@ -58,13 +58,25 @@ function groupFacets(facets, teeth) {
     groups.get(facet.patternId).push(facet);
   });
   const counters = { crown: 0, girdle: 0, pavilion: 0 };
-  return [...groups.values()].map((group) => {
+  // A grid layer is one tool but several machining settings: one group per angle and depth.
+  const machiningGroups = [...groups.values()].flatMap((group) => {
+    if (!group[0].metadata?.grid) return [group];
+    const levels = new Map();
+    for (const facet of group) {
+      const key = `${facet.industryAngleDeg.toFixed(6)}|${facet.depth.toFixed(6)}`;
+      if (!levels.has(key)) levels.set(key, []);
+      levels.get(key).push(facet);
+    }
+    return [...levels.values()].map((level, order) => Object.assign(level, { gridLevel: order }));
+  });
+  return machiningGroups.map((group) => {
     const first = group[0];
-    counters[first.region] += 1;
+    if (!group.gridLevel) counters[first.region] += 1;
     const prefix = FACET_REGION_PREFIXES[first.region];
+    const label = first.label || `${prefix}${counters[first.region]} ${REGION_SHORT[first.region]}`;
     return {
-      id: first.patternId,
-      label: first.label || `${prefix}${counters[first.region]} ${REGION_SHORT[first.region]}`,
+      id: group.gridLevel === undefined ? first.patternId : `${first.patternId}#${group.gridLevel}`,
+      label: group.gridLevel === undefined ? label : `${label} · ${String.fromCharCode(65 + group.gridLevel)}`,
       region: first.region,
       repeat: first.repeat,
       mirror: first.mirror,
@@ -90,7 +102,8 @@ function attachConstructionSummaries(groups, document, hiddenPatternIds, t) {
     return t("{0} · 来源 {1}", [kind, sources]);
   };
   return groups.map((group) => {
-    const stage = stageById.get(group.id);
+    // A grid machining group belongs to its layer's stage.
+    const stage = stageById.get(group.facets[0].patternId);
     const metadata = stage.facets[0]?.metadata?.construction;
     const preform = stage.preform;
     if (!metadata) return preform ? { ...group, preform, construction: { status: "valid", text: t("预形工序") } } : group;
@@ -467,7 +480,7 @@ function drawProjection(page, model, config, assets) {
   const {
     x, top, width, height, title, subtitle, axes, basis, horizontalLabel, verticalLabel,
     showFaceLabels = false, showIndices = false, viewSign = 1, showTableWidth = false,
-    highlightOperationId = null, showFrost = false,
+    highlightOperationId = null, highlightFacetIds = null, showFrost = false,
   } = config;
   drawRectTop(page, x, top, width, height, { borderWidth: 0.6, borderColor: rgbOf(rgb, COLOR.rule), color: rgbOf(rgb, COLOR.white) });
   drawTextTop(page, title, x + 10, top + 8, { font: bold, size: 7, color: rgbOf(rgb, COLOR.ink) });
@@ -481,7 +494,7 @@ function drawProjection(page, model, config, assets) {
   }
   if (highlightOperationId) {
     // Within the highlighted group, annotated frosted faces read grey inside a pink outline.
-    const groupFaces = visibleFaces.filter((face) => face.sourceOperationId === highlightOperationId);
+    const groupFaces = visibleFaces.filter((face) => (highlightFacetIds ? highlightFacetIds.has(face.facetId) : face.sourceOperationId === highlightOperationId));
     const frosted = model.surface.annotate ? groupFaces.filter((face) => isFrostedFace(model, face)) : [];
     fillFaces(page, model, projection, groupFaces.filter((face) => !frosted.includes(face)), { color: COLOR.accent, opacity: 0.24, borderColor: COLOR.accent }, assets);
     fillFaces(page, model, projection, frosted, { color: COLOR.frost, opacity: 0.42, borderColor: COLOR.accent }, assets);
@@ -675,6 +688,8 @@ function drawGroupAnalysis(page, model, region, group, top, assets) {
   drawProjection(page, model, {
     x: MARGIN, top, width: diagramWidth, height: 160,
     ...projection, highlightOperationId: group.id,
+    // A grid machining group is part of one layer: highlight its own facets.
+    highlightFacetIds: group.id.includes("#") ? new Set(group.facets.map((facet) => facet.id)) : null,
   }, assets);
   if (model.surface.annotate && group.frostedCount) {
     // Legend in the free bottom-left corner, below the dimension lines.

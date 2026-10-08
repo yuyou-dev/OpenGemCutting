@@ -16,6 +16,7 @@ export function createOpticsRendererLifecycle(canvas, { createRenderer, onError,
   canvas.addEventListener("webglcontextrestored", onContextRestored);
   return {
     draw(options) { renderer?.draw(options); },
+    cancel() { renderer?.cancel?.(); },
     destroy() {
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);

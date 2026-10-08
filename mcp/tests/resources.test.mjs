@@ -14,7 +14,7 @@ test('published MCP resource URIs remain readable after documentation moves', as
       stderr: 'inherit',
     }));
     const { resources } = await client.listResources();
-    for (const uri of ['facet://guide', 'facet://architecture', 'facet://examples', 'facet://state', 'facet://skill', 'facet://capabilities'])
+    for (const uri of ['facet://guide', 'facet://architecture', 'facet://examples', 'facet://state', 'facet://skill', 'facet://capabilities', 'facet://tool-catalog'])
       assert.ok(resources.some(resource => resource.uri === uri), `Missing public resource: ${uri}`);
     for (const { uri } of resources) {
       const { contents } = await client.readResource({ uri });
@@ -23,6 +23,12 @@ test('published MCP resource URIs remain readable after documentation moves', as
       if (uri === 'facet://state')
         assert.equal(contents[0].text, await readFile(new URL('../../docs/architecture/state-contract.md', import.meta.url), 'utf8'));
     }
+    const catalog = JSON.parse((await client.readResource({uri:'facet://tool-catalog'})).contents[0].text);
+    assert.equal(catalog.tools.length, 21);
+    assert.ok(catalog.tools.find(t=>t.id==='brilliant').paramsSchema.properties.inner.anyOf);
+    const { tools } = await client.listTools();
+    const draft = tools.find(t=>t.name==='design_plan').inputSchema.properties.operations.items.properties.draft;
+    assert.equal(draft.properties.composite.anyOf.length, 18);
     const candidates = await client.callTool({ name: 'construction_plane', arguments: { angleDegrees: 72, indexTeeth: 120 } });
     assert.notEqual(candidates.isError, true);
     assert.equal(candidates.structuredContent.candidates[0].index, 24);

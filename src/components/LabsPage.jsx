@@ -21,8 +21,10 @@ export function LabsPage({ document: sourceDocument, hasPreview, prepareSource, 
   const [headerSlot, setHeaderSlot] = useState(null);
   const [newLab, setNewLab] = useState(null), [teeth, setTeeth] = useState(96), [sizeMm, setSizeMm] = useState(10), [busy, setBusy] = useState(false);
   const labs = [...laboratories].sort((a,b) => a.order-b.order);
-  const [selectedId, setSelectedId] = useState(() => labs[0]?.id);
-  const selected = labs.find(lab => lab.id === selectedId) ?? labs[0];
+  // Merged laboratories only explain where their tools went; their old drafts still resume below.
+  const choices = labs.filter(lab => !lab.merged), merged = labs.filter(lab => lab.merged);
+  const [selectedId, setSelectedId] = useState(() => choices[0]?.id);
+  const selected = choices.find(lab => lab.id === selectedId) ?? choices[0];
   const entry = labEntryState(selected, sourceDocument, { busy, hasPreview }), source = entry.source;
   const refresh = async () => {
     const sequence = ++refreshSequence.current;
@@ -83,7 +85,7 @@ export function LabsPage({ document: sourceDocument, hasPreview, prepareSource, 
     {current ? <LabWorkspaceHost ref={workspace} {...current} headerSlot={headerSlot} drafts={drafts} readProject={readProject} createProject={createProject} onLeave={leave} onReturned={onReturned}/> : <div className="lab-layout"><div className="labs-content">
       {error ? <div className="labs-error" role="alert">{t(error)}</div> : null}
       <div className="labs-heading"><div><span className="lab-eyebrow">FACET LABS</span><h1>{t('实验室')}</h1><p>{t('选择一个实验室，开始新的探索。')}</p></div><span className="labs-phase"><IconInfoCircle size={19}/>{t('独立实验，检查后另存新项目。')}</span></div>
-      <fieldset className="labs-grid"><legend className="labs-sr-only">{t('选择实验室')}</legend>{labs.map(lab => {
+      <fieldset className="labs-grid"><legend className="labs-sr-only">{t('选择实验室')}</legend>{choices.map(lab => {
         const Mark = lab.id === 'preset' ? IconDiamond : IconRosette;
         return <label key={lab.id} className={`labs-choice ${selected?.id === lab.id ? 'is-selected' : ''}`}>
           <input type="radio" name="laboratory" value={lab.id} checked={selected?.id === lab.id} onChange={() => setSelectedId(lab.id)} disabled={busy} aria-label={t(lab.name)}/>
@@ -91,7 +93,12 @@ export function LabsPage({ document: sourceDocument, hasPreview, prepareSource, 
           <span className="labs-choice-copy"><strong>{t(lab.name)}</strong><span className="labs-choice-description">{t(lab.description)}</span><span className="labs-choice-tags">{(lab.tags ?? []).map(tag => <span key={tag}>{t(tag)}</span>)}</span>{lab.status !== 'ready' ? <span className="labs-status">{t('已停用')}</span> : null}</span>
           {selected?.id === lab.id ? <IconCheck className="labs-choice-check" size={20} aria-hidden="true"/> : null}
         </label>;
-      })}</fieldset>
+      })}{merged.map(lab => <div key={lab.id} className="labs-choice is-merged" role="note">
+          <IconDiamond className="labs-choice-mark" size={128} stroke={.8} aria-hidden="true"/>
+          <span className="labs-choice-copy"><strong>{t(lab.name)}<em>{t('已并入编辑器')}</em></strong><span className="labs-choice-description">{t(lab.mergedNotice)}</span>
+            <span className="labs-choice-tags"><span>{t('已有实验稿仍可在“最近实验”中继续')}</span></span>
+            {source ? <button type="button" className="workspace-page-button" onClick={() => navigate('editor')}>{t('返回编辑')}<IconArrowRight size={16}/></button> : null}</span>
+        </div>)}</fieldset>
       <section className="labs-start" aria-label={t('选择起点')}>
         <div className="labs-selection"><IconLayersIntersect size={36} stroke={1.3}/><div><h2>{t('已选择：{0}', [t(selected?.name ?? '')])}</h2><p>{t('接下来选择起点，开始实验。')}</p></div></div>
         <div className="labs-start-controls">

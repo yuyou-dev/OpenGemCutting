@@ -1,6 +1,14 @@
 # 设计师操作手册与练习
 
-返回 [文档索引](../README.md)。手册适用版本见 PDF 页脚，与 `package.json` 一致。
+返回 [文档索引](../README.md)。
+
+PDF 按里程碑更新，日常开发只同步源说明；完成里程碑后、提交前统一生成 PDF 与受影响截图。
+
+2.1.0 里程碑手册内容：快捷光学默认台面，可独立拖动、滚轮缩放，双击或“台面”复位；调参时先看几何，松手后渲染，新操作撤销旧任务；摄影棚照明强化清晰亮暗刻面。验收时以同一预设、材质、曝光和台面观察比较内部反射，不能把预览当作实物效果保证。
+
+2026-10-08 发布手册已补充 18 把圈层／花式刀具的对话创建、局部参数修改、打散和撤销；参数示例见 [MCP 指南](../mcp/README.md#复合刀具的对话设计)。未变化的界面截图沿用 2.1 基准。
+
+手册适用版本见 PDF 页脚，与 `package.json` 一致。
 
 先阅读 [PDF 操作手册](../../public/manual/facet-96-operation-manual.pdf)。本手册按设计目标组织：选轮廓、调比例、安排刻面会合、比较节奏、回放切割过程、检查材质表现，最后保存与交付。
 
@@ -33,34 +41,36 @@
 
 正文在 `scripts/manual/content.mjs`，按设计任务排列 38 页；分页生成器是 `scripts/generate-user-manual.mjs`。`screenshots/` 保存真实工作台截图，只保留正文引用的图，旧截图从 Git 历史查阅。
 
-截图由 `scripts/manual/capture-screenshots.mjs` 从正在运行的工作台逐页复现：每张图一个场景、独立浏览器配置，中英文各跑一次。仓库不保留浏览器自动化依赖，采集前临时安装：
+截图由 `scripts/manual/capture-screenshots.mjs` 从生产预览逐页复现：每张图一个场景、独立浏览器配置，中英文各跑一次。仓库不保留浏览器自动化依赖，采集前临时安装：
 
 ```bash
 npm i --no-save puppeteer-core
-npm run dev
+npm run build
+npm run preview
 node scripts/manual/capture-screenshots.mjs http://127.0.0.1:<端口>/ --locale=zh-CN
 node scripts/manual/capture-screenshots.mjs http://127.0.0.1:<端口>/ --locale=en
 ```
 
-`--only=名称1,名称2` 只重采指定图。`local-design-bridge` 需要先运行 `npm run build` 与 `npm ci --prefix mcp`；`design-review` 由脚本调用 `scripts/create-design-review.mjs` 生成试作页。不得使用占位图、旧控件图或绘制的假界面；临时采集与审查记录放在被忽略的 `tmp/`。
+`--only=名称1,名称2` 只重采指定图。使用生产预览避免开发热更新在采图中途重载页面；导入场景会等待目标项目名称就绪。`local-design-bridge` 需要先运行 `npm run build` 与 `npm ci --prefix mcp`；`design-review` 由脚本调用 `scripts/create-design-review.mjs` 生成试作页。不得使用占位图、旧控件图或绘制的假界面；临时采集与审查记录放在被忽略的 `tmp/`。
 
 ```bash
 npm run manual:build
 npm run manual:build:en
 ```
 
-生成器使用 Chrome / Chromium 与项目内 Noto Sans SC 字体，输出固定的 `public/manual/facet-96-operation-manual.pdf` 与 `-en.pdf`，版本号来自 `package.json`。生成时校验图片存在、清单内 8 份 JSON 练习可以导入且面数／构造状态吻合；OBJ 练习由晶体导入领域回归验证。打印前应逐页检查正文、图像和页脚，确保文本可搜索。
+生成器使用独立临时浏览器配置的 Chrome / Chromium 与项目内 Noto Sans SC 字体，输出固定的 `public/manual/facet-96-operation-manual.pdf` 与 `-en.pdf`，版本号来自 `package.json`。打印通过 Chrome 的调试管道等待字体和图片加载，并拒绝正文挤到页脚的页面；无需持久安装浏览器自动化依赖。生成时校验图片存在、清单内 8 份 JSON 练习可以导入且面数／构造状态吻合；OBJ 练习由晶体导入领域回归验证。打印前应逐页检查正文、图像和页脚，确保文本可搜索。
 
 8 份 JSON 案例源由 `node scripts/manual/build-examples.mjs` 重建；修改案例源后，应重采对比图、更新正文与 `examples/manifest.json`，不要仅替换 JSON。
 
 ## 当前截图基准
 
-2.0 手册页脚与案例清单使用 2.0.0。未改变的设计场景沿用 2.0.0-rc.3 实拍；图内旧版本号只表示截图采集版本，不代表当前发行版本。主截图为 1600 × 1000 桌面视口，全屏工作台图使用 2× 像素密度；同视角造型比较的局部图（`*-detail`）只截取完整宝石，1080 × 1080。场景以采集脚本为准，关键条件如下：
+2.1 手册页脚与案例清单使用 2.1.0；2026-10-06 按统一切割操作区、松手光学预览与分阶段助手更新场景，中英文各 38 页。主截图为 1600 × 1000 桌面视口，全屏工作台图使用 2× 像素密度；同视角造型比较的局部图（`*-detail`）只截取完整宝石，1080 × 1080。场景以采集脚本为准，关键条件如下：
 
 - 成品与光学：`round-optics`、`round-optics-top`、`highlight-workspace`、`assistant-*`、`round-files` 使用预设 PC 01.338 Eight Main Highlight（97 个有效面）。光学图材质为石英（折射率 1.544、色散 0.013、中性吸收 0），柔光摄影棚／雾白、曝光 0，两图只改变观察位；助手两图分别完成 86／97 与 97／97 刀。
 - 练习：`round-*`、`01-workspace`、`third-*`、`two-thirds-*`、`four-*`、`dual-*`、`meet-single-current`、`stale-*`、`low-front-detail` 分别导入对应练习 JSON，见上表。
 - 起点：`home-projects` 为首次访问主页；`new-project-start` 为 96 齿默认起点选“正方形 · 四次对称”；`stock-presets` 为 A 形底胚；`crystal-import` 为练习 08 的 L 形 OBJ 预检（未指定单位、+Z 朝上）。
 - 设备与凹切：`multi-index` 为 120 齿默认起点的分度区；`concave-tools` 与 `parameter-groups` 为同一 120 齿项目加默认五重圆弧槽（深度 0.34），后者打开文件菜单。
+- 复合刀具：`composite-tool` 为 96 齿默认起点、冠部麻叶细分、三角六向、密度 3、边缘角 34°、顶点深度 0.600、刀具半径 0.8、整齿预览。
 - 环切：`ring-cut` 为 96 齿默认起点腰部环切 L3×3、间距 25°、深度 0.450；`arc-cut` 为弧形 L3、每弧 3 段、凸度 0.55、深度 0.450（摘要 9 面、2 级深度）。两图均为未加入序列的真实预览。
 - 格式中心：`format-center` 读取 `src/domain/formats/fixtures/gcs-1.1-resaved.gcs` 并选中 GemCAD 文本去向，只截取“选择去向”区域，2× 像素密度。
 - 其他：`optical-lab` 带入 Eight Main Highlight 进入图案实验室；`recovery-empty` 为“文件 → 恢复本地设计”的空列表；`design-review` 与 `local-design-bridge` 见下文。
@@ -98,4 +108,4 @@ npm run manual:build:en
 
 ## 三角柱尖槽练习
 
-从首页预设库新建 PC 08.024 Columbia-Willamette，保持默认透视与缩放。切到凹切，添加“三角柱尖槽”，设尖角 60°、宽度 0.8、长度 1.6、深度 0.65、重复 5、旋转 17.5°。目标是给已有成品叠加五向直线尖槽；回到平切，用“凹切已显示 / 已隐藏”比较原外轮廓和叠加轮廓，判断槽宽和端部是否符合设计意图。逐步撤销尺寸和位置，再重做并导出 JSON、重开对照；平切参数应保持原值，显隐不写入设计文件。数值是可复现的造型研究案例，不是生产切磨配方。
+从首页预设库新建 PC 08.024 Columbia-Willamette，保持默认透视与缩放。切到凹切，点击“新建凹切”选择“三角柱尖槽”，设尖角 60°、宽度 0.8、长度 1.6、深度 0.65、重复 5、旋转 17.5°。目标是给已有成品叠加五向直线尖槽；点击“加入序列”确认后回到平切，用“凹切已显示 / 已隐藏”比较原外轮廓和叠加轮廓，判断槽宽和端部是否符合设计意图。撤销本次确认，再重做并导出 JSON、重开对照；平切参数应保持原值，显隐不写入设计文件。数值是可复现的造型研究案例，不是生产切磨配方。

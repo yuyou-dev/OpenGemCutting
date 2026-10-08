@@ -3,6 +3,30 @@ import { createCenteredCube } from '../domain/geometry.js';
 import { labGeometryKey } from '../domain/labsContract/index.js';
 import { buildConstructionStages } from '../domain/constructionHistory.js';
 import { enumerateTopologyVertices, solveVertexMeet } from '../domain/meetJump.js';
+import { createWorkbenchDocument } from '../domain/document.js';
+import { resolveDraftGeometry } from '../domain/cutConstruction.js';
+import { layerEditMetadata, facetsAfterLayerEdit } from '../domain/layerEdit.js';
+import { defaultDraftForRegion, toolDraftPatch } from '../domain/cutSession.js';
+import { gridPrimaryIndex } from '../domain/gridCut.js';
+
+function toolSample(kind, version = 2) {
+  const document = createWorkbenchDocument(`Contract ${kind} v${version}`);
+  const patch = kind === 'composite' ? { composite: { tool: 'asanoha', version, params: {}, extent: .8, snap: 'tooth' } }
+    : kind === 'grid' ? { grid: { symmetry: 4, mirror: true, lattice: 'square', columns: 4, rows: 4, extent: .8 } }
+      : { ring: { kind: 'arc', symmetry: 3, subdivisions: 3, bulge: .55, rotation: 0 } };
+  const base = defaultDraftForRegion('crown');
+  const draft = { ...base, ...toolDraftPatch(base, { ...patch, industryAngle: 34, depth: .6, baseIndex: 0 }) };
+  const { facets, error } = resolveDraftGeometry(draft, 'crown', document.stock);
+  if (error) throw new Error(error);
+  const metadata = layerEditMetadata({ patternMode: draft.patternMode, indexTeeth: 96, facets,
+    baseIndex: gridPrimaryIndex(facets, draft.baseIndex, 96), ring: draft.ring,
+    grid: draft.grid ? { grid: draft.grid, edgeAngle: draft.industryAngle, depth: draft.depth, rotation: draft.baseIndex } : null,
+    composite: draft.composite ? { composite: draft.composite, angle: draft.industryAngle, depth: draft.depth, rotation: draft.baseIndex } : null,
+    now: '2026-10-06T00:00:00.000Z' });
+  return createFacetingDocument({ ...document, concaveCuts: [],
+    facets: [...document.facets, ...facetsAfterLayerEdit(facets, [], { patternId: 'contract-tool', label: 'C1 Tool', metadata })],
+    metadata: { physicalScale: { millimetersPerModelUnit: 5 } } });
+}
 
 function meetSample() {
   const source = resolveFacetPattern({ patternId: 'meet-source', region: 'pavilion', baseIndex: 0, repeat: 4, industryAngleDeg: 41, depth: .42 });
@@ -65,6 +89,10 @@ export function createLabContractSamples(profile = 'pattern') {
     { id: 'surface-on-99', document: withDocumentIndexGear(surface, 99) },
     { id: 'covered-operation', document: createFacetingDocument(covered) },
     { id: 'meet-current', document: meet }, { id: 'meet-stale', document: staleMeet },
+    { id: 'composite-v1', document: toolSample('composite', 1) },
+    { id: 'composite-v2', document: toolSample('composite', 2) },
+    { id: 'grid-tool', document: toolSample('grid') },
+    { id: 'arc-tool', document: toolSample('ring') },
     { id: 'fixed-reference', document: make(120, 10, 0, { stock: { kind: 'cube', size: 3, center: [.1, -.2, 0] },
       cuttingReference: { kind: 'cube', size: 2, center: [0, 0, 0] }, metadata: { physicalScale: { millimetersPerModelUnit: 3.5 } } }) },
     { id: 'v2-mesh-rejected', document: mesh, ...(profile === 'preset' ? {} : { reject: 'LAB_UNSUPPORTED_DOCUMENT' }) },

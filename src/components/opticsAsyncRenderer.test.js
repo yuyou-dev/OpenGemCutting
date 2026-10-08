@@ -45,3 +45,12 @@ test('failure before initialization resolves releases the returned instance', as
   const lifecycle = createAsyncOpticsRenderer({ createRenderer: fail => { fail(); return instance; }, onFallback: () => fallbacks++ });
   await lifecycle.ready; assert.equal(fallbacks, 1); assert.equal(instance.destroyed, 1);
 });
+test('cancel during module initialization never replays obsolete geometry', async () => {
+  const pending = deferred(), instance = resource();
+  const lifecycle = createAsyncOpticsRenderer({ createRenderer: () => pending.promise, onFallback: () => assert.fail() });
+  lifecycle.draw({ camera: { yaw: 1 } }); lifecycle.cancel();
+  pending.resolve(instance); await lifecycle.ready;
+  assert.equal(instance.draws.length, 0);
+  lifecycle.draw({ camera: { yaw: 2 } }); assert.equal(instance.draws[0].camera.yaw, 2);
+  lifecycle.destroy();
+});

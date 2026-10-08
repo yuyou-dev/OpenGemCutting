@@ -37,3 +37,12 @@ test('rejected submission fails once; unmounted rejection is ignored', async () 
     assert.equal(h.errors.length, unmount ? 0 : 1); assert.equal(h.pending(), false);
   }
 });
+test('cancellation drops queued input but keeps backpressure until submitted work completes', async () => {
+  const h = setup(); h.scheduler.draw(options(1)); const first = h.step();
+  h.scheduler.draw(options(2)); h.scheduler.cancel();
+  h.finish(); await first;
+  assert.equal(h.pending(), false); assert.equal(h.draws.length, 1);
+  h.scheduler.draw(options(3)); const next = h.step();
+  assert.equal(h.draws.at(-1).camera.yaw, 3);
+  h.finish(); await next; h.scheduler.destroy();
+});

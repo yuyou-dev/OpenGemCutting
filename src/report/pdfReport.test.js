@@ -386,3 +386,17 @@ test("report fonts and logo resolve against the deployment base", async () => {
   assert.equal(reportAssetUrl("brand/logo-report.png", "/nested"), "/nested/brand/logo-report.png");
   assert.equal(reportAssetUrl("brand/logo-report.png"), "/brand/logo-report.png");
 });
+
+test('a grid layer reports one machining group per angle and depth', async () => {
+  const { planDesign } = await import('../application/designOperations.js');
+  const { createWorkbenchDocument } = await import('../domain/document.js');
+  const document = planDesign(createWorkbenchDocument(), [{ kind: 'cut', patternId: 'g1', region: 'crown', label: 'C1 网格', draft: { grid: { symmetry: 4, columns: 4 }, industryAngle: 36, depth: 0.5 } }]).document;
+  const model = createFacetReportModel({ document });
+  const groups = model.regions.find((region) => region.id === 'crown').groups.filter((group) => group.label.startsWith('C1 网格'));
+  assert.ok(groups.length > 1);
+  assert.deepEqual(groups.map((group) => group.label), groups.map((_, i) => `C1 网格 · ${String.fromCharCode(65 + i)}`));
+  for (const group of groups) for (const facet of group.facets) {
+    assert.ok(Math.abs(facet.industryAngleDeg - group.facets[0].industryAngleDeg) < 1e-8);
+    assert.ok(Math.abs(facet.depth - group.facets[0].depth) < 1e-8);
+  }
+});

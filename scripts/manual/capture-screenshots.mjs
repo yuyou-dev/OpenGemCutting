@@ -1,7 +1,7 @@
 // Recaptures the designer manual screenshots from the running workbench.
 //
 // Usage:
-//   npm run dev   (prints http://127.0.0.1:<port>/)
+//   npm run build && npm run preview   (prints http://127.0.0.1:<port>/)
 //   node scripts/manual/capture-screenshots.mjs <url> [--locale=zh-CN|en] [--only=name1,name2]
 //
 // Requires `npm i --no-save puppeteer-core` and a system Google Chrome. The repository
@@ -11,7 +11,7 @@
 // framing follow docs/manual/README.md; never edit geometry or paint over a capture.
 import puppeteer from "puppeteer-core";
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,18 +43,24 @@ async function openSession(viewport) {
     userDataDir: profile,
     args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--enable-unsafe-webgpu", "--hide-scrollbars"],
   });
-  const page = (await browser.pages())[0];
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
-  await page.setViewport({ deviceScaleFactor: 1, ...viewport });
-  await page.goto(url, { waitUntil: "networkidle0" });
-  await page.evaluate((value) => { localStorage.clear(); localStorage.setItem("facet96.language", value); }, locale);
-  await page.reload({ waitUntil: "networkidle0" });
-  const s = createHelpers(page);
-  s.errors = errors;
-  s.close = async () => { await browser.close(); await rm(profile, { recursive: true, force: true }); };
-  return s;
+  try {
+    const page = (await browser.pages())[0];
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+    await page.setViewport({ deviceScaleFactor: 1, ...viewport });
+    await page.goto(url, { waitUntil: "networkidle0" });
+    await page.evaluate((value) => { localStorage.clear(); localStorage.setItem("facet96.language", value); }, locale);
+    await page.reload({ waitUntil: "networkidle0" });
+    const s = createHelpers(page);
+    s.errors = errors;
+    s.close = async () => { await browser.close(); await rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); };
+    return s;
+  } catch (error) {
+    await browser.close();
+    await rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    throw error;
+  }
 }
 
 function createHelpers(page) {
@@ -139,8 +145,11 @@ function createHelpers(page) {
       await page.click(".project-card-open");
       await helpers.workbench();
       const input = await page.$('input[type=file][accept="application/json,.json"]');
-      await input.uploadFile(path.isAbsolute(file) ? file : path.join(EXAMPLES, file));
-      await wait(1500);
+      const examplePath = path.isAbsolute(file) ? file : path.join(EXAMPLES, file);
+      const example = JSON.parse(await readFile(examplePath, "utf8"));
+      await input.uploadFile(examplePath);
+      await until((name) => [...document.querySelectorAll("input")].some((item) => item.value === name), example.name);
+      await wait(300);
       await helpers.settle(2500);
     },
     async openFileMenu() {
@@ -150,7 +159,7 @@ function createHelpers(page) {
     // CUT STACK row "Edit" button by layer code (C1, C2 ...); names stay as authored.
     async stackEdit(code) {
       const ok = await page.evaluate((layer) => {
-        const button = [...document.querySelectorAll(".cut-stack-edit-button")].find((item) => new RegExp(`\\s${layer}\\s`).test(`${item.getAttribute("aria-label")} `));
+        const button = [...document.querySelectorAll(".layer-row-select")].find((item) => new RegExp(`\\s${layer}\\s`).test(`${item.getAttribute("aria-label")} `));
         button?.click();
         return Boolean(button);
       }, code);
@@ -174,18 +183,33 @@ function createHelpers(page) {
     // Concave -> Add concave -> arc groove (the default five-fold groove on a 120 wheel).
     async addArcGroove() {
       await click(/^(凹切|Concave)$/);
+      await click(/^(＋ 新建凹切|\+ New concave cut)$/);
       await until(() => document.querySelector(".concave-tool-choices button"));
       await (await page.$$(".concave-tool-choices button"))[1].click();
       await until(() => document.querySelector(".concave-parameters"));
       await helpers.settle(2500);
+      await click(/^(加入序列|Add to stack)$/, '.concave-session-actions button');
+      await until(() => document.querySelector('.concave-layer-select'));
+      await page.click('.concave-layer-select');
+      await helpers.settle(800);
     },
-    // Default 96 start -> Girdle -> Add girdle layer -> Ring cut (fan, L3 x 3 by default).
+    async startCut() {
+      const button = await page.$('.operation-new:not(:disabled)');
+      if (button) await button.click();
+      await wait(400);
+      if (await page.$('.tool-library-drawer')) await click(/^(普通切|Ordinary cut)/, '.tool-library-item');
+    },
+    async pickTool(pattern) {
+      if (!await page.$('.tool-library-drawer')) await page.click('.operation-library-button');
+      await click(pattern, '.tool-library-item');
+      await helpers.settle(800);
+    },
+    // Default 96 start -> Girdle -> tool library -> fan ring cut (L3 x 3).
     async startRingCut() {
       await helpers.newDefaultProject();
-      await click(/^G\s*(腰部|Girdle)$/);
-      await page.click(".cut-stack-new-row");
-      await wait(600);
-      await click(/^(环切|Ring cut)$/, ".pattern-mode button");
+      await click(/^G\s*(腰部|Girdle)$/, ".operation-regions button");
+      await helpers.startCut();
+      await helpers.pickTool(/^(扇形环切|Fan ring cut)/);
       await wait(600);
     },
     // Optical simulation: quartz, soft studio / mist, exposure 0 (the view defaults).
@@ -207,7 +231,7 @@ function createHelpers(page) {
       await wait(4000);
     },
     async showRingComposer() {
-      await page.evaluate(() => document.querySelector(".composer-ring")?.scrollIntoView({ block: "end" }));
+      await page.evaluate(() => document.querySelector(".tool-inspector")?.scrollIntoView({ block: "end" }));
       await helpers.settle(1500);
     },
     async shoot(name, options = {}) {
@@ -411,7 +435,7 @@ const scenes = {
   "design-review": {
     viewport: { ...DESKTOP, deviceScaleFactor: 2 },
     async run(s) {
-      const work = path.join(root, "tmp/manual-design-review");
+      const work = path.join(root, `tmp/manual-design-review-${locale}`);
       const out = path.join(work, "study");
       await rm(work, { recursive: true, force: true });
       await mkdir(work, { recursive: true });
@@ -426,10 +450,17 @@ const scenes = {
       await writeFile(path.join(work, "notes.txt"), "界面演示：Eight Main Highlight（PC 01.338），设计者 Long, R H & Steele, N W。参考图来自预设的真实技术顶视，右图由同一预设 JSON 生成。本页演示对照与交付流程，不作为照片还原精度证据。来源：Facet Design v5 (1984) pC12；预设库保留原作者与来源链接。");
       await run(process.execPath, ["scripts/create-design-review.mjs", "public/presets/documents/94504-pc-01-338-eight-main-highlight.json",
         "--out", out, "--reference", path.join(work, "reference.png"), "--views", path.join(work, "views.json"), "--notes", path.join(work, "notes.txt")], { cwd: root });
-      await s.page.goto(`${url}?review=${encodeURIComponent(path.relative(root, path.join(out, "review.json")))}`, { waitUntil: "networkidle0" });
-      await s.until(() => document.querySelector(".review-comparison svg"));
-      await s.wait(1500);
-      await s.shoot("design-review");
+      // Production preview cannot serve workspace tmp/. Stage only this real
+      // review fixture under its static root, then remove it after capture.
+      const publicPath = `manual-review-${locale}`;
+      const staged = path.join(root, "dist/client", publicPath);
+      await cp(out, staged, { recursive: true });
+      try {
+        await s.page.goto(`${url}?review=${encodeURIComponent(`${publicPath}/review.json`)}`, { waitUntil: "networkidle0" });
+        await s.until(() => document.querySelector(".review-comparison svg"));
+        await s.wait(1500);
+        await s.shoot("design-review");
+      } finally { await rm(staged, { recursive: true, force: true }); }
     },
   },
 
@@ -472,7 +503,7 @@ const scenes = {
     viewport: zh ? { ...DESKTOP, deviceScaleFactor: 2 } : DESKTOP,
     async run(s) {
       await s.importExample("01-round-start.json");
-      await s.page.click(".cut-stack-new-row");
+      await s.startCut();
       await s.settle(1500);
       await s.shoot("01-workspace");
     },
@@ -482,7 +513,12 @@ const scenes = {
     async run(s) {
       await s.importExample("01-round-start.json");
       await s.stackEdit("C1");
-      await s.shoot("round-stack");
+      const clip = await s.page.evaluate(() => {
+        const panel = document.querySelector(".layer-panel-stack").getBoundingClientRect();
+        const row = document.querySelector(".layer-row.is-selected").getBoundingClientRect();
+        return { x: panel.left, y: panel.top, width: panel.width, height: row.bottom - panel.top + 8 };
+      });
+      await s.shoot("round-stack", { clip });
     },
   },
 
@@ -490,7 +526,11 @@ const scenes = {
     async run(s) {
       await s.importExample("01-round-start.json");
       await s.stackEdit("C1");
-      await s.shoot("round-stack-actions");
+      const clip = await s.page.evaluate(() => {
+        const box = document.querySelector(".operation-command").getBoundingClientRect();
+        return { x: box.left, y: box.top, width: box.width, height: box.height };
+      });
+      await s.shoot("round-stack-actions", { clip });
     },
   },
 
@@ -498,7 +538,7 @@ const scenes = {
   "meet-single-current": {
     async run(s) {
       await s.importExample("01-round-start.json");
-      await s.page.click(".cut-stack-new-row");
+      await s.startCut();
       await s.settle(800);
       await s.setNumber(s.L("行业角数值", "Faceting angle value"), 50);
       for (let step = 0; ; step += 1) {
@@ -531,17 +571,16 @@ const scenes = {
     },
   },
 
-  // Narrow crop of the left column from the cut parameters down, taller than the viewport.
-  // The tall viewport keeps the sidebar edge toggle (vertically centred) below the crop.
+  // Only the Meet controls: keep the A/B release actions readable in the manual.
   "dual-controls": {
-    viewport: { width: 1600, height: 2800 },
+    viewport: { ...DESKTOP, deviceScaleFactor: 2 },
     async run(s) {
       await s.importExample("04-dual-meet.json");
       await s.stackEdit("C2");
-      const clip = await s.page.evaluate((height) => {
-        const section = [...document.querySelectorAll("summary")].find((item) => /切割参数|Cut parameters/.test(item.textContent)).getBoundingClientRect();
-        return { x: 0, y: section.top - 6, width: 291, height };
-      }, zh ? 1128 : 1174);
+      const clip = await s.page.evaluate(() => {
+        const box = document.querySelector(".construction-panel").getBoundingClientRect();
+        return { x: box.left, y: box.top, width: box.width, height: box.height };
+      });
       await s.shoot("dual-controls", { clip });
     },
   },
@@ -620,10 +659,22 @@ const scenes = {
     },
   },
 
+  "composite-tool": {
+    async run(s) {
+      await s.newDefaultProject();
+      await s.startCut();
+      await s.pickTool(/^(麻叶细分|Asanoha lattice)/);
+      await s.setNumber(s.L("密度数值", "Density value"), 3);
+      await s.setNumber(s.L("边缘角数值", "Rim angle value"), 34);
+      await s.setNumber(s.L("顶点深度数值", "Apex depth value"), .6);
+      await s.setNumber(s.L("刀具半径数值", "Tool radius value"), .8);
+      await s.shoot("composite-tool");
+    },
+  },
   "ring-cut": {
     async run(s) {
       await s.startRingCut();
-      await s.setNumber(s.L("环切细分间距", "Ring cut spacing"), 25);
+      await s.setNumber(s.L("细分间距 °数值", "Spacing ° value"), 25);
       await s.setNumber(s.L("切入深度数值", "Cut depth value"), 0.45);
       await s.showRingComposer();
       await s.shoot("ring-cut");
@@ -633,8 +684,8 @@ const scenes = {
   "arc-cut": {
     async run(s) {
       await s.startRingCut();
-      await s.click(/^(弧形 · 联动深度|Arc · linked depths)$/, ".composer-ring-kind button");
-      await s.setNumber(s.L("弧切凸度", "Arc cut bulge"), 0.55);
+      await s.pickTool(/^(弧形环切|Arc ring cut)/);
+      await s.setNumber(s.L("凸度数值", "Bulge value"), 0.55);
       await s.setNumber(s.L("切入深度数值", "Cut depth value"), 0.45);
       await s.showRingComposer();
       await s.shoot("arc-cut");
@@ -658,6 +709,10 @@ for (const name of names) {
   } catch (error) {
     failed += 1;
     console.error(`${locale} ${name}: FAILED ${error.message}`);
+    const evidence = path.join(root, "tmp/manual-capture-failures");
+    await mkdir(evidence, { recursive: true });
+    await s.page.screenshot({ path: path.join(evidence, `${locale}-${name}.png`) });
+    await writeFile(path.join(evidence, `${locale}-${name}.txt`), await s.page.evaluate(() => document.body.innerText));
   } finally {
     await s.close();
   }

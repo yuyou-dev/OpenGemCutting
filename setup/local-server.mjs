@@ -33,4 +33,5 @@ export async function runLocalServer(args) {
     : await createServer({ root, server: network });
   if (mode === 'dev') await server.listen();
   server.printUrls();
+  return server;
 }

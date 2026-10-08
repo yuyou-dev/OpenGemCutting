@@ -117,9 +117,10 @@ export async function createWebgpuOpticsRenderer(canvas, onFailure) {
         if (disposed || failed) return;
         uploadedGeometry = geometry;
         canvas.dataset.renderStage = view.stage;
+        options.onFrame?.();
       },
     });
-    return { draw: scheduler.draw, destroy };
+    return { draw: scheduler.draw, cancel: scheduler.cancel, destroy };
   } catch (error) {
     destroy();
     throw error;

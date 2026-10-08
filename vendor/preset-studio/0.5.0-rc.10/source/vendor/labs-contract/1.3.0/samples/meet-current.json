@@ -1,0 +1,1695 @@
+{
+  "input": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json",
+    "schemaVersion": 1,
+    "kind": "facet-96-document",
+    "name": "Untitled Facet Design",
+    "indexGear": {
+      "teeth": 96,
+      "zeroAlias": 96,
+      "degreesPerTooth": 3.75
+    },
+    "stock": {
+      "kind": "cube",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ]
+    },
+    "facets": [
+      {
+        "id": "meet-source:24",
+        "patternId": "meet-source",
+        "ordinal": 0,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 90,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": 0,
+            "y": 0.656059028991,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-source:48",
+        "patternId": "meet-source",
+        "ordinal": 1,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": -0.656059028991,
+            "y": 0,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-source:72",
+        "patternId": "meet-source",
+        "ordinal": 2,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 270,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": 0,
+            "y": -0.656059028991,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-source:96",
+        "patternId": "meet-source",
+        "ordinal": 3,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 96,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": 0.656059028991,
+            "y": 0,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-crown:6",
+        "patternId": "meet-crown",
+        "ordinal": 0,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 6,
+        "displayIndex": 6,
+        "azimuthDeg": 22.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": 0.489581562108,
+            "y": 0.202791322913,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "meet-crown:30",
+        "patternId": "meet-crown",
+        "ordinal": 1,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 30,
+        "displayIndex": 30,
+        "azimuthDeg": 112.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": -0.202791322913,
+            "y": 0.489581562108,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "meet-crown:54",
+        "patternId": "meet-crown",
+        "ordinal": 2,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 54,
+        "displayIndex": 54,
+        "azimuthDeg": 202.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": -0.489581562108,
+            "y": -0.202791322913,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "meet-crown:78",
+        "patternId": "meet-crown",
+        "ordinal": 3,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 78,
+        "displayIndex": 78,
+        "azimuthDeg": 292.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": 0.202791322913,
+            "y": -0.489581562108,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "normalized": {
+    "$schema": "https://yuyou-dev.github.io/OpenGemCutting/schemas/document-v1.schema.json",
+    "schemaVersion": 1,
+    "kind": "facet-96-document",
+    "name": "Untitled Facet Design",
+    "indexGear": {
+      "teeth": 96,
+      "zeroAlias": 96,
+      "degreesPerTooth": 3.75
+    },
+    "stock": {
+      "kind": "cube",
+      "size": 2,
+      "center": [
+        0,
+        0,
+        0
+      ]
+    },
+    "facets": [
+      {
+        "id": "meet-source:24",
+        "patternId": "meet-source",
+        "ordinal": 0,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 24,
+        "displayIndex": 24,
+        "azimuthDeg": 90,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": 0,
+            "y": 0.656059028991,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-source:48",
+        "patternId": "meet-source",
+        "ordinal": 1,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 48,
+        "displayIndex": 48,
+        "azimuthDeg": 180,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": -0.656059028991,
+            "y": 0,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-source:72",
+        "patternId": "meet-source",
+        "ordinal": 2,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 72,
+        "displayIndex": 72,
+        "azimuthDeg": 270,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": 0,
+            "y": -0.656059028991,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-source:96",
+        "patternId": "meet-source",
+        "ordinal": 3,
+        "region": "pavilion",
+        "baseIndex": 0,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 0,
+        "displayIndex": 96,
+        "azimuthDeg": 0,
+        "industryAngleDeg": 41,
+        "betaDeg": -49,
+        "depth": 0.42,
+        "plane": {
+          "normal": {
+            "x": 0.656059028991,
+            "y": 0,
+            "z": -0.754709580223
+          },
+          "offset": 0.990768609214,
+          "keep": "less-than-or-equal"
+        }
+      },
+      {
+        "id": "meet-crown:6",
+        "patternId": "meet-crown",
+        "ordinal": 0,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 6,
+        "displayIndex": 6,
+        "azimuthDeg": 22.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": 0.489581562108,
+            "y": 0.202791322913,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "meet-crown:30",
+        "patternId": "meet-crown",
+        "ordinal": 1,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 30,
+        "displayIndex": 30,
+        "azimuthDeg": 112.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": -0.202791322913,
+            "y": 0.489581562108,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "meet-crown:54",
+        "patternId": "meet-crown",
+        "ordinal": 2,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 54,
+        "displayIndex": 54,
+        "azimuthDeg": 202.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": -0.489581562108,
+            "y": -0.202791322913,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "meet-crown:78",
+        "patternId": "meet-crown",
+        "ordinal": 3,
+        "region": "crown",
+        "baseIndex": 6,
+        "repeat": 4,
+        "mirror": 0,
+        "index": 78,
+        "displayIndex": 78,
+        "azimuthDeg": 292.5,
+        "industryAngleDeg": 32,
+        "betaDeg": 58,
+        "depth": 1.061699178041,
+        "plane": {
+          "normal": {
+            "x": 0.202791322913,
+            "y": -0.489581562108,
+            "z": 0.848048096156
+          },
+          "offset": 0.316268182348,
+          "keep": "less-than-or-equal"
+        },
+        "metadata": {
+          "patternMode": "symmetric",
+          "construction": {
+            "type": "vertex-meet",
+            "solverVersion": 1,
+            "target": {
+              "vertexIndex": 11,
+              "topologyKey": "vertex:cube%3A%2Bx|cube%3A%2By|meet-source%3A24|meet-source%3A96",
+              "sourceFaceIds": [
+                "cube:+x",
+                "cube:+y",
+                "meet-source:24",
+                "meet-source:96"
+              ],
+              "sourceOperationIds": [
+                "meet-source",
+                "rough-cube"
+              ],
+              "sourceGeometrySignature": "v1:b76b1d17f0b4ce23",
+              "fallbackWorldPoint": [
+                1,
+                0.9999999999999999,
+                -0.4434945427936673
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+  "expected": {
+    "schemaVersion": 1,
+    "millimetersPerModelUnit": null,
+    "volumeModelUnits": 2.6445336491443925,
+    "vertices": [
+      [
+        -0.9999999999999999,
+        -1,
+        -0.4434945427936673
+      ],
+      [
+        -0.99999999999982,
+        0.41421356237289686,
+        -0.1053176864409542
+      ],
+      [
+        -0.9999999999997455,
+        0.9999999999993857,
+        -0.44349454279473144
+      ],
+      [
+        -0.41421356237403273,
+        -1,
+        -0.10531768644078641
+      ],
+      [
+        -0.35981370358403875,
+        -0.35981370358403875,
+        -1
+      ],
+      [
+        -0.35981370358403875,
+        0.35981370358403875,
+        -1
+      ],
+      [
+        4.568954842201268e-13,
+        -9.339380311035081e-15,
+        0.3729366102954197
+      ],
+      [
+        0.3598137035840388,
+        -0.3598137035840388,
+        -1
+      ],
+      [
+        0.3598137035840388,
+        0.35981370358403875,
+        -0.9999999999999999
+      ],
+      [
+        0.41421356237425283,
+        1,
+        -0.10531768644073378
+      ],
+      [
+        0.9999999999997455,
+        -0.9999999999993857,
+        -0.44349454279473144
+      ],
+      [
+        1,
+        -0.41421356237244045,
+        -0.10531768644073386
+      ],
+      [
+        1,
+        0.9999999999999999,
+        -0.4434945427936673
+      ]
+    ],
+    "effectiveFacetIds": [
+      "meet-crown:30",
+      "meet-crown:54",
+      "meet-crown:6",
+      "meet-crown:78",
+      "meet-source:24",
+      "meet-source:48",
+      "meet-source:72",
+      "meet-source:96"
+    ],
+    "construction": [
+      {
+        "patternId": "meet-crown",
+        "status": "valid",
+        "reason": null
+      }
+    ],
+    "all": [
+      {
+        "teeth": 32,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.08013639435967e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 64,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.08013639435967e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 72,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 2.499999999993996,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 4.500000000001217,
+            "nearestIndex": 5,
+            "errorDeg": 2.499999999993916,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 22.500000000001204,
+            "nearestIndex": 23,
+            "errorDeg": 2.499999999993978,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 40.500000000001215,
+            "nearestIndex": 41,
+            "errorDeg": 2.499999999993925,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 58.5000000000012,
+            "nearestIndex": 59,
+            "errorDeg": 2.499999999993996,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 77,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 1,
+        "incompatibleCount": 7,
+        "coverage": 0.125,
+        "maxErrorDeg": 2.3376623376623376,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-source:24",
+            "patternId": "meet-source",
+            "index": 19.25,
+            "nearestIndex": 19,
+            "errorDeg": 1.1688311688311688,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:48",
+            "patternId": "meet-source",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:72",
+            "patternId": "meet-source",
+            "index": 57.75,
+            "nearestIndex": 58,
+            "errorDeg": 1.1688311688311688,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 4.812500000001301,
+            "nearestIndex": 5,
+            "errorDeg": 0.8766233766172933,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 24.06250000000129,
+            "nearestIndex": 24,
+            "errorDeg": 0.29220779221382165,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 43.31250000000129,
+            "nearestIndex": 43,
+            "errorDeg": 1.4610389610450072,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 62.56250000000129,
+            "nearestIndex": 63,
+            "errorDeg": 2.0454545454484996,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 80,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.083133996526158e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 84,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 1.071428571434654,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 5.250000000001419,
+            "nearestIndex": 5,
+            "errorDeg": 1.071428571434654,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 26.250000000001403,
+            "nearestIndex": 26,
+            "errorDeg": 1.0714285714345857,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 47.250000000001414,
+            "nearestIndex": 47,
+            "errorDeg": 1.0714285714346314,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 68.2500000000014,
+            "nearestIndex": 68,
+            "errorDeg": 1.0714285714346008,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 88,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 2.045454545448514,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 5.500000000001487,
+            "nearestIndex": 6,
+            "errorDeg": 2.045454545448463,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 27.500000000001474,
+            "nearestIndex": 28,
+            "errorDeg": 2.045454545448514,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 49.50000000000148,
+            "nearestIndex": 50,
+            "errorDeg": 2.0454545454484996,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 71.50000000000148,
+            "nearestIndex": 72,
+            "errorDeg": 2.0454545454484996,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 96,
+        "scope": "all",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.0818017288966075e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 99,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 1,
+        "incompatibleCount": 7,
+        "coverage": 0.125,
+        "maxErrorDeg": 1.8181818181818181,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-source:24",
+            "patternId": "meet-source",
+            "index": 24.75,
+            "nearestIndex": 25,
+            "errorDeg": 0.9090909090909091,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:48",
+            "patternId": "meet-source",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:72",
+            "patternId": "meet-source",
+            "index": 74.25,
+            "nearestIndex": 74,
+            "errorDeg": 0.9090909090909091,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 6.187500000001672,
+            "nearestIndex": 6,
+            "errorDeg": 0.6818181818242635,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 30.937500000001656,
+            "nearestIndex": 31,
+            "errorDeg": 0.22727272726670703,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 55.68750000000167,
+            "nearestIndex": 56,
+            "errorDeg": 1.1363636363575644,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 80.43750000000166,
+            "nearestIndex": 80,
+            "errorDeg": 1.5909090909151369,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 120,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 1.4999999999939888,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 7.500000000002028,
+            "nearestIndex": 8,
+            "errorDeg": 1.4999999999939169,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 37.50000000000201,
+            "nearestIndex": 38,
+            "errorDeg": 1.4999999999939675,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 67.50000000000202,
+            "nearestIndex": 68,
+            "errorDeg": 1.4999999999939462,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 97.500000000002,
+            "nearestIndex": 98,
+            "errorDeg": 1.4999999999939888,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 360,
+        "scope": "all",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 0.4999999999939746,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 22.500000000006082,
+            "nearestIndex": 23,
+            "errorDeg": 0.49999999999391775,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 112.50000000000603,
+            "nearestIndex": 113,
+            "errorDeg": 0.4999999999939746,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 202.50000000000605,
+            "nearestIndex": 203,
+            "errorDeg": 0.4999999999939462,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 292.500000000006,
+            "nearestIndex": 293,
+            "errorDeg": 0.4999999999939746,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      }
+    ],
+    "final": [
+      {
+        "teeth": 32,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.08013639435967e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 64,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.08013639435967e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 72,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 2.499999999993996,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 4.500000000001217,
+            "nearestIndex": 5,
+            "errorDeg": 2.499999999993916,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 22.500000000001204,
+            "nearestIndex": 23,
+            "errorDeg": 2.499999999993978,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 40.500000000001215,
+            "nearestIndex": 41,
+            "errorDeg": 2.499999999993925,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 58.5000000000012,
+            "nearestIndex": 59,
+            "errorDeg": 2.499999999993996,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 77,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 1,
+        "incompatibleCount": 7,
+        "coverage": 0.125,
+        "maxErrorDeg": 2.3376623376623376,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-source:24",
+            "patternId": "meet-source",
+            "index": 19.25,
+            "nearestIndex": 19,
+            "errorDeg": 1.1688311688311688,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:48",
+            "patternId": "meet-source",
+            "index": 38.5,
+            "nearestIndex": 39,
+            "errorDeg": 2.3376623376623376,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:72",
+            "patternId": "meet-source",
+            "index": 57.75,
+            "nearestIndex": 58,
+            "errorDeg": 1.1688311688311688,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 4.812500000001301,
+            "nearestIndex": 5,
+            "errorDeg": 0.8766233766172933,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 24.06250000000129,
+            "nearestIndex": 24,
+            "errorDeg": 0.29220779221382165,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 43.31250000000129,
+            "nearestIndex": 43,
+            "errorDeg": 1.4610389610450072,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 62.56250000000129,
+            "nearestIndex": 63,
+            "errorDeg": 2.0454545454484996,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 80,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.083133996526158e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 84,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 1.071428571434654,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 5.250000000001419,
+            "nearestIndex": 5,
+            "errorDeg": 1.071428571434654,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 26.250000000001403,
+            "nearestIndex": 26,
+            "errorDeg": 1.0714285714345857,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 47.250000000001414,
+            "nearestIndex": 47,
+            "errorDeg": 1.0714285714346314,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 68.2500000000014,
+            "nearestIndex": 68,
+            "errorDeg": 1.0714285714346008,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 88,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 2.045454545448514,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 5.500000000001487,
+            "nearestIndex": 6,
+            "errorDeg": 2.045454545448463,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 27.500000000001474,
+            "nearestIndex": 28,
+            "errorDeg": 2.045454545448514,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 49.50000000000148,
+            "nearestIndex": 50,
+            "errorDeg": 2.0454545454484996,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 71.50000000000148,
+            "nearestIndex": 72,
+            "errorDeg": 2.0454545454484996,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 96,
+        "scope": "final",
+        "compatible": true,
+        "status": "compatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 8,
+        "incompatibleCount": 0,
+        "coverage": 1,
+        "maxErrorDeg": 6.0818017288966075e-12,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": []
+      },
+      {
+        "teeth": 99,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 1,
+        "incompatibleCount": 7,
+        "coverage": 0.125,
+        "maxErrorDeg": 1.8181818181818181,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-source:24",
+            "patternId": "meet-source",
+            "index": 24.75,
+            "nearestIndex": 25,
+            "errorDeg": 0.9090909090909091,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:48",
+            "patternId": "meet-source",
+            "index": 49.5,
+            "nearestIndex": 50,
+            "errorDeg": 1.8181818181818181,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-source:72",
+            "patternId": "meet-source",
+            "index": 74.25,
+            "nearestIndex": 74,
+            "errorDeg": 0.9090909090909091,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 6.187500000001672,
+            "nearestIndex": 6,
+            "errorDeg": 0.6818181818242635,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 30.937500000001656,
+            "nearestIndex": 31,
+            "errorDeg": 0.22727272726670703,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 55.68750000000167,
+            "nearestIndex": 56,
+            "errorDeg": 1.1363636363575644,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 80.43750000000166,
+            "nearestIndex": 80,
+            "errorDeg": 1.5909090909151369,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 120,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 1.4999999999939888,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 7.500000000002028,
+            "nearestIndex": 8,
+            "errorDeg": 1.4999999999939169,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 37.50000000000201,
+            "nearestIndex": 38,
+            "errorDeg": 1.4999999999939675,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 67.50000000000202,
+            "nearestIndex": 68,
+            "errorDeg": 1.4999999999939462,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 97.500000000002,
+            "nearestIndex": 98,
+            "errorDeg": 1.4999999999939888,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      },
+      {
+        "teeth": 360,
+        "scope": "final",
+        "compatible": false,
+        "status": "incompatible",
+        "totalCount": 8,
+        "checkedCount": 8,
+        "exemptCount": 0,
+        "compatibleCount": 4,
+        "incompatibleCount": 4,
+        "coverage": 0.5,
+        "maxErrorDeg": 0.4999999999939746,
+        "toleranceDeg": 0.000001,
+        "incompatibleFacets": [
+          {
+            "facetId": "meet-crown:6",
+            "patternId": "meet-crown",
+            "index": 22.500000000006082,
+            "nearestIndex": 23,
+            "errorDeg": 0.49999999999391775,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:30",
+            "patternId": "meet-crown",
+            "index": 112.50000000000603,
+            "nearestIndex": 113,
+            "errorDeg": 0.4999999999939746,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:54",
+            "patternId": "meet-crown",
+            "index": 202.50000000000605,
+            "nearestIndex": 203,
+            "errorDeg": 0.4999999999939462,
+            "exempt": false,
+            "compatible": false
+          },
+          {
+            "facetId": "meet-crown:78",
+            "patternId": "meet-crown",
+            "index": 292.500000000006,
+            "nearestIndex": 293,
+            "errorDeg": 0.4999999999939746,
+            "exempt": false,
+            "compatible": false
+          }
+        ]
+      }
+    ]
+  }
+}

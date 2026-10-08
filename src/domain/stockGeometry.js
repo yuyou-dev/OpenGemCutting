@@ -5,10 +5,25 @@ import { getMeshStockSolid, normalizeMeshStock } from "./meshStock.js";
 import { createFacetingDocument, DEFAULT_STOCK } from "./faceting.js";
 import { DEFAULT_OPTICS_SETTINGS, resolveOpticsSettings } from "./optics.js";
 
+// A cube blank depends only on its size and centre. Sharing one immutable solid
+// per blank lets every evaluation reuse the same clipped prefixes (see
+// clipPolyhedronByPlanes), also across copies of a document.
+const cubeSolids = new Map();
+const CUBE_SOLIDS = 4;
+
 export function createStockSolid(stock) {
-  return stock.kind === "mesh" ? getMeshStockSolid(stock) : createCenteredCube(stock.size, {
+  if (stock.kind === "mesh") return getMeshStockSolid(stock);
+  const key = JSON.stringify([stock.size, stock.center], (_, value) => (
+    typeof value === "number" && (Object.is(value, -0) || !Number.isFinite(value)) ? `#${Object.is(value, -0) ? "-0" : value}` : value
+  ));
+  let solid = cubeSolids.get(key);
+  if (solid) { cubeSolids.delete(key); cubeSolids.set(key, solid); return solid; }
+  solid = createCenteredCube(stock.size, {
     center: stock.center, sourceOperationId: "rough-cube", region: "rough",
   });
+  if (cubeSolids.size >= CUBE_SOLIDS) cubeSolids.delete(cubeSolids.keys().next().value);
+  cubeSolids.set(key, solid);
+  return solid;
 }
 
 const unitToMm = { unitless: null, mm: 1, cm: 10, m: 1000 };

@@ -19,7 +19,7 @@ export function opticsRenderStage(renderScale) {
 
 /** Host view shared by every optics backend: pixel budget, camera, framing and
  * lighting inputs. Backends differ only in how they transport and trace rays. */
-export function opticsViewFrame(canvas, { geometry, settings, camera, focusOffset = 0, renderScale = 1 }) {
+export function opticsViewFrame(canvas, { geometry, settings, camera, focusOffset = 0, renderScale = 1, compact = false }) {
   const ratio = Math.min(window.devicePixelRatio || 1, 1.5, 1100 / Math.max(canvas.clientWidth, canvas.clientHeight)) * renderScale;
   const width = Math.max(2, Math.round(canvas.clientWidth * ratio));
   const height = Math.max(2, Math.round(canvas.clientHeight * ratio));
@@ -29,7 +29,7 @@ export function opticsViewFrame(canvas, { geometry, settings, camera, focusOffse
   if (geometry.mesh && geometry.framing !== "convex") {
     const inspector = focusOffset ? canvas.parentElement?.parentElement?.querySelector(".optics-inspector") : null;
     const covered = inspector ? Math.max(0, canvas.getBoundingClientRect().right - inspector.getBoundingClientRect().left + 24) : 0;
-    meshFraming = opticsMeshFraming(geometry.mesh, { width: canvas.clientWidth, height: canvas.clientHeight, occludedRight: covered });
+    meshFraming = opticsMeshFraming(geometry.mesh, { width: canvas.clientWidth, height: canvas.clientHeight, occludedRight: covered, compact });
   }
   return {
     width, height, frame,

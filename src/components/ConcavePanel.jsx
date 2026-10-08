@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { IconPrism } from '@tabler/icons-react';
 import { t } from '../i18n/locale.js';
 import { CONCAVE_PRESETS, concaveToolDepth } from '../application/concaveTools.js';
@@ -15,7 +15,7 @@ function CutterIllustration({ type, fine }) {
   </svg>;
 }
 
-function RotationDial({ value, repeat, disabled, onPreview, onFinish, onCancel }) {
+function RotationDial({ value, repeat, disabled, onPreview }) {
   const dragging = useRef(false);
   const point = (angle, radius) => [50 + radius * Math.cos(angle * Math.PI / 180), 50 - radius * Math.sin(angle * Math.PI / 180)];
   const update = event => {
@@ -27,10 +27,10 @@ function RotationDial({ value, repeat, disabled, onPreview, onFinish, onCancel }
     aria-label={t('旋转凹切组')} aria-valuemin={0} aria-valuemax={360} aria-valuenow={value} aria-valuetext={`${value}°`}
     onPointerDown={e => { if (!disabled) { dragging.current = true; e.currentTarget.setPointerCapture(e.pointerId); update(e); } }}
     onPointerMove={e => { if (!disabled && dragging.current && e.currentTarget.hasPointerCapture(e.pointerId)) update(e); }}
-    onPointerUp={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) { dragging.current = false; e.currentTarget.releasePointerCapture(e.pointerId); onFinish(); } }}
-    onPointerCancel={() => { dragging.current = false; onCancel(); }} onBlur={onFinish}
+    onPointerUp={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) { dragging.current = false; e.currentTarget.releasePointerCapture(e.pointerId); } }}
+    onPointerCancel={() => { dragging.current = false; }}
     onKeyDown={e => { if (e.key === 'Escape') dragging.current = false; if (disabled) return; const delta = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key]; if (delta) { e.preventDefault(); onPreview((value + delta * (e.shiftKey ? 10 : 1) + 360) % 360); } }}
-    onKeyUp={e => { if (e.key.startsWith('Arrow')) onFinish(); }}>
+>
     <circle cx="50" cy="50" r="39" fill="none" stroke="currentColor" opacity=".25"/>
     {Array.from({ length: 24 }, (_, i) => { const a = point(i * 15, i % 6 ? 36 : 33), b = point(i * 15, 40); return <line key={i} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="currentColor" opacity=".35"/>; })}
     {Array.from({ length: repeat }, (_, i) => { const p = point(value + i * 360 / repeat, 31); return <circle key={i} cx={p[0]} cy={p[1]} r={i ? 2.5 : 4} fill="var(--create)" opacity={i ? .5 : 1}/>; })}
@@ -39,65 +39,48 @@ function RotationDial({ value, repeat, disabled, onPreview, onFinish, onCancel }
   </svg>;
 }
 
-export function ConcavePanel({ document, selectedId, onSelect, canEdit, isCommitting, blockedReason, onReturnPlanar, onChange, onReplace, onCancel }) {
+export function ConcavePanel({ document, session, canEdit, isCommitting, error, blockedReason, onReturnPlanar, onStart, onChange, onReplace, onCancel, onCommit }) {
   const cuts = document.concaveCuts ?? [];
-  const selected = cuts.find(cut => cut.id === selectedId) ?? cuts.at(-1);
-  const [choosing, setChoosing] = useState(!cuts.length);
-  const [draft, setDraft] = useState(null);
-  useEffect(() => { setDraft(null); }, [selected]);
-  const values = draft && draft.id === selected?.id ? draft : {};
+  const selected = session?.tool;
+  const [choosing, setChoosing] = useState(false);
   const depth = selected ? concaveToolDepth(document, selected) : 0;
-  const inputDepth = values.toolDepth ?? depth;
-  const phase = values.phaseDeg ?? selected?.phaseDeg ?? 0;
-  const pending = useRef(null), frame = useRef(null);
-  useEffect(() => () => { if (frame.current) cancelAnimationFrame(frame.current); }, []);
-  const preview = patch => {
-    setDraft({ id: selected.id, ...patch });
-    pending.current = { toolId: selected.id, ...patch };
-    if (!frame.current) frame.current = requestAnimationFrame(() => {
-      frame.current = null;
-      if (pending.current) onChange(pending.current, true);
-    });
-  };
-  const finish = () => {
-    if (frame.current) cancelAnimationFrame(frame.current);
-    frame.current = null;
-    if (pending.current) onChange(pending.current, false);
-    pending.current = null;
-  };
-  const cancel = () => {
-    if (frame.current) cancelAnimationFrame(frame.current);
-    frame.current = null; pending.current = null; setDraft(null); onCancel();
-  };
+  const inputDepth = depth;
+  const phase = selected?.phaseDeg ?? 0;
+  const preview = onChange;
+  const cancel = () => { onCancel(); setChoosing(false); };
   const replace = next => onReplace({ kind: 'facet-parameter-group', schemaVersion: 1, group: 'concave', concaveCuts: next });
   const add = preset => {
-    const toolId = crypto.randomUUID();
-    if (onChange({ toolId, preset }, false)) { onSelect(toolId); setChoosing(false); }
+    if (onStart({ toolId: crypto.randomUUID(), preset })) setChoosing(false);
   };
   return <section className="concave-panel" aria-label={t('凹切图层')} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); cancel(); setChoosing(false); } }}>
-    <div className="concave-panel-heading"><span>{t('凹切图层')} <small>{cuts.length}</small></span><button type="button" aria-expanded={choosing || !cuts.length} onClick={() => setChoosing(!choosing)}>{t(choosing && cuts.length ? '收起刀具' : '＋ 添加凹切')}</button></div>
+    <div className="concave-panel-heading"><span>{t(session ? session.mode === 'create' ? '新建凹切' : '编辑凹切' : '凹切图层')} <small>{cuts.length}</small></span></div>
+    <div className="concave-session-actions">
+      {session ? <><button type="button" className="concave-confirm" disabled={!canEdit || !session.dirty || Boolean(error)} onClick={onCommit}>{t(isCommitting ? '正在确认…' : session.mode === 'create' ? '加入序列' : '保存')}</button><button type="button" disabled={isCommitting} onClick={cancel}>{t(session.mode === 'create' ? '取消' : '放弃')}</button></>
+        : <button type="button" className="concave-confirm" disabled={!canEdit} aria-expanded={choosing} onClick={() => setChoosing(!choosing)}>{t('＋ 新建凹切')}</button>}
+    </div>
+    {error ? <p className="concave-session-error" role="alert">{t(error)}</p> : null}
     {!canEdit && !isCommitting && <div className="concave-blocked">{t(blockedReason)}{onReturnPlanar && <button type="button" onClick={onReturnPlanar}>{t('返回平切')}</button>}</div>}
-    {(choosing || !cuts.length) && <div className="concave-tool-choices">{CONCAVE_PRESETS.map(preset => <button key={preset.id} type="button" disabled={!canEdit} aria-label={t('添加{0}', [t(preset.label)])} onClick={() => add(preset.id)}><CutterIllustration type={preset.type} fine={preset.id === 'fine-flute'}/><span>{t(preset.label)}</span>{preset.type === 'v-wheel' && <small>90°</small>}</button>)}</div>}
-    {!cuts.length && <p className="concave-empty">{t('选择刀具，在宝石上添加凹切')}</p>}
+    {(choosing && !session) && <div className="concave-tool-choices">{CONCAVE_PRESETS.map(preset => <button key={preset.id} type="button" disabled={!canEdit} aria-label={t('选择{0}', [t(preset.label)])} onClick={() => add(preset.id)}><CutterIllustration type={preset.type} fine={preset.id === 'fine-flute'}/><span>{t(preset.label)}</span>{preset.type === 'v-wheel' && <small>90°</small>}</button>)}</div>}
+    {session && <p className="concave-empty" role="status">{t('正在预览；确认后才写入切割序列。')}</p>}
     <div className="concave-layer-list">{cuts.map((cut, i) => <div key={cut.id} className={`concave-layer${selected?.id === cut.id ? ' is-selected' : ''}`}>
-      <label><input type="checkbox" checked={cut.enabled} disabled={!canEdit} aria-label={t('启用凹切 {0}', [i + 1])} onChange={e => replace(cuts.map(c => c.id === cut.id ? { ...c, enabled: e.target.checked } : c))}/></label>
-      <button className="concave-layer-select" type="button" aria-pressed={selected?.id === cut.id} onClick={() => { finish(); onSelect(cut.id); setChoosing(false); }}><span><b>N{i + 1}</b> {t(cut.label || cut.type)}</span><small>{t('{0} 次重复 · {1}°', [cut.repeat, Number(cut.phaseDeg.toFixed(2))])}</small></button>
-      <button type="button" className="concave-delete" disabled={!canEdit} aria-label={t('删除凹切 {0}', [i + 1])} onClick={() => replace(cuts.filter(c => c.id !== cut.id))}>{t('删除')}</button>
+      <label><input type="checkbox" checked={cut.enabled} disabled={!canEdit || Boolean(session)} aria-label={t('启用凹切 {0}', [i + 1])} onChange={e => replace(cuts.map(c => c.id === cut.id ? { ...c, enabled: e.target.checked } : c))}/></label>
+      <button className="concave-layer-select" type="button" aria-pressed={selected?.id === cut.id} disabled={!canEdit || Boolean(session)} onClick={() => { onStart({ toolId: cut.id }); setChoosing(false); }}><span><b>N{i + 1}</b> {t(cut.label || cut.type)}</span><small>{t('{0} 次重复 · {1}°', [cut.repeat, Number(cut.phaseDeg.toFixed(2))])}</small></button>
+      <button type="button" className="concave-delete" disabled={!canEdit || Boolean(session)} aria-label={t('删除凹切 {0}', [i + 1])} onClick={() => replace(cuts.filter(c => c.id !== cut.id))}>{t('删除')}</button>
     </div>)}</div>
     {selected && <div className="concave-parameters">
       {selected.type === 'triangular-prism' && <fieldset className="concave-shape-parameters" disabled={!canEdit}>
         <legend>{t('三角柱尺寸')}</legend>
-        {[["tipAngle", "尖角", "°", 1, 179, 1], ["width", "宽度", "", .001, undefined, .01], ["length", "长度", "", .001, undefined, .01]].map(([key, label, unit, min, max, step]) => <label key={key}>{t(label)}<span><input type="number" aria-label={t(`三角柱${label}`)} min={min} max={max} step={step} value={values[key] ?? selected[key]} onChange={event => { if (Number.isFinite(event.target.valueAsNumber)) preview({ [key]: event.target.valueAsNumber }); }} onBlur={finish} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}/>{unit}</span></label>)}
+        {[["tipAngle", "尖角", "°", 1, 179, 1], ["width", "宽度", "", .001, undefined, .01], ["length", "长度", "", .001, undefined, .01]].map(([key, label, unit, min, max, step]) => <label key={key}>{t(label)}<span><input type="number" aria-label={t(`三角柱${label}`)} min={min} max={max} step={step} value={selected[key]} onChange={event => { if (Number.isFinite(event.target.valueAsNumber)) preview({ [key]: event.target.valueAsNumber }); }} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}/>{unit}</span></label>)}
         <small>{t('尖角与宽度决定槽形，长度沿刀具轴向；尺寸使用项目坐标。')}</small>
       </fieldset>}
 
-      <div className="concave-direction"><RotationDial value={phase} repeat={selected.repeat} disabled={!canEdit} onPreview={value => preview({ phaseDeg: value })} onFinish={finish} onCancel={cancel}/>
-        <div><label>{t('整组旋转')}<span><input type="number" aria-label={t('凹切旋转角度')} step="0.1" value={Number(phase.toFixed(2))} disabled={!canEdit} onChange={e => { if (Number.isFinite(e.target.valueAsNumber)) preview({ phaseDeg: e.target.valueAsNumber }); }} onBlur={finish} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}/>°</span></label><small>{t('自由角度 · 不受平切分度盘限制')}</small></div>
+      <div className="concave-direction"><RotationDial value={phase} repeat={selected.repeat} disabled={!canEdit} onPreview={value => preview({ phaseDeg: value })}/>
+        <div><label>{t('整组旋转')}<span><input type="number" aria-label={t('凹切旋转角度')} step="0.1" value={Number(phase.toFixed(2))} disabled={!canEdit} onChange={e => { if (Number.isFinite(e.target.valueAsNumber)) preview({ phaseDeg: e.target.valueAsNumber }); }} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}/>°</span></label><small>{t('自由角度 · 不受平切分度盘限制')}</small></div>
       </div>
-      <label>{t('重复')}<input type="number" aria-label={t('凹切重复')} min="1" max="120" step="1" value={selected.repeat} disabled={!canEdit} onChange={e => { const repeat = e.target.valueAsNumber; if (Number.isInteger(repeat) && repeat >= 1 && repeat <= 120) onChange({ toolId: selected.id, repeat }, false); }}/></label>
-      <label>{t('凹切深度')}<input type="number" aria-label={t('凹切深度')} step="0.01" value={Number(inputDepth.toFixed(4))} disabled={!canEdit} onChange={e => { if (Number.isFinite(e.target.valueAsNumber)) preview({ toolDepth: e.target.valueAsNumber }); }} onBlur={finish} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}/></label>
-      <input aria-label={t('调整凹切深度')} type="range" min={Math.min(0, depth)} max={Math.max(selected.radius * 2 + .25, depth)} step="0.005" value={inputDepth} disabled={!canEdit} onChange={e => preview({ toolDepth: e.target.valueAsNumber })} onPointerUp={finish} onPointerCancel={cancel} onKeyUp={e => { if (e.key !== 'Escape') finish(); }} onBlur={finish}/>
-      <p aria-live="polite">{t(isCommitting ? '正在完成凹切，请稍候。' : '拖动转盘或深度，实时查看造型；松手保存。')}</p>
+      <label>{t('重复')}<input type="number" aria-label={t('凹切重复')} min="1" max="120" step="1" value={selected.repeat} disabled={!canEdit} onChange={e => { const repeat = e.target.valueAsNumber; if (Number.isInteger(repeat) && repeat >= 1 && repeat <= 120) onChange({ repeat }); }}/></label>
+      <label>{t('凹切深度')}<input type="number" aria-label={t('凹切深度')} step="0.01" value={Number(inputDepth.toFixed(4))} disabled={!canEdit} onChange={e => { if (Number.isFinite(e.target.valueAsNumber)) preview({ toolDepth: e.target.valueAsNumber }); }} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}/></label>
+      <input aria-label={t('调整凹切深度')} type="range" min={Math.min(0, depth)} max={Math.max(selected.radius * 2 + .25, depth)} step="0.005" value={inputDepth} disabled={!canEdit} onChange={e => preview({ toolDepth: e.target.valueAsNumber })}/>
+      <p aria-live="polite">{t(isCommitting ? '正在完成凹切，请稍候。' : '调整参数预览造型，满意后确认；取消可恢复原设计。')}</p>
     </div>}
   </section>;
 }

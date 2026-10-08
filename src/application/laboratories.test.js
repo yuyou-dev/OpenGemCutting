@@ -5,6 +5,14 @@ import { createLabContractSamples } from './labContractSamples.js';
 const preset = LABORATORIES.find(l => l.id === 'preset');
 const pattern = LABORATORIES.find(l => l.id === 'pattern');
 
+test('the preset lab is merged into the editor: not offered for new experiments, its drafts stay resumable', () => {
+  assert.equal(preset.merged, true);
+  assert.match(preset.mergedNotice, /圈层组合/);
+  // Resuming an old draft looks up a ready laboratory; merging must not disable it.
+  assert.equal(preset.status, 'ready');
+  assert.notEqual(pattern.merged, true);
+});
+
 test('no source still allows a new experiment; unavailable or pending entries explain both gates', () => {
   assert.deepEqual(labEntryState(preset, null), { source: null, canCreate: true, canBring: false, reason: '请先选择来源设计' });
   for (const [lab, options] of [[{...preset,status:'disabled'},{}],[preset,{busy:true}],[preset,{hasPreview:true}]]) {

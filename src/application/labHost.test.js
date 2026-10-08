@@ -125,8 +125,8 @@ test('second registration shares capability boundary and lifecycle; late mount i
  await assert.rejects(mountLaboratory(element,{lab:late,options:{...f.host.options,signal:ac.signal}}),{name:'AbortError'});assert.equal(element.textContent,'');
 });
 
-// Earlier deliveries stay private (unlicensed) and exist only in the private checkout.
-for (const oldVersion of ['0.6.0-rc.1', '0.6.0-rc.3', '0.6.0-rc.3.main.92ee082cc1e1']) test(`${oldVersion} upgrade retains original recovery record and flush does not return a candidate`, {
+// Earlier deliveries are retained only in the private checkout for upgrade recovery.
+for (const oldVersion of ['0.6.0-rc.1', '0.6.0-rc.3', '0.6.0-rc.3.main.92ee082cc1e1', '0.6.0-rc.3.main.822532976738']) test(`${oldVersion} upgrade retains original recovery record and flush does not return a candidate`, {
  skip: !existsSync(new URL(`../../vendor/pattern-lab/${oldVersion}/index.js`, import.meta.url)) && 'retained private delivery not present',
 }, async () => {
  const f=fixture('fixed-reference');
@@ -211,4 +211,17 @@ test('async project storage commits the returned project before recording the re
   assert.equal(returned.document.name,'Async return');
   assert.equal(f.drafts.read(f.record.id).returns[0].projectId,returned.id);
   assert.equal((await host.accept()).id,returned.id);
+});
+
+test('new pattern host sessions do not add frosted bevels without a designer choice', async () => {
+ const f=fixture(), session=await createLabSession(f.host.options);
+ try {
+  const snap=session.controller.getSnapshot();
+  assert.equal(snap.bevelPolicies.crown.enabled,false);
+  assert.equal(snap.bevelPolicies.pavilion.enabled,false);
+  const result=await session.returnResult();
+  assert.ok(result.document.facets.every(f=>f.metadata?.surfaceFinish?.state!=='frosted'));
+  session.controller.setBevelEnabled(true);
+  assert.ok(session.controller.getSnapshot().compiled.audit.frostedFacets>0);
+ } finally {session.dispose();f.lifetime.abort();}
 });

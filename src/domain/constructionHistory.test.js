@@ -103,3 +103,12 @@ test("dual saved intent checks both points and rejects a non-unique pair", async
   });
   assert.equal(buildConstructionStages(duplicate)[1].construction.reason, "duplicate-points");
 });
+
+test("rebuilt stages reuse their prefixes and diagnose Meet sources exactly as a fresh build", () => {
+  const document = fixture("edge");
+  const fresh = buildConstructionStages(structuredClone(document));
+  const again = buildConstructionStages(document);
+  assert.deepEqual(again.map((stage) => stage.construction), fresh.map((stage) => stage.construction));
+  assert.deepEqual(again.map((stage) => JSON.stringify(stage.afterSolid)), fresh.map((stage) => JSON.stringify(stage.afterSolid)));
+  assert.equal(buildConstructionStages(document).at(-1).afterSolid, again.at(-1).afterSolid);
+});

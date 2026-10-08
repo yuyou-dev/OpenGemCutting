@@ -1,7 +1,7 @@
 import { getCuttingReference } from './faceting.js';
 import { createStockSolid } from "./stockGeometry.js";
 import { clipPolyhedronByPlanes } from "./geometry.js";
-import { MEET_STATUS, resolvePersistedMeetTarget, solveDualMeet } from "./meetJump.js";
+import { MEET_STATUS, enumerateTopologyEdges, enumerateTopologyVertices, resolvePersistedMeetTarget, solveDualMeet } from "./meetJump.js";
 
 const REASONS = {
   "source-hidden": "来源层已隐藏",
@@ -17,8 +17,24 @@ const REASONS = {
   "plane-mismatch": "已保存切面不再经过约束点",
 };
 
+// Stage prefixes come from the shared clip results (see clipPolyhedronByPlanes),
+// so a rebuilt sequence meets the same solids again: enumerate each one once.
+const stageTopology = new WeakMap();
+function topologyOf(solid) {
+  let topology = stageTopology.get(solid);
+  if (!topology) {
+    let vertices = null, edges = null;
+    topology = {
+      get vertices() { return vertices ??= enumerateTopologyVertices(solid); },
+      get edges() { return edges ??= enumerateTopologyEdges(solid, { targets: this.vertices }); },
+    };
+    stageTopology.set(solid, topology);
+  }
+  return topology;
+}
+
 /** Diagnose intent against the construction prefix; never rewrite saved explicit planes. */
-export function diagnoseSavedConstruction({ facets, beforeSolid, precedingPatternIds, allPatternIds, stock, hiddenPatternIds = [] }) {
+export function diagnoseSavedConstruction({ facets, beforeSolid, precedingPatternIds, allPatternIds, stock, hiddenPatternIds = [], topology = null }) {
   const construction = facets[0]?.metadata?.construction;
   if (!construction) return null;
   const primaryIndex = construction.primaryIndex ?? facets[0].baseIndex;
@@ -37,7 +53,9 @@ export function diagnoseSavedConstruction({ facets, beforeSolid, precedingPatter
     }
   }
   if (!primary) return failure("primary-missing");
-  const resolutions = persistedTargets.map((target) => resolvePersistedMeetTarget(target, beforeSolid));
+  const known = topology ?? { vertices: enumerateTopologyVertices(beforeSolid), get edges() { return enumerateTopologyEdges(beforeSolid, { targets: this.vertices }); } };
+  const resolutions = persistedTargets.map((target) => resolvePersistedMeetTarget(target, beforeSolid,
+    target.kind === "edge-point" ? { vertices: known.vertices, edges: known.edges } : { vertices: known.vertices }));
   const targets = resolutions.map((resolution) => resolution.target);
   const invalid = resolutions.find((resolution) => resolution.status !== MEET_STATUS.VALID);
   if (invalid) return failure(invalid.reason, targets);
@@ -68,7 +86,9 @@ export function buildConstructionStages(document, { hiddenPatternIds = [] } = {}
   let solid = createStockSolid(document.stock);
   return [...groups].map(([id, facets], index) => {
     const beforeSolid = solid;
-    const construction = diagnoseSavedConstruction({ facets, beforeSolid, precedingPatternIds, allPatternIds, hiddenPatternIds, stock: getCuttingReference(document) });
+    const construction = facets[0]?.metadata?.construction
+      ? diagnoseSavedConstruction({ facets, beforeSolid, precedingPatternIds, allPatternIds, hiddenPatternIds, stock: getCuttingReference(document), topology: topologyOf(beforeSolid) })
+      : null;
     if (!hidden.has(id)) {
       solid = clipPolyhedronByPlanes(beforeSolid, facets.map((facet) => ({
         ...facet.plane, operationId: id, faceId: facet.id, region: facet.region,

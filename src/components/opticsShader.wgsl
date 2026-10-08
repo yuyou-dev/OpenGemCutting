@@ -18,6 +18,13 @@ fn dielectricFresnel(cosineIncident:f32,n1:f32,n2:f32)->f32 {
  let perpendicular=((n1*cosI)-(n2*cosT))/max(1e-6,(n1*cosI)+(n2*cosT));
  return 0.5*(parallel*parallel+perpendicular*perpendicular);
 }
+fn studioBox(direction:vec3f,axis:vec3f,halfSize:vec2f)->f32 {
+ let normal=normalize(axis);let right=normalize(cross(normal,vec3f(0.0,0.0,1.0)));let up=cross(right,normal);
+ let forward=dot(direction,normal);if(forward<=0.0){return 0.0;}
+ let local=abs(vec2f(dot(direction,right),dot(direction,up))/forward);
+ let edge=vec2f(1.0)-smoothstep(halfSize-vec2f(0.025),halfSize+vec2f(0.025),local);
+ return edge.x*edge.y;
+}
 fn environmentRadiance(rawDirection:vec3f)->vec3f {
  let worldDirection=normalize(rawDirection);
  let angle=radians(p.view.z);let cosine=cos(angle);let sine=sin(angle);
@@ -36,6 +43,14 @@ fn environmentRadiance(rawDirection:vec3f)->vec3f {
  let darkStrength=select(0.88,1.2,p.view.w==2.0);
  var observerCard=smoothstep(0.91,0.985,dot(worldDirection,normalize(p.observer.xyz)));
  var radiance=max(vec3f(0.006),base+panels-vec3f((darkCard+darkCardTwo)*darkStrength));
+ if(p.view.w==0.0){
+  radiance=mix(vec3f(0.18),vec3f(0.46),horizon)*(0.65+0.35*direction.x)
+   +vec3f(0.8)*pow(max(0.0,dot(direction,normalize(vec3f(-0.4,0.3,-0.85)))),4.0)
+   +vec3f(2.8,2.9,3.0)*studioBox(direction,vec3f(-0.72,-0.36,0.58),vec2f(0.70,0.50))
+   +vec3f(3.4,3.3,3.2)*studioBox(direction,vec3f(0.78,0.18,0.52),vec2f(0.48,0.70))
+   +vec3f(1.8)*studioBox(direction,vec3f(-0.15,0.96,0.44),vec2f(0.70,0.38));
+  observerCard=smoothstep(0.978,0.990,dot(worldDirection,normalize(p.observer.xyz)));
+ }
  if(p.view.w==3.0){
   let azimuth=atan2(worldDirection.y,worldDirection.x);let eightFold=0.5+0.5*cos(8.0*azimuth);let polar=dot(worldDirection,normalize(p.observer.xyz));
   let scopeRing=smoothstep(0.22,0.72,polar)*(1.0-smoothstep(0.88,0.97,polar));

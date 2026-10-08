@@ -24,6 +24,7 @@ export function createAsyncOpticsRenderer({ createRenderer, onFallback }) {
       latest = { ...options, camera: { ...options.camera } };
       try { renderer?.draw(latest); } catch { fail(); }
     },
+    cancel() { latest = null; renderer?.cancel?.(); },
     destroy() {
       if (disposed) return;
       disposed = true;

@@ -81,3 +81,12 @@ test("mesh optical reset fits tall crystals and leaves the inspector footprint c
     assert.ok(height / 2 + radiusPx < height - 64);
   }
 });
+
+test('compact mesh framing retains usable space at 130px height without changing full viewport framing', async () => {
+  const { opticsMeshFraming } = await import('./opticsGeometry.js');
+  const mesh = { radius: 1.2 };
+  const compact = opticsMeshFraming(mesh, { width: 264, height: 130, compact: true });
+  const full = opticsMeshFraming(mesh, { width: 264, height: 130 });
+  assert.ok(compact.cameraScale < .5);
+  assert.ok(full.cameraScale > compact.cameraScale * 4);
+});

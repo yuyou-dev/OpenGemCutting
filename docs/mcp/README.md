@@ -27,7 +27,7 @@ Codex 使用 `node setup/cli.mjs install` 完整配置；`mcp/register-codex.mjs
 2. 调用 `workbench_sessions`，选择明确的网页会话；多个页面时根据 `design_read` 的项目识别，不猜测当前标签页。
 3. `design_read` 返回项目、revision、可写状态、图层和保存反馈。主页返回 `projectId: none / revision: home`；使用此作用域调用 `project_create`。
 4. `preset_list` 搜索网页同一预设库，或使用默认立方体、晶体模板、JSON、OBJ 创建独立项目。
-5. `design_plan` 传入有稳定名称的 CUT 组与参数（`draft.ring` 生成环切：`kind: "fan"` 扇形同深给对称数、每边细分、间距与整齿旋转，`kind: "arc"` 弧形联动深度以凸度 0–1 代替间距、`draft.depth` 对应主切面，按项目分度盘就近取整；`dissolve-ring` 打散环切，弧形按深度拆成多层；再次编辑时传显式 `patternMode` 只移除参数，规则见[状态契约](../architecture/state-contract.md#环切)），或 `replace-parameters` 独立替换平面切割或凹面加工参数组（底胚创建后固定）。预检返回 planId、真实变化、完整几何及覆盖面提示，不改当前项目。
+5. `design_plan` 传入有稳定名称的 CUT 组与参数（`draft.ring` 生成环切：`kind: "fan"` 扇形同深给对称数、每边细分、间距与整齿旋转，`kind: "arc"` 弧形联动深度以凸度 0–1 代替间距、`draft.depth` 对应主切面，按项目分度盘就近取整；`dissolve-ring` 打散环切，弧形按深度拆成多层；再次编辑时传显式 `patternMode` 只移除参数，规则见[状态契约](../architecture/state-contract.md#环切)；`draft.grid` 生成网格切：`symmetry` 1/2/4 为方格（`columns`、`rows`），3/6 可选 `lattice: "hex"|"tri"`（`rings`），`extent` 为范围，`scope: "row"` 加 `row` 与 `rowCopies` 只切单行，`industryAngle` 为边缘角、`depth` 为刀具顶点深度、`baseIndex` 为整齿旋转，各面角度、深度与交点自动求解，只用于冠部或亭部、不支持 Meet；`dissolve-grid` 按角度与深度拆成普通层，规则见[状态契约](../architecture/state-contract.md#网格切)），或 `replace-parameters` 独立替换平面切割或凹面加工参数组（底胚创建后固定）。预检返回 planId、真实变化、完整几何及覆盖面提示，不改当前项目。
 6. 用 `design_view` 查看 planId 的顶、底、侧和立体真实投影；用 `design_topology`、`design_inspect` 检查指定连接和施工来源。
 7. 在 `design_commit` 中提交同一 planId 和作用域。被覆盖的层继续保留参数，整层覆盖可直接提交；空实体和非法几何仍阻断。提交是一条历史，可从网页或 `design_history` 撤销，撤销后续覆盖工序可恢复早先切面。
 8. `project_save` 等待实际浏览器保存。`design_export` 导出完整 JSON 留档；同一接口也可返回矢量 PDF、GemCad ASC 或 Gem Cut Studio GCS。ASC 与 GCS 沿用格式中心的信息损失说明和 mesh／凹切阻断，GCS 另返回保留／简化／丢失报告与读回核对结果（见[格式中心](../architecture/format-center.md)）；网页从文件菜单进入格式中心。
@@ -72,7 +72,7 @@ PDF 返回本机临时下载链接，避免大型字体嵌入对话消息。服�
 
 `project_create.indexTeeth` 在新建时指定设备盘（默认 96），默认腰棱按该盘整齿生成；默认起点另可传 `outline: "square"`（4 面，可显式传 `girdleFacets: 4`，盘须能被 4 整除）或圆柱的 `girdleFacets`（该盘整除数且 ≥ 8，默认最接近 32），与起点模板、预设或文件同传返回 `INVALID_START`。所有平面切割统一使用项目盘；旧文件换盘保留造型与面 ID，仅重算读数，不吸附小数。`cut.draft.indexTeeth` 不得另指定不同设备。
 
-`design_plan` 的 `concave-tool` 操作与网页快捷刀具同源：`{ "kind": "concave-tool", "toolId": "flute-1", "preset": "flute", "repeat": 5, "toolDepth": 0.34 }`。`preset` 可选 `bowl`、`flute`、`v-groove`（90° V 形轮）、`triangle-groove`（可调三角柱）、`fine-flute`；已有 `toolId` 可只传 `repeat`、`toolDepth` 或连续角度 `phaseDeg`，未指定字段保持原值；phaseDeg 独立于平切分度盘。三角柱可另外传 `width > 0`、`length > 0` 与 `0 < tipAngle < 180`；尺寸变化保留现有切深，显式 `toolDepth` 可覆盖。比如 `{ "kind": "concave-tool", "toolId": "triangle-1", "preset": "triangle-groove", "width": 0.8, "length": 1.6, "tipAngle": 60, "toolDepth": 0.65 }` 在预设 Columbia-Willamette 上生成五重直线尖槽。预览／提交沿用正式 plan/commit 生命周期。网页一键添加在共享 application 完整求值后写入一次可撤销命令。高级工具参数仍可通过已有参数组导入和计划操作精确保留。
+`design_plan` 的 `concave-tool` 操作与网页快捷刀具同源：`{ "kind": "concave-tool", "toolId": "flute-1", "preset": "flute", "repeat": 5, "toolDepth": 0.34 }`。`preset` 可选 `bowl`、`flute`、`v-groove`（90° V 形轮）、`triangle-groove`（可调三角柱）、`fine-flute`；已有 `toolId` 可只传 `repeat`、`toolDepth` 或连续角度 `phaseDeg`，未指定字段保持原值；phaseDeg 独立于平切分度盘。三角柱可另外传 `width > 0`、`length > 0` 与 `0 < tipAngle < 180`；尺寸变化保留现有切深，显式 `toolDepth` 可覆盖。比如 `{ "kind": "concave-tool", "toolId": "triangle-1", "preset": "triangle-groove", "width": 0.8, "length": 1.6, "tipAngle": 60, "toolDepth": 0.65 }` 在预设 Columbia-Willamette 上生成五重直线尖槽。预览／提交沿用正式 plan/commit 生命周期。网页选刀与调参先预览，明确确认后通过共享 application 完整求值写入一次可撤销命令；未确认凹切期间阻断 MCP 写入，MCP 的 plan/commit 协议不变。高级工具参数仍可通过已有参数组导入和计划操作精确保留。
 
 底胚只在 project_create 时确定，replace-parameters 的 stock 写入返回 STOCK_LOCKED。planar 与 concave 仍独立替换；导出 planar 参数携带 indexGear、cuttingReference 与 machining，参考坐标不一致时禁止静默重解释。concave-tool 的深度基于固定机台参考，与当前平切外形无关。
 
@@ -82,11 +82,27 @@ PDF 返回本机临时下载链接，避免大型字体嵌入对话消息。服�
 
 固定台面的几何只允许修改切深，不能通过修改主分度、角度或重复轨道解除其结构身份。ASC 与 GCS 导出均返回读回核对 `verified` 和信息损失报告；核对失败时 `text` 为空。
 
-## 2.0 功能范围
+## 2.1 功能范围
 
-2.0 保持当前能力注册表中的 13 个设计工具，以及工作台连接／会话和纯几何计算入口；不以界面拥有某项能力推定 MCP 已支持。
+2.1 保持当前能力注册表中的 13 个设计工具，以及工作台连接／会话和纯几何计算入口；不以界面拥有某项能力推定 MCP 已支持。
 
 - 已有项目的重命名、原位切换分度盘、光学视图／材质调整和实验室内部操作仍由网页完成，不提供对应的独立 MCP 控制工具。
 - `project_create.name / indexTeeth` 只配置新建项目，不是修改当前项目的接口；新建时可从 JSON、预设或底胚开始。
 - 表面处理信息可以随正式文档与参数组保留，但没有新增逐面表面处理接口。JSON 保存完整可编辑数据；ASC / GCS 的损失以实际导出报告为准。
 - 手动 CUT、弹窗或只读视图仍按当前守卫阻止自动写入。不能用自动取消用户现场来补齐接口范围。
+
+## 复合刀具的对话设计
+
+先读 `facet://tool-catalog` 获取网页同源的 21 把刀具、适用部位、区域默认值和预设。扇形／弧形使用 `draft.ring`，网格使用 `draft.grid`；其余 18 把圈层与花式刀具使用 `draft.composite`，详细参数类型和范围见 `facet://capabilities`。目录及参数 schema 从 `COMPOSITE_TOOLS` 派生，不维护另一套刀具定义。
+
+例如在已创建项目中，为冠部新建阶梯式图层：
+
+```json
+{"kind":"cut","patternId":"crown-step","region":"crown","draft":{"industryAngle":36,"depth":0.6,"baseIndex":0,"composite":{"tool":"step","params":{"symmetry":8,"layers":3,"spread":20},"extent":0.8,"snap":"tooth"}}}
+```
+
+先 plan，再检查真实投影、最终有效面、完整草稿与取整报告，最后 commit/save。`depth` 是刀具顶点深度，`baseIndex` 是整齿旋转，`extent` 是相对机台参考半径的范围。`snap: "tooth"` 为整齿，`"exact"` 保留刀面小数分度；应让设计师明确知道这项加工取舍。条件参数由网页同源规则规范化，以返回的完整 draft 为准。
+
+编辑同一 `patternId` 时，`composite.tool` 必须保持原刀具；只提供的 `params` 字段会更新，其余参数、范围、取整方式和算法版本保持。新刀默认使用当前算法，旧刀版本不会被保存动作升级。`dissolve-composite` 按加工级别打散，保留原平面、面 ID 与底胚，一次历史可撤销；换刀请新建层。固定台面不能换刀，复合刀具不支持整组 Meet，需要时先打散。只有预览不写入项目，手动草稿期间仍阻断自动化写入。
+
+本接口不新增光学控制、实验室内部编辑或逐面磨砂能力；这些仍按上方功能边界通过网页操作。

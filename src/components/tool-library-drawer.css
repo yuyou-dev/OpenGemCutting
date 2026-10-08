@@ -1,0 +1,56 @@
+/* Tool library drawer: beside the operation panel, over the canvas (the canvas
+   keeps its size), full editor height. Cards follow the studio library: 84px real
+   hood top views, name and a two-line purpose; steel blue marks the chosen tool. */
+.tool-library-drawer {
+  position: absolute; z-index: 16; top: 0; bottom: 0; left: var(--left-panel-width);
+  width: min(560px, calc(100% - var(--left-panel-width) - var(--right-panel-width) - 24px));
+  display: flex; flex-direction: column; min-height: 0;
+  border-right: 1px solid var(--hairline); background: #fff; box-shadow: 10px 0 28px rgba(20, 22, 23, 0.12);
+  outline: none; animation: tool-drawer-in 150ms ease-out;
+}
+.tool-library-drawer:focus, .tool-library-drawer:focus-visible { outline: none; }
+@keyframes tool-drawer-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tool-library-drawer { animation: none; } }
+
+.tool-drawer-head { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; padding: 12px 10px 0 16px; border-bottom: 1px solid var(--hairline); }
+.tool-drawer-title { min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.tool-drawer-title strong { font-size: 14px; font-weight: 700; }
+.tool-drawer-title > span { color: var(--muted); font: 600 9px/1 var(--mono); letter-spacing: 0.1em; }
+.tool-drawer-title small { margin-left: 4px; color: var(--tool); font-size: 11px; }
+.tool-drawer-close { width: var(--control-h); height: var(--control-h); display: grid; place-items: center; border: 1px solid #d7d7d3; border-radius: 4px; background: #fff; color: #6f716c; }
+.tool-drawer-close:hover { color: var(--pink); border-color: var(--pink); }
+.tool-drawer-jumps { grid-column: 1 / -1; display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; margin-left: -6px; }
+.tool-drawer-jumps button { flex: none; height: 30px; padding: 0 8px; border-radius: 3px 3px 0 0; background: transparent; color: #5f625e; font-size: 11px; white-space: nowrap; }
+.tool-drawer-jumps button:hover { color: var(--tool); background: var(--tool-soft); }
+.tool-drawer-jumps button:focus-visible, .tool-drawer-close:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+.tool-drawer-note { flex: none; margin: 0; padding: 8px 16px; display: flex; align-items: flex-start; gap: 7px; border-bottom: 1px solid #ecd9ae; color: #6f4c12; background: #fff8e9; font-size: 11px; line-height: 1.5; }
+.tool-drawer-note svg { flex: none; margin-top: 2px; }
+.tool-drawer-note.is-plain { border-bottom-color: var(--tool-line); color: #3d5566; background: var(--tool-soft); }
+
+.tool-drawer-body { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.tool-library-drawer .tool-library-group { padding: 12px 16px 14px; }
+.tool-library-drawer .tool-library-group h3 { display: grid; gap: 3px; margin-bottom: 9px; font-size: 12px; }
+.tool-library-drawer .tool-library-group h3 small { font-size: 10px; line-height: 1.45; }
+.tool-library-drawer .tool-library.is-grid .tool-library-items { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tool-library-drawer .tool-library.is-grid .tool-library-item { align-content: start; gap: 6px; min-height: 160px; padding: 10px 8px 9px; border-color: var(--hairline); }
+.tool-library-drawer .tool-library.is-grid .tool-library-item:hover:not(:disabled) { border-color: var(--tool-line); background: #f7fafc; }
+.tool-library-drawer .tool-library.is-grid .tool-library-item.is-active { border-color: var(--tool); background: var(--tool-soft); box-shadow: inset 0 0 0 1px var(--tool); }
+.tool-library-drawer .tool-library.is-grid .tool-library-item.is-normal { margin: 0; }
+.tool-library-drawer .tool-library.is-grid .tool-library-item.is-normal.is-active { border-color: var(--pink); background: var(--pink-soft); box-shadow: inset 0 0 0 1px var(--pink); }
+.tool-library-drawer .tool-library.is-grid .tool-library-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.tool-library-drawer .tool-library-text { justify-items: center; gap: 3px; }
+.tool-library-drawer .tool-library-text strong { justify-content: center; font-size: 12px; }
+.tool-library-drawer .tool-library-text small { font-size: 10px; line-height: 1.4; }
+.tool-library-drawer .tool-library.is-grid .tool-library-item:disabled { opacity: 0.42; cursor: not-allowed; }
+.tool-library-drawer .tool-library.is-grid .tool-library-item.is-active:disabled { opacity: 1; }
+/* Browsing before a cut exists: cards read normally but do not respond. */
+.tool-library-drawer.is-browse .tool-library.is-grid .tool-library-item:disabled { opacity: 1; cursor: default; }
+
+@media (max-width: 1280px) {
+  .tool-library-drawer { width: min(470px, calc(100% - var(--left-panel-width) - var(--right-panel-width) - 24px)); }
+  .tool-library-drawer .tool-library.is-grid .tool-library-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .tool-library-drawer { position: fixed; z-index: 40; top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 78vh; border-top: 1px solid var(--hairline); box-shadow: 0 -10px 28px rgba(20, 22, 23, 0.16); }
+}

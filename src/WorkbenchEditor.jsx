@@ -1,7 +1,21 @@
 import { MeetAuditDialog } from './components/MeetAuditDialog.jsx';
-import { ringCutFromFacets, ringCutLayout, ringDraftPatch } from "./domain/ringCut.js";
+import { ringCutFromFacets } from "./domain/ringCut.js";
+import { gridCutFromFacets, gridPrimaryIndex } from "./domain/gridCut.js";
+import { compositeTool, compositeToolFromFacets, layoutLevels } from "./domain/compositeTools.js";
+import { toolHood } from "./domain/compositeHood.js";
+import {
+  activeCompositeTool, activeToolOrder, activeToolParams, fitToolToGirdle, startToolPatch,
+  toolExtentPatch, toolParamsPatch, toolPreviewHood, toolReport, toolSnapPatch,
+} from "./application/compositeToolSession.js";
+import "./components/composite-tools.css";
+import { OperationPanel } from "./components/OperationPanel.jsx";
+import { ToolLibraryDrawer } from "./components/ToolLibraryDrawer.jsx";
+import "./components/layer-panel.css";
+import { ViewportInfoStrip } from "./components/ViewportInfoStrip.jsx";
+import { ToolInspector } from "./components/ToolInspector.jsx";
 import { facetSurfaceState } from './domain/facetSurface.js';
 import { facetsAfterLayerEdit, layerEditMetadata } from './domain/layerEdit.js';
+import { startConcaveSession, updateConcaveSession, rebaseConcaveSession } from './application/concaveSession.js';
 import { receiveConcaveUpdate } from './application/concaveEvaluation.js';
 import { createConcavePreviewScheduler } from './components/concavePreviewScheduler.js';
 import { resolveGroupReference } from './domain/groupReference.js';
@@ -9,7 +23,7 @@ import { getLocale } from './i18n/locale.js';
 import { t } from './i18n/locale.js';
 import { LanguageSelector } from './components/LanguageSelector.jsx';
 import { APP_VERSION } from "./version.js";
-import { preparePatternCommit, transformGroup, planDesign, prepareParameterGroupReplacement, exportParameterGroup, prepareConcaveTool } from './application/designOperations.js';
+import { preparePatternCommit, transformGroup, planDesign, prepareParameterGroupReplacement, exportParameterGroup, dissolveLayerByLevels, layerLevelCount, draftForPattern } from './application/designOperations.js';
 import { useDesignController } from './components/useDesignController.js';
 import { assertFileBudget, assertDocumentImportBudget } from "./domain/importBudget.js";
 import { assertValidDocumentGeometry, evaluatePlanarDocument, evaluateDocument, applyConcaveCuts } from "./domain/documentGeometry.js";
@@ -19,19 +33,19 @@ import { ConcavePanel } from "./components/ConcavePanel.jsx";
 import { indexExportSummary } from "./domain/indexing.js";
 import { physicalMeasures } from "./domain/physicalScale.js";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { IconChevronLeft, IconChevronRight, IconHistory, IconHome, IconFlask } from "@tabler/icons-react";
+import { IconHistory, IconHome, IconFlask } from "@tabler/icons-react";
 import { RepositoryLink } from "./components/RepositoryLink.jsx";
-import { OrthographicPreviews } from "./components/OrthographicPreviews.jsx";
 import { Header } from "./components/Header.jsx";
 import { GemViewport } from "./components/GemViewport.jsx";
 import { OpticsViewSwitch } from "./components/OpticsViewSwitch.jsx";
 import { ViewportModeSwitch } from "./components/ViewportModeSwitch.jsx";
 import { CuttingAssistantBar, CuttingAssistantPlayer, CuttingAssistantInspector } from "./components/CuttingAssistantBar.jsx";
+import { QuickOpticsPreview } from "./components/QuickOpticsPreview.jsx";
 import { OpticsViewport } from "./components/OpticsViewport.jsx";
 import { OpticsInspector } from "./components/OpticsInspector.jsx";
-import { MastControl } from "./components/MastControl.jsx";
+import { ConstructionPanel, MastControl } from "./components/MastControl.jsx";
 import { CutComposer } from "./components/CutComposer.jsx";
-import { CutStack } from "./components/CutStack.jsx";
+import { CutStack, GroupTransformFields } from "./components/CutStack.jsx";
 import { FacetLedger } from "./components/FacetLedger.jsx";
 import { HistoryPanel } from "./components/HistoryPanel.jsx";
 import { HelpCenterDialog } from "./components/HelpCenterDialog.jsx";
@@ -46,6 +60,7 @@ import {
   createCutSession,
   cutSessionReducer,
   resolveCutSession,
+  toolDraftPatch,
 } from "./domain/cutSession.js";
 import {
   FACET_REGION_LABELS,
@@ -153,9 +168,14 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const [opticsTab, setOpticsTab] = useState("material");
   const [opticsViewSettings, setOpticsViewSettings] = useState(DEFAULT_OPTICS_SETTINGS.view);
   const [ledgerOpen, setLedgerOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // The information strip under the canvas is view state: its tab and collapse survive optics and assistant visits.
+  const [infoTab, setInfoTab] = useState("ortho");
+  const [infoCollapsed, setInfoCollapsed] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [cutStackOpen, setCutStackOpen] = useState(true);
+  // The tool library drawer is view chrome beside the operation panel, not a CUT session state.
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const closeLibrary = useCallback(() => setLibraryOpen(false), []);
+  const libraryButtonRef = useRef(null);
   const [resetSignal, setResetSignal] = useState(0);
   const [hoveredPatternId, setHoveredPatternId] = useState(null);
   const [hiddenPatternIds, setHiddenPatternIds] = useState(() => new Set());
@@ -175,6 +195,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const document = history.present;
   const machineStock = getCuttingReference(document);
   const [concavePreview, setConcavePreview] = useState(null);
+  const [concaveSession, setConcaveSession] = useState(null);
+  const [concaveError, setConcaveError] = useState("");
   const [concaveCommitting, setConcaveCommitting] = useState(false);
   const concaveCallbacks = useRef({});
   const concaveScheduler = useMemo(() => createConcavePreviewScheduler({
@@ -185,9 +207,15 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   }), []);
   useEffect(() => () => concaveScheduler.destroy(), [concaveScheduler]);
   useEffect(() => { if (concaveActive) concaveScheduler.warmup(); }, [concaveActive, concaveScheduler]);
-  useEffect(() => { concaveScheduler.cancel(); setConcaveCommitting(false); }, [document, cuttingMethod, viewportMode, concaveScheduler]);
-
-  const [selectedConcaveId, setSelectedConcaveId] = useState(null);
+  useEffect(() => {
+    concaveScheduler.cancel(); setConcaveCommitting(false); setConcavePreview(null);
+    setConcaveSession(current => rebaseConcaveSession(current, document));
+  }, [document, concaveScheduler]);
+  useEffect(() => {
+    if (concaveSession?.base === document) {
+      concaveScheduler.preview(document, concaveSession.operation);
+    }
+  }, [concaveSession, document, concaveScheduler]);
   const equipment = useMemo(() => indexExportSummary(document), [document]);
   const equipmentNotice = [
     equipment.selectedTeeth !== 96 ? t('本文件按 {0} 分度输出，不能直接按 96 分度读数加工。', [equipment.selectedTeeth]) : '',
@@ -208,7 +236,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   };
   const cutSession = resolveCutSession(sessionState);
   const cutMode = cutSession.mode;
-  const hasUnsavedPreview = cutSession.previewEnabled || Boolean(cutSession.group && cutSession.dirty) || Boolean(concavePreview?.base === document);
+  const hasUnsavedPreview = cutSession.previewEnabled || Boolean(cutSession.group && cutSession.dirty) || Boolean(concaveSession?.base === document);
   const activeGear = document.indexGear.teeth;
   const indexTeeth = cutSession.draft.indexTeeth ?? activeGear;
   useEffect(() => {
@@ -259,7 +287,6 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       setOpticsInspectorOpen(true);
     }
     if (nextMode === "assistant") { setAssistantPosition(0); setAssistantFollow(true); }
-    setConcavePreview(null);
     setViewportMode(nextMode);
     if (nextMode === "assistant") notify("已进入切割助手；CUT 会话已原样挂起。");
     else if (nextMode === "optics") notify("已进入纯光学仿真；CUT 会话已原样挂起。");
@@ -284,14 +311,14 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     : null;
   const playback = useCuttingPlayback({ active: cuttingAssistantActive && visible && !interactionPaused, position: replayPosition, total: cuttingReplay?.total ?? 0, follow: assistantFollow, duration: assistantDuration, onPositionChange: setAssistantPosition });
   const cameraStep = playback.phase === "hold" ? null : replayStep;
-  const assistantView = useMemo(() => cuttingAssistantActive ? { step: cameraStep, follow: assistantFollow, duration: assistantDuration, onSettled: playback.onSettled } : null, [cuttingAssistantActive, cameraStep, assistantFollow, assistantDuration, playback.onSettled]);
+  const assistantView = useMemo(() => cuttingAssistantActive ? { stock: cuttingReplay.stock, step: cameraStep, follow: assistantFollow, duration: assistantDuration, onSettled: playback.onSettled } : null, [cuttingAssistantActive, cuttingReplay, cameraStep, assistantFollow, assistantDuration, playback.onSettled]);
   const interruptAssistantView = () => { playback.setPlaying(false); setAssistantFollow(false); };
   const assistantSolid = useMemo(
     () => (cuttingReplay ? cuttingReplay.solidAt(replayPosition) : null),
     [cuttingReplay, replayPosition],
   );
   const assistantPreviewPlanes = useMemo(
-    () => (replayStep && playback.phase === "ready" ? [{ ...replayStep.plane, index: replayStep.index, primary: true }] : []),
+    () => (replayStep?.plane && playback.phase === "ready" ? [{ ...replayStep.plane, index: replayStep.index, primary: true }] : []),
     [replayStep, playback.phase],
   );
 
@@ -316,7 +343,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     () => new Set(savedEffectiveFacets.effectiveFacetIds),
     [savedEffectiveFacets],
   );
-  const girdleBoundary = useMemo(() => resolveGroupReference(document), [document.facets, machineStock]);
+  // Only group transforms read the girdle reference (a full clip); skip it otherwise.
+  const girdleBoundary = useMemo(() => (groupEditRegion ? resolveGroupReference(document) : null), [document.facets, machineStock, groupEditRegion]);
   const groupSafeRange = useMemo(() => ({ min: -Infinity, max: Infinity }), []);
   const groupBaseHeight = groupEditRegion === "crown" ? girdleBoundary.crownHeight
     : groupEditRegion === "pavilion" ? girdleBoundary.pavilionHeight : 0;
@@ -373,7 +401,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     catch (error) { return { solid: savedPlanarSolid, error: `当前变换无法生成封闭晶体，请调整参数。${error.message}` }; }
   }, [groupEditRegion, hiddenPatternIds, savedPlanarSolid, stockSolid, visibleFacets]);
   const committedSolid = committedResult.solid;
-  const constructionStages = useMemo(() => buildConstructionStages(document, { hiddenPatternIds }), [document, hiddenPatternIds]);
+  // Stages read only facets, blank and cutting reference; optics or name edits keep them.
+  const constructionStages = useMemo(() => buildConstructionStages(document, { hiddenPatternIds }), [document.facets, document.stock, document.cuttingReference, hiddenPatternIds]);
   const diagnosticsById = useMemo(() => Object.fromEntries(constructionStages.filter((stage) => stage.construction).map((stage) => [stage.id, stage.construction])), [constructionStages]);
   const constructionBaseSolid = editingPatternId
     ? constructionStages.find((stage) => stage.id === editingPatternId)?.beforeSolid ?? stockSolid
@@ -387,6 +416,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const impactBaseSolid = impactBaseResult.solid;
   const meetTargets = useMemo(() => enumerateTopologyVertices(constructionBaseSolid), [constructionBaseSolid]);
   const meetEdges = useMemo(() => enumerateTopologyEdges(constructionBaseSolid, { targets: meetTargets }), [constructionBaseSolid, meetTargets]);
+  const meetTopology = useMemo(() => ({ vertices: meetTargets, edges: meetEdges }), [meetTargets, meetEdges]);
   const reportSolid = savedSolid;
   const reportMetrics = useMemo(() => measurePolyhedron(reportSolid), [reportSolid]);
 
@@ -419,8 +449,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const previewWouldEraseStock = Boolean(draftImpact?.solidErased)
     || (previewEnabled && draftFacets.length > 0 && previewSolid.vertices.length === 0);
   const currentConcavePreview = concavePreview?.base === document && cutSession.canEditParameterGroups ? concavePreview : null;
-  const toolDocument = currentConcavePreview?.document ?? document;
-  const activeConcaveTool = toolDocument.concaveCuts?.find(cut => cut.id === selectedConcaveId) ?? toolDocument.concaveCuts?.at(-1);
+  const activeConcaveTool = concaveSession?.base === document ? concaveSession.tool : null;
   const planarDisplaySolid = concaveActive || previewWouldEraseStock ? committedSolid : previewSolid;
   const combinedResult = useMemo(() => {
     try { return { solid: planarDisplaySolid === savedPlanarSolid ? savedSolid : applyConcaveCuts(document, planarDisplaySolid), error: "" }; }
@@ -471,9 +500,18 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const validationMessage = draft.error || previewResult.error || combinedResult.error || draftImpact?.error || impactBaseResult.error || committedResult.error || constructionDiagnostic || impactValidationMessage;
   const primaryDraftFacet = useMemo(() => {
     if (!draft.facets.length) return null;
-    const activeIndex = normalizeIndex(baseIndex, indexTeeth);
+    // A grid's or composite tool's index is its rotation; its primary is the steepest facet nearest that tooth.
+    const rotatesAsTool = cutSession.draft.grid || cutSession.draft.composite;
+    const activeIndex = normalizeIndex(rotatesAsTool ? gridPrimaryIndex(draft.facets, baseIndex, indexTeeth) : baseIndex, indexTeeth);
     return draft.facets.find((facet) => normalizeIndex(facet.index, facet.indexTeeth ?? 96) === activeIndex) ?? null;
-  }, [baseIndex, indexTeeth, draft.facets, patternMode]);
+  }, [baseIndex, indexTeeth, draft.facets, patternMode, cutSession.draft.grid, cutSession.draft.composite]);
+  // The active multi-facet tool (ring, grid or composite) and its hood over the stone.
+  const committedRadius = useMemo(() => Math.max(0, ...committedSolid.vertices.map((vertex) => Math.hypot(vertex.x, vertex.y))) || null, [committedSolid]);
+  const activeTool = cutSession.active ? activeCompositeTool(cutSession.draft) : null;
+  const draftHood = useMemo(() => {
+    if (!activeTool || !cutSession.showCutPlane || constructionBlocksPreview || region === "girdle" || !draft.facets.length) return null;
+    return toolHood({ facets: draft.facets, reference: machineStock, region, stoneRadius: committedRadius });
+  }, [activeTool, cutSession.showCutPlane, constructionBlocksPreview, region, draft.facets, machineStock, committedRadius]);
   const operations = useMemo(() => {
     const groups = new Map();
     document.facets.forEach((facet) => {
@@ -484,6 +522,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     return [...groups.entries()].map(([id, facets]) => {
       const first = facets[0];
       const locked = first.metadata?.operationType === "table";
+      const ring = ringCutFromFacets(facets), grid = gridCutFromFacets(facets, machineStock), composite = compositeToolFromFacets(facets, machineStock);
+      const levels = layerLevelCount(facets);
       const effectiveFacets = facets.filter((facet) => savedEffectiveFacetIds.has(facet.id));
       if (!locked) regionCounts[first.region] += 1;
       return {
@@ -505,7 +545,13 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
         repeat: first.repeat,
         mirror: first.mirror,
         patternMode: first.metadata?.patternMode || (first.repeat === 1 && facets.length > 1 ? "arbitrary" : "symmetric"),
-        ring: ringCutFromFacets(facets),
+        ring,
+        grid,
+        composite,
+        toolLabel: compositeTool(first.metadata?.composite?.tool)?.label ?? "",
+        levels,
+        // Several angle/depth levels that no tool describes: editable only after dissolving.
+        lockedLevels: levels > 1 && !ring && !grid && !composite,
         facets,
         locked,
         visible: !hiddenPatternIds.has(id),
@@ -604,7 +650,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     const meet = cutSession.construction.meet
       ? { ...cutSession.construction.meet, secondTarget: target }
       : { target };
-    const result = solveDraftConstruction({ draft: cutSession.draft, region, stock: machineStock, meet, baseSolid: constructionBaseSolid });
+    const result = solveDraftConstruction({ draft: cutSession.draft, region, stock: machineStock, meet, baseSolid: constructionBaseSolid, topology: meetTopology });
     const valid = result.meet.status === MEET_STATUS.VALID;
     const resolved = valid ? resolveDraftGeometry(result.draft, region, machineStock) : null;
     const impact = resolved ? evaluateDraftImpact({ baseSolid: impactBaseSolid, planes: resolved.facets.map(planeEntry) }) : null;
@@ -618,11 +664,11 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       classification: impact?.classification ?? "contact-only", threats: impact?.threats ?? [],
       sourceLabel: sourceLabelForTarget(target),
     };
-  }, [constructionBaseSolid, impactBaseSolid, cutSession.construction.meet, cutSession.draft, document.stock, machineStock, region, sourceLabelForTarget]);
+  }, [constructionBaseSolid, impactBaseSolid, cutSession.construction.meet, cutSession.draft, document.stock, machineStock, meetTopology, region, sourceLabelForTarget]);
 
   const changeDraftWithConstruction = useCallback((rawPatch) => {
-    // Ring parameters own the generated indices before Meet sees the draft.
-    const patch = ringDraftPatch(cutSession.construction.returnDraft ?? cutSession.draft, rawPatch);
+    // Ring and grid parameters own the generated indices before Meet sees the draft.
+    const patch = toolDraftPatch(cutSession.construction.returnDraft ?? cutSession.draft, rawPatch);
     if (Object.keys(patch).every((key) => key === "preform")) {
       dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch });
       return;
@@ -639,10 +685,11 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     }
     if (!cutSession.depthEditable) nextDraft.depth = (cutSession.construction.returnDraft ?? cutSession.draft).depth;
     if (!cutSession.angleEditable) nextDraft.industryAngle = (cutSession.construction.returnDraft ?? cutSession.draft).industryAngle;
-    const result = solveDraftConstruction({ draft: nextDraft, region, stock: machineStock, meet: lockedMeet, baseSolid: constructionBaseSolid });
+    const result = solveDraftConstruction({ draft: nextDraft, region, stock: machineStock, meet: lockedMeet, baseSolid: constructionBaseSolid, topology: meetTopology });
     dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: result.draft, constructionResult: { meet: result.meet, returnDraft: null, tool: "none" } });
-  }, [constructionBaseSolid, cutSession, document.stock, machineStock, notify, region]);
+  }, [constructionBaseSolid, cutSession, document.stock, machineStock, meetTopology, notify, region]);
   const previewPlanes = cutSession.showCutPlane
+    && !draftHood
     && !constructionBlocksPreview
     && !(editingPatternId && hiddenPatternIds.has(editingPatternId))
     ? draft.facets.map((facet) => ({ ...facet.plane, index: facet.index, primary: facet === primaryDraftFacet }))
@@ -652,6 +699,33 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     () => new Set(draftImpact?.resultSolid.faces.map((face) => face.facetId ?? face.id) ?? []),
     [draftImpact],
   );
+
+  // The active tool's report and machining groups for the inspector and the information strip.
+  const toolParams = useMemo(() => (activeTool ? activeToolParams(cutSession.draft) : null), [activeTool, cutSession.draft]);
+  const activeToolReport = useMemo(() => (activeTool
+    ? toolReport(cutSession.draft, { document, region, facets: draft.facets, impactSolid: draftImpact?.resultSolid ?? null })
+    : null), [activeTool, cutSession.draft, document, region, draft.facets, draftImpact]);
+  const toolLevels = useMemo(() => {
+    if (!activeTool || !draft.facets.length) return [];
+    // An unchanged edit has no preview: its final facets are the saved layer's, matched by setting.
+    const settingKey = (facet) => `${normalizeIndex(facet.index, facet.indexTeeth ?? 96).toFixed(4)}|${facet.industryAngleDeg.toFixed(4)}|${facet.depth.toFixed(4)}`;
+    const savedKeys = !previewEnabled && editingOperation
+      ? new Set(editingOperation.facets.filter((facet) => savedEffectiveFacetIds.has(facet.id)).map(settingKey)) : null;
+    const effective = (facet) => (previewEnabled ? draftEffectiveIds.has(facet.id) : savedKeys ? savedKeys.has(settingKey(facet)) : true);
+    return layoutLevels(draft.facets).map((level, order) => {
+      const indices = draft.facets
+        .filter((facet) => `${facet.industryAngleDeg.toFixed(6)}|${facet.depth.toFixed(6)}` === level.key)
+        .map((facet) => ({ index: normalizeIndex(facet.index, facet.indexTeeth ?? 96), effective: effective(facet) }))
+        .sort((left, right) => left.index - right.index);
+      return {
+        key: level.key, order, letter: order < 26 ? String.fromCharCode(65 + order) : String(order + 1),
+        angle: level.industryAngleDeg, depth: level.depth, indices, effective: indices.filter((item) => item.effective).length,
+      };
+    });
+  }, [activeTool, draft.facets, previewEnabled, editingOperation, savedEffectiveFacetIds, draftEffectiveIds]);
+  const toolMissingIds = useMemo(() => (activeTool && previewEnabled && draftImpact
+    ? new Set(draft.facets.filter((facet) => !draftEffectiveIds.has(facet.id)).map((facet) => facet.id)) : null),
+  [activeTool, previewEnabled, draftImpact, draft.facets, draftEffectiveIds]);
   const activeEffectiveIndices = useMemo(() => previewEnabled
     ? draftFacets.filter((facet) => draftEffectiveIds.has(facet.id)).map((facet) => facet.index)
     : editingOperation?.effectiveIndices ?? [],
@@ -689,7 +763,27 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       });
     }
 
-    const effectiveRows = rows.filter((row) => row.indices.length > 0);
+    // A grid tool is one layer with several machining settings: one row per angle and depth.
+    const gridLevels = (facets, effective) => {
+      const levels = new Map();
+      for (const facet of facets) {
+        const key = `${facet.industryAngleDeg.toFixed(6)}|${facet.depth.toFixed(6)}`;
+        if (!levels.has(key)) levels.set(key, { angle: facet.industryAngleDeg, indices: [] });
+        if (effective(facet)) levels.get(key).indices.push(facet.index);
+      }
+      return [...levels.values()];
+    };
+    const expanded = rows.flatMap((row) => {
+      const operation = operations.find((item) => item.id === row.id);
+      const multiLevelDraft = cutSession.draft.grid || cutSession.draft.composite || cutSession.draft.ring?.kind === "arc";
+      const live = row.active && previewEnabled && multiLevelDraft && draftFacets.length > 0;
+      if (!live && !(operation?.levels > 1)) return [row];
+      const levels = live
+        ? gridLevels(draftFacets, (facet) => draftEffectiveIds.has(facet.id))
+        : gridLevels(operation.facets, (facet) => savedEffectiveFacetIds.has(facet.id));
+      return levels.map((level, order) => ({ ...row, id: `${row.id}#${order}`, prefix: `${row.prefix}·${String.fromCharCode(65 + order)}`, angle: level.angle, indices: level.indices }));
+    });
+    const effectiveRows = expanded.filter((row) => row.indices.length > 0);
     return {
       pavilion: effectiveRows
         .filter((row) => row.region === "pavilion"),
@@ -699,7 +793,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
         .filter((row) => row.region === "crown")
         .sort((left, right) => Number(left.locked) - Number(right.locked)),
     };
-  }, [indexTeeth, activeEffectiveIndices, draftFacets.length, editingPatternId, groupEditRegion, industryAngle, operations, previewEnabled, region]);
+  }, [indexTeeth, activeEffectiveIndices, draftFacets, draftEffectiveIds, savedEffectiveFacetIds, cutSession.draft.grid, cutSession.draft.composite, cutSession.draft.ring, editingPatternId, groupEditRegion, industryAngle, operations, previewEnabled, region]);
 
   const historyEntries = useMemo(() => history.commands.slice(0, history.cursor).map((command) => {
     const createdAt = command.payload?.facets?.[0]?.metadata?.createdAt;
@@ -748,9 +842,12 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       : makeOperationIdentity(region);
     const lockedMeet = cutSession.construction.meet;
     const metadata = layerEditMetadata({
-      previous: current?.facets[0]?.metadata, patternMode, baseIndex, indexTeeth, facets: draft.facets,
+      previous: current?.facets[0]?.metadata, patternMode, indexTeeth, facets: draft.facets,
+      baseIndex: cutSession.draft.grid || cutSession.draft.composite ? gridPrimaryIndex(draft.facets, baseIndex, indexTeeth) : baseIndex,
       preform: cutSession.canMarkPreform ? Boolean(cutSession.draft.preform) : undefined,
       ring: cutSession.draft.ring,
+      grid: cutSession.draft.grid ? { grid: cutSession.draft.grid, edgeAngle: industryAngle, depth, rotation: baseIndex } : null,
+      composite: cutSession.draft.composite ? { composite: cutSession.draft.composite, angle: industryAngle, depth, rotation: baseIndex } : null,
       meet: lockedMeet && [MEET_STATUS.VALID, MEET_STATUS.DESTRUCTIVE].includes(lockedMeet.status) ? lockedMeet : null,
     });
 
@@ -777,7 +874,9 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const startNewCut = () => {
     if (!cutSession.showNewButton) return;
     dispatchCutSession({ type: CUT_SESSION_EVENT.START_CREATE, region, indexTeeth: activeGear });
-    notify("已进入新建动作；已保存图层保持不变。");
+    // Ordinary cutting is ready immediately; special tools are an explicit choice.
+    setLibraryOpen(false);
+    notify("已开始普通切：调整角度、深度与分度；需要特殊刀具时打开刀具库。");
   };
 
   const cancelCutSession = useCallback(() => {
@@ -836,6 +935,12 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     if (!cutSession.canPickLayer) return;
     const operation = operations.find((item) => item.id === id);
     if (!operation) return;
+    if (operation.lockedLevels) {
+      // Rebuilding it as one angle and depth would move planes; dissolving keeps every one.
+      if (cutSession.canMutateStack) setModal(`dissolve-levels:${id}`);
+      notify(`“${operation.label}”含 ${operation.levels} 组角度与深度，已不再对应刀具参数；打散后可逐层编辑。`);
+      return;
+    }
     const first = operation.facets[0];
     const persisted = first.metadata?.construction;
     let construction = null;
@@ -854,18 +959,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       type: CUT_SESSION_EVENT.SELECT_LAYER,
       patternId: id,
       region: first.region,
-      draft: {
-        industryAngle: first.industryAngleDeg,
-        depth: operation.depth,
-        baseIndex: operation.baseIndex ?? first.index,
-        preform: operation.preform,
-        repeat: first.repeat || operation.indices.length,
-        mirrorOffset: first.mirror || 0,
-        patternMode: operation.patternMode,
-        indexTeeth: operation.indexTeeth,
-        customIndices: operation.indices.map((index) => displayIndex(index, operation.indexTeeth)).join(" "),
-        ring: operation.ring,
-      },
+      draft: draftForPattern(operation.facets, machineStock),
       construction,
       lockedLayer: operation.locked,
     });
@@ -901,6 +995,40 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       return next;
     });
     notify(`已从解析序列移除“${operation.label}”，可使用撤销恢复。`);
+  };
+
+  const dissolveGrid = (id) => {
+    setModal(null);
+    if (!cutSession.canMutateStack) return;
+    const operation = operations.find((item) => item.id === id);
+    if (!operation?.grid) return;
+    let result;
+    try { result = planDesign(document, [{ kind: 'dissolve-grid', patternId: id }]); }
+    catch (error) { notify(error.message); return; }
+    const layers = result.changes?.[0]?.layers ?? 1;
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, createReplaceDocumentCommand(result.document, { description: `打散 ${operation.label}` })));
+    if (hiddenPatternIds.has(id) && layers > 1) {
+      const added = new Set(result.document.facets.map((facet) => facet.patternId).filter((patternId) => patternId.startsWith(`${id}-`) && !document.facets.some((facet) => facet.patternId === patternId)));
+      setHiddenPatternIds((current) => new Set([...current, ...added]));
+    }
+    notify(`已打散“${operation.label}”：${operation.facets.length} 个切面按角度与深度拆为 ${layers} 个普通层，可撤销。`);
+  };
+
+  // Composite tools and untooled multi-level layers split into one ordinary layer per angle and depth.
+  const dissolveLevels = (id) => {
+    setModal(null);
+    if (!cutSession.canMutateStack) return;
+    const operation = operations.find((item) => item.id === id);
+    if (!operation) return;
+    let result;
+    try { result = dissolveLayerByLevels(document, id); }
+    catch (error) { notify(error.message); return; }
+    setHistory((currentHistory) => executeFacetingCommand(currentHistory, createReplaceDocumentCommand(result.document, { description: `打散 ${operation.label}` })));
+    if (hiddenPatternIds.has(id) && result.layers > 1) {
+      const added = new Set(result.document.facets.map((facet) => facet.patternId).filter((patternId) => patternId.startsWith(`${id}-`) && !document.facets.some((facet) => facet.patternId === patternId)));
+      setHiddenPatternIds((current) => new Set([...current, ...added]));
+    }
+    notify(`已打散“${operation.label}”：${operation.facets.length} 个切面按角度与深度拆为 ${result.layers} 个普通层，可撤销。`);
   };
 
   // Dissolving keeps every facet, angle and depth; a fan stays one layer, an arc becomes one layer per depth level.
@@ -951,22 +1079,81 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     notify(`已调整布尔顺序：“${moved.label}”移至第 ${toIndex + 1} 位。`);
   };
 
-  // Inline layer editing drives the same draft state as the drawer controls.
-  const inlineEdit = (field, value) => {
-    if (!editingPatternId) return;
-    if (field === "angle") {
-      changeDraftWithConstruction({ industryAngle: Math.min(90, Math.max(0, value)) });
-    } else if (field === "depth") {
-      if (cutSession.depthEditable) changeDraftWithConstruction({ depth: normalizeDepthValue(value) });
-    }
-  };
-
   const changeRegion = (nextRegion) => {
     if (nextRegion === region) return;
     if (!cutSession.canChangeRegion) return;
     // Region switching is a new-action gesture: a selected layer stays
     // untouched and the draft restarts with the new region's defaults.
     dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_REGION, region: nextRegion, indexTeeth: activeGear });
+    if (!activeTool) return;
+    // WHERE changes, HOW stays: the new draft keeps the tool and its symmetry when the tool fits that region.
+    if (!activeTool.regions.includes(nextRegion)) {
+      notify(`${activeTool.label}不能用于${FACET_REGION_LABELS[nextRegion]}，已改为普通切。`);
+      return;
+    }
+    const symmetry = Object.fromEntries(activeTool.params
+      .filter((param) => param.group === "symmetry" && toolParams?.[param.key] !== undefined)
+      .map((param) => [param.key, toolParams[param.key]]));
+    try {
+      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: startToolPatch(activeTool.id, { document, solid: committedSolid, region: nextRegion, indexTeeth: activeGear, presetParams: symmetry }) });
+    } catch (error) { notify(error.message); }
+  };
+
+  // The fixed table and multi-level tool layers keep their kind; only dissolving turns them into ordinary layers.
+  const toolPickerLock = !editingOperation ? ""
+    : editingOperation.locked ? t("固定台面只能调整深度，不能换成复合刀具。")
+      : editingOperation.levels > 1 ? t("“{0}”含 {1} 组角度与深度，只能作为这把刀调整；要逐层编辑或改成普通切，先放弃编辑，再在右侧图层中悬停该层点“打散”。", [editingOperation.label, editingOperation.levels])
+        : "";
+  // A saved tool layer keeps its tool while edited (canSwitchTool); it may still become an ordinary layer.
+  const toolSwitchLock = !toolPickerLock && editingOperation && !cutSession.canSwitchTool
+    ? t("编辑“{0}”时只能调整这把刀或改选普通切；换另一把刀请新建一层。", [editingOperation.label])
+    : "";
+
+  const pickTool = (toolId) => {
+    if (!cutSession.controlsEnabled || toolPickerLock || toolSwitchLock || activeTool?.id === toolId) return;
+    let patch;
+    // An edited layer is replaced, so the tool bites into the stone without it.
+    try { patch = startToolPatch(toolId, { document, solid: editingPatternId ? impactBaseSolid : committedSolid, region, indexTeeth: activeGear }); }
+    catch (error) { notify(error.message); return; }
+    if (cutSession.canCancelConstructionTool) dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL });
+    if (cutSession.construction.meet) {
+      // A tool is solved as a whole; a locked Meet of the ordinary cut does not carry over.
+      dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET, slot: "all" });
+      dispatchCutSession({ type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch });
+      notify("复合刀具按整体求解，已解除原有 Meet 约束。");
+      return;
+    }
+    changeDraftWithConstruction(patch);
+  };
+
+  const pickNormal = () => {
+    if (!cutSession.controlsEnabled || toolPickerLock || !activeTool) return;
+    const operation = editingOperation, first = operation?.facets[0];
+    // An edited layer returns to its saved facets as an ordinary cut; a tool layer keeps them as a custom index list.
+    changeDraftWithConstruction(operation ? {
+      industryAngle: first.industryAngleDeg, depth: operation.depth, baseIndex: operation.baseIndex ?? first.index,
+      repeat: first.repeat || operation.indices.length, mirrorOffset: first.mirror || 0,
+      customIndices: operation.indices.map((index) => displayIndex(index, operation.indexTeeth)).join(" "),
+      patternMode: operation.ring || operation.grid || operation.composite ? "arbitrary" : operation.patternMode,
+      ring: null, grid: null, composite: null,
+    } : { patternMode: "symmetric", ring: null, grid: null, composite: null });
+  };
+
+  const placeTool = (placement) => {
+    if (!cutSession.controlsEnabled) return;
+    if ("depth" in placement && !cutSession.depthEditable) return;
+    if ("industryAngle" in placement && !cutSession.angleEditable) return;
+    changeDraftWithConstruction(placement);
+  };
+
+  const fitTool = () => {
+    if (!cutSession.controlsEnabled) return;
+    const best = fitToolToGirdle({ document, draft: cutSession.draft, region, patternId: editingPatternId });
+    if (!best?.touches) { notify("刀具在当前大小 ±20% 内都切不到宝石，请先加大深度。"); return; }
+    changeDraftWithConstruction(toolExtentPatch(cutSession.draft, best.extent));
+    notify(best.clean
+      ? `已贴合腰线：${best.extent}，外圈刀面避开腰线棱角，不留短棱。`
+      : `±20% 内找不到不留短棱的位置，已取短棱最长的 ${best.extent}；可改变对称数或深度。`);
   };
 
   const startGroupEdit = (targetRegion) => {
@@ -1062,7 +1249,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     const current = cutSession.construction.meet;
     const remaining = slot === "A" ? current?.secondTarget : slot === "B" ? current?.target : null;
     const draftState = cutSession.construction.returnDraft ?? cutSession.draft;
-    const result = remaining ? solveDraftConstruction({ draft: draftState, region, stock: machineStock, meet: { target: remaining }, baseSolid: constructionBaseSolid }) : null;
+    const result = remaining ? solveDraftConstruction({ draft: draftState, region, stock: machineStock, meet: { target: remaining }, baseSolid: constructionBaseSolid, topology: meetTopology }) : null;
     dispatchCutSession({ type: CUT_SESSION_EVENT.CLEAR_MEET, slot, ...(result ? { meet: { ...result.meet, sourceLabel: sourceLabelForTarget(remaining) }, patch: result.draft } : {}) });
   };
   useEffect(() => {
@@ -1116,7 +1303,25 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
       bearingCenter: [0, 0, 0],
       bearingRadius: indexRadius,
       value: depth,
-      indexRing: patternMode === "symmetric" ? {
+      ...(activeTool && activeTool.engine !== "ring" && region !== "girdle" ? {
+        spindle: {
+          apex: draftHood?.apex ?? [0, 0, (machineStock.center?.[2] ?? 0) + (region === "pavilion" ? -1 : 1) * ((machineStock.envelope?.halfHeight ?? machineStock.size / 2) - depth)],
+          sign: region === "pavilion" ? -1 : 1,
+          length: machineStock.size * 0.42,
+          label: activeTool.depth.label,
+        },
+      } : {}),
+      indexRing: activeTool ? {
+        indexTeeth,
+        center: [0, 0, 0],
+        outerRadius: indexRadius,
+        innerRadius: machineStock.size * 0.82,
+        baseIndex,
+        repeat: activeToolOrder(cutSession.draft) ?? 1,
+        mirror: 0,
+        hideMirror: true,
+        locked: Boolean(editingOperation?.locked),
+      } : patternMode === "symmetric" ? {
         indexTeeth,
         center: [0, 0, 0],
         outerRadius: indexRadius,
@@ -1127,7 +1332,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
         locked: Boolean(editingOperation?.locked),
       } : null,
     };
-  }, [indexTeeth, baseIndex, cutSession.angleEditable, cutSession.depthEditable, depth, machineStock.size, editingOperation?.locked, industryAngle, mirrorOffset, patternMode, primaryDraftFacet, region, repeatCount]);
+  }, [indexTeeth, baseIndex, cutSession.angleEditable, cutSession.depthEditable, depth, machineStock, editingOperation?.locked, industryAngle, mirrorOffset, patternMode, primaryDraftFacet, region, repeatCount, activeTool, draftHood, cutSession.draft]);
 
   const depthControlMax = Math.max(machineStock.size * 1.5, depth * 1.25, 1);
 
@@ -1142,31 +1347,40 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     } catch (error) { notify(error.message); return false; }
   };
 
+  const cancelConcaveSession = () => {
+    concaveScheduler.cancel(); setConcaveCommitting(false); setConcavePreview(null);
+    setConcaveSession(null); setConcaveError("");
+  };
   const acceptConcaveResult = (base, result, commit) => {
-    if (base !== document || !concaveActive || !cutSession.canEditParameterGroups || interactionPaused) return;
+    if (base !== document || concaveSession?.base !== base || !cutSession.canEditParameterGroups || interactionPaused) return;
     const prepared = receiveConcaveUpdate(base, result);
     if (commit) {
-      setConcaveCommitting(false);
-      setConcavePreview(null);
+      cancelConcaveSession();
       setHistory(current => current.present === base ? executeFacetingCommand(current, prepared.command) : current);
     } else setConcavePreview({ base, ...prepared });
   };
   concaveCallbacks.current = {
     preview: (base, result) => acceptConcaveResult(base, result, false),
     commit: (base, result) => acceptConcaveResult(base, result, true),
-    error: message => { setConcaveCommitting(false); setConcavePreview(null); notify(message); },
+    error: message => { setConcaveCommitting(false); setConcaveError(message); },
   };
-  const changeConcaveTool = (operation, preview = false) => {
-    if (!cutSession.canEditParameterGroups || interactionPaused) return false;
+  const canEditConcave = cutSession.canEditParameterGroups && !interactionPaused && !modal && hiddenPatternIds.size === 0 && !concaveCommitting;
+  const beginConcave = operation => {
+    if (!canEditConcave || concaveSession) return false;
     try {
-      if (preview) { concaveScheduler.preview(document, operation); return true; }
-      if ([operation.toolDepth, operation.phaseDeg, operation.width, operation.tipAngle, operation.length].some(value => value !== undefined)) { setConcaveCommitting(true); concaveScheduler.finish(document, operation); return true; }
-      concaveScheduler.cancel();
-      const prepared = prepareConcaveTool(document, operation);
-      setConcavePreview(null);
-      setHistory(current => executeFacetingCommand(current, prepared.command));
+      setConcaveSession(startConcaveSession(document, operation)); setConcaveError("");
       return true;
-    } catch (error) { setConcavePreview(null); notify(error.message); return false; }
+    } catch (error) { notify(error.message); return false; }
+  };
+  const changeConcaveTool = patch => {
+    if (!canEditConcave || !concaveSession) return;
+    try { setConcaveSession(updateConcaveSession(concaveSession, patch)); setConcaveError(""); }
+    catch (error) { setConcaveError(error.message); }
+  };
+  const commitConcaveSession = () => {
+    if (!canEditConcave || !concaveSession?.dirty || concaveSession.base !== document || concaveError) return;
+    setConcaveCommitting(true);
+    concaveScheduler.finish(document, concaveSession.operation);
   };
 
   const changeIndexGear = teeth => {
@@ -1292,7 +1506,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   useDesignController({
     controllerRef: designControllerRef, projectId, document, history, setHistory,
     sessionState, dispatchCutSession, hiddenPatternIds, setHiddenPatternIds,
-    blocked: !visible ? '请返回切型编辑页面。' : interactionPaused || modal || ledgerOpen || recoveryOpen || assistantOpen ? '请先结束当前弹窗操作。' : viewportMode !== 'edit' ? '请先退出光学或切割助手。' : currentConcavePreview ? '请先完成凹切深度调整。' : '',
+    blocked: !visible ? '请返回切型编辑页面。' : interactionPaused || modal || ledgerOpen || recoveryOpen || assistantOpen ? '请先结束当前弹窗操作。' : viewportMode !== 'edit' ? '请先退出光学或切割助手。' : concaveSession ? '请先确认或取消当前凹切。' : '',
     projectStatus, notify,
   });
 
@@ -1309,6 +1523,30 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const composerValidationMessage = groupEditRegion
     ? `正在整体变换${groupEditRegion === "crown" ? "冠部与台面" : "亭部"}；请先应用或取消。`
     : cutSession.active ? validationMessage : "";
+  // Three zones: the operation panel starts, adjusts and finishes a cut; the layer panel lists the stack.
+  const inspectorOpen = cutMode === CUT_SESSION_MODE.CREATE || cutMode === CUT_SESSION_MODE.EDIT;
+  const planarPanels = viewportMode === "edit" && !concaveActive;
+  useEffect(() => { if (!planarPanels) setLibraryOpen(false); }, [planarPanels]);
+  // Saving, cancelling or undoing the session closes a drawer opened for it; idle browsing opens it anew.
+  useEffect(() => { if (!inspectorOpen) setLibraryOpen(false); }, [inspectorOpen]);
+  const toolName = t(activeTool?.label ?? "普通切");
+  const groupRegionLabel = groupEditRegion === "crown" ? t("冠部与台面") : t("亭部");
+  const panelTitle = cutMode === CUT_SESSION_MODE.EDIT ? `${t("编辑")} ${editingOperation?.label ?? ""}`
+    : cutMode === CUT_SESSION_MODE.CREATE ? t("新建{0}", [t(FACET_REGION_LABELS[region])])
+      : cutMode === CUT_SESSION_MODE.GROUP ? t("整体变换中") : t("切割");
+  const panelSubtitle = cutMode === CUT_SESSION_MODE.GROUP ? `${groupRegionLabel} · ${t("升降 · 比例 · 分度旋转")}`
+    : inspectorOpen ? toolName
+      : t("{0} · 已保存 {1} 层", [t(FACET_REGION_LABELS[region]), operations.filter((operation) => operation.region === region).length]);
+  // The tool card shows the live hood over the stone, or the tool's default top view while it has none (girdle, Meet-blocked).
+  const toolCardHood = useMemo(() => (activeTool
+    ? draftHood ?? toolPreviewHood(activeTool.id, { region, indexTeeth, params: toolParams })
+    : null), [activeTool, draftHood, region, indexTeeth, toolParams]);
+  const pendingRow = cutMode === CUT_SESSION_MODE.CREATE ? {
+    label: `${FACET_REGION_PREFIXES[region]}${operations.filter((operation) => operation.region === region && !operation.locked).length + 1} ${t(FACET_REGION_LABELS[region])}`,
+    tag: !activeTool ? "" : activeTool.engine === "ring" || activeTool.engine === "grid" ? t(activeTool.label) : t("复合·{0}", [t(activeTool.label)]),
+    detail: `${Number(industryAngle).toFixed(2)}° · ${activeTool && activeTool.engine !== "ring" ? `${t("顶点")} ` : ""}D ${Number(depth).toFixed(3)} · ${t("{0} 齿", [indexTeeth])}`,
+    count: activeEffectiveIndices.length === draft.facets.length ? `${draft.facets.length}F` : `${activeEffectiveIndices.length}/${draft.facets.length}F`,
+  } : null;
 
   return (
     <main className={`app-shell workspace-editor${opticsActive ? " is-optics-active" : ""}`} hidden={!visible} aria-hidden={!visible} inert={!visible || interactionPaused}>
@@ -1373,101 +1611,172 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
           />
           )}
       </div>
-      <section className={`${sidebarOpen ? "editor-workspace" : "editor-workspace is-sidebar-collapsed"}${opticsActive ? " is-optics-focus" : ""}${cuttingAssistantActive ? " is-assistant-focus" : ""}${concaveActive ? " is-concave-focus" : ""}`}>
-        {viewportMode === "edit" && !concaveActive ? <aside className="control-sidebar" aria-label={t("切磨参数侧栏")} aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
-          <div className="sidebar-sections">
-            <IndexCompatibilityPanel document={document} facets={compatibilityFacets} error={draft.error || previewResult.error} canChangeGear={cutSession.canEditParameterGroups} onGearChange={changeIndexGear} />
-            <details className="control-section" open>
-              <summary><span>{t("切割参数 CUT")}</span><small>{t(FACET_REGION_LABELS[region])}</small></summary>
-              <MastControl
+      <section className={`editor-workspace is-cut-column is-three-zone${opticsActive ? " is-optics-focus" : ""}${cuttingAssistantActive ? " is-assistant-focus" : ""}${concaveActive ? " is-concave-focus" : ""}`}>
+        {planarPanels ? (
+          <OperationPanel
+            mode={cutMode}
+            region={region}
+            canChangeRegion={cutSession.canChangeRegion}
+            onRegionChange={changeRegion}
+            title={panelTitle}
+            subtitle={panelSubtitle}
+            tool={inspectorOpen ? activeTool : null}
+            toolHood={toolCardHood}
+            libraryOpen={libraryOpen}
+            onOpenLibrary={() => setLibraryOpen((value) => !value)}
+            libraryButtonRef={libraryButtonRef}
+            lockNote={inspectorOpen ? toolPickerLock || toolSwitchLock : ""}
+            showNew={cutSession.showNewButton}
+            onNew={startNewCut}
+            canCancel={cutSession.canCancel}
+            onCancel={cancelCutSession}
+            canCommit={cutSession.canCommit}
+            commitDisabledReason={composerValidationMessage || (cutMode === CUT_SESSION_MODE.EDIT && !cutSession.canCommit ? "参数未修改" : "")}
+            onCommit={() => applyDraft()}
+            effectiveCount={activeEffectiveIndices.length}
+            generatedCount={draft.facets.length}
+            dirty={cutSession.dirty}
+            validationMessage={inspectorOpen ? composerValidationMessage : ""}
+            warningMessage={impactWarningMessage}
+            groupError={groupPreview.error || committedResult.error || combinedResult.error}
+            canApplyGroup={cutSession.canCommit}
+            onApplyGroup={applyGroupEdit}
+            groupExitLabel={cutSession.exitLabel ?? "取消变换"}
+          >
+            {cutMode === CUT_SESSION_MODE.GROUP ? (
+              <section className="operation-group cut-stack-group is-transform" aria-label={t("{0}整体变换", [groupRegionLabel])}>
+                <p>{t("拖画布上的控制面，或在下方输入升降、高度比例与整齿旋转；三项联动预览，应用后一步撤销。")}</p>
+                <GroupTransformFields
+                  region={groupEditRegion} indexTeeth={activeGear} deltaZ={groupDeltaZ} scale={groupScale} rotationTeeth={groupRotationTeeth} baseHeight={groupBaseHeight}
+                  onDeltaChange={changeGroupDelta} onScaleChange={changeGroupScale} onRotationChange={changeGroupRotation}
+                />
+              </section>
+            ) : null}
+            {inspectorOpen ? (activeTool ? (
+              <ToolInspector
+                tool={activeTool}
+                params={toolParams}
+                draft={cutSession.draft}
                 region={region}
-                industryAngle={industryAngle}
-                signedBeta={signedBeta}
-                depth={depth}
-                disabled={!cutSession.controlsEnabled}
-                onAngleChange={(value) => {
-                  changeDraftWithConstruction({ industryAngle: value });
-                }}
-                onDepthChange={(value) => {
-                  if (cutSession.depthEditable) changeDraftWithConstruction({ depth: normalizeDepthValue(value) });
-                }}
-                depthMax={depthControlMax}
-                angleLocked={!cutSession.angleEditable}
-                depthEditable={cutSession.depthEditable}
-                construction={cutSession.construction}
-                nextJumpCandidate={nextJumpCandidate}
-                canUseMeetJump={cutSession.canUseMeetJump}
-                canJumpPrevious={jumpSession.canJumpPrevious}
-                canJumpNext={jumpSession.canJumpNext}
-                canPickMeetTarget={cutSession.canPickMeetTarget}
-                canLockMeet={cutSession.canLockMeet}
-                canCancelConstructionTool={cutSession.canCancelConstructionTool}
-                onJump={handleJump}
-                onStartMeetPick={startMeetPick}
-                onCancelConstructionTool={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL })}
-                onLockMeet={lockMeet}
-                onClearMeet={() => clearMeet("all")}
-                canLockSecondMeet={cutSession.canLockSecondMeet}
-                canRemoveMeetA={cutSession.canClearMeetA}
-                canRemoveMeetB={cutSession.canClearMeetB}
-                canClearMeet={cutSession.canClearMeetA}
-                canEditEdgeRatio={cutSession.canEditEdgeRatio}
-                onLockSecondMeet={lockMeet}
-                onRemoveMeet={clearMeet}
-                onEdgeRatioChange={changeEdgeRatio}
-                onFinishEdgeEdit={() => dispatchCutSession({ type: CUT_SESSION_EVENT.FINISH_EDGE_EDIT })}
-              />
-              <CutComposer
                 indexTeeth={indexTeeth}
-                patternMode={patternMode}
-                onPatternModeChange={(value) => {
-                  changeDraftWithConstruction({ patternMode: value });
-                }}
-                baseIndex={baseIndex}
-                onBaseIndexChange={(value) => {
-                  changeDraftWithConstruction({ baseIndex: normalizeIndex(value, indexTeeth) });
-                }}
-                repeatCount={repeatCount}
-                onRepeatChange={(value) => {
-                  changeDraftWithConstruction({ repeat: value });
-                }}
-                mirrorOffset={mirrorOffset}
-                onMirrorChange={(value) => {
-                  changeDraftWithConstruction({ mirrorOffset: Math.min(indexTeeth / 2, Math.max(0, value)) });
-                }}
-                customIndices={customIndices}
-                onCustomIndicesChange={(value) => {
-                  changeDraftWithConstruction({ customIndices: value });
-                }}
-                ring={cutSession.draft.ring}
-                ringLayout={cutSession.draft.ring ? ringCutLayout(cutSession.draft.ring, indexTeeth) : null}
-                onRingChange={(value) => changeDraftWithConstruction({ ring: value })}
-                generatedCount={draft.facets.length}
-                instructionGroups={instructionGroups}
-                mode={cutMode}
-                controlsEnabled={cutSession.controlsEnabled}
-                previewEnabled={previewEnabled}
-                lockedPattern={Boolean(editingOperation?.locked)}
-                primaryIndices={parseCustomIndices(customIndices, indexTeeth).indices}
-                primaryIndexEditable={cutSession.controlsEnabled && !editingOperation?.locked}
-                preform={Boolean(cutSession.draft.preform)}
-                canEditPreform={cutSession.canMarkPreform}
-                onPreformChange={(preform) => changeDraftWithConstruction({ preform })}
-                validationMessage={composerValidationMessage}
-                warningMessage={cutSession.active ? impactWarningMessage : ""}
-                status={composerStatus}
+                report={activeToolReport}
+                disabled={!cutSession.controlsEnabled}
+                depthMax={depthControlMax}
+                onParams={(patch) => changeDraftWithConstruction(toolParamsPatch(cutSession.draft, patch))}
+                onPlacement={placeTool}
+                onExtent={(extent) => changeDraftWithConstruction(toolExtentPatch(cutSession.draft, extent))}
+                onSnap={(snap) => changeDraftWithConstruction(toolSnapPatch(cutSession.draft, snap))}
+                onFit={fitTool}
+                onPreset={(params) => changeDraftWithConstruction(toolParamsPatch(cutSession.draft, params))}
+                angleLocked={!cutSession.angleEditable}
+                depthLocked={!cutSession.depthEditable}
+                placementExtra={activeTool.engine === "ring" ? (
+                  // A ring is located by its primary facet: the same Meet / Jump as an ordinary cut.
+                  <ConstructionPanel
+                    construction={cutSession.construction}
+                    nextJumpCandidate={nextJumpCandidate}
+                    canUseMeetJump={cutSession.canUseMeetJump}
+                    canJumpPrevious={jumpSession.canJumpPrevious}
+                    canJumpNext={jumpSession.canJumpNext}
+                    canPickMeetTarget={cutSession.canPickMeetTarget}
+                    canLockMeet={cutSession.canLockMeet}
+                    canCancelConstructionTool={cutSession.canCancelConstructionTool}
+                    onJump={handleJump}
+                    onStartMeetPick={startMeetPick}
+                    onCancelConstructionTool={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL })}
+                    onLockMeet={lockMeet}
+                    onClearMeet={() => clearMeet("all")}
+                    canLockSecondMeet={cutSession.canLockSecondMeet}
+                    canRemoveMeetA={cutSession.canClearMeetA}
+                    canRemoveMeetB={cutSession.canClearMeetB}
+                    canClearMeet={cutSession.canClearMeetA}
+                    canEditEdgeRatio={cutSession.canEditEdgeRatio}
+                    onLockSecondMeet={lockMeet}
+                    onRemoveMeet={clearMeet}
+                    onEdgeRatioChange={changeEdgeRatio}
+                    onFinishEdgeEdit={() => dispatchCutSession({ type: CUT_SESSION_EVENT.FINISH_EDGE_EDIT })}
+                  />
+                ) : null}
               />
-            </details>
-          </div>
-        </aside> : null}
-        {viewportMode === "edit" && !concaveActive ? (
-          <button type="button" className="sidebar-toggle" onClick={() => setSidebarOpen((open) => !open)} aria-expanded={sidebarOpen} aria-label={t(sidebarOpen ? "收起参数侧栏" : "展开参数侧栏")}>
-            {sidebarOpen ? <IconChevronLeft size={14} stroke={1.9} /> : <IconChevronRight size={14} stroke={1.9} />}
-          </button>
+            ) : (
+              <section className="control-section" aria-label={t("普通切参数")}>
+                <MastControl
+                  region={region}
+                  industryAngle={industryAngle}
+                  signedBeta={signedBeta}
+                  depth={depth}
+                  disabled={!cutSession.controlsEnabled}
+                  onAngleChange={(value) => {
+                    changeDraftWithConstruction({ industryAngle: value });
+                  }}
+                  onDepthChange={(value) => {
+                    if (cutSession.depthEditable) changeDraftWithConstruction({ depth: normalizeDepthValue(value) });
+                  }}
+                  depthMax={depthControlMax}
+                  angleLocked={!cutSession.angleEditable}
+                  depthEditable={cutSession.depthEditable}
+                  construction={cutSession.construction}
+                  nextJumpCandidate={nextJumpCandidate}
+                  canUseMeetJump={cutSession.canUseMeetJump}
+                  canJumpPrevious={jumpSession.canJumpPrevious}
+                  canJumpNext={jumpSession.canJumpNext}
+                  canPickMeetTarget={cutSession.canPickMeetTarget}
+                  canLockMeet={cutSession.canLockMeet}
+                  canCancelConstructionTool={cutSession.canCancelConstructionTool}
+                  onJump={handleJump}
+                  onStartMeetPick={startMeetPick}
+                  onCancelConstructionTool={() => dispatchCutSession({ type: CUT_SESSION_EVENT.CANCEL_CONSTRUCTION_TOOL })}
+                  onLockMeet={lockMeet}
+                  onClearMeet={() => clearMeet("all")}
+                  canLockSecondMeet={cutSession.canLockSecondMeet}
+                  canRemoveMeetA={cutSession.canClearMeetA}
+                  canRemoveMeetB={cutSession.canClearMeetB}
+                  canClearMeet={cutSession.canClearMeetA}
+                  canEditEdgeRatio={cutSession.canEditEdgeRatio}
+                  onLockSecondMeet={lockMeet}
+                  onRemoveMeet={clearMeet}
+                  onEdgeRatioChange={changeEdgeRatio}
+                  onFinishEdgeEdit={() => dispatchCutSession({ type: CUT_SESSION_EVENT.FINISH_EDGE_EDIT })}
+                />
+                <CutComposer
+                  indexTeeth={indexTeeth}
+                  patternMode={patternMode}
+                  onPatternModeChange={(value) => {
+                    changeDraftWithConstruction({ patternMode: value });
+                  }}
+                  baseIndex={baseIndex}
+                  onBaseIndexChange={(value) => {
+                    changeDraftWithConstruction({ baseIndex: normalizeIndex(value, indexTeeth) });
+                  }}
+                  repeatCount={repeatCount}
+                  onRepeatChange={(value) => {
+                    changeDraftWithConstruction({ repeat: value });
+                  }}
+                  mirrorOffset={mirrorOffset}
+                  onMirrorChange={(value) => {
+                    changeDraftWithConstruction({ mirrorOffset: Math.min(indexTeeth / 2, Math.max(0, value)) });
+                  }}
+                  customIndices={customIndices}
+                  onCustomIndicesChange={(value) => {
+                    changeDraftWithConstruction({ customIndices: value });
+                  }}
+                  generatedCount={draft.facets.length}
+                  mode={cutMode}
+                  controlsEnabled={cutSession.controlsEnabled}
+                  previewEnabled={previewEnabled}
+                  lockedPattern={Boolean(editingOperation?.locked)}
+                  primaryIndices={parseCustomIndices(customIndices, indexTeeth).indices}
+                  primaryIndexEditable={cutSession.controlsEnabled && !editingOperation?.locked}
+                  preform={Boolean(cutSession.draft.preform)}
+                  canEditPreform={cutSession.canMarkPreform}
+                  onPreformChange={(preform) => changeDraftWithConstruction({ preform })}
+                />
+              </section>
+            )) : null}
+          </OperationPanel>
         ) : null}
-
         <div className="viewport-column">
-
+          <div className="viewport-stage">
 
 
           {assistantOpen ? <ConstructionAssistantDialog
@@ -1491,7 +1800,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             frostedFaceIds={frostedFaceIds}
             indexTeeth={cuttingAssistantActive ? (replayStep?.indexTeeth ?? activeGear) : indexTeeth}
             polyhedron={cuttingAssistantActive && assistantSolid ? assistantSolid : displaySolid}
-            concaveTool={concaveActive && cutSession.canEditParameterGroups && activeConcaveTool?.enabled ? activeConcaveTool : null}
+            concaveTool={cuttingAssistantActive ? (playback.phase === "ready" ? replayStep?.tool : null) : concaveActive && cutSession.canEditParameterGroups && activeConcaveTool?.enabled ? activeConcaveTool : null}
             concaveCenter={machineStock.center}
             meetPolyhedron={cuttingAssistantActive ? null : constructionBaseSolid}
             previewPlanes={cuttingAssistantActive ? assistantPreviewPlanes : concaveActive ? [] : previewPlanes}
@@ -1509,6 +1818,7 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             pickingEnabled={!cuttingAssistantActive && !concaveActive}
             cutGizmo={!cuttingAssistantActive && !concaveActive && cutSession.showGizmo && !constructionBlocksPreview ? cutGizmo : null}
             groupGizmo={cuttingAssistantActive || concaveActive ? null : groupGizmo}
+            toolHood={cuttingAssistantActive || concaveActive ? null : draftHood}
             onFacePick={handleFacePick}
             meetTargets={cuttingAssistantActive || concaveActive ? [] : (cutSession.construction.tool === "pick-edge" ? meetEdges : meetTargets)}
             meetPickEnabled={["pick-vertex", "pick-edge"].includes(cutSession.construction.tool) && visible && !cuttingAssistantActive && !concaveActive && !opticsActive && !assistantOpen && modal !== "meet-audit"}
@@ -1590,31 +1900,56 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
               />
             </aside>
           ) : null}
+          </div>
+          {viewportMode === "edit" ? (
+            <ViewportInfoStrip
+              tab={infoTab}
+              onTabChange={setInfoTab}
+              collapsed={infoCollapsed}
+              onToggleCollapsed={() => setInfoCollapsed((value) => !value)}
+              status={composerStatus}
+              solid={displaySolid}
+              activeOperationId={concaveActive ? null : cutSession.activePatternId}
+              previewOperationId={!concaveActive && cutMode === "create" ? `draft-${patternMode}` : null}
+              highlightOperationId={concaveActive ? null : hoveredPatternId}
+              frostedFaceIds={frostedFaceIds}
+              instructionGroups={instructionGroups}
+              toolActive={Boolean(activeTool)}
+              sessionActive={inspectorOpen}
+              region={region}
+              indexTeeth={indexTeeth}
+              tool={activeTool}
+              hood={draftHood}
+              ring={activeTool && !draftHood ? cutSession.draft.ring : null}
+              report={activeToolReport}
+              levels={toolLevels}
+              missingIds={toolMissingIds}
+            />
+          ) : null}
         </div>
-        {viewportMode === "edit" ? <aside className="workbench-right-sidebar" aria-label={t("切割序列与正交预览")}>
-          <div className="cutting-mode-controls">
-          <div className="cutting-method-switch" role="group" aria-label={t("切割方式")}>
-            {[["planar", "平切"], ["concave", "凹切"]].map(([method, label]) => <button key={method} type="button" aria-pressed={cuttingMethod === method} onClick={() => { setConcavePreview(null); setCuttingMethod(method); }}>{t(label)}</button>)}
+        {viewportMode === "edit" ? <aside className="workbench-right-sidebar cut-column layer-panel" aria-label={t("图层栏：切割方式、分度与图层")}>
+          <div className="cut-column-header">
+            <div className="cutting-method-switch" role="group" aria-label={t("切割方式")}>
+              {[["planar", "平切"], ["concave", "凹切"]].map(([method, label]) => <button key={method} type="button" aria-pressed={cuttingMethod === method} disabled={Boolean(concaveSession) && method !== cuttingMethod} title={concaveSession && method !== cuttingMethod ? t("请先确认或取消当前凹切。") : undefined} onClick={() => setCuttingMethod(method)}>{t(label)}</button>)}
+            </div>
+            <IndexCompatibilityPanel compact document={document} facets={compatibilityFacets} error={draft.error || previewResult.error} canChangeGear={cutSession.canEditParameterGroups && !concaveSession} onGearChange={changeIndexGear} />
           </div>
           {!concaveActive && document.concaveCuts?.some(cut => cut.enabled) && <button type="button" className="concave-visibility-toggle" aria-pressed={showConcaveInPlanar} onClick={() => setShowConcaveInPlanar(value => !value)}>
             {t(showConcaveInPlanar ? "凹切已显示 · 点击隐藏" : "凹切已隐藏 · 点击显示")}<small>{t("仅影响平切视图")}</small>
           </button>}
-          </div>
           {concaveActive ? <ConcavePanel
-            document={document} selectedId={selectedConcaveId} onSelect={setSelectedConcaveId} isCommitting={concaveCommitting}
-            canEdit={cutSession.canEditParameterGroups && !interactionPaused && !modal && hiddenPatternIds.size === 0 && !concaveCommitting}
+            document={document} session={concaveSession} error={concaveError} isCommitting={concaveCommitting}
+            canEdit={canEditConcave}
             blockedReason={!cutSession.canEditParameterGroups ? "平切草稿已保留。保存或取消平切后，可修改凹切。" : hiddenPatternIds.size ? "请先显示全部平切图层，再修改凹切。" : "请先结束当前弹窗操作。"}
             onReturnPlanar={!cutSession.canEditParameterGroups ? () => setCuttingMethod("planar") : null}
-            onChange={changeConcaveTool} onReplace={replaceParameterGroup} onCancel={() => { concaveScheduler.cancel(); setConcaveCommitting(false); setConcavePreview(null); }}
+            onStart={beginConcave} onChange={changeConcaveTool} onReplace={replaceParameterGroup} onCancel={cancelConcaveSession} onCommit={commitConcaveSession}
           /> : <CutStack
-            indexTeeth={activeGear}
             operations={operations}
             selectedId={editingPatternId}
             hoveredId={hoveredPatternId}
             onSelect={selectCut}
             onHover={setHoveredPatternId}
-            onNew={startNewCut}
-            showNew={cutSession.showNewButton}
+            pendingRow={pendingRow}
             canSelectLayers={cutSession.canPickLayer}
             canMutateStack={cutSession.canMutateStack}
             canChangeRegion={cutSession.canChangeRegion}
@@ -1622,45 +1957,34 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
             onToggleVisibility={toggleVisibility}
             onRemove={removeCut}
             onDissolveRing={(id) => cutSession.canMutateStack && setModal(`dissolve-ring:${id}`)}
+            onDissolveGrid={(id) => cutSession.canMutateStack && setModal(`dissolve-grid:${id}`)}
+            onDissolveLevels={(id) => cutSession.canMutateStack && setModal(`dissolve-levels:${id}`)}
             onRename={renameCut}
             onReorder={reorderCut}
-            inlineValues={{ angle: industryAngle, depth }}
-            onInlineEdit={inlineEdit}
-            onInlineCommit={applyDraft}
-            depthEditable={cutSession.depthEditable}
-            angleEditable={cutSession.angleEditable}
             diagnosticsById={diagnosticsById}
             activeRegion={region}
             onRegionChange={changeRegion}
             groupEditRegion={groupEditRegion}
-            groupDeltaZ={groupDeltaZ}
-            groupScale={groupScale}
-            groupRotationTeeth={groupRotationTeeth}
-            groupBaseHeight={groupBaseHeight}
-            groupError={groupPreview.error || committedResult.error || combinedResult.error}
-            canApplyGroupEdit={cutSession.canCommit}
-            groupExitLabel={cutSession.exitLabel}
             onStartGroupEdit={startGroupEdit}
-            onGroupDeltaChange={changeGroupDelta}
-            onGroupScaleChange={changeGroupScale}
-            onGroupRotationChange={changeGroupRotation}
-            onApplyGroupEdit={applyGroupEdit}
-            onCancelGroupEdit={cancelCutSession}
-            canCancelSession={cutSession.canCancel && cutMode !== CUT_SESSION_MODE.GROUP}
             sessionMode={cutMode}
-            sessionFaceCount={draft.facets.length}
-            sessionEffectiveCount={activeEffectiveIndices.length}
-            sessionDirty={cutSession.dirty}
-            canCommitSession={cutSession.canCommit}
-            commitDisabledReason={composerValidationMessage
-              || (cutMode === CUT_SESSION_MODE.EDIT && !cutSession.canCommit ? "参数未修改" : "")}
-            onCommitSession={() => applyDraft()}
-            onCancelSession={cancelCutSession}
-            collapsed={!cutStackOpen}
-            onToggle={() => setCutStackOpen((value) => !value)}
           />}
-          <OrthographicPreviews frostedFaceIds={frostedFaceIds} solid={displaySolid} activeOperationId={concaveActive ? null : cutSession.activePatternId} previewOperationId={!concaveActive && cutMode === "create" ? `draft-${patternMode}` : null} highlightOperationId={concaveActive ? null : hoveredPatternId} />
+          <QuickOpticsPreview polyhedron={displaySolid} facets={document.facets} settings={opticsSettings} active={visible && !interactionPaused} onExpand={() => changeViewportMode("optics")} />
         </aside> : null}
+        {planarPanels ? (
+          <ToolLibraryDrawer
+            open={libraryOpen}
+            onClose={closeLibrary}
+            region={region}
+            indexTeeth={indexTeeth}
+            activeToolId={inspectorOpen ? activeTool?.id ?? null : ""}
+            onPickTool={pickTool}
+            onPickNormal={pickNormal}
+            browse={!inspectorOpen}
+            disabled={!inspectorOpen || !cutSession.controlsEnabled || Boolean(toolPickerLock)}
+            toolsDisabled={Boolean(toolSwitchLock)}
+            note={inspectorOpen ? toolPickerLock || toolSwitchLock : ""}
+          />
+        ) : null}
       </section>
 
       {viewportMode === "edit" && ledgerOpen ? (
@@ -1721,6 +2045,23 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
               <p>{t("{0} 个切面、行业角与深度都保留不变；之后不能再修改对称数、细分和间距，只能逐个编辑分度。可以撤销。", [operation.facets.length])}</p>
             </Modal>
           )
+        ) : null;
+      })() : null}
+      {typeof modal === "string" && modal.startsWith("dissolve-grid:") ? (() => {
+        const operation = operations.find((item) => `dissolve-grid:${item.id}` === modal);
+        const levels = operation?.grid ? new Set(operation.facets.map((facet) => `${facet.industryAngleDeg.toFixed(6)}|${facet.depth.toFixed(6)}`)).size : 0;
+        return operation?.grid ? (
+          <Modal eyebrow="GRID CUT" title={t("打散网格切“{0}”", [operation.label])} confirmLabel={t("按角度与深度拆为 {0} 层", [levels])} onClose={() => setModal(null)} onConfirm={() => dissolveGrid(operation.id)}>
+            <p>{t("{0} 个切面的分度、行业角与深度都保留不变，按角度与深度拆成 {1} 个普通层；之后每层可单独调整与 Meet／Jump，但不能再整体修改网格。可以撤销。", [operation.facets.length, levels])}</p>
+          </Modal>
+        ) : null;
+      })() : null}
+      {typeof modal === "string" && modal.startsWith("dissolve-levels:") ? (() => {
+        const operation = operations.find((item) => `dissolve-levels:${item.id}` === modal);
+        return operation ? (
+          <Modal eyebrow={operation.composite ? "COMPOSITE TOOL" : "LEVELS"} title={t("打散“{0}”", [operation.label])} confirmLabel={t("按角度与深度拆为 {0} 层", [operation.levels])} onClose={() => setModal(null)} onConfirm={() => dissolveLevels(operation.id)}>
+            <p>{t("{0} 个切面的分度、行业角与深度都保留不变，按角度与深度拆成 {1} 个普通层；之后每层可单独调整与 Meet／Jump，但不能再作为整把刀调整。可以撤销。", [operation.facets.length, operation.levels])}</p>
+          </Modal>
         ) : null;
       })() : null}
       {modal === "json-export" ? (

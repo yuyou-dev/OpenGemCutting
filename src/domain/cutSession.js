@@ -2,6 +2,8 @@ import { adjacentJumpCandidateIndex } from "./meetJump.js";
 import { normalizeIndex, displayIndex } from "./faceting.js";
 import { normalizeIndexTeeth, compatibleRepeat } from "./indexing.js";
 import { ringDraftPatch } from "./ringCut.js";
+import { gridDraftPatch } from "./gridCut.js";
+import { compositeDraftPatch } from "./compositeTools.js";
 
 export const CUT_SESSION_MODE = Object.freeze({
   IDLE: "idle",
@@ -77,8 +79,23 @@ export function defaultDraftForRegion(region, previous = null) {
     patternMode: "symmetric",
     customIndices: previous?.customIndices ?? gearedDefaults?.customIndices ?? DEFAULT_CUSTOM_INDICES,
     ring: null,
+    grid: null,
+    composite: null,
     preform: false,
   };
+}
+
+/** Ring, grid and composite tools own their generated indices; every draft change goes through all three. */
+export function toolDraftPatch(draft, patch) {
+  return compositeDraftPatch(draft, gridDraftPatch(draft, ringDraftPatch(draft, patch)));
+}
+
+/** The composite tool a draft carries (ring kind, grid or composite tool id), or null for an ordinary cut. */
+function draftToolId(draft) {
+  if (draft?.composite) return draft.composite.tool;
+  if (draft?.grid) return "grid";
+  if (draft?.ring) return draft.ring.kind === "arc" ? "ring-arc" : "ring-fan";
+  return null;
 }
 
 export const CUT_SESSION_TABLE = Object.freeze({
@@ -107,6 +124,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canClearMeetB: false,
     canEditEdgeRatio: false,
     canMarkPreform: false,
+    canSwitchTool: false,
     constructionValid: true,
     exitLabel: null,
   }),
@@ -135,6 +153,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canClearMeetB: false,
     canEditEdgeRatio: false,
     canMarkPreform: false,
+    canSwitchTool: true,
     constructionValid: true,
     exitLabel: "取消新建",
   }),
@@ -163,6 +182,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canClearMeetB: false,
     canEditEdgeRatio: false,
     canMarkPreform: false,
+    canSwitchTool: false,
     constructionValid: true,
     exitLabel: "退出编辑",
   }),
@@ -191,6 +211,7 @@ export const CUT_SESSION_TABLE = Object.freeze({
     canClearMeetB: false,
     canEditEdgeRatio: false,
     canMarkPreform: false,
+    canSwitchTool: false,
     constructionValid: true,
     exitLabel: "取消变换",
   }),
@@ -214,6 +235,8 @@ export function createCutSession(mode = CUT_SESSION_MODE.IDLE, payload = {}) {
       region,
       patternId: payload.patternId,
       lockedLayer: Boolean(payload.lockedLayer),
+      // The tool the saved layer was cut with; editing keeps it (another tool is a new layer).
+      savedTool: draftToolId(payload.draft),
       dirty: false,
       draft: {
         ...(payload.draft ?? defaultDraftForRegion(region)),
@@ -308,6 +331,8 @@ function draftForIndexGear(draft, indexTeeth) {
       ? displayIndex(normalizeIndex(Number(token) * teeth / customSource, teeth), teeth) : token).join(" "),
   };
   // A ring keeps its shape on the new wheel; its rotation moves to the nearest tooth.
+  if (draft?.composite) return { ...retargeted, ...compositeDraftPatch(retargeted, { composite: draft.composite, baseIndex: Math.round(draft.baseIndex * teeth / source) }) };
+  if (draft?.grid) return { ...retargeted, ...gridDraftPatch(retargeted, { grid: draft.grid, baseIndex: Math.round(draft.baseIndex * teeth / source) }) };
   return draft?.ring
     ? { ...retargeted, ...ringDraftPatch(retargeted, { ring: { ...draft.ring, rotation: Math.round(draft.ring.rotation * teeth / source) } }) }
     : retargeted;
@@ -351,8 +376,11 @@ export function cutSessionReducer(session, event) {
         : session;
     case CUT_SESSION_EVENT.CHANGE_DRAFT: {
       if (session.mode !== CUT_SESSION_MODE.CREATE && session.mode !== CUT_SESSION_MODE.EDIT) return session;
-      // Ring parameters own the generated indices; every draft change keeps them in step.
-      const patch = ringDraftPatch(session.draft, { ...event.patch });
+      // Ring and grid parameters own the generated indices; every draft change keeps them in step.
+      const patch = toolDraftPatch(session.draft, { ...event.patch });
+      // A saved tool layer keeps its tool and the fixed table stays a plain cut: another tool is a new layer.
+      const nextTool = draftToolId({ ...session.draft, ...patch });
+      if (nextTool && (session.lockedLayer || (session.savedTool && nextTool !== session.savedTool))) return session;
       delete patch.indexTeeth; // A wheel change belongs to the idle parameter-group event.
       if (session.region === "girdle" && "industryAngle" in patch) patch.industryAngle = 90;
       if (session.lockedLayer && "industryAngle" in patch) patch.industryAngle = 0;
@@ -533,6 +561,7 @@ export function resolveCutSession(session, { jumpCandidates = [] } = {}) {
     canEditEdgeRatio: canUseMeetJump && !hasDoubleMeet
       && Boolean(construction.candidate?.edge || construction.candidate?.target?.kind === "edge-point"),
     canMarkPreform: inDraftSession && !session.lockedLayer && session.region !== "girdle",
+    canSwitchTool: creating || (editing && !session.lockedLayer && !session.savedTool),
     canCancelConstructionTool: inDraftSession && (construction.tool !== "none" || Boolean(construction.returnDraft)),
     depthEditable: inDraftSession && !construction.meet,
     angleEditable: inDraftSession && !session.lockedLayer && session.region !== "girdle" && !hasDoubleMeet,

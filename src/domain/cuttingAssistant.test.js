@@ -13,18 +13,20 @@ import {
 
 const SYMMETRIC = { patternMode: "symmetric" };
 
-test('replay combines concave tools after each planar prefix and leaves construction history independent', () => {
+test('replay starts at uncut stock and applies concave layers only after planar cuts', () => {
   const base = buildSevenTierDocument();
   const document = createFacetingDocument({ ...base, concaveCuts: [{ id: 'replay-groove', type: 'triangular-prism',
     position: [.85, 0, 0], width: 1.4, tipAngle: 90, length: 2.7, repeat: 5 }] });
   const replay = createCuttingReplay(document);
   assert.deepEqual(buildConstructionStages(document), buildConstructionStages(base));
-  for (const position of [0, 1, 16, 48, replay.total, 16]) {
+  assert.equal(replay.steps.at(-1).operationType, "concave");
+  assert.deepEqual(replay.solidAt(0), replay.stock);
+  for (const position of [0, 1, 16, 48, replay.total - 1, replay.total, 16]) {
     const facetIds = new Set(replay.steps.slice(0, position).map(step => step.facetId));
-    const expected = evaluateDocument(document, { facets: document.facets.filter(f => facetIds.has(f.id)) });
+    const expected = evaluateDocument(document, { facets: document.facets.filter(f => facetIds.has(f.id)), concaveCuts: position === replay.total ? document.concaveCuts : [] });
     const actual = replay.solidAt(position);
     assert.ok(Math.abs(polyhedronVolume(actual) - polyhedronVolume(expected)) < 1e-8);
-    assert.ok(actual.faces.some(face => face.region === 'concave'));
+    assert.equal(actual.faces.some(face => face.region === 'concave'), position === replay.total);
     assert.equal(replay.solidAt(position), actual);
   }
 });
@@ -377,4 +379,20 @@ test('mixed surface treatments follow individual steps without changing replay g
   assert.ok(baseline.steps.every(s => s.surfaceState === 'polished'));
   const a = createCuttingReplay(plain), b = createCuttingReplay(marked);
   for (const p of [0, 1, 4, a.total]) assert.deepEqual(b.solidAt(p), a.solidAt(p));
+});
+
+
+test('concave-only replay respects enabled layers, backward jumps and final geometry', () => {
+ const document=createFacetingDocument({concaveCuts:[
+  {id:'first',type:'sphere',position:[.9,0,0],radius:.2,repeat:1},
+  {id:'disabled',type:'sphere',position:[0,.9,0],radius:.2,enabled:false},
+  {id:'second',type:'sphere',position:[0,0,.9],radius:.2,repeat:1},
+ ]});
+ const replay=createCuttingReplay(document);
+ assert.equal(replay.total,2);
+ assert.equal(replay.stepper.nextTierPos(0),1);
+ for(const p of [0,1,2,1,0]) {
+  const expected=evaluateDocument(document,{concaveCuts:p===0?[]:p===1?[document.concaveCuts[0]]:document.concaveCuts});
+  assert.ok(Math.abs(polyhedronVolume(replay.solidAt(p))-polyhedronVolume(expected))<1e-8);
+ }
 });

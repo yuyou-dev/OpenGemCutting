@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { isDeepStrictEqual } from "node:util";
 import {
   clipPolyhedron,
+  clipPolyhedronByPlanes,
   createCenteredCube,
   faceArea,
   faceCentroid,
@@ -209,4 +211,28 @@ test("invalid half-spaces fail clearly", () => {
     () => clipPolyhedron(cube, { normal: [1, 0, 0], offset: 0, keep: "greater" }),
     /only the <= half-space/,
   );
+});
+
+test("ordered clipping reuses shared prefixes and stays bit-identical to a fresh replay", () => {
+  const planes = Array.from({ length: 24 }, (_, i) => {
+    const a = (i * 2 * Math.PI) / 24, tilt = i % 2 ? 0.55 : -0.7;
+    return { normal: { x: Math.cos(a), y: Math.sin(a), z: tilt }, offset: 0.62 + (i % 3) * 0.02, faceId: `f${i}`, operationId: `op${i % 4}` };
+  });
+  // Reference: the uncached replay, cloning the blank first and clipping one plane at a time.
+  const replay = (list) => list.reduce((solid, plane) => (solid.vertices.length ? clipPolyhedron(solid, plane) : solid),
+    clipPolyhedron(createCenteredCube(2), { normal: { x: 0, y: 0, z: 1 }, offset: 10 }));
+  const cube = createCenteredCube(2), before = structuredClone(cube);
+  const prefix = clipPolyhedronByPlanes(cube, planes.slice(0, 15));
+  const full = clipPolyhedronByPlanes(cube, planes);
+  const branch = clipPolyhedronByPlanes(cube, planes.filter((_, i) => i !== 7));
+  assert.ok(isDeepStrictEqual(prefix, replay(planes.slice(0, 15))));
+  assert.ok(isDeepStrictEqual(full, replay(planes)));
+  assert.ok(isDeepStrictEqual(branch, replay(planes.filter((_, i) => i !== 7))));
+  assert.equal(clipPolyhedronByPlanes(cube, planes), full, "the same planes return the shared result");
+  assert.ok(isDeepStrictEqual(cube, before), "the input solid is never modified");
+  // -0 and 0 are different keys: each keeps its own exact result.
+  const signed = clipPolyhedronByPlanes(cube, [{ normal: { x: -0, y: 0.3, z: 1 }, offset: 0.5 }]);
+  assert.ok(isDeepStrictEqual(signed, clipPolyhedron(cube, { normal: { x: -0, y: 0.3, z: 1 }, offset: 0.5 })));
+  assert.notEqual(clipPolyhedronByPlanes(cube, [{ normal: { x: 0, y: 0.3, z: 1 }, offset: 0.5 }]), signed);
+  assert.notEqual(clipPolyhedronByPlanes(cube, []), cube, "no planes still returns a copy");
 });

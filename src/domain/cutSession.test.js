@@ -192,6 +192,8 @@ test("region defaults rebuild drafts while index preferences survive", () => {
     patternMode: "symmetric",
     customIndices: "02 22 26 46 50 70 74 94",
     ring: null,
+    grid: null,
+    composite: null,
     preform: false,
   });
   assert.equal(defaultDraftForRegion("girdle").repeat, 16);
@@ -830,4 +832,32 @@ test("ring cut drafts generate their indices, rotate as a whole and leave the ri
   const plain = cutSessionReducer(angled, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { patternMode: "arbitrary" } });
   assert.equal(plain.draft.ring, null);
   assert.equal(plain.draft.customIndices, turned.draft.customIndices, "leaving the ring keeps its facets as custom indices");
+});
+
+test("only a new cut may switch tools; editing a saved tool layer keeps its tool", () => {
+  const brilliant = { composite: { tool: "brilliant", params: { symmetry: 8 }, extent: 1, snap: "tooth" }, patternMode: "composite", industryAngle: 34.5, depth: 0.1, baseIndex: 0 };
+  const step = { composite: { tool: "step", params: { symmetry: 8, layers: 3 }, extent: 1, snap: "tooth" }, patternMode: "composite" };
+  assert.equal(resolveCutSession(createCutSession()).canSwitchTool, false);
+  assert.equal(resolveCutSession(createCutSession(CUT_SESSION_MODE.GROUP, { region: "crown" })).canSwitchTool, false);
+  const create = cutSessionReducer(createCutSession(CUT_SESSION_MODE.CREATE, { region: "crown" }), { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: brilliant });
+  assert.equal(resolveCutSession(create).canSwitchTool, true);
+  assert.equal(cutSessionReducer(create, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: step }).draft.composite.tool, "step");
+  const ring = cutSessionReducer(create, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { ring: { symmetry: 3, subdivisions: 3, spacingDeg: 15, rotation: 0 } } });
+  assert.equal(ring.draft.composite, null, "a new cut swaps a composite tool for a ring");
+
+  const edit = createCutSession(CUT_SESSION_MODE.EDIT, { patternId: "C2", region: "crown", draft: { ...LAYER_DRAFT, ...create.draft } });
+  assert.equal(resolveCutSession(edit).canSwitchTool, false);
+  assert.equal(cutSessionReducer(edit, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: step }), edit, "another tool is refused");
+  assert.equal(cutSessionReducer(edit, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { ring: { symmetry: 3, subdivisions: 1, spacingDeg: 15, rotation: 0 } } }), edit);
+  const reshaped = cutSessionReducer(edit, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: { composite: { ...edit.draft.composite, params: { symmetry: 12 } } } });
+  assert.equal(reshaped.draft.composite.params.symmetry, 12, "the same tool's shape stays editable");
+  assert.equal(reshaped.dirty, true);
+
+  const ordinary = createCutSession(CUT_SESSION_MODE.EDIT, { patternId: "C3", region: "crown", draft: LAYER_DRAFT });
+  assert.equal(resolveCutSession(ordinary).canSwitchTool, true, "an ordinary layer may be recut with a tool");
+  const converted = cutSessionReducer(ordinary, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: brilliant });
+  assert.equal(cutSessionReducer(converted, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: step }).draft.composite.tool, "step", "and may still try another tool");
+  const table = createCutSession(CUT_SESSION_MODE.EDIT, { patternId: "T1", region: "crown", lockedLayer: true, draft: LAYER_DRAFT });
+  assert.equal(resolveCutSession(table).canSwitchTool, false);
+  assert.equal(cutSessionReducer(table, { type: CUT_SESSION_EVENT.CHANGE_DRAFT, patch: brilliant }), table, "the fixed table never becomes a tool");
 });

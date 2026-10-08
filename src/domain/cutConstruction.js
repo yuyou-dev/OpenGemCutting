@@ -1,5 +1,7 @@
 import { normalizeIndex, displayIndex, resolveFacet, resolveFacetPattern } from "./faceting.js";
 import { ringCutLayout, ringRatioForIndex } from "./ringCut.js";
+import { gridCutFacets } from "./gridCut.js";
+import { compositeToolLayout } from "./compositeTools.js";
 import { MEET_STATUS, resolvePersistedMeetTarget, solveVertexMeet, solveDualMeet } from "./meetJump.js";
 
 export function parseCustomIndices(value, indexTeeth = 96) {
@@ -31,6 +33,32 @@ export function planeEntry(facet) {
 
 export function resolveDraftGeometry(draft, region, stock) {
   try {
+    if (draft.composite) {
+      // One facet per tool cell; `compositeCell` keeps each cell's identity through edits.
+      const indexTeeth = draft.indexTeeth ?? 96;
+      const layout = compositeToolLayout(draft.composite, { indexTeeth, reference: stock, angle: draft.industryAngle, depth: draft.depth, rotation: Math.round(draft.baseIndex) });
+      return {
+        facets: layout.facets.map((cell, ordinal) => resolveFacet({
+          id: `draft-composite:${cell.cell}`, patternId: "draft-composite", ordinal, region, indexTeeth,
+          baseIndex: cell.index, repeat: 1, mirror: 0, index: cell.index,
+          industryAngleDeg: cell.industryAngleDeg, depth: cell.depth, metadata: { compositeCell: cell.cell },
+        }, { stock })),
+        error: layout.facets.length ? "" : "刀具还没有触及毛坯；请增大顶点深度。",
+      };
+    }
+    if (draft.grid) {
+      // One facet per grid cell; `gridCell` keeps each cell's identity through edits.
+      const indexTeeth = draft.indexTeeth ?? 96;
+      return {
+        facets: gridCutFacets(draft.grid, { indexTeeth, reference: stock, edgeAngle: draft.industryAngle, depth: draft.depth, rotation: Math.round(draft.baseIndex) })
+          .map((cell, ordinal) => resolveFacet({
+            id: `draft-grid:${cell.cell}`, patternId: "draft-grid", ordinal, region, indexTeeth,
+            baseIndex: cell.index, repeat: 1, mirror: 0, index: cell.index,
+            industryAngleDeg: cell.industryAngleDeg, depth: cell.depth, metadata: { gridCell: cell.cell },
+          }, { stock })),
+        error: "",
+      };
+    }
     if (draft.patternMode === "symmetric") {
       return {
         facets: resolveFacetPattern({
@@ -83,9 +111,10 @@ export function resolveDraftGeometry(draft, region, stock) {
 }
 
 
-export function solveDraftConstruction({ draft, region, stock, meet, baseSolid }) {
+/** `topology` ({ vertices, edges }) may pass the base solid's already enumerated targets. */
+export function solveDraftConstruction({ draft, region, stock, meet, baseSolid, topology }) {
   const resolutions = [meet.target, meet.secondTarget].filter(Boolean)
-    .map((target) => resolvePersistedMeetTarget(target, baseSolid));
+    .map((target) => resolvePersistedMeetTarget(target, baseSolid, topology));
   if (resolutions.some((result) => result.status !== MEET_STATUS.VALID)) {
     return { draft, meet: { ...meet, status: MEET_STATUS.STALE, message: "Meet 来源已失效；请重新选择或解除约束。" } };
   }

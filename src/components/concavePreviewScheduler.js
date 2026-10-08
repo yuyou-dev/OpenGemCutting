@@ -1,5 +1,5 @@
 /** One calculation in flight, one latest pending position. Finished previews
- * may be shown during a drag; only the exact released position can be committed. */
+ * may be shown during a drag; only the explicitly confirmed position can be committed. */
 export function createConcavePreviewScheduler({ createWorker, onPreview, onCommit, onError }) {
   let worker, workerBase, active, pending, last, generation = 0;
   const keyOf = operation => JSON.stringify(operation);

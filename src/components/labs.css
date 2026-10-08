@@ -110,6 +110,14 @@
 .labs-choice-description { color: var(--muted); font-size: 16px; line-height: 1.9; }
 .labs-choice-tags { display: flex; flex-wrap: wrap; gap: 8px 12px; color: var(--muted); font-size: 12px; margin-top: 9px; }
 .labs-choice-tags > span + span { padding-left: 12px; border-left: 1px solid var(--hairline); }
+/* A laboratory merged into the editor: an explanation in the grid, not a choice. */
+.labs-choice.is-merged { cursor: default; border-style: dashed; background: #fbfbfa; }
+.labs-choice.is-merged:hover { border-color: var(--hairline); }
+.labs-choice.is-merged .labs-choice-mark { color: #b3b3ae; }
+.labs-choice.is-merged .labs-choice-copy > strong { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; color: #4a4a46; }
+.labs-choice.is-merged .labs-choice-copy > strong em { font-style: normal; font-size: 12px; font-weight: 600; color: #1d4f6e; border: 1px solid #9fbccd; background: #eaf2f7; border-radius: 3px; padding: 2px 7px; }
+.labs-choice.is-merged .labs-choice-description { font-size: 14px; line-height: 1.8; }
+.labs-choice.is-merged .workspace-page-button { align-self: flex-start; }
 .labs-start { display: grid; grid-template-columns: 36% minmax(0,1fr); gap: 32px; padding: 28px 36px; margin-top: 20px; border: 1px solid var(--hairline); border-radius: 3px; background: #fafbfc; }
 .labs-selection { display: flex; align-items: center; gap: 20px; border-right: 1px solid var(--hairline); padding-right: 26px; }
 .labs-selection > svg { color: #777; flex-shrink: 0; }
