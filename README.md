@@ -4,6 +4,10 @@
 
 # OpenGemCutting
 
+<a href="https://www.youtube.com/watch?v=ZoIJ1JPzLFc"><img src="https://i.ytimg.com/vi/ZoIJ1JPzLFc/hqdefault.jpg" width="640" alt="观看 OpenGemCutting 产品介绍视频 / Watch the OpenGemCutting introduction on YouTube" /></a>
+
+**[▶ 观看产品介绍 / Watch the introduction](https://www.youtube.com/watch?v=ZoIJ1JPzLFc)**
+
 **官方团队：SUVA / 地质大学博士说AI / 苏哇科技**
 
 [技术支持与测试群](https://yuyou-dev.github.io/OpenGemCutting/#support) · [报告问题](https://github.com/yuyou-dev/OpenGemCutting/issues/new?template=bug_report.yml) · [交流想法](https://github.com/yuyou-dev/OpenGemCutting/discussions) · [源码与使用许可](docs/legal/LICENSING.md)
