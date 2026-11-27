@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { GCS_FROST_ALPHA, readGcsDesign, writeGcsDesign } from "./gcs.js";
-import { designFromDocument, sameShape } from "./planeDesign.js";
+import { designFromDocument, documentFromDesign, planeDesignSolid, sameShape } from "./planeDesign.js";
 import { readAscDesign, writeAscDesign } from "../gemcadAsc.js";
 import { importFacetingJSON } from "../faceting.js";
 
@@ -109,4 +109,54 @@ test("open designs cannot be written to GCS, and malformed files are refused", (
   for (const bad of ["NaN", "Infinity", "1e9999", "0x10"]) {
     assert.throws(() => readGcsDesign(`<GemCutStudio version="1000"><index gear="96"/><tier angle="0" depth="1"><facet nx="${bad}" ny="0" nz="1"/></tier></GemCutStudio>`), { code: /INVALID_NUMBER|NUMBER_RANGE/ });
   }
+});
+
+test("49-facet Novice 10 with negative signed crown table offset exports and roundtrips intact (#28)", () => {
+  // When a stone sits in the lower half of the workbench stock (z_table < 0),
+  // preserving signed plane offsets keeps the 0° horizontal table and all 45 vertices.
+  const twelve = "6 18 24 30 42 48 54 66 72 78 90 96";
+  const base = readAscDesign([
+    "GemCad 5.0", "g96 0.0", "y 1 n", "I 2.417",
+    `a -41.000000000000 0.428884777124891 ${twelve} n P1`,
+    `a 90.000000000000 0.705000000000000 ${twelve} n G1`,
+    "a 44.180000000000 0.542930300072338 24 48 72 96 n C1",
+    "a 37.000000000000 0.481748246615917 6 18 30 42 54 66 78 90 n C2",
+    "a 24.000000000000 0.405788444785040 6 18 30 42 54 66 78 90 n C3",
+    "a 30.003517955896 0.443899551415144 12 36 60 84 n C4",
+    "a 0.000000000000 0.274800000005000 96 n T1",
+  ].join("\n")).design;
+
+  // Shift the closed solid along -Z by 0.4 so the 0° crown table has signed offset -0.1252.
+  const shifted = structuredClone(base);
+  for (const tier of shifted.tiers) {
+    const nz = tier.region === "girdle"
+      ? 0
+      : tier.region === "crown"
+        ? Math.cos(Math.abs(tier.angle) * Math.PI / 180)
+        : -Math.cos(Math.abs(tier.angle) * Math.PI / 180);
+    tier.distance -= 0.4 * nz;
+  }
+  const tableTier = shifted.tiers.find((tier) => tier.table);
+  assert.ok(tableTier.distance < 0);
+
+  const { solid, open } = planeDesignSolid(shifted);
+  assert.equal(open, false);
+  assert.equal(solid.faces.length, 49);
+  assert.equal(solid.vertices.length, 45);
+  const tableFace = solid.faces.find((face) => Math.abs(face.normal.z - 1) < 1e-6);
+  assert.equal(tableFace?.vertexIndices.length, 8);
+
+  const written = writeGcsDesign(shifted, { diagnostics: [] });
+  assert.equal(written.status, "ready");
+  assert.match(written.text, /<tier angle="0"[^>]*>[\s\S]*?<vertex /);
+
+  const roundtrip = readGcsDesign(written.text);
+  assert.equal(roundtrip.summary.facetCount, 49);
+  assert.equal(roundtrip.design.tiers.filter((tier) => tier.table).length, 1);
+  assert.equal(planeDesignSolid(roundtrip.design).solid.vertices.length, 45);
+  assert.ok(sameShape(shifted, roundtrip.design));
+
+  const reopened = documentFromDesign(shifted);
+  assert.ok(reopened.document);
+  assert.ok(sameShape(shifted, designFromDocument(reopened.document, { target: "GCS" }).design));
 });

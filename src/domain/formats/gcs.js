@@ -1,7 +1,7 @@
 import { FORMAT_LIMITS, diagnostic, fail, formatNumber, mod360, readInteger, readNumber, statusFor } from "./shared.js";
 import { parseXml, writeXml } from "./xml.js";
 import { clipPolyhedronByPlanes, createCenteredCube } from "../geometry.js";
-import { cleanIndex, designSummary, individualFacetNames, markTable, planeDesignSolid, solidDimensions, textLines, tierNormal, visibleTiers } from "./planeDesign.js";
+import { cleanIndex, designSummary, individualFacetNames, markTable, planeDesignSolid, solidDimensions, textLines, tierNormal, tierOffset, visibleTiers } from "./planeDesign.js";
 
 /*
  * Gem Cut Studio (.gcs) XML, per the Gem Cut Studio 1.1 manual and real 1.1
@@ -352,7 +352,7 @@ export function writeGcsDesign(design, { diagnostics = [] } = {}) {
     });
     facetNames += individualFacetNames(tier).length;
     const normal = tierNormal(tier, tier.entries[0].index, design.gear);
-    const depth = (Math.abs(tier.distance) - normal.z * shift) * scale;
+    const depth = (tierOffset(tier) - normal.z * shift) * scale;
     children.push({
       name: "tier",
       attrs: {
