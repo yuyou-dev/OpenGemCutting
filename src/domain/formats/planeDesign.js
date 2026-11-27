@@ -42,6 +42,15 @@ export function tierNormal(tier, index, gear) {
   return facetNormal(index, industryAngleToBetaDeg(tier.region, Math.abs(tier.angle)), gear);
 }
 
+/** Signed half-space offset `n · x <= offset` of a PlaneDesign tier.
+ * GemCad encodes a 0° horizontal culet with a negative distance token while its
+ * outward normal is `(0, 0, -1)`, so negating only 0° pavilion culets preserves
+ * signed offsets for off-centre designs (such as a crown table below z = 0). */
+export function tierOffset(tier) {
+  const culet = tier.region === "pavilion" && Math.abs(tier.angle) <= EPSILON;
+  return culet ? -tier.distance : tier.distance;
+}
+
 export function visibleTiers(design) {
   return design.tiers.filter((tier) => !tier.hidden);
 }
@@ -74,7 +83,7 @@ export function planeDesignSolid(design, { previewBound = 1.5 } = {}) {
   const reach = Math.max(1e-9, ...tiers.map((tier) => Math.abs(tier.distance)));
   const planes = tiers.flatMap((tier, tierIndex) => tier.entries.map((entry, entryIndex) => ({
     normal: tierNormal(tier, entry.index, design.gear),
-    offset: Math.abs(tier.distance),
+    offset: tierOffset(tier),
     faceId: `${tierIndex}:${entryIndex}`,
     operationId: `tier-${tierIndex}`,
     region: tier.region,
@@ -127,7 +136,7 @@ export function planeSignature(design) {
   return tiers.flatMap((tier, tierIndex) => tier.entries.flatMap((entry, entryIndex) => {
     if (!open && !faces.has(`${tierIndex}:${entryIndex}`)) return [];
     const normal = tierNormal(tier, entry.index, design.gear);
-    const offset = (Math.abs(tier.distance) - (normal.x * center.x + normal.y * center.y + normal.z * center.z)) / unit;
+    const offset = (tierOffset(tier) - (normal.x * center.x + normal.y * center.y + normal.z * center.z)) / unit;
     return [{ normal, offset }];
   })).sort((a, b) => a.normal.x - b.normal.x || a.normal.y - b.normal.y || a.normal.z - b.normal.z);
 }
@@ -194,8 +203,10 @@ export function documentFromDesign(design, { diagnostics = [], summary = designS
   let scale = 1;
   for (const tier of tiers) {
     for (const { index } of tier.entries) {
-      const distance = Math.abs(tier.distance);
-      if (distance > EPSILON) scale = Math.min(scale, rotationalStockSupportOffset(tierNormal(tier, index, indexTeeth)) / distance);
+      const signedOffset = tierOffset(tier);
+      if (signedOffset > EPSILON) {
+        scale = Math.min(scale, rotationalStockSupportOffset(tierNormal(tier, index, indexTeeth)) / signedOffset);
+      }
     }
   }
   scale = Math.min(1, scale);
@@ -210,7 +221,7 @@ export function documentFromDesign(design, { diagnostics = [], summary = designS
   } else if (tiers.some((tier) => tier.entries.some(({ index }) => {
     const normal = tierNormal(tier, index, indexTeeth);
     const axisAligned = [normal.x, normal.y, normal.z].some((value) => Math.abs(Math.abs(value) - 1) < 1e-12);
-    return axisAligned && rotationalStockSupportOffset(normal) - Math.abs(tier.distance) * scale < 1e-9;
+    return axisAligned && rotationalStockSupportOffset(normal) - tierOffset(tier) * scale < 1e-9;
   }))) {
     scale *= 1 - 1e-6; // an open design's plane resting on a stock face stays a real cut
   }
@@ -251,7 +262,7 @@ export function documentFromDesign(design, { diagnostics = [], summary = designS
     };
     const facets = tier.entries.map((entry, ordinal) => {
       const normal = tierNormal(tier, entry.index, indexTeeth);
-      const depth = Math.max(0, rotationalStockSupportOffset(normal) - Math.abs(tier.distance) * scale);
+      const depth = Math.max(0, rotationalStockSupportOffset(normal) - tierOffset(tier) * scale);
       return resolveFacet({
         id: `${patternId}:${displayIndex(entry.index, indexTeeth)}`,
         patternId,
@@ -478,7 +489,7 @@ export function designFromDocument(document, { target = "该格式" } = {}) {
     refractiveIndex: Number.isFinite(ri) && ri > 1 ? ri : 1.54,
     headings: [document.name, ...(Array.isArray(asc.headings) ? asc.headings.slice(1) : [])],
     footnotes: Array.isArray(asc.footnotes) ? [...asc.footnotes] : [],
-    tiers: [...tiers, ...hiddenTiers.map((tier) => ({ ...structuredClone(tier), hidden: true }))],
+    tiers: [...markTable(tiers), ...hiddenTiers.map((tier) => ({ ...structuredClone(tier), hidden: true }))],
     extras: {},
   };
   if (document.metadata?.gcs) {
