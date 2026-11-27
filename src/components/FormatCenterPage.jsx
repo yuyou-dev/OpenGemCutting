@@ -129,6 +129,7 @@ function TargetDetail({ plan, source, onRun, busy }) {
     </div>
     <Diagnostics items={plan.diagnostics} title="技术细节（{0}）" />
     {source.origin === 'project' ? <p className="formats-json-note">{t('完整保存请在编辑页使用“文件 › 导出 JSON”：JSON 是唯一不丢信息的文件。')}</p> : null}
+    {source.origin === 'project' ? <p className="formats-json-note">{t('导入首饰建模或渲染软件请在编辑页使用“文件 › 导出 OBJ 三维模型 (.obj)”。')}</p> : null}
   </div>;
 }
 

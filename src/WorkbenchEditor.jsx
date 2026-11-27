@@ -1,5 +1,6 @@
 import { SizeMachiningDialog } from './components/SizeMachiningDialog.jsx';
 import { prepareSize } from './application/sizeWeight.js';
+import { DEFAULT_OBJ_WIDTH_MM, exportDocumentObj, inspectDocumentObjScale } from './domain/formats/obj.js';
 import { MeetAuditDialog } from './components/MeetAuditDialog.jsx';
 import { ringCutFromFacets } from "./domain/ringCut.js";
 import { gridCutFromFacets, gridPrimaryIndex } from "./domain/gridCut.js";
@@ -188,6 +189,8 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
   const [toast, setToast] = useState("");
   const [reportIncludeGirdle, setReportIncludeGirdle] = useState(false);
   const [reportSurfaceFinish, setReportSurfaceFinish] = useState("polished");
+  const [objCustomWidth, setObjCustomWidth] = useState("");
+  const [objTriangulate, setObjTriangulate] = useState(false);
   const importRef = useRef(null);
   const importSequence = useRef(0);
   useEffect(() => () => { importSequence.current++; }, [visible]);
@@ -1436,6 +1439,35 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
     notify(equipmentNotice || `已导出 ${document.facets.length} 个面的完整 JSON 参数。`);
   };
 
+  const exportObjMesh = () => {
+    const trimmed = objCustomWidth.trim();
+    if (trimmed) {
+      const parsedWidth = Number(trimmed);
+      if (!Number.isFinite(parsedWidth) || parsedWidth <= 0) {
+        notify("请输入大于零的毫米宽度。");
+        return;
+      }
+    }
+    try {
+      const exported = exportDocumentObj(document, {
+        solid: reportSolid,
+        triangulate: objTriangulate,
+        ...(trimmed ? { targetWidthMm: Number(trimmed) } : {}),
+      });
+      const fileName = `${safeFileStem(document.name)}.obj`;
+      downloadBlob(new Blob([exported.text], { type: "model/obj;charset=utf-8" }), fileName);
+      setModal(null);
+      notify(t("已导出 {0}（{1} × {2} × {3} mm）。", [
+        fileName,
+        exported.dimensionsMm.length.toFixed(2),
+        exported.dimensionsMm.width.toFixed(2),
+        exported.dimensionsMm.height.toFixed(2),
+      ]));
+    } catch (error) {
+      notify(t("OBJ 导出失败：{0}", [error.message]));
+    }
+  };
+
   const exportPdfReport = async () => {
     setModal(null);
     notify("正在生成切磨数据报告…");
@@ -1601,6 +1633,10 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
               setRecoveryOpen(true);
             }}
             onExportOther={() => onFormats?.("project")}
+            onExportObj={() => {
+              setObjCustomWidth("");
+              setModal("obj");
+            }}
             onExportPdf={() => setModal("pdf")}
             onUndo={() => {
               const next = undoFacetingCommand(history);
@@ -2095,6 +2131,62 @@ export function WorkbenchEditor({ initialDocument, designControllerRef, projectI
           <p>{t("JSON 保留已提交的完整 CUT STACK（含被覆盖工序）、Meet 快照和光学材质。需要导出当前预览时，请先取消此窗口并保存切割。")}</p>
         </Modal>
       ) : null}
+
+      {modal === "obj" ? (() => {
+        const baseScale = inspectDocumentObjScale(document, reportSolid);
+        const defaultWidthText = baseScale.hasSavedScale
+          ? Number(baseScale.dimensionsMm.width.toFixed(4)).toString()
+          : String(DEFAULT_OBJ_WIDTH_MM);
+        const widthInput = objCustomWidth === "" ? defaultWidthText : objCustomWidth;
+        const parsedWidth = Number(widthInput);
+        const validWidth = widthInput.trim() !== "" && Number.isFinite(parsedWidth) && parsedWidth > 0;
+        const previewScale = validWidth
+          ? (objCustomWidth === "" ? baseScale : inspectDocumentObjScale(document, reportSolid, { targetWidthMm: parsedWidth }))
+          : null;
+        const scaleNote = baseScale.scaleSource === "rough-stock"
+          ? "当前使用原石标定的真实毫米比例；修改上方宽度仅作用于本次导出，不会改动原石标定。"
+          : baseScale.scaleSource === "adopted-size"
+            ? "当前使用“尺寸与重量”已采用的毫米比例；修改上方宽度仅作用于本次导出，不会改动原设计。"
+            : "当前设计尚未保存物理尺寸，默认按 10 mm 成品宽度换算毫米坐标；也可在“更多工具 › 尺寸与重量”中保存固定尺寸。";
+        return (
+          <Modal eyebrow="OBJ · 3D MESH" title={t("导出 OBJ 三维模型")} confirmLabel={t("导出 .obj")} onClose={() => setModal(null)} onConfirm={exportObjMesh}>
+            <p>{t("按毫米（mm）输出已提交的最终三维实体（含平切有效面与凹切结果），保留逐面硬边外向法线并按台面、冠部、腰部、亭部、凹切分组，可直接导入 Rhino、MatrixGold、JewelCAD、Blender 排石建模。")}</p>
+            <label className="size-field">
+              {t("成品宽度 W (mm)")}
+              <span>
+                <input
+                  aria-label={t("成品宽度 W (mm)")}
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={widthInput}
+                  onChange={(event) => setObjCustomWidth(event.target.value)}
+                />{" "}mm
+              </span>
+            </label>
+            {previewScale ? (
+              <p>{t("导出尺寸：{0} × {1} × {2} mm（长 L × 宽 W × 高 H）", [
+                previewScale.dimensionsMm.length.toFixed(3),
+                previewScale.dimensionsMm.width.toFixed(3),
+                previewScale.dimensionsMm.height.toFixed(3),
+              ])}</p>
+            ) : (
+              <p role="alert">{t("请输入大于零的毫米宽度。")}</p>
+            )}
+            <p>{t(scaleNote)}</p>
+            {hasUnsavedPreview ? <p>{t("当前还有未保存的预览，本次导出只包含已保存的设计。")}</p> : null}
+            <p>{t("OBJ 仅保存三维几何网格与毫米尺寸，不包含分度盘、切磨工序、Meet 约束与光学材质；完整设计存档请同时导出 JSON。")}</p>
+            <label className="modal-check">
+              <input
+                type="checkbox"
+                checked={objTriangulate}
+                onChange={(event) => setObjTriangulate(event.target.checked)}
+              />
+              <span>{t("输出三角化网格（兼容仅支持三角面的旧版建模或切片软件）")}</span>
+            </label>
+          </Modal>
+        );
+      })() : null}
 
       {modal === "pdf" ? (
         <Modal eyebrow="PDF · REPORT" title={t("导出 PDF 技术报告")} confirmLabel={t("生成报告")} onClose={() => setModal(null)} onConfirm={exportPdfReport}>
