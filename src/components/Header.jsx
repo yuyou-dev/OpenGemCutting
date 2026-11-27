@@ -63,6 +63,7 @@ export function Header({
   onImportCrystal,
   onExport,
   onExportOther,
+  onExportObj,
   onExportGroup,
   hasPhysicalStock = false,
   onExportPdf,
@@ -240,6 +241,12 @@ export function Header({
             <IconArrowsExchange size={15} />
             <span>{t("导出到其他软件…")}</span>
           </button>
+          {onExportObj ? (
+            <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportObj)}>
+              <IconCube size={15} />
+              <span>{t("导出 OBJ 三维模型 (.obj)")}</span>
+            </button>
+          ) : null}
           <button type="button" role="menuitem" onClick={(event) => runMenuAction(event, onExportPdf)}>
             <IconFileTypePdf size={15} />
             <span>{t("导出 PDF 报告")}</span>

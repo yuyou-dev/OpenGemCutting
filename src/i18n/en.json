@@ -2663,5 +2663,20 @@
   "导出加工 PDF 使用已采用尺寸，界面为英文时输出英文说明。核对分度、毫米值和材质名称；技术报告也附有尺寸重量页。": "The machining PDF uses the adopted size. An English interface produces English explanations. Check indices, millimeter values and material names; the technical report also includes a size and weight page.",
   "另一位切磨师能否仅根据文件辨认采用的尺寸和测量基准？若不能，请先补充沟通而不是把几何值当设备刻度。": "Can another cutter identify the adopted size and reference from the file alone? If not, clarify them before treating any geometric value as a machine setting.",
   "材质": "Material",
-  "体积": "Volume"
+  "体积": "Volume",
+  "导出 OBJ 三维模型 (.obj)": "Export 3D Mesh (.obj)",
+  "导出 OBJ 三维模型": "Export 3D Mesh (.obj)",
+  "导出 .obj": "Export .obj",
+  "成品宽度 W (mm)": "Finished width W (mm)",
+  "导出尺寸：{0} × {1} × {2} mm（长 L × 宽 W × 高 H）": "Export dimensions: {0} × {1} × {2} mm (L × W × H)",
+  "当前使用“尺寸与重量”已采用的毫米比例；修改上方宽度仅作用于本次导出，不会改动原设计。": "Using the millimeter scale adopted in Size & weight. Changing the width above applies only to this export and leaves your design unchanged.",
+  "当前使用原石标定的真实毫米比例；修改上方宽度仅作用于本次导出，不会改动原石标定。": "Using the calibrated rough millimeter scale. Changing the width above applies only to this export and leaves the rough calibration unchanged.",
+  "当前设计尚未保存物理尺寸，默认按 10 mm 成品宽度换算毫米坐标；也可在“更多工具 › 尺寸与重量”中保存固定尺寸。": "No physical size is saved yet; coordinates default to a 10 mm finished width. You can also save an adopted size under More tools › Size and weight.",
+  "按毫米（mm）输出已提交的最终三维实体（含平切有效面与凹切结果），保留逐面硬边外向法线并按台面、冠部、腰部、亭部、凹切分组，可直接导入 Rhino、MatrixGold、JewelCAD、Blender 排石建模。": "Exports the committed 3D solid in millimeters (mm), including planar facets and concave boolean cuts, with hard outward per-facet normals and table/crown/girdle/pavilion/concave groups for Rhino, MatrixGold, JewelCAD and Blender.",
+  "OBJ 仅保存三维几何网格与毫米尺寸，不包含分度盘、切磨工序、Meet 约束与光学材质；完整设计存档请同时导出 JSON。": "OBJ stores only the 3D surface mesh and millimeter dimensions—no index wheel, cutting steps, Meet constraints or optical material. Export JSON as well to keep the full editable design.",
+  "输出三角化网格（兼容仅支持三角面的旧版建模或切片软件）": "Triangulate all faces (for legacy CAD or slicer tools that require triangles)",
+  "请输入大于零的毫米宽度。": "Enter a millimeter width greater than zero.",
+  "已导出 {0}（{1} × {2} × {3} mm）。": "Exported {0} ({1} × {2} × {3} mm).",
+  "OBJ 导出失败：{0}": "OBJ export failed: {0}",
+  "导入首饰建模或渲染软件请在编辑页使用“文件 › 导出 OBJ 三维模型 (.obj)”。": "For jewelry CAD or 3D rendering software, use “File › Export 3D Mesh (.obj)” in the editor."
 }
